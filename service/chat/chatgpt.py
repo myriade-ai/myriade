@@ -7,7 +7,7 @@ from back.models import ConversationMessage as Message
 from back.session import session
 
 # https://platform.openai.com/docs/models/gpt-4
-DEFAULT_MODEL = "gpt-4-0314"
+DEFAULT_MODEL = "gpt-4"
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", DEFAULT_MODEL)
 
 
