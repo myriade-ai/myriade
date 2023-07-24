@@ -1,92 +1,53 @@
 import { ref, computed } from 'vue'
-import type { Ref, WritableComputedRef } from 'vue'
-
+import type { ComputedRef, Ref } from 'vue'
 import axios from 'axios'
 
-interface Column {
-  name: string
-  dataType: string
-}
-
-interface Table {
-  name: string
-  description: string
-  columns: Column[]
-}
 export interface Database {
   id: number
   name: string
-  tables?: Table[]
   engine: string
   details: any
 }
 
-// DEFINE STATES
-const databases: Ref<Database[]> = ref([]) // Add type...
-const savedDatabaseId = localStorage.getItem('databaseId')
+const databases: Ref<Database[]> = ref([])
 const databaseSelectedId: Ref<number | null> = ref(
-  savedDatabaseId ? parseInt(savedDatabaseId) : null
+  localStorage.getItem('databaseId') ? parseInt(localStorage.getItem('databaseId') ?? '') : null
 )
 
-const databaseSelected: WritableComputedRef<Database> = computed({
-  get() {
-    return databases.value.find((database) => database.id === databaseSelectedId.value)
-  },
-  async set(database) {
-    console.log('databaseSelected set')
-    await selectDatabaseById(database.id)
-    console.log('databaseSelected set done')
-    console.log(database)
-  }
+const databaseSelected: ComputedRef<Database> = computed(() => {
+  return databases.value.find((db) => db.id === databaseSelectedId.value) ?? ({} as Database)
 })
 
-// Fetches
-const fetchDatabases = async ({ refresh }) => {
-  if (databases.value.length > 0 && !refresh) {
-    // Skip if already fetched
-    return
-  }
-  databases.value = await axios.get(`/api/databases`).then((res) => res.data)
-  if (databases.value.length === 0) {
-    // If no databases, skip
-    return
-  }
-  if (databaseSelectedId.value === null) {
-    databaseSelectedId.value = databases.value[0].id
-  }
+const fetchDatabases = async ({ refresh }: { refresh: boolean }) => {
+  if (databases.value.length > 0 && !refresh) return
 
-  return databases.value
+  databases.value = await axios.get('/api/databases').then((res) => res.data)
+
+  if (!databases.value.length || databaseSelectedId.value !== null) return
+
+  databaseSelectedId.value = databases.value[0].id
 }
 
-export const addDatabaseSchema = async (databaseId: number) => {
-  const database = databases.value.find((database) => database.id === databaseId)
-
-  const tables = await axios.get(`/api/databases/${databaseId}/schema`).then((res) => res.data)
-
-  database.tables = tables
+export const fetchDatabaseTables = (databaseId: number) => {
+  return axios.get(`/api/databases/${databaseId}/schema`).then((res) => res.data)
 }
 
-// Methods
-const updateScan = async () => {
-  await axios.get(`/api/databases/${databaseSelected.value.id}/_scan`).then((res) => res.data)
-  await addDatabaseSchema(databaseSelected.value.id)
-}
+// const updateScan = async () => {
+//   await axios.get(`/api/databases/${databaseSelected.value.id}/_scan`)
+//   await addDatabaseSchema(databaseSelected.value.id)
+// }
 
-// Computed
 const selectDatabaseById = async (id: number) => {
   databaseSelectedId.value = id
   localStorage.setItem('databaseId', id.toString())
-  await addDatabaseSchema(databaseSelectedId.value)
 }
 
 const updateDatabase = async (id: number, database: Database) => {
-  return await axios.put('/api/databases/' + id, database)
+  return axios.put('/api/databases/' + id, database)
 }
 
 const createDatabase = async (database: Database): Promise<Database> => {
-  return axios.post('/api/databases', database).then((response) => {
-    return response.data
-  })
+  return axios.post('/api/databases', database).then((response) => response.data)
 }
 
 const deleteDatabase = (id: number) => {
@@ -94,19 +55,19 @@ const deleteDatabase = (id: number) => {
 }
 
 const getDatabaseById = (id: number) => {
-  return axios.get('/api/databases/').then((response) => {
-    return response.data.find((db) => db.id === id)
-  })
+  return axios
+    .get('/api/databases/')
+    .then((response) => response.data.find((db: Database) => db.id === id))
 }
 
 export const useDatabases = () => {
   return {
     fetchDatabases,
-    updateScan,
     databases,
     databaseSelected,
+    databaseSelectedId,
     selectDatabaseById,
-    addDatabaseSchema,
+    fetchDatabaseTables,
     updateDatabase,
     createDatabase,
     deleteDatabase,

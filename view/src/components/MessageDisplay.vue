@@ -5,7 +5,18 @@
   >
     <!-- if message.display = hide, then show as light gray -->
     <p class="font-bold">
-      {{ message.role }}
+      <span class="flex justify-between items-center w-full">
+        {{ message.role }}
+        <!-- Link to /query/{{ message.queryId }} if message.queryId is defined -->
+        <a
+          :href="`/query/${message.queryId}`"
+          class="text-blue-500"
+          v-if="message.queryId"
+          target="_blank"
+        >
+          Edit
+        </a>
+      </span>
     </p>
 
     <div v-if="message.functionCall">
@@ -43,6 +54,10 @@ import BaseBuilder from '@/components/BaseBuilder.vue'
 import yaml from 'js-yaml'
 import axios from 'axios'
 
+// Get databaseId from store
+import { useDatabases } from '../stores/databases'
+const { databaseSelectedId } = useDatabases()
+
 export default {
   components: {
     SqlCode,
@@ -52,10 +67,6 @@ export default {
   props: {
     message: {
       type: Object,
-      required: true
-    },
-    databaseId: {
-      type: Number,
       required: true
     }
   },
@@ -72,7 +83,7 @@ export default {
       try {
         const result = await axios.post('/api/query/_run', {
           query: sql,
-          databaseId: this.databaseId
+          databaseId: databaseSelectedId.value
         })
         console.log(result.data.rows)
         this.sqlResult = result.data.rows

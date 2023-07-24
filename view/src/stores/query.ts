@@ -4,7 +4,7 @@ import sqlPrettier from 'sql-prettier'
 import { useDatabases } from './databases'
 import router from '../router'
 
-const { selectDatabaseById, databaseSelected } = useDatabases()
+const { selectDatabaseById, databaseSelectedId } = useDatabases()
 
 export const queryId = ref<number | null>(null)
 export const queryTextTranslation = ref('')
@@ -16,12 +16,11 @@ export const queryError = ref(null)
 export const loading = ref(false)
 
 export const loadQuery = async (id: number) => {
-  console.log('id', id)
-  console.log(databaseSelected.value)
   const response = await axios.get(`/api/query/${id}`)
 
   const query = response.data
-  selectDatabaseById(query.databaseId)
+  await selectDatabaseById(query.databaseId)
+
   queryId.value = query.id
   if (query.sql) {
     queryTextTranslation.value = sqlPrettier.format(query.sql)
@@ -39,7 +38,7 @@ export const runQuery = async () => {
   return await axios
     .post('/api/query/_run', {
       query: querySQL.value,
-      databaseId: databaseSelected.value.id
+      databaseId: databaseSelectedId.value
     })
     .then((response) => {
       queryError.value = null

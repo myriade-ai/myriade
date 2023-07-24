@@ -97,6 +97,7 @@ class ConversationMessage(Base):
     display: bool
     done: bool
     functionCall: dict
+    queryId: int
 
     id = Column(Integer, primary_key=True)
     conversationId = Column(Integer, ForeignKey("conversation.id"), nullable=False)
@@ -109,6 +110,7 @@ class ConversationMessage(Base):
     done = Column(Boolean, nullable=False, default=False)
     createdAt = Column(TIMESTAMP, nullable=False, default=text("now()"))
     updatedAt = Column(TIMESTAMP, nullable=False, default=text("now()"))
+    queryId = Column(Integer, ForeignKey("query.id"), nullable=True)
 
     conversation = relationship("Conversation", back_populates="messages")
 
@@ -185,7 +187,6 @@ class Query(Base):
     tag = Column(String)
     tables = Column(String)
     wheres = Column(String)
-    messageId = Column(Integer, ForeignKey("conversation_message.id"))
     embedding = Column(Vector(1536))
 
     database = relationship("Database")

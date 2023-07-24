@@ -28,7 +28,6 @@
             <li v-for="(message, id) in messages" :key="id">
               <MessageDisplay
                 :key="id"
-                :databaseId="databaseSelected.id"
                 :message="message"
                 v-if="message?.display !== false || config.showHiddenMessages"
               />

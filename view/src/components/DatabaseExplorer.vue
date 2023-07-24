@@ -4,14 +4,10 @@
       <h3 class="text-lg leading-6 font-medium text-gray-900">Database</h3>
     </div>
     <ul role="list" class="divide-y divide-gray-200">
-      <div class="px-4 py-2" v-if="databaseSelected?.tables?.length === 0">
+      <div class="px-4 py-2" v-if="tables?.length === 0">
         No table available. <br />Please contact support.
       </div>
-      <li
-        v-for="(table, ind) in databaseSelected?.tables"
-        @click="onClick(ind)"
-        v-on:dblclick="onDblClick(ind)"
-      >
+      <li v-for="(table, ind) in tables" @click="onClick(ind)" v-on:dblclick="onDblClick(ind)">
         <div href="#" class="block hover:bg-gray-50">
           <div class="px-4 py-4 sm:px-6">
             <div class="flex items-center justify-between">
@@ -43,35 +39,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watchEffect } from 'vue'
 import { useDatabases } from '../stores/databases'
 import { querySQL, runQuery } from '../stores/query'
 
-const { databaseSelected, addDatabaseSchema } = useDatabases()
+const { databaseSelectedId, fetchDatabaseTables } = useDatabases()
+
+interface Column {
+  name: string
+  dataType: string
+}
+
+interface Table {
+  name: string
+  description: string
+  columns: Column[]
+}
 
 const showTableIndex = ref(0)
+const tables = ref<Table[]>([])
 
 const onClick = (tableInd: number) => {
   showTableIndex.value = tableInd
 }
 
 const onDblClick = (tableInd: number) => {
-  console.log(databaseSelected)
-  const tableSelected = databaseSelected.value.tables[tableInd]
+  console.log(databaseSelectedId)
+  const tableSelected = tables.value[tableInd]
   console.log(tableSelected)
 
   querySQL.value = `SELECT * FROM "${tableSelected.name}";`
   runQuery()
 }
 
-// On monted and on databaseSelected change, trigger addDatabaseSchema()
-watch(
-  () => databaseSelected.value,
-  (newDatabaseSelected) => {
-    if (newDatabaseSelected) {
-      addDatabaseSchema(newDatabaseSelected.id)
-    }
-  },
-  { immediate: true }
-)
+watchEffect(async () => {
+  console.log('databaseSelected', databaseSelectedId.value)
+  const selectedDatabaseId = databaseSelectedId.value
+  if (selectedDatabaseId) {
+    tables.value = await fetchDatabaseTables(selectedDatabaseId)
+    console.log('tables', tables.value)
+  }
+})
 </script>
