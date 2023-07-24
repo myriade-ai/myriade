@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 from typing import List
 
@@ -18,6 +19,16 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 Base = declarative_base()
+
+
+def format_to_camel_case(**kwargs):
+    # change lower_case keys to camelCase keys
+    def camel_case(snake_str):
+        components = snake_str.split("_")
+        return components[0] + "".join(x.title() for x in components[1:])
+
+    kwargs = {camel_case(k): v for k, v in kwargs.items()}
+    return kwargs
 
 
 @dataclass
@@ -85,12 +96,14 @@ class ConversationMessage(Base):
     data: dict
     display: bool
     done: bool
+    functionCall: dict
 
     id = Column(Integer, primary_key=True)
     conversationId = Column(Integer, ForeignKey("conversation.id"), nullable=False)
     role = Column(String, nullable=False)
     name = Column(String)
-    content = Column(String, nullable=False)
+    content = Column(String, nullable=True)
+    functionCall = Column(JSONB)
     data = Column(JSONB)
     display = Column(Boolean, nullable=False, default=True)
     done = Column(Boolean, nullable=False, default=False)
@@ -99,6 +112,19 @@ class ConversationMessage(Base):
 
     conversation = relationship("Conversation", back_populates="messages")
 
+    # format params before creating the object
+    def __init__(self, **kwargs):
+        kwargs = format_to_camel_case(**kwargs)
+        super().__init__(**kwargs)
+
+    @classmethod
+    def from_openai_dict(cls, **kwargs):
+        if kwargs.get("function_call"):
+            arguments_dumps = kwargs["function_call"].get("arguments")
+            if arguments_dumps:
+                kwargs["function_call"]["arguments"] = json.loads(arguments_dumps)
+        return ConversationMessage(**kwargs)
+
     def to_openai_dict(self) -> dict:
         res = {
             "role": self.role,
@@ -106,6 +132,15 @@ class ConversationMessage(Base):
         }
         if self.name:
             res["name"] = self.name
+        if self.functionCall:
+            res["function_call"] = {
+                "name": self.functionCall["name"],
+                # if functionCall["arguments"] is a dict, we dump it to a string
+                # because the OpenAI API doesn't accept nested dicts
+                "arguments": json.dumps(self.functionCall["arguments"])
+                if isinstance(self.functionCall["arguments"], dict)
+                else self.functionCall["arguments"],
+            }
         return res
 
 

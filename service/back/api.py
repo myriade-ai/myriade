@@ -3,7 +3,7 @@ from back.models import Conversation, ConversationMessage, Database, Table, Tabl
 from back.session import session
 from flask import Blueprint, g, jsonify, request
 from middleware import database_middleware, user_middleware
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 
 api = Blueprint("back_api", __name__)
@@ -38,9 +38,11 @@ def get_conversations():
     # Filter conversations based on ownerId (userId) OR organisationId
     conversations = (
         session.query(Conversation)
+        .join(ConversationMessage)
         .filter(
             Conversation.ownerId == g.user.id,
         )
+        .filter(and_(Conversation.id == ConversationMessage.conversationId))
         .all()
     )
     return jsonify(conversations)

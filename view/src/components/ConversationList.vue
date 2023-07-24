@@ -13,7 +13,7 @@
         @click.stop="selectConversation(conversation)"
       >
         <div @click="selectConversation(conversation)" class="truncate">
-          {{ conversation.name }}
+          {{ conversation.name || 'Unnamed...' }}
         </div>
         <button
           @click.stop="deleteConversation(conversation.id)"

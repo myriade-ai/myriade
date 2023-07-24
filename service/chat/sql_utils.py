@@ -2,7 +2,7 @@ import json
 
 MAX_DATA_SIZE = 4000  # Maximum size of the data to return
 
-RESULT_TEMPLATE = """Result {len_sample}/{len_total}:
+RESULT_TEMPLATE = """Results {len_sample}/{len_total} rows:
 ```json
 {sample}
 ```

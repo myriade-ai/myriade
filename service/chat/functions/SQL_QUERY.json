@@ -1,0 +1,14 @@
+{
+    "name": "SQL_QUERY",
+    "description": "Run an SQL query on the database and return the result",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "The SQL query string to be executed"
+        }
+      },
+      "required": ["query"]
+    }
+}

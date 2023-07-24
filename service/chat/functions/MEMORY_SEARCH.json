@@ -1,0 +1,15 @@
+{
+    "name": "MEMORY_SEARCH",
+    "description": "Searches through the AI's memory for a specific phrase or information",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "search": {
+          "type": "string",
+          "description": "The phrase or information to be searched for in the AI's memory"
+        }
+      },
+      "required": ["search"]
+    }
+}
+  

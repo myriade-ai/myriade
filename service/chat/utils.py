@@ -83,3 +83,21 @@ def find_closest_embeddings(query, top_n=5):
     closest_queries = closest_queries[:top_n]
 
     return [q[0] for q in closest_queries]
+
+
+def parse_function(text):
+    function_pattern = r"(\w+)\((\w+)=([`\"].*?[`\"])\)"
+    matches = re.finditer(function_pattern, text, re.DOTALL)
+
+    parsed_functions = []
+
+    for match in matches:
+        function_name = match.group(1).strip()
+        param_key = match.group(2).strip()
+        param_value = match.group(3).strip('`"')
+
+        arguments_dumps = json.dumps({param_key: param_value})
+        parsed_function = {"name": function_name, "arguments": arguments_dumps}
+        parsed_functions.append(parsed_function)
+
+    return parsed_functions[0]

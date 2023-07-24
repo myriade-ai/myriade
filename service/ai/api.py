@@ -1,7 +1,6 @@
 import json
 from functools import wraps
 
-import openai
 from back.datalake import DatalakeFactory
 from back.models import Database, Query
 from back.session import session

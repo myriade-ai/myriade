@@ -36,15 +36,20 @@
           </ul>
         </div>
 
-        <div class="w-full py-8">
+        <div class="w-full py-4">
           <div class="w-full flex justify-center">
             <!-- Display error message if queryStatus is error -->
-            <div v-if="queryStatus === 'error'">
-              <p class="text-red-500">{{ errorMessage }}</p>
-              <BaseButton @click="regenerate">Regenerate</BaseButton>
+            <div v-if="queryStatus === 'error'" class="flex flex-col items-center">
+              <div>
+                <p class="text-red-500">{{ errorMessage }}</p>
+              </div>
+              <div>
+                <BaseButton class="my-4" @click="regenerate">Regenerate</BaseButton>
+              </div>
             </div>
+
             <!-- Display Regenerating button if query is not running and last message is not a query -->
-            <div v-else-if="queryStatus == STATUS.TO_STOP && lastMessage?.type !== 'query'">
+            <div v-else-if="queryStatus != STATUS.RUNNING">
               <BaseButton @click="regenerate">Regenerate</BaseButton>
             </div>
 
@@ -187,9 +192,9 @@ const clearInput = () => {
 }
 
 const handleConversationChange = (message) => {
-  // If message has conversation_id, it is a new conversation.
-  if (message.conversation_id !== 'new' && message.conversation_id !== conversationId.value) {
-    router.push({ path: `/chat/${message.conversation_id}` })
+  // If message has conversationId, it is a new conversation.
+  if (message.conversationId !== 'new' && message.conversationId !== conversationId.value) {
+    router.push({ path: `/chat/${message.conversationId}` })
   }
 }
 

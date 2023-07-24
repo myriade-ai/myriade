@@ -1,7 +1,6 @@
 import json
 from abc import ABC, abstractmethod, abstractproperty
 
-
 import sqlalchemy
 from sqlalchemy import text
 
@@ -128,6 +127,7 @@ class BigQueryDatabase:
 class SnowflakeDatabase(AbstractDatabase):
     def __init__(self, **kwargs):
         import snowflake.connector
+
         self.connection = snowflake.connector.connect(**kwargs)
         self.metadata = []
 

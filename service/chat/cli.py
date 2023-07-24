@@ -1,5 +1,4 @@
 import click
-import openai
 from back.models import ConversationMessage, Query
 from back.session import session
 from chat.datachat import save_query

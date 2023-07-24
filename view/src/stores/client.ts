@@ -18,7 +18,7 @@ if (import.meta.env.VITE_PROPELAUTH_URL === undefined) {
       return Promise.resolve({
         accessToken: 'admin',
         user: {
-          userId: 'admin',
+          userId: 'local',
           email: 'admin@localhost',
           enabled: true,
           emailConfirmed: true,

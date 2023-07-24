@@ -1,6 +1,6 @@
 from threading import Lock
 
-from back.models import User
+from back.models import User, format_to_camel_case
 from back.session import session
 from chat.datachat import DatabaseChat
 from chat.lock import (
@@ -63,6 +63,7 @@ def handle_ask(question, conversation_id=None, database_id=None):
         question
     )
     for message in iterator:
+        message = format_to_camel_case(**message)
         emit("response", message)
 
 
@@ -75,4 +76,5 @@ def handle_regenerate(_, conversation_id=None, database_id=None):
         database_id, conversation_id, conversation_stop_flags
     ).regenerate_last_message()
     for message in iterator:
+        message = format_to_camel_case(**message)
         emit("response", message)

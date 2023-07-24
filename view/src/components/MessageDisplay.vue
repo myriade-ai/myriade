@@ -8,6 +8,18 @@
       {{ message.role }}
     </p>
 
+    <div v-if="message.functionCall">
+      <b>> {{ message.functionCall?.name }} </b>
+      <p v-if="message.functionCall?.name === 'MEMORY_SEARCH'">
+        Search: "{{ message.functionCall?.arguments?.search }}"
+      </p>
+      <SqlCode
+        v-else-if="message.functionCall?.name === 'SQL_QUERY'"
+        :code="message.functionCall?.arguments?.query"
+      />
+      <pre v-else>{{ message.functionCall?.arguments }}</pre>
+    </div>
+
     <template v-for="(part, index) in parsedText">
       <span style="white-space: pre-wrap" v-if="part.type === 'text'" :key="`text-${index}`">
         {{ part.content }}
@@ -114,7 +126,7 @@ export default {
         lastIndex = match.index + match[0].length
       }
 
-      if (lastIndex < this.message.content.length) {
+      if (lastIndex < this.message.content?.length) {
         parts.push({
           type: 'text',
           content: this.message.content.slice(lastIndex)
