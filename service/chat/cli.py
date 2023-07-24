@@ -1,3 +1,5 @@
+import json
+
 import click
 from back.models import ConversationMessage, Query
 from back.session import session
@@ -18,10 +20,27 @@ def save_query_backlog():
     # progress bar
     with click.progressbar(messages, length=total) as bar:
         for message in bar:
-            sql_queries = extract_sql(message.content)
-            for sql_query in sql_queries:
-                save_query(sql_query, message)
-            session.commit()
+            try:
+                sql_queries = extract_sql(message.content)
+
+                for sql_query in sql_queries:
+                    save_query(sql_query, message)
+
+            except Exception as e:
+                click.echo(f"Error while processing message {message.id}: {e}")
+                print(e)
+
+            # Get if functionCall is SQL_QUERY and get arguments.query
+            if message.functionCall and message.functionCall["name"] == "SQL_QUERY":
+                try:
+                    arguments = message.functionCall["arguments"]
+                    if isinstance(arguments, str):
+                        arguments = json.loads(arguments)
+                    sql_query = arguments["query"]
+                    save_query(sql_query, message)
+                except Exception as e:
+                    click.echo(f"Error while processing  {message.id}: {e}")
+                    print(e)
 
 
 @chat_cli.cli.command("fetch-query-embedding")

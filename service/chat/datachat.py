@@ -28,14 +28,16 @@ def extract_memory_query(content):
 
 
 def save_query(sql_query, message):
-    return
     query = Query(
-        query="???",
-        # databaseId=message.databaseId,
+        query="???",  # TODO: fix this
+        databaseId=message.conversation.databaseId,
         validatedSQL=sql_query,
-        # messageId=message.id,
     )
+    # Update message with queryId
     session.add(query)
+    session.commit()
+    message.queryId = query.id
+    session.add(message)
     session.commit()
 
 
@@ -164,7 +166,6 @@ class DatabaseChat:
                 function_name = function_call["name"]
                 function_arguments = function_call["arguments"]
                 if function_name == "SQL_QUERY":
-                    # save_query(sql_query, message)
                     print("function_arguments", function_arguments)
                     function_arguments["query"] = function_arguments["query"].strip()
                     sql_query = function_arguments["query"]
@@ -174,6 +175,7 @@ class DatabaseChat:
                         role="assistant",
                         display=False,
                     )
+                    save_query(sql_query, message)
                     yield message
                     response, _ = run_sql(self.datalake, sql_query)
                     message = self._record_message(
