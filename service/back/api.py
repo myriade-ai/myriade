@@ -95,6 +95,28 @@ def create_database():
     return jsonify(database)
 
 
+@api.route("/databases/<int:database_id>", methods=["DELETE"])
+@user_middleware
+def delete_database(database_id):
+    # Delete database
+    session.query(Database).filter_by(id=database_id).delete()
+    session.commit()
+    return jsonify({"success": True})
+
+
+@api.route("/databases/<int:database_id>", methods=["PUT"])
+@user_middleware
+def update_database(database_id):
+    # Update database
+    database = session.query(Database).filter_by(id=database_id).first()
+    database.name = request.json["name"]
+    database.description = request.json["description"]
+    database._engine = request.json["engine"]
+    database.details = request.json["details"]
+    session.commit()
+    return jsonify(database)
+
+
 @api.route("/databases", methods=["GET"])
 @user_middleware
 def get_databases():

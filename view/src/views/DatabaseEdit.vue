@@ -129,8 +129,8 @@ const clickSave = async () => {
     }
     router.push({ name: 'DatabaseList' })
   } catch (error) {
-    apiError.value = error.response.data.message
-    console.log('error', error.response.data.message)
+    console.error(error)
+    apiError.value = error.message
   }
 }
 </script>

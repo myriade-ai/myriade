@@ -48,7 +48,11 @@
             </div>
 
             <!-- Display Regenerating button if query is not running and last message is not a query -->
-            <div v-else-if="queryStatus != STATUS.RUNNING">
+            <div
+              v-else-if="
+                queryStatus != STATUS.RUNNING && lastMessage && lastMessage?.role != 'user'
+              "
+            >
               <BaseButton @click="regenerate">Regenerate</BaseButton>
             </div>
 
@@ -154,6 +158,8 @@ const hasHiddenMessages = computed(() => {
 const regenerate = async () => {
   // Replace with your dbt API endpoint to regenerate the conversation.
   socket.emit('regenerate', null, conversationId.value, databaseSelected.value.id)
+  // Remove the last message.
+  messages.value.pop()
 }
 
 const sendMessage = async () => {

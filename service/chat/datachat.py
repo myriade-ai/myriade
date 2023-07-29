@@ -107,14 +107,21 @@ class DatabaseChat:
         if function_call:
             message["function_call"] = function_call
 
-        conversaion_message = ConversationMessage(**message)
+        conversation_message = ConversationMessage(**message)
 
         # If this is the first message, we set the conversation as started
         # if not self.conversation.started:
         #     self.conversation.started = True
 
-        session.add(conversaion_message)
+        session.add(conversation_message)
         session.commit()
+
+        # If functionCall is SQL_QUERY, we save the query
+        if function_call and function_call["name"] == "SQL_QUERY":
+            arguments = function_call["arguments"]
+            sql_query = arguments["query"]
+            save_query(sql_query, conversation_message)
+
         return message
 
     def query_stop_flag(self):
@@ -175,7 +182,6 @@ class DatabaseChat:
                         role="assistant",
                         display=False,
                     )
-                    save_query(sql_query, message)
                     yield message
                     response, _ = run_sql(self.datalake, sql_query)
                     message = self._record_message(
@@ -212,6 +218,9 @@ class DatabaseChat:
     def regenerate_last_message(self):
         # Delete the last message and reask the question
         last_message = self.conversation.messages[-1]
+        previous_message = self.conversation.messages[-2]
         session.delete(last_message)
         session.commit()
-        yield from self.ask(last_message.content)
+
+        # Reask the question
+        yield from self.ask(previous_message.content)
