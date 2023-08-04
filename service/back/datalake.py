@@ -196,6 +196,5 @@ class DatalakeFactory:
             user = kwargs.get("user")
             password = kwargs.get("password")
             host = kwargs.get("host")
-            print(kwargs)
             uri = f"{dtype}://{user}:{password}@{host}/{kwargs['database']}"
             return SQLDatabase(uri)

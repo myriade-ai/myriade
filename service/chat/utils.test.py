@@ -1,6 +1,6 @@
 import unittest
 
-from utils import message_replace_json_block_to_csv
+from utils import find_closest_embeddings, message_replace_json_block_to_csv
 
 
 class TestMessageReplaceJsonBlockToCsv(unittest.TestCase):
@@ -32,6 +32,17 @@ class TestMessageReplaceJsonBlockToCsv(unittest.TestCase):
 
         output_content = message_replace_json_block_to_csv(input_content)
         self.assertEqual(output_content, expected_output)
+
+
+class TestDatabaseChat(unittest.TestCase):
+    # TODO: Add mock generate_embedding from chat.utils, used in find_closest_embeddings
+    # Also mockup the database
+
+    def test_find_closest_embeddings(self):
+        query = "Number of circuits per country"
+        closest_queries = find_closest_embeddings(query, top_n=2)
+        assert closest_queries[0].query == "Show all the circuits in France"
+        assert closest_queries[1].query == "Show me all the circuits in France"
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ from back.models import ConversationMessage, Query
 from back.session import session
 from chat.datachat import save_query
 from chat.sql_utils import extract_sql
-from chat.utils import generate_embedding
+from chat.utils import find_closest_embeddings, generate_embedding
 from flask import Blueprint
 from sqlalchemy import and_
 
@@ -69,3 +69,13 @@ def save_query_backlog_command():
     """CLI command to run save_query_backlog."""
     save_query_backlog()
     click.echo("Query backlog has been processed.")
+
+
+@chat_cli.cli.command("search-query")
+@click.argument("query", type=str)
+def search_query(query):
+    # Test of memory search
+    queries = find_closest_embeddings(query, top_n=3)
+    # queries = Query.memory_search(session, "select * from users")
+    for query in queries:
+        print(query.query)

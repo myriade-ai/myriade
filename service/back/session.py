@@ -1,11 +1,11 @@
 import json
+import os
+from datetime import date, datetime
 
-from sqlalchemy import create_engine
+from sqlalchemy import MetaData, create_engine
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/datamarket"
-
-from datetime import date, datetime
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 def json_serial(d):
@@ -21,7 +21,7 @@ def json_serial(d):
 
 def json_deserial(d):
     def date_hook(json_dict):
-        for (key, value) in json_dict.items():
+        for key, value in json_dict.items():
             try:
                 json_dict[key] = datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
             except:
@@ -31,8 +31,41 @@ def json_deserial(d):
     return json.loads(d, object_hook=date_hook)
 
 
+def setup_database(refresh=False):
+    from back.models import Base
+
+    # Create engine and metadata
+    engine = create_engine(DATABASE_URL)
+
+    if refresh:
+        # Drop all tables
+        Base.metadata.drop_all(engine)
+
+    # Create all tables
+    Base.metadata.create_all(engine)
+
+    # TODO: CREATE EXTENSION vector;
+
+    # Return the engine
+    return engine
+
+
+def teardown_database(engine):
+    from back.models import Base
+
+    # Drop all tables
+    Base.metadata.drop_all(engine)
+
+    # Dispose the engine
+    engine.dispose()
+
+
 engine = create_engine(
     DATABASE_URL, json_serializer=json_serial, json_deserializer=json_deserial
 )
 Session = sessionmaker(bind=engine)
 session = Session()
+
+
+if __name__ == "__main__":
+    setup_database(DATABASE_URL)

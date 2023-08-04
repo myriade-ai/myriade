@@ -8,26 +8,13 @@ from back.session import session
 from chat.chatgpt import ChatGPT, parse_chat_template
 from chat.lock import StopException
 from chat.sql_utils import extract_sql, run_sql
-from chat.utils import message_replace_json_block_to_csv
+from chat.utils import find_closest_embeddings, message_replace_json_block_to_csv
 
 MAX_DATA_SIZE = 4000  # Maximum size of the data to return
 CONVERSATION_MAX_ATTEMPT = 10  # Number of exchange the AI can do before giving up
 
 
-def extract_memory_query(content):
-    """
-    >>> extract_memory_query("MEMORY_SEARCH(station)")
-    'station'
-
-    >>> extract_memory_query("blabla bla")
-    """
-    search = re.search(r'MEMORY_SEARCH\("?(.*)"?\)', content)
-    if search:
-        memory = search.group(1)
-        return memory
-
-
-def save_query(sql_query, message):
+def save_query(sql_query: str, message: ConversationMessage) -> Query:
     query = Query(
         query="???",  # TODO: fix this
         databaseId=message.conversation.databaseId,
@@ -39,6 +26,7 @@ def save_query(sql_query, message):
     message.queryId = query.id
     session.add(message)
     session.commit()
+    return query
 
 
 response = """
@@ -95,7 +83,7 @@ class DatabaseChat:
         display: bool = True,
         done: bool = False,
         function_call=None,
-    ):
+    ) -> ConversationMessage:
         self.query_stop_flag()
         message = {
             "conversation_id": self.conversation.id,
@@ -120,8 +108,8 @@ class DatabaseChat:
         if function_call and function_call["name"] == "SQL_QUERY":
             arguments = function_call["arguments"]
             sql_query = arguments["query"]
-            save_query(sql_query, conversation_message)
-
+            query = save_query(sql_query, conversation_message)
+            message["query_id"] = query.id
         return message
 
     def query_stop_flag(self):
@@ -130,7 +118,7 @@ class DatabaseChat:
 
     @property
     def chat_gpt(self):
-        instruction, examples = parse_chat_template("chat/chat_template2.txt")
+        instruction, examples = parse_chat_template("chat/chat_template.txt")
         chat_gpt = ChatGPT(instruction=instruction, examples=examples)
 
         messages = self.conversation.messages
@@ -155,7 +143,7 @@ class DatabaseChat:
             self.conversation.name = question
 
         for attempt in range(CONVERSATION_MAX_ATTEMPT):
-            print(self.stop_flags, self.conversation.id)
+            print(f"attempt n°{attempt}")  # TODO: remove
             # Check if the user has stopped the query
             self.query_stop_flag()
 
@@ -176,6 +164,7 @@ class DatabaseChat:
                     print("function_arguments", function_arguments)
                     function_arguments["query"] = function_arguments["query"].strip()
                     sql_query = function_arguments["query"]
+                    # save_query(sql_query, response)
                     message = self._record_message(
                         content=None,
                         function_call=function_call,
@@ -199,7 +188,7 @@ class DatabaseChat:
                     )
                     print("memory_search", memory_search)
                     yield message
-                    # response = self.datalake.memory_search(memory_query)
+                    response = find_closest_embeddings(memory_search, 3)
                     response = f"response to {memory_search}"
                     message = self._record_message(
                         content=response, role="system", display=False

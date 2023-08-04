@@ -6,13 +6,8 @@ from turtle import distance
 
 import numpy as np
 import openai
-from back.models import Query
 from back.session import session
 from sqlalchemy import and_
-
-
-def cosine_similarity(a, b):
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
 def csv_dumps(data):
@@ -55,34 +50,20 @@ def generate_embedding(string):
 
 
 def find_closest_embeddings(query, top_n=5):
-    query_embedding = generate_embedding(query)
+    from back.models import Query
+    from sqlalchemy import func
 
-    queries = session.query(Query).filter(
-        and_(
-            Query.databaseId == 131,
-            Query.query != "???",
-            Query.embedding != None,  # Add this condition
-            Query.validatedSQL != None,  # Add this condition
-        )
+    embedding = generate_embedding(query)
+    results = (
+        session.query(Query)
+        # With embedding not null
+        .filter(Query.embedding != None)
+        # TODO: Should be at least 80% similar
+        # .filter(func.similarity(func.array(Query.embedding), embedding) >= 0.8)
+        # .filter(Query.embedding.op("<->")(func.array(embedding)) <= 1)
+        .order_by(Query.embedding.op("<->")(embedding)).limit(top_n)
     )
-
-    print("Total queries: ", queries.count())
-
-    # Fetch the top_n closest values to the query embedding
-    # Should be at least 80% similar
-    closest_queries = []
-    for q in queries:
-        distance = cosine_similarity(query_embedding, q.embedding)
-        if distance > 0.8:
-            closest_queries.append((q, distance))
-
-    # Sort by distance
-    closest_queries.sort(key=lambda x: x[1], reverse=True)
-
-    # Return the top_n matches
-    closest_queries = closest_queries[:top_n]
-
-    return [q[0] for q in closest_queries]
+    return results
 
 
 def parse_function(text):

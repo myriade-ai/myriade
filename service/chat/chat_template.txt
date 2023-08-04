@@ -5,57 +5,45 @@ You avoid unnecessary talk and get straight to the point.
 
 Exchange protocol:
 - If you output a SQL query, I will run it and show you the result (first 10 rows).
-- Use `MEMORY_SEARCH(XXX)` to retrieve 1-3 examples of SQL that are close to the query XXX. Great way to find relevant tables / columns.
 - If there is none, don't forget you can explore the database tables & values with SQL.
-- Use `sql xxx ` to start and end your SQL query.
 - If you have an anomaly or something weird, you try to verify it and/or find alternative ways.
 - If you want to display graph, you need to output fusionchart-yaml with context, xAxisName, yAxisName, outputType, sql.
 - Whenever you have all the information you need, you can say "DONE" to finish the conversation.
 - Tip: always use quote on column & table name (otherwise Postgres interpret as lowercase)
+- We can only show so much data. If you want to display more content from SQL, ask for less information.
 
 ## user
-
 In postgres database
 Show stations in san jose installed in 2012
 
 ## assistant
+> MEMORY_SEARCH(search="station san jose installed 2012")
 
-Show queries about station
-> MEMORY_SEARCH("station in san jose installed in 2012")
-
-## system
-No previous queries found.
+## function
+[]
 
 ## assistant
-
-Show me the database tables
-
-```sql
+> SQL_QUERY(query=```
 SELECT table_schema, table_name
 FROM information_schema.tables
-WHERE table_schema NOT IN ('pg_catalog', 'information_schema');
-```
+WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+```)
 
-## system
-
+## function
 "table_schema","table_name"
 "public","station"
 "public","station_info"
 "public","status"
 
 ## assistant
-
-Show me the structure of the table public.station
-
-```sql
+> SQL_QUERY(query=```
 SELECT column_name, data_type, is_nullable, column_default
 FROM information_schema.columns
 WHERE table_name = 'station'
 AND table_schema = 'public';
-```
+```)
 
-## system
-
+## function
 "column_name","data_type","is_nullable","column_default"
 "id","integer","NO",
 "name","text","YES",
@@ -66,17 +54,13 @@ AND table_schema = 'public';
 "installation_date","text","YES",
 
 ## assistant
-
-Show me the different values of city table in public.station
-
-```sql
+> SQL_QUERY(query=```
 SELECT "city", COUNT(*)
 FROM "public"."station"
 GROUP BY 1
-```
+```)
 
-## system
-
+## function
 "city","count"
 "Palo Alto",5
 "San Jose",16
@@ -85,35 +69,27 @@ GROUP BY 1
 "Mountain View",7
 
 ## assistant
-
-Try to run
-
-```sql
+> SQL_QUERY(query=```
 SELECT *
 FROM "public"."station"
 WHERE "city" = 'San Jose' AND date_part('year', "installation_date") = 2012;
-```
+```)
 
-## system
-
+## function
 ERROR: function date_part(unknown, text) does not exist
 LINE 3: WHERE city = 'San Jose' AND date_part('year', installation_d...
 ^
 HINT: No function matches the given name and argument types. You might need to add explicit type casts.
 
 ## assistant
-
-Ok, show me some examples of installation_date
-
-```sql
+> SQL_QUERY(query=```
 SELECT "installation_date"
 FROM "public"."station"
 ORDER BY RANDOM()
 LIMIT 5;
-```
+```)
 
-## system
-
+## function
 "installation_date"
 "8/6/2013"
 "8/20/2013"
@@ -122,17 +98,13 @@ LIMIT 5;
 "8/6/2013"
 
 ## assistant
-
-Ok the correct query should be
-
-```sql
+> SQL_QUERY(query=```
 SELECT *
 FROM "public"."station"
 WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 2012;
-```
+```)
 
-## system
-
+## function
 "id","name","lat","long","dock_count","city","installation_date"
 2,"San Jose Diridon Caltrain Station",37.329732,-121.901782000000011405,27,"San Jose","8/6/2012"
 3,"San Jose Civic Center",37.330698,-121.888979,15,"San Jose","8/5/2012"
@@ -141,7 +113,6 @@ WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 201
 6,"San Pedro Square",37.3367210000000042673,-121.894074,15,"San Jose","8/7/2012"
 
 ## assistant
-
 Ok. They have been 6 station in San Jose:
 - San Jose Diridon Caltrain Station
 - San Jose Civic Center
@@ -152,13 +123,9 @@ Ok. They have been 6 station in San Jose:
 DONE
 
 ## user
-
-show distribution of stations per city
+Show distribution of stations per city
 
 ## assistant
-
-Here is the distribution:
-
 ```yml-graph
 name: Distribution of stations per city
 outputType: Doughnut2d
@@ -172,13 +139,10 @@ sql: "SELECT city, COUNT(*) as \"count\"\nFROM public.station\nGROUP BY city"
 DONE
 
 ## user
-
 show electric station
 
 ## assistant
-Show queries about electric station
-
-> MEMORY_SEARCH("electric station")
+> MEMORY_SEARCH(search="electric station")
 
 ## system
 Previous queries:
@@ -193,13 +157,10 @@ GROUP BY 1
 ```
 
 ## assistant
-Ok, based on the previous queries, here is how to show the list of electric station:
-
-```sql
+> SQL_QUERY(query=```
 SELECT station.name
 FROM station
 JOIN station_info USING (id)
 WHERE station_info.electric IS TRUE
-```
+```)
 
-DONE

@@ -3,7 +3,7 @@ import os
 import typing
 
 import openai
-from back.models import ConversationMessage as Message
+from back.models import ConversationMessage
 from back.session import session
 from chat.utils import parse_function
 
@@ -65,7 +65,7 @@ def hashkey(x) -> str:
 
 
 def cache_db(f):
-    def wrapper(messages: list[Message]) -> Message:
+    def wrapper(messages: list[ConversationMessage]) -> ConversationMessage:
         from back.models import Prediction
 
         messages_dict = [m.to_openai_dict() for m in messages]
@@ -74,7 +74,7 @@ def cache_db(f):
         key = hashkey(messages_dict)
         prediction = session.query(Prediction).filter_by(params_hash=key).first()
         if prediction:
-            return Message(**prediction.value)
+            return ConversationMessage(**prediction.value)
         else:
             response = f(messages_dict)
             message = response.choices[0].message
@@ -90,7 +90,7 @@ def cache_db(f):
             )
             session.add(prediction)
             session.commit()
-            return Message.from_openai_dict(**value)
+            return ConversationMessage.from_openai_dict(**value)
 
     return wrapper
 
@@ -104,14 +104,14 @@ def fetch_openai(messages: list[dict]):
 
 class ChatGPT:
     def __init__(self, instruction=None, examples=[]) -> None:
-        self.pre_history: list[Message] = []
-        self.history: list[Message] = []
+        self.pre_history: list[ConversationMessage] = []
+        self.history: list[ConversationMessage] = []
         self.instruction: typing.Optional[str] = instruction
         self.examples = examples
 
         if self.instruction:
             self.pre_history.append(
-                Message(**{"role": "system", "content": self.instruction})
+                ConversationMessage(**{"role": "system", "content": self.instruction})
             )
 
         # Simple loop
@@ -119,7 +119,7 @@ class ChatGPT:
             # Herit name from message role
 
             self.pre_history.append(
-                Message(
+                ConversationMessage(
                     **{
                         **example,
                         # "role": "system",
@@ -135,16 +135,16 @@ class ChatGPT:
         return self.history[-1].content
 
     def reset(self):
-        self.history: list[Message] = []
+        self.history: list[ConversationMessage] = []
 
-    def load_history(self, messages: list[Message]):
+    def load_history(self, messages: list[ConversationMessage]):
         # Check order of messages (based on createdAt)
         # Oldest first (createdAt ASC)
         messages = sorted(messages, key=lambda x: x.createdAt)
         self.history = [message for message in messages]
 
-    def ask(self, question=None):
-        messages: list[Message] = []
+    def ask(self, question=None) -> ConversationMessage:
+        messages: list[ConversationMessage] = []
 
         for message in self.pre_history:
             messages.append(message)
@@ -155,7 +155,7 @@ class ChatGPT:
 
         if question:
             # Add the question
-            new_message = Message(**{"role": "user", "content": question})
+            new_message = ConversationMessage(**{"role": "user", "content": question})
             messages.append(new_message)
             self.history.append(new_message)  # Add the question to the history
 

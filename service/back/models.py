@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass, field
 from typing import List
 
+from chat.utils import generate_embedding
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     ARRAY,
@@ -16,7 +17,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, session
 
 Base = declarative_base()
 
