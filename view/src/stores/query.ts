@@ -28,7 +28,7 @@ export const loadQuery = async (id: number) => {
   }
   queryValidated.value = query.validated
   if (querySQL.value) {
-    await runQuery()
+    runQuery()
   }
   // querySQL.value = sqlPrettier.format(response.data.output);
 }

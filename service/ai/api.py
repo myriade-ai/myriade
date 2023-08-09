@@ -54,23 +54,12 @@ def run_query_by_id(query_id):
 
     # Get databaseId from query
     databaseId = query.databaseId
-    database = g.session.query(Database).filter_by(id=databaseId).first()
-    # Add a datalake object to the request
-    datalake = DatalakeFactory.create(
-        database.engine,
-        **database.details,
-    )
 
     #
     # sql is validatedSQL or first result from choices
     sql = query.validatedSQL or query.result["choices"][0]["text"].strip()
-    result = datalake.query(sql)
-
-    count = len(result)
     return jsonify(
         {
-            "rows": result[:50],
-            "count": count,
             "databaseId": databaseId,
             "query": query.query,
             "sql": sql,
