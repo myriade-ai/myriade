@@ -36,6 +36,10 @@ class SQLDatabase:
         self.metadata = []
         self.load_metadata()
 
+    def dispose(self):
+        # On destruct, close the engine
+        self.engine.dispose()
+
     @property
     def dialect(self):
         # "postgresql", "mysql", "sqlite", "mssql"
@@ -194,7 +198,7 @@ class DatalakeFactory:
             return SnowflakeDatabase(**kwargs)
         else:
             user = kwargs.get("user")
-            password = kwargs.get("password")
+            password = kwargs.get("password", "")
             host = kwargs.get("host")
             uri = f"{dtype}://{user}:{password}@{host}/{kwargs['database']}"
             return SQLDatabase(uri)

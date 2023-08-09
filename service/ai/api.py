@@ -3,7 +3,6 @@ from functools import wraps
 
 from back.datalake import DatalakeFactory
 from back.models import Database, Query
-from back.session import session
 from flask import Blueprint, g, jsonify, request
 from middleware import user_middleware
 
@@ -14,7 +13,7 @@ def database_middleware(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         databaseId = request.json.get("databaseId")
-        database = session.query(Database).filter_by(id=databaseId).first()
+        database = g.session.query(Database).filter_by(id=databaseId).first()
         # Add a datalake object to the request
         datalake = DatalakeFactory.create(
             database.engine,
@@ -49,13 +48,13 @@ def run_query_by_id(query_id):
     Run a query against the database
     Return eg. {"rows":[{"count":"607"}],"count":1}
     """
-    query = session.query(Query).filter_by(id=query_id).first()
+    query = g.session.query(Query).filter_by(id=query_id).first()
     if not query:
         return jsonify({"error": "Query not found"}), 404
 
     # Get databaseId from query
     databaseId = query.databaseId
-    database = session.query(Database).filter_by(id=databaseId).first()
+    database = g.session.query(Database).filter_by(id=databaseId).first()
     # Add a datalake object to the request
     datalake = DatalakeFactory.create(
         database.engine,

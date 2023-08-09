@@ -1,7 +1,7 @@
 from threading import Lock
 
 from back.models import User, format_to_camel_case
-from back.session import session
+from back.session import Session
 from chat.datachat import DatabaseChat
 from chat.lock import (
     STATUS,
@@ -10,7 +10,7 @@ from chat.lock import (
     handle_stop_flag,
     stop_flag_lock,
 )
-from flask import Blueprint
+from flask import Blueprint, g
 from flask_socketio import emit
 
 api = Blueprint("chat_api", __name__)
@@ -19,6 +19,8 @@ from app import socketio
 
 MAX_DATA_SIZE = 4000  # Maximum size of the data to return
 CONVERSATION_MAX_ATTEMPT = 10  # Number of attempts to ask the ai before giving up
+
+socket_session = None
 
 
 def user_has_access(user_id: int, database_id: int) -> bool:
@@ -29,7 +31,7 @@ def user_has_access(user_id: int, database_id: int) -> bool:
     :param database_id: The ID of the database.
     :return: True if the user has access, False otherwise.
     """
-    user = session.query(User).filter_by(id=user_id).first()
+    user = g.session.query(User).filter_by(id=user_id).first()
 
     if not user:
         return False
@@ -59,22 +61,34 @@ def handle_stop(conversation_id):
 @socketio.on("ask")
 @handle_stop_flag
 def handle_ask(question, conversation_id=None, database_id=None):
-    iterator = DatabaseChat(database_id, conversation_id, conversation_stop_flags).ask(
-        question
-    )
+    iterator = DatabaseChat(
+        socket_session, database_id, conversation_id, conversation_stop_flags
+    ).ask(question)
     for message in iterator:
-        message = format_to_camel_case(**message)
-        emit("response", message)
+        emit("response", message.to_dict())
 
 
 @socketio.on("regenerate")
 @handle_stop_flag
 def handle_regenerate(_, conversation_id=None, database_id=None):
     # get conversation_id from the database
-    # conversation = session.query(Conversation).filter_by(id=conversation_id).first()
+    # conversation = g.session.query(Conversation).filter_by(id=conversation_id).first()
     iterator = DatabaseChat(
-        database_id, conversation_id, conversation_stop_flags
+        socket_session, database_id, conversation_id, conversation_stop_flags
     ).regenerate_last_message()
     for message in iterator:
-        message = format_to_camel_case(**message)
-        emit("response", message)
+        emit("response", message.to_dict())
+
+
+@socketio.on("connect")
+def on_connect():
+    # This is where you would initialize your session
+    # or any other per-connection resources.
+    global socket_session
+    socket_session = Session()
+
+
+@socketio.on("disconnect")
+def on_disconnect():
+    # Cleanup: Close or remove any resources you initialized on connect
+    socket_session.close()

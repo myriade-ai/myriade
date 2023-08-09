@@ -2,7 +2,6 @@ import json
 from dataclasses import dataclass, field
 from typing import List
 
-from chat.utils import generate_embedding
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     ARRAY,
@@ -29,6 +28,18 @@ def format_to_camel_case(**kwargs):
         return components[0] + "".join(x.title() for x in components[1:])
 
     kwargs = {camel_case(k): v for k, v in kwargs.items()}
+    return kwargs
+
+
+def format_to_snake_case(**kwargs):
+    # change camelCase keys to lower_case keys
+    def snake_case(name):
+        name = name[0].lower() + name[1:]
+        return "".join(["_" + c.lower() if c.isupper() else c for c in name]).lstrip(
+            "_"
+        )
+
+    kwargs = {snake_case(k): v for k, v in kwargs.items()}
     return kwargs
 
 
@@ -119,6 +130,23 @@ class ConversationMessage(Base):
     def __init__(self, **kwargs):
         kwargs = format_to_camel_case(**kwargs)
         super().__init__(**kwargs)
+
+    def to_dict(self):
+        # Export to dict, only keys declared in the dataclass
+        return {
+            "id": self.id,
+            "conversationId": self.conversationId,
+            "role": self.role,
+            "name": self.name,
+            "content": self.content,
+            "functionCall": self.functionCall,
+            "data": self.data,
+            "display": self.display,
+            "done": self.done,
+            # "createdAt": self.createdAt,
+            # "updatedAt": self.updatedAt,
+            "queryId": self.queryId,
+        }
 
     @classmethod
     def from_openai_dict(cls, **kwargs):

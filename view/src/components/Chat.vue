@@ -123,7 +123,7 @@ const STATUS = {
   ERROR: 'error'
 }
 
-const queryInput = ref('')
+const queryInput = ref('Show all tables with rows')
 const messages = ref([])
 const conversationId = computed(() => route.params.id)
 const queryStatus = ref(STATUS.CLEAR)
@@ -171,7 +171,6 @@ const sendMessage = async () => {
   const question = queryInput.value
   // Emit ask question and messages.length to the server.
   socket.emit('ask', question, conversationId.value, databaseSelected.value.id)
-  messages.value.push({ role: 'user', content: question })
   // After 100ms, clear the input.
   setTimeout(() => {
     clearInput()

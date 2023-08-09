@@ -2,11 +2,10 @@ import json
 
 import click
 from back.models import ConversationMessage, Query
-from back.session import session
 from chat.datachat import save_query
+from chat.memory_utils import find_closest_embeddings, generate_embedding
 from chat.sql_utils import extract_sql
-from chat.utils import find_closest_embeddings, generate_embedding
-from flask import Blueprint
+from flask import Blueprint, g
 from sqlalchemy import and_
 
 chat_cli = Blueprint("chat_cli", __name__)
@@ -14,7 +13,7 @@ chat_cli = Blueprint("chat_cli", __name__)
 
 def save_query_backlog():
     """Get all messages that have not been saved to the database yet"""
-    messages = session.query(ConversationMessage)
+    messages = g.session.query(ConversationMessage)
     total = messages.count()
     click.echo(f"Found {total} messages to process.")
     # progress bar
@@ -46,7 +45,7 @@ def save_query_backlog():
 @chat_cli.cli.command("fetch-query-embedding")
 def fetch_query_embedding():
     # Get all queries that don't have embedding yet
-    queries = session.query(Query).filter(
+    queries = g.session.query(Query).filter(
         and_(
             Query.databaseId == 131,
             Query.query != "???",
@@ -60,7 +59,7 @@ def fetch_query_embedding():
     with click.progressbar(queries, length=total) as bar:
         for query in bar:
             query.embedding = generate_embedding(query.query)
-        session.commit()
+        g.session.commit()
     click.echo("Query embeddings have been processed.")
 
 
@@ -75,7 +74,7 @@ def save_query_backlog_command():
 @click.argument("query", type=str)
 def search_query(query):
     # Test of memory search
-    queries = find_closest_embeddings(query, top_n=3)
+    queries = find_closest_embeddings(g.session, query, top_n=3)
     # queries = Query.memory_search(session, "select * from users")
     for query in queries:
         print(query.query)

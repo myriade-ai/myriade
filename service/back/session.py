@@ -7,6 +7,8 @@ from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 
+# DATABASE_URL = "postgresql://localhost/adatest"
+
 
 def json_serial(d):
     def _default(obj):
@@ -35,36 +37,36 @@ def setup_database(refresh=False):
     from back.models import Base
 
     # Create engine and metadata
-    engine = create_engine(DATABASE_URL)
+    _engine = create_engine(DATABASE_URL)
 
     if refresh:
         # Drop all tables
-        Base.metadata.drop_all(engine)
+        Base.metadata.drop_all(_engine)
 
     # Create all tables
-    Base.metadata.create_all(engine)
+    Base.metadata.create_all(_engine)
 
     # TODO: CREATE EXTENSION vector;
 
     # Return the engine
-    return engine
+    return _engine
 
 
-def teardown_database(engine):
+def teardown_database(_engine):
     from back.models import Base
 
     # Drop all tables
-    Base.metadata.drop_all(engine)
+    Base.metadata.drop_all(_engine)
 
     # Dispose the engine
-    engine.dispose()
+    _engine.dispose()
 
 
 engine = create_engine(
     DATABASE_URL, json_serializer=json_serial, json_deserializer=json_deserial
 )
 Session = sessionmaker(bind=engine)
-session = Session()
+# session = Session()
 
 
 if __name__ == "__main__":

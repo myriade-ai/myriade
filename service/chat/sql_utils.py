@@ -20,7 +20,8 @@ Please correct the query and try again.
 def run_sql(connection, sql):
     try:
         # Assuming you have a Database instance named 'database'
-        print("Executing SQL query: {}".format(sql))
+        # TODO: switch to logger
+        # print("Executing SQL query: {}".format(sql))
         rows = connection.query(sql)
     except Exception as e:
         # If there's an error executing the query, inform the user

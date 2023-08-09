@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import type { ComputedRef, Ref } from 'vue'
+import type { Ref, WritableComputedRef } from 'vue'
 import axios from 'axios'
 
 export interface Database {
@@ -14,8 +14,14 @@ const databaseSelectedId: Ref<number | null> = ref(
   localStorage.getItem('databaseId') ? parseInt(localStorage.getItem('databaseId') ?? '') : null
 )
 
-const databaseSelected: ComputedRef<Database> = computed(() => {
-  return databases.value.find((db) => db.id === databaseSelectedId.value) ?? ({} as Database)
+const databaseSelected: WritableComputedRef<Database> = computed({
+  get: () => {
+    return databases.value.find((db) => db.id === databaseSelectedId.value) ?? ({} as Database)
+  },
+  set: (newDatabase: Database) => {
+    databaseSelectedId.value = newDatabase.id
+    localStorage.setItem('databaseId', String(newDatabase.id))
+  }
 })
 
 const fetchDatabases = async ({ refresh }: { refresh: boolean }) => {

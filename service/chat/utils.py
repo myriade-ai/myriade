@@ -6,7 +6,6 @@ from turtle import distance
 
 import numpy as np
 import openai
-from back.session import session
 from sqlalchemy import and_
 
 
@@ -40,30 +39,6 @@ def message_replace_json_block_to_csv(content):
             f"```json\n{match}\n```", f"```csv\n{csv_data_str}\n```"
         )
     return content
-
-
-def generate_embedding(string):
-    response = openai.Embedding.create(input=string, model="text-embedding-ada-002")
-    # len => 1536
-    embedding = response["data"][0]["embedding"]
-    return embedding
-
-
-def find_closest_embeddings(query, top_n=5):
-    from back.models import Query
-    from sqlalchemy import func
-
-    embedding = generate_embedding(query)
-    results = (
-        session.query(Query)
-        # With embedding not null
-        .filter(Query.embedding != None)
-        # TODO: Should be at least 80% similar
-        # .filter(func.similarity(func.array(Query.embedding), embedding) >= 0.8)
-        # .filter(Query.embedding.op("<->")(func.array(embedding)) <= 1)
-        .order_by(Query.embedding.op("<->")(embedding)).limit(top_n)
-    )
-    return results
 
 
 def parse_function(text):

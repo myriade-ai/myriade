@@ -3,7 +3,6 @@ from functools import wraps
 
 from back.datalake import DatalakeFactory
 from back.models import Database, User
-from back.session import session
 from flask import g, request
 
 # TODO: remove this
@@ -16,7 +15,7 @@ def user_middleware(f):
         g.organisationId = organisationId
         # Extract user information from the request
         logged_user = (
-            session.query(User).filter(User.email == "admin@localhost").first()
+            g.session.query(User).filter(User.email == "admin@localhost").first()
         )
         if logged_user:
             g.user = logged_user
@@ -30,7 +29,7 @@ def database_middleware(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         databaseId = request.json.get("databaseId")
-        database = session.query(Database).filter_by(id=databaseId).first()
+        database = g.session.query(Database).filter_by(id=databaseId).first()
         # Add a datalake object to the request
         datalake = DatalakeFactory.create(
             database.engine,

@@ -2,8 +2,12 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
+# from main import app
 from sqlalchemy import MetaData, create_engine, text
 from sqlalchemy.orm import sessionmaker
+
+# from flask import g
+
 
 TEST_DATABASE_URL = "postgresql://localhost/adatest"
 
@@ -13,13 +17,12 @@ class TestDatabase(unittest.TestCase):
     def setUp(self):
         self.stop_flags = {}  # TODO: remove ?
 
+        from back.models import Database, User
         from back.session import setup_database
 
         self.engine = setup_database(refresh=True)
         self.Session = sessionmaker(bind=self.engine)
         self.session = self.Session()
-
-        from back.models import Database, User
 
         database = Database(
             name="test",
@@ -31,6 +34,7 @@ class TestDatabase(unittest.TestCase):
                 "database": "bike_1",
             },
         )
+
         user = User(email="test@test.com", id="local")  # TODO: why specifying id ?
         self.session.add(user)
         self.session.commit()
@@ -43,9 +47,9 @@ class TestDatabase(unittest.TestCase):
     def tearDown(self):
         from back.session import teardown_database
 
-        self.session.commit()  # TODO: unecessary ?
         self.session.close()
-        #  teardown_database(self.engine)
+        self.session.commit()  # TODO: unecessary ?
+        teardown_database(self.engine)
 
     def test_select_one(self):
         with self.engine.connect() as connection:
@@ -57,34 +61,13 @@ class TestDatabase(unittest.TestCase):
         from chat import datachat
 
         with patch(
-            "chat.datachat.DatabaseChat.chat_gpt", new_callable=MagicMock
-        ) as mock_chat_gpt:
-            mock_chat_gpt.ask.return_value = ConversationMessage(
+            "chat.chatgpt.ChatGPT.cache_db", new_callable=MagicMock
+        ) as mock_fetch:
+            mock_fetch.return_value = ConversationMessage(
                 role="assistant", content="Test message DONE"
             )
-
             chat = datachat.DatabaseChat(
-                self.database_id,
-                stop_flags=self.stop_flags,
-            )
-
-            result = list(chat.ask("Test question"))
-
-            mock_chat_gpt.ask.assert_called_once()
-            self.assertEqual(len(result), 1)
-            self.assertEqual(result[0]["content"], "Test message")
-            self.assertEqual(result[0]["done"], True)
-
-    def test_mock_openai(self):
-        from back.models import ConversationMessage
-        from chat import datachat
-
-        # Mock "chat.chatgpt.fetch_openai" call
-        with patch("chat.chatgpt.fetch_openai", new_callable=MagicMock) as mock_fetch:
-            response = ConversationMessage(role="assistant", content="Test message")
-            mock_fetch.return_value = response
-
-            chat = datachat.DatabaseChat(
+                self.session,
                 self.database_id,
                 stop_flags=self.stop_flags,
             )
@@ -93,30 +76,83 @@ class TestDatabase(unittest.TestCase):
 
             mock_fetch.assert_called_once()
             self.assertEqual(len(result), 1)
-            self.assertEqual(result[0]["content"], "Test message")
-            self.assertEqual(result[0]["done"], True)
+            self.assertEqual(result[0].content, "Test message")
+            self.assertEqual(result[0].done, True)
 
-    # def test_memory(self):
-    #     with patch(
-    #         "chat.datachat.DatabaseChat.chat_gpt", new_callable=MagicMock
-    #     ) as mock_chat_gpt:
-    #         mock_chat_gpt.ask.side_effect = [
-    #             ConversationMessage(content="MEMORY_SEARCH(test)"),
-    #             ConversationMessage(content="SELECT * FROM test"),
-    #             ConversationMessage(content="DONE"),
-    #         ]
+    def test_message_sql(self):
+        from back.models import ConversationMessage
+        from chat import datachat
 
-    #         chat = datachat.DatabaseChat(
-    #             self.database_id,
-    #             conversation_id=self.conversation_id,
-    #             stop_flags=self.stop_flags,
-    #         )
+        with patch(
+            "chat.chatgpt.ChatGPT.cache_db", new_callable=MagicMock
+        ) as mock_fetch:
+            mock_fetch.side_effect = [
+                ConversationMessage(
+                    role="assistant",
+                    functionCall={
+                        "name": "SQL_QUERY",
+                        "arguments": {
+                            "query": "\nSELECT table_schema, table_name\nFROM information_schema.tables\nWHERE table_schema NOT IN ('pg_catalog', 'information_schema')\n"
+                        },
+                    },
+                ),
+                ConversationMessage(role="assistant", content="There are XX tables"),
+            ]
 
-    #         list(chat.ask("Test question"))
+            chat = datachat.DatabaseChat(
+                self.session,
+                self.database_id,
+                stop_flags=self.stop_flags,
+            )
 
-    #         # # Delete the conversations from the database
-    #         # session.query(ConversationMessage).filter_by(conversationId=0).delete(),
-    #         # session.commit()
+            results = list(chat.ask("How many tables are there ?"))
+
+            # mock_fetch.assert_called_once
+            self.assertEqual(len(results), 3)
+            self.assertIsNotNone(results[0].functionCall)
+
+    def test_message_memory(self):
+        from back.models import ConversationMessage, Query
+        from chat import datachat
+
+        query = Query(
+            query="test 1", databaseId=self.database_id, embedding=[-0.04726902] * 1536
+        )
+
+        self.session.add(query)
+        self.session.commit()
+
+        with patch(
+            "chat.chatgpt.ChatGPT.cache_db",
+            new_callable=MagicMock,
+        ) as mock_fetch:
+            mock_fetch.side_effect = [
+                ConversationMessage(
+                    role="assistant",
+                    functionCall={
+                        "name": "MEMORY_SEARCH",
+                        "arguments": {"search": "How many cars are blue?"},
+                    },
+                ),
+                ConversationMessage(role="assistant", content="The are 5 blue cars."),
+            ]
+
+            with patch(
+                "chat.memory_utils.generate_embedding",
+                new_callable=MagicMock,
+            ) as mock_embedding:
+                mock_embedding.return_value = [-0.04726902] * 1536
+
+                chat = datachat.DatabaseChat(
+                    self.session,
+                    self.database_id,
+                    stop_flags=self.stop_flags,
+                )
+
+                results = list(chat.ask("How many cars are blue?"))
+
+                self.assertEqual(len(results), 3)
+                self.assertEqual(results[1].content, "1 results\n- test 1")
 
 
 if __name__ == "__main__":

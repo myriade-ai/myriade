@@ -40,6 +40,7 @@ class TestDatabaseChat(unittest.TestCase):
 
     def test_find_closest_embeddings(self):
         query = "Number of circuits per country"
+        # TODO: fix add session...
         closest_queries = find_closest_embeddings(query, top_n=2)
         assert closest_queries[0].query == "Show all the circuits in France"
         assert closest_queries[1].query == "Show me all the circuits in France"

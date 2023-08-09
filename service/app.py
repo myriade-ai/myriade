@@ -1,4 +1,5 @@
-from flask import Flask, request
+from back.session import Session
+from flask import Flask, g, request
 from flask_socketio import SocketIO
 
 socketio = SocketIO(cors_allowed_origins="*")
@@ -18,5 +19,16 @@ def create_app():
     app.register_blueprint(ai_api)
     app.register_blueprint(chat_cli)
 
+    @app.before_request
+    def create_session():
+        g.session = Session()
+
+    @app.teardown_appcontext
+    def close_session(exception=None):
+        print("CLOSE SESSION")
+        if hasattr(g, "session"):
+            g.session.close()
+
     socketio.init_app(app)
+
     return app

@@ -1,6 +1,5 @@
 from back.datalake import DatalakeFactory
 from back.models import Conversation, ConversationMessage, Database, Table, TableColumn
-from back.session import session
 from flask import Blueprint, g, jsonify, request
 from middleware import database_middleware, user_middleware
 from sqlalchemy import and_, or_
@@ -37,7 +36,7 @@ def dataclass_to_dict(obj: Union[object, List[object]]) -> Union[dict, List[dict
 def get_conversations():
     # Filter conversations based on ownerId (userId) OR organisationId
     conversations = (
-        session.query(Conversation)
+        g.session.query(Conversation)
         .join(ConversationMessage)
         .filter(
             Conversation.ownerId == g.user.id,
@@ -52,7 +51,7 @@ def get_conversations():
 @user_middleware
 def get_conversation(conversation_id):
     conversation = (
-        session.query(Conversation)
+        g.session.query(Conversation)
         .join(ConversationMessage, Conversation.messages, isouter=True)
         .filter(Conversation.id == conversation_id)
         .one()
@@ -69,11 +68,11 @@ def get_conversation(conversation_id):
 @user_middleware
 def delete_conversation(conversation_id):
     # Delete conversation and all related messages
-    session.query(ConversationMessage).filter_by(
+    g.session.query(ConversationMessage).filter_by(
         conversationId=conversation_id
     ).delete()
-    session.query(Conversation).filter_by(id=conversation_id).delete()
-    session.commit()
+    g.session.query(Conversation).filter_by(id=conversation_id).delete()
+    g.session.commit()
     return jsonify({"success": True})
 
 
@@ -90,8 +89,8 @@ def create_database():
         ownerId=g.user.id,
     )
 
-    session.add(database)
-    session.commit()
+    g.session.add(database)
+    g.session.commit()
     return jsonify(database)
 
 
@@ -99,8 +98,8 @@ def create_database():
 @user_middleware
 def delete_database(database_id):
     # Delete database
-    session.query(Database).filter_by(id=database_id).delete()
-    session.commit()
+    g.session.query(Database).filter_by(id=database_id).delete()
+    g.session.commit()
     return jsonify({"success": True})
 
 
@@ -108,12 +107,12 @@ def delete_database(database_id):
 @user_middleware
 def update_database(database_id):
     # Update database
-    database = session.query(Database).filter_by(id=database_id).first()
+    database = g.session.query(Database).filter_by(id=database_id).first()
     database.name = request.json["name"]
     database.description = request.json["description"]
     database._engine = request.json["engine"]
     database.details = request.json["details"]
-    session.commit()
+    g.session.commit()
     return jsonify(database)
 
 
@@ -124,7 +123,7 @@ def get_databases():
     organisationId = g.organisationId
     # Filter databases based on ownerId (userId) OR organisationId
     databases = (
-        session.query(Database)
+        g.session.query(Database)
         .filter(
             or_(Database.ownerId == user.id, Database.organisationId == organisationId)
         )
@@ -139,14 +138,14 @@ def get_schema(database_id):
     user_id = request.headers.get("user_id")
 
     # Filter databases based on user ID and specific database ID
-    database = session.query(Database).filter_by(id=database_id).first()
+    database = g.session.query(Database).filter_by(id=database_id).first()
 
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
     # Query the Table and TableColumn models to get the schema data
-    tables = session.query(Table).filter_by(databaseId=database_id).all()
-    columns = session.query(TableColumn).filter_by(tableDatabaseId=database_id).all()
+    tables = g.session.query(Table).filter_by(databaseId=database_id).all()
+    columns = g.session.query(TableColumn).filter_by(tableDatabaseId=database_id).all()
 
     # Convert the result into the desired JSON format
     result = []

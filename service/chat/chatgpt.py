@@ -1,11 +1,13 @@
+# TODO: remove commit ?
 import json
 import os
 import typing
+from copy import deepcopy
 
 import openai
 from back.models import ConversationMessage
-from back.session import session
 from chat.utils import parse_function
+from flask import g
 
 # https://platform.openai.com/docs/models/gpt-4
 DEFAULT_MODEL = "gpt-4"
@@ -16,6 +18,14 @@ FUNCTIONS = []
 for filename in os.listdir("./chat/functions"):
     with open("./chat/functions/" + filename) as f:
         FUNCTIONS.append(json.load(f))
+
+
+def fetch_openai(messages: list[dict]):
+    return openai.ChatCompletion.create(
+        model=OPENAI_MODEL,
+        messages=messages,
+        functions=FUNCTIONS,
+    )
 
 
 def parse_chat_template(filename):
@@ -64,50 +74,23 @@ def hashkey(x) -> str:
     return str(hash(json.dumps(x, sort_keys=True)))
 
 
-def cache_db(f):
-    def wrapper(messages: list[ConversationMessage]) -> ConversationMessage:
-        from back.models import Prediction
-
-        messages_dict = [m.to_openai_dict() for m in messages]
-
-        """Cache on database Prediction table"""
-        key = hashkey(messages_dict)
-        prediction = session.query(Prediction).filter_by(params_hash=key).first()
-        if prediction:
-            return ConversationMessage(**prediction.value)
-        else:
-            response = f(messages_dict)
-            message = response.choices[0].message
-            value = message.to_dict()
-            prediction = Prediction(
-                prompt=messages_dict[-1]["content"],  # last message is the prompt
-                params_hash=key,
-                modelName=response.model,
-                response=response,
-                params=messages_dict,
-                output=message["content"],
-                value=value,
-            )
-            session.add(prediction)
-            session.commit()
-            return ConversationMessage.from_openai_dict(**value)
-
-    return wrapper
-
-
-@cache_db
-def fetch_openai(messages: list[dict]):
-    return openai.ChatCompletion.create(
-        model=OPENAI_MODEL, messages=messages, functions=FUNCTIONS
-    )
-
-
 class ChatGPT:
-    def __init__(self, instruction=None, examples=[]) -> None:
+    def __init__(
+        self,
+        session,
+        instruction=None,
+        examples=[],
+        context=None,
+        conversation_id: int = None,
+    ) -> None:
+        self.session = session
         self.pre_history: list[ConversationMessage] = []
         self.history: list[ConversationMessage] = []
         self.instruction: typing.Optional[str] = instruction
         self.examples = examples
+        self.context = context
+        # TODO: Should probably build the conversation object here instead of datachat...
+        self.conversation_id = conversation_id
 
         if self.instruction:
             self.pre_history.append(
@@ -117,12 +100,10 @@ class ChatGPT:
         # Simple loop
         for example in self.examples:
             # Herit name from message role
-
             self.pre_history.append(
                 ConversationMessage(
                     **{
                         **example,
-                        # "role": "system",
                         "name": "example_" + example["role"],
                     }
                 )
@@ -143,23 +124,76 @@ class ChatGPT:
         messages = sorted(messages, key=lambda x: x.createdAt)
         self.history = [message for message in messages]
 
-    def ask(self, question=None) -> ConversationMessage:
-        messages: list[ConversationMessage] = []
+    def clean_message(self, message: ConversationMessage):
+        # TODO: should be in datachat ?
+        # If the message content contains "DONE", we remove it
+        if message.content and "DONE" in message.content:
+            message.content = message.content.replace("DONE", "").strip()
+            message.done = True
+        self.session.commit()
+        return message
 
-        for message in self.pre_history:
-            messages.append(message)
+    def ask(
+        self, message: typing.Union[ConversationMessage, str, None] = None
+    ) -> ConversationMessage:
+        if message:
+            if isinstance(message, str):
+                # TODO: remove ?
+                # If message is instance of string, then convert to ConversationMessage
+                message = ConversationMessage(
+                    **{
+                        "role": "user",
+                        "content": message,
+                        "conversationId": self.conversation_id,
+                    }
+                )
 
-        # Add history of conversation
-        for message in self.history:
-            messages.append(message)
+            self.history.append(message)  # Add the question to the history
+            # Record the message
+            self.session.add(message)
+            self.session.commit()
 
-        if question:
-            # Add the question
-            new_message = ConversationMessage(**{"role": "user", "content": question})
-            messages.append(new_message)
-            self.history.append(new_message)  # Add the question to the history
-
-        response = fetch_openai(tuple(messages))
+        response = self.fetch_with_cache()
         self.history.append(response)
 
+        # Clean the message, save it to the database and return it
+        response = self.clean_message(response)
+        response.conversationId = self.conversation_id
+        self.session.add(response)
+        self.session.commit()
         return response
+
+    def fetch_with_cache(
+        self,
+    ) -> ConversationMessage:
+        from back.models import Prediction
+
+        first_message = self.history[0].to_openai_dict()
+        first_message["content"] = self.context + "\n" + first_message["content"]
+        messages_dict: list[dict] = (
+            [x.to_openai_dict() for x in self.pre_history]
+            + [first_message]
+            + [x.to_openai_dict() for x in self.history[1:]]
+        )
+
+        """Cache on database Prediction table"""
+        key = hashkey(messages_dict)
+        prediction = self.session.query(Prediction).filter_by(params_hash=key).first()
+        if prediction:
+            return ConversationMessage.from_openai_dict(**prediction.value)
+        else:
+            response = fetch_openai(messages_dict)
+            message = response.choices[0].message
+            value = message.to_dict()
+            prediction = Prediction(
+                prompt=messages_dict[-1]["content"],  # last message is the prompt
+                params_hash=key,
+                modelName=response.model,
+                response=response,
+                params=messages_dict,
+                output=message["content"],
+                value=value,
+            )
+            self.session.add(prediction)
+            self.session.commit()
+            return ConversationMessage.from_openai_dict(**value)
