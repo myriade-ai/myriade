@@ -221,6 +221,8 @@ class Query(Base):
     database = relationship("Database")
     creator = relationship("User")
 
+    visualisationParams = Column(JSONB)
+
 
 class Table(Base):
     __tablename__ = "table"

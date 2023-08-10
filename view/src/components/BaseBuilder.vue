@@ -1,5 +1,5 @@
 <template>
-  <BaseTabs :tabs="options" :selected="outputType" @change="updateType" />
+  <BaseTabs :tabs="options" :selected="outputType" @change="updateVisualisationParams" />
   <div v-if="outputType == 'Value'" class="text-center text-4xl py-16">
     {{ getUniqueValueOfTable }}
   </div>
@@ -16,18 +16,19 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, ref, watch } from 'vue'
+import { defineComponent, computed, ref, watch, defineEmits } from 'vue'
 import BaseTable from '@/components/BaseTable.vue'
 import BaseTabs from '@/components/BaseTabs.vue'
 
 export default defineComponent({
   name: 'BaseBuilder',
-  props: ['data', 'context', 'count'],
+  props: ['data', 'context', 'count', 'visualisationParams'],
   components: {
     BaseTable,
     BaseTabs
   },
-  setup: (props) => {
+  emits: ['updateVisualisationParamsEvent'],
+  setup: (props, context) => {
     const options = computed(() => {
       const defaultOptions = ['Table', 'Line', 'Doughnut2d', 'Column2d']
       return defaultOptions.concat(hasOneValue.value ? ['Value'] : [])
@@ -42,6 +43,9 @@ export default defineComponent({
     })
 
     const defaultVisualisation = computed(() => {
+      if (props.visualisationParams) {
+        return props.visualisationParams.type
+      }
       if (hasOneValue.value) {
         return 'Value'
       } else if (hasTwoKeys.value) {
@@ -71,9 +75,13 @@ export default defineComponent({
 
     // TODO: remove ?
     // outputType.value = defaultVisualisation.value
-    const updateType = (type) => {
+    const updateVisualisationParams = (type: string) => {
       console.log('updateType', type)
       outputType.value = type
+      context.emit('updateVisualisationParamsEvent', {
+        ...props.visualisationParams,
+        type: type
+      })
     }
 
     const columns = computed(() => (props.data.length ? Object.keys(props.data[0]) : ['a', 'b']))
@@ -134,7 +142,7 @@ export default defineComponent({
 
     const visType = computed(() => outputType.value.toLocaleLowerCase())
     return {
-      updateType,
+      updateVisualisationParams,
       outputType,
       options,
       data2,

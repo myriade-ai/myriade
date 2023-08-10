@@ -41,12 +41,11 @@ def run_query():
     return jsonify({"rows": result[:50], "count": count})
 
 
-@api.route("/query/<int:query_id>", methods=["GET"])
+@api.route("/query/<int:query_id>", methods=["GET", "PUT"])
 @user_middleware
-def run_query_by_id(query_id):
+def handle_query_by_id(query_id):
     """
-    Run a query against the database
-    Return eg. {"rows":[{"count":"607"}],"count":1}
+    Run or Update a query based on the request method
     """
     query = g.session.query(Query).filter_by(id=query_id).first()
     if not query:
@@ -55,14 +54,23 @@ def run_query_by_id(query_id):
     # Get databaseId from query
     databaseId = query.databaseId
 
-    #
+    if request.method == "PUT":
+        updated_visualisationParams = request.json.get("visualisationParams")
+        query.visualisationParams = updated_visualisationParams
+        g.session.commit()
+
     # sql is validatedSQL or first result from choices
     sql = query.validatedSQL or query.result["choices"][0]["text"].strip()
-    return jsonify(
-        {
-            "databaseId": databaseId,
-            "query": query.query,
-            "sql": sql,
-            "validatedSQL": query.validatedSQL,
-        }
-    )
+
+    response = {
+        "databaseId": databaseId,
+        "visualisationParams": query.visualisationParams,
+        "query": query.query,
+        "sql": sql,
+        "validatedSQL": query.validatedSQL,
+    }
+
+    if request.method == "PUT":
+        response["visualisationParams"] = updated_visualisationParams
+
+    return jsonify(response)

@@ -15,6 +15,8 @@
         :context="querySQL"
         :count="queryCount"
         :data="queryResults"
+        :visualisationParams="visualisationParams"
+        @updateVisualisationParamsEvent="($event) => updateVisualisationParams($event)"
       ></BaseBuilder>
     </div>
   </div>
@@ -23,7 +25,14 @@
 <script setup lang="ts">
 import BaseBuilder from '@/components/BaseBuilder.vue'
 import BaseQuery from '@/components/BaseQuery.vue'
-import { queryResults, querySQL, queryError, queryCount } from '../stores/query'
+import {
+  queryResults,
+  querySQL,
+  queryError,
+  queryCount,
+  visualisationParams,
+  updateVisualisationParams
+} from '../stores/query'
 import BaseAlert from '../components/BaseAlert.vue'
 import DatabaseExplorer from '../components/DatabaseExplorer.vue'
 </script>

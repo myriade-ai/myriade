@@ -14,14 +14,16 @@ export const queryResults = ref(null)
 export const queryCount = ref(null)
 export const queryError = ref(null)
 export const loading = ref(false)
+export const visualisationParams = ref(null)
 
 export const loadQuery = async (id: number) => {
+  queryId.value = id
   const response = await axios.get(`/api/query/${id}`)
 
   const query = response.data
+  visualisationParams.value = query.visualisationParams
   await selectDatabaseById(query.databaseId)
 
-  queryId.value = query.id
   if (query.sql) {
     queryTextTranslation.value = sqlPrettier.format(query.sql)
     querySQL.value = queryTextTranslation.value
@@ -54,6 +56,21 @@ export const runQuery = async () => {
     })
 }
 
+export const updateQuery = async () => {
+  console.log('updateQuery', queryId)
+  await axios.put(`/api/query/${queryId.value}`, {
+    query: querySQL.value,
+    visualisationParams: visualisationParams.value
+  })
+}
+
+export const updateVisualisationParams = async (params: any) => {
+  console.log('updateVisualisationParams...', params)
+  visualisationParams.value = params
+  await updateQuery()
+}
+
+// TODO: delete query?
 export const validateQuery = async () => {
   queryTextTranslation.value = querySQL.value
   await axios.post(`/api/query/${queryId.value}/validate`, {
