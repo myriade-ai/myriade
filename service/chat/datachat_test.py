@@ -61,7 +61,7 @@ class TestDatabase(unittest.TestCase):
         from chat import datachat
 
         with patch(
-            "chat.chatgpt.ChatGPT.cache_db", new_callable=MagicMock
+            "chat.chatgpt.ChatGPT.fetch_with_cache", new_callable=MagicMock
         ) as mock_fetch:
             mock_fetch.return_value = ConversationMessage(
                 role="assistant", content="Test message DONE"
@@ -72,19 +72,19 @@ class TestDatabase(unittest.TestCase):
                 stop_flags=self.stop_flags,
             )
 
-            result = list(chat.ask("Test question"))
+            results = list(chat.ask("Test question"))
 
             mock_fetch.assert_called_once()
-            self.assertEqual(len(result), 1)
-            self.assertEqual(result[0].content, "Test message")
-            self.assertEqual(result[0].done, True)
+            self.assertEqual(len(results), 2)
+            self.assertEqual(results[1].content, "Test message")
+            self.assertEqual(results[1].done, True)
 
     def test_message_sql(self):
         from back.models import ConversationMessage
         from chat import datachat
 
         with patch(
-            "chat.chatgpt.ChatGPT.cache_db", new_callable=MagicMock
+            "chat.chatgpt.ChatGPT.fetch_with_cache", new_callable=MagicMock
         ) as mock_fetch:
             mock_fetch.side_effect = [
                 ConversationMessage(
@@ -108,8 +108,8 @@ class TestDatabase(unittest.TestCase):
             results = list(chat.ask("How many tables are there ?"))
 
             # mock_fetch.assert_called_once
-            self.assertEqual(len(results), 3)
-            self.assertIsNotNone(results[0].functionCall)
+            self.assertEqual(len(results), 4)
+            self.assertIsNotNone(results[1].functionCall)
 
     def test_message_memory(self):
         from back.models import ConversationMessage, Query
@@ -123,7 +123,7 @@ class TestDatabase(unittest.TestCase):
         self.session.commit()
 
         with patch(
-            "chat.chatgpt.ChatGPT.cache_db",
+            "chat.chatgpt.ChatGPT.fetch_with_cache",
             new_callable=MagicMock,
         ) as mock_fetch:
             mock_fetch.side_effect = [
@@ -151,8 +151,8 @@ class TestDatabase(unittest.TestCase):
 
                 results = list(chat.ask("How many cars are blue?"))
 
-                self.assertEqual(len(results), 3)
-                self.assertEqual(results[1].content, "1 results\n- test 1")
+                self.assertEqual(len(results), 4)
+                self.assertEqual(results[2].content, "1 results\n- test 1")
 
 
 if __name__ == "__main__":
