@@ -12,6 +12,7 @@ in /service
 
 - `poetry install` -- install dependencies
 - `export OPENAI_API_KEY=XXX` -- set your OpenAI API key
+- `export DATABASE_URL=XXX` -- set your Postgres database URL
 - `flask run` -- run the backend
 
 in /view
