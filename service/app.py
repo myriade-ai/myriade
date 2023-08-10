@@ -25,7 +25,6 @@ def create_app():
 
     @app.teardown_appcontext
     def close_session(exception=None):
-        print("CLOSE SESSION")
         if hasattr(g, "session"):
             g.session.close()
 
