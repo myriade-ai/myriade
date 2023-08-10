@@ -2,12 +2,8 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-# from main import app
-from sqlalchemy import MetaData, create_engine, text
+from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
-
-# from flask import g
-
 
 TEST_DATABASE_URL = "postgresql://localhost/adatest"
 

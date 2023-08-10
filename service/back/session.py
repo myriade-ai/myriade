@@ -7,8 +7,6 @@ from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 
-# DATABASE_URL = "postgresql://localhost/adatest"
-
 
 def json_serial(d):
     def _default(obj):
@@ -66,7 +64,6 @@ engine = create_engine(
     DATABASE_URL, json_serializer=json_serial, json_deserializer=json_deserial
 )
 Session = sessionmaker(bind=engine)
-# session = Session()
 
 
 if __name__ == "__main__":
