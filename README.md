@@ -6,6 +6,10 @@ Branch your database, and simply ask.
 
 <img width="1510" alt="CleanShot 2023-06-24 at 14 02 46@2x" src="https://github.com/BenderV/ada/assets/2799516/56f0a411-0ae5-4003-aebc-0c1b83d56a54">
 
+## Pre-requesite
+
+- Create Postgres database
+
 ## Install
 
 in /service

@@ -14,6 +14,9 @@ Flask = "^2.2.3"
 Flask-SocketIO = "^5.3.3"
 diskcache = "^5.4.0"
 snowflake-connector-python = "^3.0.1"
+psycopg2-binary = "^2.9.7"
+pgvector = "0.1.8"
+alembic = "^1.11.2"
 
 
 [build-system]
