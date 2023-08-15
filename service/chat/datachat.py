@@ -65,7 +65,7 @@ class DatabaseChat:
         # Create conversation object
         conversation = Conversation(
             databaseId=databaseId,
-            ownerId="local",  # TODO make it dynamic
+            ownerId="admin",  # TODO make it dynamic
             name=name,
         )
         self.session.add(conversation)

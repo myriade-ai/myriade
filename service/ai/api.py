@@ -12,8 +12,8 @@ api = Blueprint("ai_api", __name__)
 def database_middleware(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        databaseId = request.json.get("databaseId")
-        database = g.session.query(Database).filter_by(id=databaseId).first()
+        database_id = request.json.get("databaseId")
+        database = g.session.query(Database).filter_by(id=database_id).first()
         # Add a datalake object to the request
         datalake = DatalakeFactory.create(
             database.engine,

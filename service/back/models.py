@@ -224,44 +224,6 @@ class Query(Base):
     visualisationParams = Column(JSONB)
 
 
-class Table(Base):
-    __tablename__ = "table"
-
-    description = Column(String)
-    databaseId = Column(Integer, ForeignKey("database.id"), primary_key=True)
-    schemaName = Column(String, primary_key=True, default="public")
-    name = Column(String, primary_key=True)
-    used = Column(Boolean, nullable=False, default=True)
-
-    database = relationship("Database")
-    embedding = Column(Vector(1536))
-
-
-class TableColumn(Base):
-    __tablename__ = "table_column"
-
-    columnName = Column(String, primary_key=True)
-    dataType = Column(String, nullable=False)
-    description = Column(String)
-    tableDatabaseId = Column(Integer, primary_key=True)
-    tableSchemaName = Column(String, primary_key=True, default="public")
-    tableName = Column(String, primary_key=True)
-    isIdentity = Column(Boolean, nullable=False, default=False)
-    foreignTableSchema = Column(String)
-    foreignTable = Column(String)
-    foreignColumn = Column(String)
-    examples = Column(ARRAY(String))
-    embedding = Column(Vector(1536))
-
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["tableDatabaseId", "tableSchemaName", "tableName"],
-            ["table.databaseId", "table.schemaName", "table.name"],
-            ondelete="CASCADE",
-        ),
-    )
-
-
 class User(Base):
     __tablename__ = "user"
 

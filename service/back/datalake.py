@@ -52,20 +52,20 @@ class SQLDatabase:
             for table in self.inspector.get_table_names(schema=schema):
                 columns = []
                 for column in self.inspector.get_columns(table, schema):
-                    column_comment = column.get("comment")
                     columns.append(
                         {
                             "name": column["name"],
-                            "type": column["type"],
+                            "type": str(column["type"]),
                             "nullable": column["nullable"],
-                            "comment": column_comment,
+                            "description": column.get("comment"),
                         }
                     )
 
                 self.metadata.append(
                     {
+                        "name": table,
+                        "description": None,  # TODO
                         "schema": schema,
-                        "table": table,
                         "is_view": False,
                         "columns": columns,
                     }
@@ -151,7 +151,6 @@ class SnowflakeDatabase(AbstractDatabase):
             for column in self.query(f"SHOW COLUMNS IN {schema}.{table_name}"):
                 print("column", column)
                 # 'column_name': 'HEU', 'data_type': '{"type":"TIME","precision":0,"scale":9,"nullable":true}',
-
                 column["data_type"] = json.loads(column["data_type"])
                 columns.append(
                     {
@@ -201,4 +200,9 @@ class DatalakeFactory:
             password = kwargs.get("password", "")
             host = kwargs.get("host")
             uri = f"{dtype}://{user}:{password}@{host}/{kwargs['database']}"
+            if "options" in kwargs:
+                uri += "?options=" + "&".join(
+                    [f"--{k}={v}" for k, v in kwargs["options"].items()]
+                )
+            print(uri)
             return SQLDatabase(uri)

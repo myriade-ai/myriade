@@ -1,5 +1,5 @@
 from back.datalake import DatalakeFactory
-from back.models import Conversation, ConversationMessage, Database, Table, TableColumn
+from back.models import Conversation, ConversationMessage, Database
 from flask import Blueprint, g, jsonify, request
 from middleware import database_middleware, user_middleware
 from sqlalchemy import and_, or_
@@ -139,37 +139,13 @@ def get_schema(database_id):
 
     # Filter databases based on user ID and specific database ID
     database = g.session.query(Database).filter_by(id=database_id).first()
+    # Add a datalake object to the request
+    datalake = DatalakeFactory.create(
+        database.engine,
+        **database.details,
+    )
 
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    # Query the Table and TableColumn models to get the schema data
-    tables = g.session.query(Table).filter_by(databaseId=database_id).all()
-    columns = g.session.query(TableColumn).filter_by(tableDatabaseId=database_id).all()
-
-    # Convert the result into the desired JSON format
-    result = []
-    for table in tables:
-        schema_data = {
-            "schemaName": table.schemaName,
-            "name": table.name,
-            "columns": [],
-        }
-
-        for column in columns:
-            if (
-                column.tableName == table.name
-                and column.tableSchemaName == table.schemaName
-            ):
-                schema_data["columns"].append(
-                    {
-                        "name": column.columnName,
-                        "dataType": column.dataType,
-                        "isIdentity": column.isIdentity,
-                        "examples": column.examples,
-                    }
-                )
-
-        result.append(schema_data)
-
-    return jsonify(result)
+    return jsonify(datalake.metadata)

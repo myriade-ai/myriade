@@ -12,7 +12,7 @@
           <div class="px-4 py-4 sm:px-6">
             <div class="flex items-center justify-between">
               <div class="text-sm font-medium text-blue-600 truncate">
-                {{ table.name }}
+                {{ table.schema }}.{{ table.name }}
               </div>
             </div>
             <div class="flex justify-between">
@@ -26,7 +26,7 @@
               <div class="mt-2 flex justify-between">
                 <div class="sm:flex">
                   <div class="flex items-center text-sm text-gray-500">
-                    {{ column.name }}: {{ column.dataType }}
+                    {{ column.name }}: {{ column.type }}
                   </div>
                 </div>
               </div>
@@ -47,11 +47,12 @@ const { databaseSelectedId, fetchDatabaseTables } = useDatabases()
 
 interface Column {
   name: string
-  dataType: string
+  type: string
 }
 
 interface Table {
   name: string
+  schema: string
   description: string
   columns: Column[]
 }
@@ -68,7 +69,7 @@ const onDblClick = (tableInd: number) => {
   const tableSelected = tables.value[tableInd]
   console.log(tableSelected)
 
-  querySQL.value = `SELECT * FROM "${tableSelected.name}";`
+  querySQL.value = `SELECT * FROM "${tableSelected.schema}"."${tableSelected.name}";`
   runQuery()
 }
 

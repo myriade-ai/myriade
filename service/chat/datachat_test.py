@@ -31,7 +31,7 @@ class TestDatabase(unittest.TestCase):
             },
         )
 
-        user = User(email="test@test.com", id="local")  # TODO: why specifying id ?
+        user = User(email="test@test.com", id="admin")  # TODO: why specifying id ?
         self.session.add(user)
         self.session.commit()
 
