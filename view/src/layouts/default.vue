@@ -27,7 +27,9 @@
               </router-link>
             </div>
           </div>
-          <div class="hidden sm:ml-6 sm:flex sm:items-center">
+          <!-- Profile is hidden for now -->
+          <!-- <div class="hidden sm:ml-6 sm:flex sm:items-center"> -->
+          <div class="hidden">
             <!-- Profile dropdown -->
             <Menu as="div" class="ml-3 relative">
               <div>
