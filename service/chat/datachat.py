@@ -9,7 +9,6 @@ from chat.chatgpt import ChatGPT, parse_chat_template
 from chat.lock import StopException
 from chat.memory_utils import find_closest_embeddings
 from chat.sql_utils import extract_sql, run_sql
-from chat.utils import message_replace_json_block_to_csv
 
 MAX_DATA_SIZE = 4000  # Maximum size of the data to return
 CONVERSATION_MAX_ATTEMPT = 10  # Number of exchange the AI can do before giving up
@@ -87,10 +86,6 @@ class DatabaseChat:
             conversation_id=self.conversation.id,
         )
 
-        # TODO: DELETE ?
-        for message in self.conversation.messages:
-            if message.content:
-                message.content = message_replace_json_block_to_csv(message.content)
         chat_gpt.load_history(self.conversation.messages)
         return chat_gpt
 

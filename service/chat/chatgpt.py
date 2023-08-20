@@ -6,7 +6,7 @@ from copy import deepcopy
 
 import openai
 from back.models import ConversationMessage
-from chat.utils import parse_function
+from chat.utils import message_replace_json_block_to_csv, parse_function
 from flask import g
 
 # https://platform.openai.com/docs/models/gpt-4
@@ -175,6 +175,11 @@ class ChatGPT:
             + [first_message]
             + [x.to_openai_dict() for x in self.history[1:]]
         )
+        for message in messages_dict:
+            if message["content"]:
+                message["content"] = message_replace_json_block_to_csv(
+                    message["content"]
+                )
 
         """Cache on database Prediction table"""
         key = hashkey(messages_dict)
