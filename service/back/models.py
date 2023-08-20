@@ -81,22 +81,6 @@ class Organisation(Base):
     name = Column(String, nullable=False)
 
 
-class Prediction(Base):
-    __tablename__ = "prediction"
-
-    id = Column(Integer, primary_key=True)
-    queryId = Column(Integer, ForeignKey("query.id"))
-    modelName = Column(String, nullable=False)
-    prompt = Column(String)
-    output = Column(String)
-    params = Column(JSONB)
-    response = Column(JSONB)
-    value = Column(JSONB)
-    params_hash = Column(String)
-
-    query = relationship("Query")
-
-
 @dataclass
 class ConversationMessage(Base):
     __tablename__ = "conversation_message"
@@ -172,6 +156,7 @@ class ConversationMessage(Base):
                 if isinstance(self.functionCall["arguments"], dict)
                 else self.functionCall["arguments"],
             }
+
         return res
 
 

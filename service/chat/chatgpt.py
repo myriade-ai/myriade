@@ -69,11 +69,6 @@ def parse_chat_template(filename):
     return instruction, examples
 
 
-def hashkey(x) -> str:
-    """Hash a list of dictionaries"""
-    return str(hash(json.dumps(x, sort_keys=True)))
-
-
 class ChatGPT:
     def __init__(
         self,
@@ -153,7 +148,7 @@ class ChatGPT:
             self.session.add(message)
             self.session.commit()
 
-        response = self.fetch_with_cache()
+        response = self.fetch()
         self.history.append(response)
 
         # Clean the message, save it to the database and return it
@@ -163,11 +158,9 @@ class ChatGPT:
         self.session.commit()
         return response
 
-    def fetch_with_cache(
+    def fetch(
         self,
     ) -> ConversationMessage:
-        from back.models import Prediction
-
         first_message = self.history[0].to_openai_dict()
         first_message["content"] = self.context + "\n" + first_message["content"]
         messages_dict: list[dict] = (
@@ -175,30 +168,13 @@ class ChatGPT:
             + [first_message]
             + [x.to_openai_dict() for x in self.history[1:]]
         )
-        for message in messages_dict:
-            if message["content"]:
-                message["content"] = message_replace_json_block_to_csv(
-                    message["content"]
-                )
 
-        """Cache on database Prediction table"""
-        key = hashkey(messages_dict)
-        prediction = self.session.query(Prediction).filter_by(params_hash=key).first()
-        if prediction:
-            return ConversationMessage.from_openai_dict(**prediction.value)
-        else:
-            response = fetch_openai(messages_dict)
-            message = response.choices[0].message
-            value = message.to_dict()
-            prediction = Prediction(
-                prompt=messages_dict[-1]["content"],  # last message is the prompt
-                params_hash=key,
-                modelName=response.model,
-                response=response,
-                params=messages_dict,
-                output=message["content"],
-                value=value,
-            )
-            self.session.add(prediction)
-            self.session.commit()
-            return ConversationMessage.from_openai_dict(**value)
+        # Small hack to replace json block to csv for smaller context size
+        for m_dict in messages_dict:
+            if m_dict["content"]:  # Content can be None
+                m_dict["content"] = message_replace_json_block_to_csv(m_dict["content"])
+
+        response = fetch_openai(messages_dict)
+        message = response.choices[0].message
+        value = message.to_dict()
+        return ConversationMessage.from_openai_dict(**value)

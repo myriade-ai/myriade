@@ -158,8 +158,6 @@ const hasHiddenMessages = computed(() => {
 const regenerate = async () => {
   // Replace with your dbt API endpoint to regenerate the conversation.
   socket.emit('regenerate', null, conversationId.value, databaseSelected.value.id)
-  // Remove the last message.
-  messages.value.pop()
 }
 
 const sendMessage = async () => {
@@ -218,6 +216,11 @@ onMounted(async () => {
   if (conversationId.value) {
     await fetchMessages()
   }
+
+  socket.on('delete-message', (id) => {
+    messages.value = messages.value.filter((message) => message.id !== id)
+  })
+
   socket.on('response', (response) => {
     handleConversationChange(response)
     receiveMessage(response)

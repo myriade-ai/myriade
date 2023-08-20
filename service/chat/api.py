@@ -71,12 +71,21 @@ def handle_ask(question, conversation_id=None, database_id=None):
 @socketio.on("regenerate")
 @handle_stop_flag
 def handle_regenerate(_, conversation_id=None, database_id=None):
-    # get conversation_id from the database
-    # conversation = g.session.query(Conversation).filter_by(id=conversation_id).first()
-    iterator = DatabaseChat(
+    """
+    If the last message is an assistant response, delete it and reask the question
+    If the last message is an user response, rerun the query
+    """
+    chat = DatabaseChat(
         socket_session, database_id, conversation_id, conversation_stop_flags
-    ).regenerate_last_message()
-    for message in iterator:
+    )
+    last_message = chat.conversation.messages[-1]
+    if last_message.role == "assistant":
+        socket_session.delete(last_message)
+        socket_session.commit()
+        emit("delete-message", last_message.id)
+
+    # Restart the conversation
+    for message in chat._run_conversation():
         emit("response", message.to_dict())
 
 

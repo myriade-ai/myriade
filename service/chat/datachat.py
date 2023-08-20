@@ -89,20 +89,7 @@ class DatabaseChat:
         chat_gpt.load_history(self.conversation.messages)
         return chat_gpt
 
-    def ask(self, question: str):
-        if not self.conversation.name:
-            self.conversation.name = question
-
-        # If message is instance of string, then convert to ConversationMessage
-        message = ConversationMessage(
-            role="user",
-            content=question,
-            conversationId=self.conversation.id,
-        )
-        self.session.add(message)
-        self.session.commit()
-        yield message
-
+    def _run_conversation(self):
         for attempt in range(CONVERSATION_MAX_ATTEMPT):
             # Check if the user has stopped the query
             self.query_stop_flag()
@@ -160,15 +147,21 @@ class DatabaseChat:
                 self.session.commit()
                 yield message
 
-    def regenerate_last_message(self):
-        # Delete the last message and reask the question
-        last_message = self.conversation.messages[-1]
-        previous_message = self.conversation.messages[-2]
-        self.session.delete(last_message)
-        self.session.commit()
+    def ask(self, question: str):
+        if not self.conversation.name:
+            self.conversation.name = question
 
-        # Reask the question
-        yield from self.ask(previous_message.content)
+        # If message is instance of string, then convert to ConversationMessage
+        message = ConversationMessage(
+            role="user",
+            content=question,
+            conversationId=self.conversation.id,
+        )
+        self.session.add(message)
+        self.session.commit()
+        yield message
+
+        yield from self._run_conversation()
 
     def save_query(self, sql_query: str, message: ConversationMessage) -> Query:
         query = Query(
