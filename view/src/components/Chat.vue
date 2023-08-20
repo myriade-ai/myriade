@@ -123,7 +123,7 @@ const STATUS = {
   ERROR: 'error'
 }
 
-const queryInput = ref('Show all tables with rows')
+const queryInput = ref('')
 const messages = ref([])
 const conversationId = computed(() => route.params.id)
 const queryStatus = ref(STATUS.CLEAR)

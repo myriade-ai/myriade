@@ -38,11 +38,6 @@ export const fetchDatabaseTables = (databaseId: number) => {
   return axios.get(`/api/databases/${databaseId}/schema`).then((res) => res.data)
 }
 
-// const updateScan = async () => {
-//   await axios.get(`/api/databases/${databaseSelected.value.id}/_scan`)
-//   await addDatabaseSchema(databaseSelected.value.id)
-// }
-
 const selectDatabaseById = async (id: number) => {
   databaseSelectedId.value = id
   localStorage.setItem('databaseId', id.toString())

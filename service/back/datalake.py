@@ -195,7 +195,7 @@ class DatalakeFactory:
     def create(dtype, **kwargs):
         if dtype == "snowflake":
             return SnowflakeDatabase(**kwargs)
-        else:
+        elif dtype == "postgres":
             user = kwargs.get("user")
             password = kwargs.get("password", "")
             host = kwargs.get("host")
@@ -206,3 +206,7 @@ class DatalakeFactory:
                 )
             print(uri)
             return SQLDatabase(uri)
+        elif dtype == "sqlite":
+            return SQLDatabase("sqlite:///" + kwargs["filename"])
+        else:
+            raise ValueError(f"Unknown database type: {dtype}")

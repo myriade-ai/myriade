@@ -27,20 +27,28 @@
             class="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:max-w-xs sm:text-sm"
           >
             <option>postgres</option>
+            <option>sqlite</option>
           </select>
         </div>
       </base-field>
 
-      <base-input
-        name="Host"
-        v-model="database.details.host"
-        placeholder="localhost"
-        rules="required"
-      />
-      <base-input name="Port" v-model="database.details.port" type="number" />
-      <base-input name="User" v-model="database.details.user" rules="required" />
-      <base-input name="Password" v-model="database.details.password" />
-      <base-input name="Database" v-model="database.details.database" rules="required" />
+      <div class="mt-4 text-sm text-gray-500" v-if="database.engine === 'postgres'">
+        <p>Postgres connection details</p>
+        <base-input
+          name="Host"
+          v-model="database.details.host"
+          placeholder="localhost"
+          rules="required"
+        />
+        <base-input name="Port" v-model="database.details.port" type="number" />
+        <base-input name="User" v-model="database.details.user" rules="required" />
+        <base-input name="Password" v-model="database.details.password" />
+        <base-input name="Database" v-model="database.details.database" rules="required" />
+      </div>
+    </div>
+    <div class="mt-4 text-sm text-gray-500" v-if="database.engine === 'sqlite'">
+      <p>Sqlite connection details</p>
+      <base-input name="Path" v-model="database.details.filename" rules="required" />
     </div>
 
     <hr class="mt-5" />
