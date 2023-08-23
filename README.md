@@ -2,7 +2,7 @@
 
 **Branch your database and interact with it in natural language.**
 
-![Ada Demo Screenshot](https://github.com/BenderV/ada/assets/2799516/56f0a411-0ae5-4003-aebc-0c1b83d56a54)
+![Ada Demo Screenshot](https://github.com/BenderV/ada/assets/2799516/6b1e457c-477d-4b22-a471-915c5f8ac8b6)
 
 ## Features
 
