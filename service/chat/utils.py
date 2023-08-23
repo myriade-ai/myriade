@@ -42,18 +42,29 @@ def message_replace_json_block_to_csv(content):
 
 
 def parse_function(text):
-    function_pattern = r"(\w+)\((\w+)=([`\"].*?[`\"])\)"
-    matches = re.finditer(function_pattern, text, re.DOTALL)
+    # Match function name and its optional arguments
+    match = re.search(r">\s*(\w+)(?:\(([^>]+)\))?\s*$", text, re.DOTALL)
+    if not match:
+        raise ValueError(f"Invalid function call: {text}")
 
-    parsed_functions = []
+    function_name = match.group(1)
+    arguments_text = match.group(2) if match.group(2) else ""
 
-    for match in matches:
-        function_name = match.group(1).strip()
-        param_key = match.group(2).strip()
-        param_value = match.group(3).strip('`"')
+    # Split the arguments into key-value pairs
+    arg_pairs = re.findall(r'(\w+)="([^"]+)"', arguments_text)
+    additional_arg = re.search(r"(\w+)=```(.*?)```", arguments_text, re.DOTALL)
+    if additional_arg:
+        # Remove extra indentation from multi-line arguments
+        content = "\n".join(
+            [
+                line.strip()
+                for line in additional_arg.group(2).splitlines()
+                if line.strip()
+            ]
+        )
+        arg_pairs.append((additional_arg.group(1), content))
 
-        arguments_dumps = json.dumps({param_key: param_value})
-        parsed_function = {"name": function_name, "arguments": arguments_dumps}
-        parsed_functions.append(parsed_function)
+    arguments = {key: value for key, value in arg_pairs}
 
-    return parsed_functions[0]
+    result = {"name": function_name, "arguments": json.dumps(arguments)}
+    return result

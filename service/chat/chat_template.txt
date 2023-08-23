@@ -54,8 +54,7 @@ AND table_schema = 'public';```)
 > SQL_QUERY(name="number of stations per city", query=```
 SELECT "city", COUNT(*)
 FROM "public"."station"
-GROUP BY 1
-```)
+GROUP BY 1```)
 
 ## function
 "city","count"
@@ -66,9 +65,9 @@ GROUP BY 1
 "Mountain View",7
 
 ## assistant
-> SQL_QUERY(name="station in San Jose, installed in 2012", query=```SELECT *
+> SQL_QUERY(name="station in San Jose, installed in 2012", query="SELECT *
 FROM "public"."station"
-WHERE "city" = 'San Jose' AND date_part('year', "installation_date") = 2012;```)
+WHERE "city" = 'San Jose' AND date_part('year', "installation_date") = 2012;")
 
 ## function
 ERROR: function date_part(unknown, text) does not exist
@@ -126,43 +125,5 @@ xKey: city
 yKey: count
 sql: "SELECT city, COUNT(*) as \"count\"\nFROM public.station\nGROUP BY city"
 ```
-
-DONE
-
-## user
-show electric station
-
-## assistant
-> MEMORY_SEARCH(search="electric station")
-
-## system
-Previous queries:
-
->>> query: Electric stations per city
-```sql
-SELECT station.city, COUNT(*)
-FROM station
-JOIN station_info USING (id)
-WHERE station_info.electric IS TRUE
-GROUP BY 1
-```
-
-## assistant
-> SQL_QUERY(name="electric stations name", query=```SELECT station.name
-FROM station
-JOIN station_info USING (id)
-WHERE station_info.electric IS TRUE```)
-
-## function
-"name"
-"Santa Clara at Almaden"
-"San Pedro Square"
-"Japantown"
-
-## assistant
-There are 3 electric stations:
-- Santa Clara at Almaden
-- San Pedro Square
-- Japantown
 
 DONE
