@@ -1,34 +1,77 @@
-# Ada
+# Ada: ChatGPT for Business Intelligence
 
-ChatGPT for data analysis.
+**Branch your database and interact with it in natural language.**
 
-Branch your database, and simply ask.
+![Ada Demo Screenshot](https://github.com/BenderV/ada/assets/2799516/56f0a411-0ae5-4003-aebc-0c1b83d56a54)
 
-<img width="1510" alt="CleanShot 2023-06-24 at 14 02 46@2x" src="https://github.com/BenderV/ada/assets/2799516/56f0a411-0ae5-4003-aebc-0c1b83d56a54">
+## Features
 
-## Pre-requesite
+- **Natural Language Queries**: Easily pull insights without writing complex queries.
+- **Integration with Postgres**: Connect Ada with your existing Postgres database.
+- **Powered by OpenAI's GPT-4**: Experience cutting-edge AI-driven interactions.
 
-- Create Postgres database
+## Pre-requisites
 
-## Install
+1. PostgreSQL installed and running.
+2. OpenAI API key. If you don't have one, get it [here](https://www.openai.com/).
 
-in /service
+ℹ️ Note: while you can use GPT-3, we don't recommend trying it out with Ada.
+If you don't have access to GPT-4, you can contact me on [Twitter](https://twitter.com/benderville) for a beta invite of Ada.
 
-- `poetry install` -- install dependencies
-- `export OPENAI_API_KEY=XXX` -- set your OpenAI API key
-- `export DATABASE_URL=XXX` -- set your Postgres database URL
-- `flask run` -- run the backend
+## Installation
 
-in /view
+### Backend Setup (in `/service` directory)
 
-- `yarn` -- install dependencies
-- `yarn dev` -- run the front
+1. **Setup Virtual Environment** (Optional but recommended):
 
-Go on `http://localhost:5173`
+   ```bash
+   poetry shell
+   ```
 
-## Tech stack
+2. **Install Dependencies**:
 
-- AI based on OpenAI's GPT-4 API
-- Frontend: Vue3, Vite
-- Backend: Python
-- Database: Postgres
+   ```bash
+   poetry install
+   ```
+
+3. **Set Environment Variables**:
+
+   ```bash
+   export OPENAI_API_KEY=<Your_OpenAI_API_Key>
+   export DATABASE_URL=<Your_Postgres_Database_URL>
+   ```
+
+4. **Run the Backend**:
+   ```bash
+   flask run
+   ```
+
+### Frontend Setup (in `/view` directory)
+
+1. **Install Dependencies**:
+
+   ```bash
+   yarn
+   ```
+
+2. **Run the Frontend**:
+   ```bash
+   yarn dev
+   ```
+
+After completing the steps, open your browser and visit: [http://localhost:5173](http://localhost:5173)
+
+## Tech Stack
+
+- **AI Interaction**: Powered by OpenAI's GPT-4 API.
+- **Frontend**: Built using Vue3 and Vite.
+- **Backend**: Developed in Python.
+- **Database**: Postgres.
+
+## Contribution
+
+If you want to contribute, you can ping me on [Twitter](https://twitter.com/benderville).
+
+## License
+
+[MIT](LICENSE.md) - Feel free to use and modify, but please attribute appropriately.
