@@ -4,6 +4,10 @@
     "parameters": {
       "type": "object",
       "properties": {
+        "message": {
+          "type": "string",
+          "description": "The name/title of the query"
+        },
         "query": {
           "type": "string",
           "description": "The SQL query string to be executed"

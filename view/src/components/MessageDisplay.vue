@@ -38,7 +38,7 @@
       <SqlCode v-if="part.type === 'sql'" :code="part.content" :key="`sql-${index}`" />
       <BaseTable v-if="part.type === 'json'" :data="part.content" :key="`json-${index}`" />
       <BaseBuilder
-        v-if="part.type === 'yml-graph' && sqlResult"
+        v-if="(part.type === 'yml-graph' || part.type === 'yaml-graph') && sqlResult"
         :context="part.content"
         :count="sqlCount"
         :data="sqlResult"
@@ -95,14 +95,14 @@ export default {
   },
   mounted() {
     this.parsedText.forEach((part) => {
-      if (part.type === 'yml-graph') {
+      if (part.type === 'yml-graph' || part.type === 'yaml-graph') {
         this.executeSql(part.content.sql)
       }
     })
   },
   computed: {
     parsedText() {
-      const regex = /```((?:sql|json|yml-graph))\s*([\s\S]*?)\s*```/g
+      const regex = /```((?:sql|json|ya?ml-graph))\s*([\s\S]*?)\s*```/g
       let match
       let lastIndex = 0
       const parts = []
@@ -121,7 +121,7 @@ export default {
           content = JSON.parse(match[2].trim())
         } else if (type === 'sql') {
           content = match[2].trim()
-        } else if (type === 'yml-graph') {
+        } else if (type === 'yml-graph' || type === 'yaml-graph') {
           // TODO: verify that this is a valid graph yaml
           content = yaml.load(match[2].trim())
           console.log('content', content)

@@ -195,7 +195,7 @@ class DatalakeFactory:
     def create(dtype, **kwargs):
         if dtype == "snowflake":
             return SnowflakeDatabase(**kwargs)
-        elif dtype == "postgres":
+        elif dtype == "postgresql":
             user = kwargs.get("user")
             password = kwargs.get("password", "")
             host = kwargs.get("host")

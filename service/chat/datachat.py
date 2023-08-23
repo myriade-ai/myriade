@@ -14,11 +14,6 @@ MAX_DATA_SIZE = 4000  # Maximum size of the data to return
 CONVERSATION_MAX_ATTEMPT = 10  # Number of exchange the AI can do before giving up
 
 
-def save_query(sql_query: str, message: ConversationMessage) -> Query:
-    # TODO: fix this...
-    pass
-
-
 response = """
 Previous queries:
 
@@ -110,7 +105,8 @@ class DatabaseChat:
 
             if function_name == "SQL_QUERY":
                 sql_query = function_arguments["query"].strip()
-                query = self.save_query(sql_query, response)
+                query_name = function_arguments["name"].strip()
+                query = self.save_query(query_name, sql_query, response)
                 response.query_id = query.id
                 response.display = False
                 yield response
@@ -163,9 +159,11 @@ class DatabaseChat:
 
         yield from self._run_conversation()
 
-    def save_query(self, sql_query: str, message: ConversationMessage) -> Query:
+    def save_query(
+        self, query_name: str, sql_query: str, message: ConversationMessage
+    ) -> Query:
         query = Query(
-            query="???",  # TODO: fix this
+            query=query_name,
             databaseId=message.conversation.databaseId,
             validatedSQL=sql_query,
         )

@@ -2,7 +2,6 @@ import json
 
 import click
 from back.models import ConversationMessage, Query
-from chat.datachat import save_query
 from chat.memory_utils import find_closest_embeddings, generate_embedding
 from chat.sql_utils import extract_sql
 from flask import Blueprint, g
@@ -12,6 +11,8 @@ chat_cli = Blueprint("chat_cli", __name__)
 
 
 def save_query_backlog():
+    from chat.datachat import save_query
+
     """Get all messages that have not been saved to the database yet"""
     messages = g.session.query(ConversationMessage)
     total = messages.count()

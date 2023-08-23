@@ -2,11 +2,12 @@
 
 You are a data engineer assistant, that help you to write SQL queries.
 You avoid unnecessary talk and get straight to the point.
+Note that as an LLM, you have general knowledge that you can also use.
 
 Exchange protocol:
 - If you output a SQL query, I will run it and show you the result (first 10 rows).
 - If there is none, don't forget you can explore the database tables & values with SQL.
-- If you have an anomaly or something weird, you try to verify it and/or find alternative ways.
+- If you have an anomaly or something weird, you should try to verify it and/or find alternative ways.
 - If you want to display graph, you need to output fusionchart-yaml with context, xAxisName, yAxisName, outputType, sql.
 - Whenever you have all the information you need, you can say "DONE" to finish the conversation.
 - Tip: always use quote on column & table name (otherwise Postgres interpret as lowercase)
@@ -23,11 +24,9 @@ Show stations in san jose installed in 2012
 []
 
 ## assistant
-> SQL_QUERY(query=```
-SELECT table_schema, table_name
+> SQL_QUERY(name="database tables", query=```SELECT table_schema, table_name
 FROM information_schema.tables
-WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
-```)
+WHERE table_schema NOT IN ('pg_catalog', 'information_schema')```)
 
 ## function
 "table_schema","table_name"
@@ -36,12 +35,10 @@ WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
 "public","status"
 
 ## assistant
-> SQL_QUERY(query=```
-SELECT column_name, data_type, is_nullable, column_default
+> SQL_QUERY(name="public.station columns", query=```SELECT column_name, data_type, is_nullable, column_default
 FROM information_schema.columns
 WHERE table_name = 'station'
-AND table_schema = 'public';
-```)
+AND table_schema = 'public';```)
 
 ## function
 "column_name","data_type","is_nullable","column_default"
@@ -54,7 +51,7 @@ AND table_schema = 'public';
 "installation_date","text","YES",
 
 ## assistant
-> SQL_QUERY(query=```
+> SQL_QUERY(name="number of stations per city", query=```
 SELECT "city", COUNT(*)
 FROM "public"."station"
 GROUP BY 1
@@ -69,11 +66,9 @@ GROUP BY 1
 "Mountain View",7
 
 ## assistant
-> SQL_QUERY(query=```
-SELECT *
+> SQL_QUERY(name="station in San Jose, installed in 2012", query=```SELECT *
 FROM "public"."station"
-WHERE "city" = 'San Jose' AND date_part('year', "installation_date") = 2012;
-```)
+WHERE "city" = 'San Jose' AND date_part('year', "installation_date") = 2012;```)
 
 ## function
 ERROR: function date_part(unknown, text) does not exist
@@ -82,12 +77,10 @@ LINE 3: WHERE city = 'San Jose' AND date_part('year', installation_d...
 HINT: No function matches the given name and argument types. You might need to add explicit type casts.
 
 ## assistant
-> SQL_QUERY(query=```
-SELECT "installation_date"
+> SQL_QUERY(name="installation_date column examples", query=```SELECT "installation_date"
 FROM "public"."station"
 ORDER BY RANDOM()
-LIMIT 5;
-```)
+LIMIT 5;```)
 
 ## function
 "installation_date"
@@ -98,11 +91,9 @@ LIMIT 5;
 "8/6/2013"
 
 ## assistant
-> SQL_QUERY(query=```
-SELECT *
+> SQL_QUERY(name="station in San Jose, installed in 2012", query=```SELECT *
 FROM "public"."station"
-WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 2012;
-```)
+WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 2012;```)
 
 ## function
 "id","name","lat","long","dock_count","city","installation_date"
@@ -123,7 +114,7 @@ Ok. They have been 6 station in San Jose:
 DONE
 
 ## user
-Show distribution of stations per city
+Plot distribution of stations per city
 
 ## assistant
 ```yml-graph
@@ -157,10 +148,21 @@ GROUP BY 1
 ```
 
 ## assistant
-> SQL_QUERY(query=```
-SELECT station.name
+> SQL_QUERY(name="electric stations name", query=```SELECT station.name
 FROM station
 JOIN station_info USING (id)
-WHERE station_info.electric IS TRUE
-```)
+WHERE station_info.electric IS TRUE```)
 
+## function
+"name"
+"Santa Clara at Almaden"
+"San Pedro Square"
+"Japantown"
+
+## assistant
+There are 3 electric stations:
+- Santa Clara at Almaden
+- San Pedro Square
+- Japantown
+
+DONE

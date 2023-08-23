@@ -48,11 +48,7 @@
             </div>
 
             <!-- Display Regenerating button if query is not running and last message is not a query -->
-            <div
-              v-else-if="
-                queryStatus != STATUS.RUNNING && lastMessage && lastMessage?.role != 'user'
-              "
-            >
+            <div v-else-if="queryStatus != STATUS.RUNNING && lastMessage">
               <BaseButton @click="regenerate">Regenerate</BaseButton>
             </div>
 

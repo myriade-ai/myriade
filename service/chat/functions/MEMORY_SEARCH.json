@@ -1,6 +1,6 @@
 {
     "name": "MEMORY_SEARCH",
-    "description": "Searches through the AI's memory for a specific phrase or information",
+    "description": "Searches through the AI's memory for previous SQL queries that match the given phrase",
     "parameters": {
       "type": "object",
       "properties": {
