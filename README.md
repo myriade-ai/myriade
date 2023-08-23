@@ -10,6 +10,10 @@
 - **Integration with Postgres**: Connect Ada with your existing Postgres database.
 - **Powered by OpenAI's GPT-4**: Experience cutting-edge AI-driven interactions.
 
+## Demo
+
+Seeing is believing! Check out our [2 min demo video](https://www.youtube.com/watch?v=rh8CWB0ClOc) to see Ada in action.
+
 ## Pre-requisites
 
 1. PostgreSQL installed and running.
@@ -67,6 +71,15 @@ After completing the steps, open your browser and visit: [http://localhost:5173]
 - **Frontend**: Built using Vue3 and Vite.
 - **Backend**: Developed in Python.
 - **Database**: Postgres.
+
+## FAQ
+
+Q: How secure is my data with Ada / OpenAI?
+A: Since it's open source, you can run Ada on your own server and keep your data private. OpenAI's API is also secure and encrypted, and they don't use your data for training with the API.
+
+## Troubleshooting
+
+For any issues, please open an issue on GitHub or contact me on [Twitter](https://twitter.com/benderville).
 
 ## Contribution
 
