@@ -47,19 +47,3 @@ def run_sql(connection, sql):
             len_total=len(rows),
         )
         return execution_response, True
-
-
-def extract_sql(text):
-    import re
-
-    # Define a regular expression pattern to match the SQL query
-    pattern = r"```(sql)?(.*?)```"
-
-    # Use the re.findall() function to extract all matches of the pattern
-    matches = re.findall(pattern, text, re.DOTALL)
-
-    try:
-        # Return all matches
-        return [match[1].strip() for match in matches if match[0] == "sql"]
-    except IndexError:
-        pass

@@ -8,7 +8,7 @@ from back.models import Conversation, ConversationMessage, Query
 from chat.chatgpt import ChatGPT, parse_chat_template
 from chat.lock import StopException
 from chat.memory_utils import find_closest_embeddings
-from chat.sql_utils import extract_sql, run_sql
+from chat.sql_utils import run_sql
 
 MAX_DATA_SIZE = 4000  # Maximum size of the data to return
 CONVERSATION_MAX_ATTEMPT = 10  # Number of exchange the AI can do before giving up

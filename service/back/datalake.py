@@ -23,12 +23,6 @@ class AbstractDatabase(ABC):
         pass
 
 
-class AbstractTable(ABC):
-    @abstractmethod
-    def __init__(self, database, metadata):
-        pass
-
-
 class SQLDatabase:
     def __init__(self, uri):
         self.engine = sqlalchemy.create_engine(uri)
@@ -73,11 +67,6 @@ class SQLDatabase:
 
             # TODO add support for views
 
-        # Load Table objects
-        self.tables = []
-        for table_metadata in self.metadata:
-            self.tables.append(SQLTable(self, table_metadata))
-
     def query(self, query):
         """
         TODO: Query and fetch only the first 1000 rows, but return the total count
@@ -97,25 +86,6 @@ class SQLDatabase:
         else:
             raise ValueError("materialized must be 'table' or 'view'")
         # TODO: Reload metadata
-
-
-class SQLTable(AbstractTable):
-    def __init__(self, database, metadata):
-        self.database = database
-        self.metadata = metadata
-
-    @property
-    def _schema(self):
-        return self.metadata["schema"]
-
-    @property
-    def _table(self):
-        return self.metadata["table"]
-
-    def fetch_sample(self, n=1):
-        return self.database.query(
-            f"SELECT * FROM {self._schema}.{self._table} ORDER BY RANDOM() LIMIT {n}"
-        )
 
 
 class BigQueryDatabase:
@@ -169,10 +139,6 @@ class SnowflakeDatabase(AbstractDatabase):
                     "columns": columns,
                 }
             )
-
-        self.tables = []
-        for table_metadata in self.metadata:
-            self.tables.append(SQLTable(self, table_metadata))
 
     def query(self, query):
         # Forbid DROP, DELETE, TRUNCATE, etc. queries
