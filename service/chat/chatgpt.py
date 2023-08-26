@@ -2,12 +2,10 @@
 import json
 import os
 import typing
-from copy import deepcopy
 
 import openai
 from back.models import ConversationMessage
 from chat.utils import message_replace_json_block_to_csv, parse_function
-from flask import g
 
 # https://platform.openai.com/docs/models/gpt-4
 DEFAULT_MODEL = "gpt-4"

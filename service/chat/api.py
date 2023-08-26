@@ -1,6 +1,5 @@
-from threading import Lock
 
-from back.models import User, format_to_camel_case
+from back.models import User
 from back.session import Session
 from chat.datachat import DatabaseChat
 from chat.lock import (

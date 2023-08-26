@@ -1,6 +1,5 @@
 import openai
 from back.models import Query
-from sqlalchemy import func
 
 
 def generate_embedding(string):

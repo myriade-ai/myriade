@@ -2,11 +2,7 @@ import csv
 import json
 import re
 from io import StringIO
-from turtle import distance
 
-import numpy as np
-import openai
-from sqlalchemy import and_
 
 
 def csv_dumps(data):

@@ -1,22 +1,19 @@
 import json
-from dataclasses import dataclass, field
-from typing import List
+from dataclasses import dataclass
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
-    ARRAY,
     TIMESTAMP,
     Boolean,
     Column,
     ForeignKey,
-    ForeignKeyConstraint,
     Integer,
     String,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, session
+from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 

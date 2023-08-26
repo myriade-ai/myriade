@@ -1,9 +1,8 @@
 from back.datalake import DatalakeFactory
 from back.models import Conversation, ConversationMessage, Database
 from flask import Blueprint, g, jsonify, request
-from middleware import database_middleware, user_middleware
+from middleware import user_middleware
 from sqlalchemy import and_, or_
-from sqlalchemy.exc import SQLAlchemyError
 
 api = Blueprint("back_api", __name__)
 

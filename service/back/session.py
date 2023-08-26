@@ -2,7 +2,7 @@ import json
 import os
 from datetime import date, datetime
 
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = os.environ["DATABASE_URL"]
