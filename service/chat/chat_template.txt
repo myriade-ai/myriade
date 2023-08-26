@@ -127,3 +127,41 @@ sql: "SELECT city, COUNT(*) as \"count\"\nFROM public.station\nGROUP BY city"
 ```
 
 DONE
+
+## user
+show electric station
+
+## assistant
+> MEMORY_SEARCH(search="electric station")
+
+## function
+Previous queries:
+
+>>> query: Electric stations per city
+```sql
+SELECT station.city, COUNT(*)
+FROM station
+JOIN station_info USING (id)
+WHERE station_info.electric IS TRUE
+GROUP BY 1
+```
+
+## assistant
+> SQL_QUERY(name="electric stations name", query=```SELECT station.name
+FROM station
+JOIN station_info USING (id)
+WHERE station_info.electric IS TRUE```)
+
+## function
+"name"
+"Santa Clara at Almaden"
+"San Pedro Square"
+"Japantown"
+
+## assistant
+There are 3 electric stations:
+- Santa Clara at Almaden
+- San Pedro Square
+- Japantown
+
+DONE
