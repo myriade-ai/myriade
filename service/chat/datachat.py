@@ -68,7 +68,6 @@ class DatabaseChat:
             "chat/chat_template.txt",
             context=f"In {self.conversation.database.engine} database",
         )
-        print("FUNCTIONS", FUNCTIONS)
         chat_gpt.add_function(self.sql_query, FUNCTIONS["SQL_QUERY"])
 
         messages = [

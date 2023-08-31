@@ -41,7 +41,7 @@
           rules="required"
         />
         <base-input name="Port" v-model="database.details.port" type="number" />
-        <base-input name="User" v-model="database.details.user" rules="required" />
+        <base-input name="User" v-model="database.details.user" />
         <base-input name="Password" v-model="database.details.password" />
         <base-input name="Database" v-model="database.details.database" rules="required" />
       </div>

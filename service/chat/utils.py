@@ -4,7 +4,6 @@ import re
 from io import StringIO
 
 
-
 def csv_dumps(data):
     # Dumps to CSV, with header row
     if not data:
