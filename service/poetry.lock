@@ -182,6 +182,20 @@ tests = ["attrs[tests-no-zope]", "zope.interface"]
 tests-no-zope = ["cloudpickle", "cloudpickle", "hypothesis", "hypothesis", "mypy (>=0.971,<0.990)", "mypy (>=0.971,<0.990)", "pympler", "pympler", "pytest (>=4.3.0)", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-mypy-plugins", "pytest-xdist[psutil]", "pytest-xdist[psutil]"]
 
 [[package]]
+name = "autochat"
+version = "0.1.4"
+description = "Small ChatGPT library to support chat templates, and function calls"
+optional = false
+python-versions = "*"
+files = [
+    {file = "autochat-0.1.4-py3-none-any.whl", hash = "sha256:b49c44275b4df2408ea1502d9d6312909e80c02d2cddd5ccbed5365394b90d7d"},
+    {file = "autochat-0.1.4.tar.gz", hash = "sha256:8cd7a427a55b0cd2ab71e15d5ed7536d07672319224c8d02f0e71ebfa757802f"},
+]
+
+[package.dependencies]
+openai = "0.27.2"
+
+[[package]]
 name = "bidict"
 version = "0.22.1"
 description = "The bidirectional mapping library for Python."
@@ -1426,4 +1440,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "a7c03c196ce8573667589d6688a31e00d580422914620bf9bf5e5406860c2d79"
+content-hash = "070998d34e6a6e3d6dd14d039d45c5b5a5adf833ca3c996d1225e85b85416d90"

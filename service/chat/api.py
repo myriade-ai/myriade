@@ -1,4 +1,3 @@
-
 from back.models import User
 from back.session import Session
 from chat.datachat import DatabaseChat
@@ -85,6 +84,7 @@ def handle_regenerate(_, conversation_id=None, database_id=None):
 
     # Restart the conversation
     for message in chat._run_conversation():
+        print("MESSAGE", message.to_dict())
         emit("response", message.to_dict())
 
 

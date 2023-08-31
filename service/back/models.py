@@ -1,16 +1,9 @@
 import json
 from dataclasses import dataclass
 
+from autochat import Message
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import (
-    TIMESTAMP,
-    Boolean,
-    Column,
-    ForeignKey,
-    Integer,
-    String,
-    text,
-)
+from sqlalchemy import TIMESTAMP, Boolean, Column, ForeignKey, Integer, String, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -88,7 +81,6 @@ class ConversationMessage(Base):
     content: str
     data: dict
     display: bool
-    done: bool
     functionCall: dict
     queryId: int
 
@@ -100,10 +92,10 @@ class ConversationMessage(Base):
     functionCall = Column(JSONB)
     data = Column(JSONB)
     display = Column(Boolean, nullable=False, default=True)
-    done = Column(Boolean, nullable=False, default=False)
     createdAt = Column(TIMESTAMP, nullable=False, default=text("now()"))
     updatedAt = Column(TIMESTAMP, nullable=False, default=text("now()"))
     queryId = Column(Integer, ForeignKey("query.id"), nullable=True)
+    reqId = Column(String, nullable=True)
 
     conversation = relationship("Conversation", back_populates="messages")
 
@@ -123,38 +115,25 @@ class ConversationMessage(Base):
             "functionCall": self.functionCall,
             "data": self.data,
             "display": self.display,
-            "done": self.done,
             # "createdAt": self.createdAt,
             # "updatedAt": self.updatedAt,
             "queryId": self.queryId,
         }
 
-    @classmethod
-    def from_openai_dict(cls, **kwargs):
-        if kwargs.get("function_call"):
-            arguments_dumps = kwargs["function_call"].get("arguments")
-            if arguments_dumps:
-                kwargs["function_call"]["arguments"] = json.loads(arguments_dumps)
-        return ConversationMessage(**kwargs)
-
-    def to_openai_dict(self) -> dict:
-        res = {
+    def to_autochat_message(self):
+        return {
             "role": self.role,
+            "name": self.name,
             "content": self.content,
+            "function_call": self.functionCall,
         }
-        if self.name:
-            res["name"] = self.name
-        if self.functionCall:
-            res["function_call"] = {
-                "name": self.functionCall["name"],
-                # if functionCall["arguments"] is a dict, we dump it to a string
-                # because the OpenAI API doesn't accept nested dicts
-                "arguments": json.dumps(self.functionCall["arguments"])
-                if isinstance(self.functionCall["arguments"], dict)
-                else self.functionCall["arguments"],
-            }
 
-        return res
+    @classmethod
+    def from_autochat_message(cls, message: Message):
+        kwargs = format_to_camel_case(**message.__dict__)
+        # rewrite id to reqId
+        kwargs["reqId"] = kwargs.pop("id", None)
+        return ConversationMessage(**kwargs)
 
 
 @dataclass

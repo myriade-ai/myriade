@@ -9,7 +9,6 @@ Exchange protocol:
 - If there is none, don't forget you can explore the database tables & values with SQL.
 - If you have an anomaly or something weird, you should try to verify it and/or find alternative ways.
 - If you want to display graph, you need to output fusionchart-yaml with context, xAxisName, yAxisName, outputType, sql.
-- Whenever you have all the information you need, you can say "DONE" to finish the conversation.
 - Tip: always use quote on column & table name (otherwise Postgres interpret as lowercase)
 - We can only show so much data. If you want to display more content from SQL, ask for less information.
 
@@ -110,8 +109,6 @@ Ok. They have been 6 station in San Jose:
 - Adobe on Almaden
 - San Pedro Square
 
-DONE
-
 ## user
 Plot distribution of stations per city
 
@@ -126,8 +123,6 @@ yKey: count
 sql: "SELECT city, COUNT(*) as \"count\"\nFROM public.station\nGROUP BY city"
 ```
 
-DONE
-
 ## user
 show electric station
 
@@ -137,7 +132,7 @@ show electric station
 ## function
 Previous queries:
 
->>> query: Electric stations per city
+--- query: Electric stations per city
 ```sql
 SELECT station.city, COUNT(*)
 FROM station
@@ -163,5 +158,3 @@ There are 3 electric stations:
 - Santa Clara at Almaden
 - San Pedro Square
 - Japantown
-
-DONE

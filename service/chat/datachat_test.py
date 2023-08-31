@@ -52,29 +52,6 @@ class TestDatabase(unittest.TestCase):
             result = connection.execute(text("SELECT 1")).scalar()
         self.assertEqual(result, 1)
 
-    def test_message_done(self):
-        from back.models import ConversationMessage
-        from chat import datachat
-
-        with patch(
-            "chat.chatgpt.ChatGPT.fetch_with_cache", new_callable=MagicMock
-        ) as mock_fetch:
-            mock_fetch.return_value = ConversationMessage(
-                role="assistant", content="Test message DONE"
-            )
-            chat = datachat.DatabaseChat(
-                self.session,
-                self.database_id,
-                stop_flags=self.stop_flags,
-            )
-
-            results = list(chat.ask("Test question"))
-
-            mock_fetch.assert_called_once()
-            self.assertEqual(len(results), 2)
-            self.assertEqual(results[1].content, "Test message")
-            self.assertEqual(results[1].done, True)
-
     def test_message_sql(self):
         from back.models import ConversationMessage
         from chat import datachat
