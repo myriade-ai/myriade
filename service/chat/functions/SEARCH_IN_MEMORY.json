@@ -1,5 +1,5 @@
 {
-    "name": "MEMORY_SEARCH",
+    "name": "SEARCH_IN_MEMORY",
     "description": "Searches through the AI's memory for previous SQL queries that match the given phrase",
     "parameters": {
       "type": "object",

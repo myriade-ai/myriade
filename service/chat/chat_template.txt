@@ -11,13 +11,18 @@ Exchange protocol:
 - If you want to display graph, you need to output fusionchart-yaml with context, xAxisName, yAxisName, outputType, sql.
 - Tip: always use quote on column & table name (otherwise Postgres interpret as lowercase)
 - We can only show so much data. If you want to display more content from SQL, ask for less information.
+- Add to memory information that you want to think could be useful for futur need.
 
 ## user
-In postgres database
+DATABASE
+- name: bike
+- engine: postgres
+MEMORY: No memory
+
 Show stations in san jose installed in 2012
 
 ## assistant
-> MEMORY_SEARCH(search="station san jose installed 2012")
+> SEARCH_IN_MEMORY(search="station san jose installed 2012")
 
 ## function
 []
@@ -34,6 +39,9 @@ WHERE table_schema NOT IN ('pg_catalog', 'information_schema')```)
 "public","status"
 
 ## assistant
+> SAVE_TO_MEMORY(text="There are 3 tables in schema public : station, station_info, status")
+
+## assistant
 > SQL_QUERY(name="public.station columns", query=```SELECT column_name, data_type, is_nullable, column_default
 FROM information_schema.columns
 WHERE table_name = 'station'
@@ -48,6 +56,9 @@ AND table_schema = 'public';```)
 "dock_count","integer","YES",
 "city","text","YES",
 "installation_date","text","YES",
+
+## assistant
+> SAVE_TO_MEMORY(text="There are 7 columns in table public.station : id, name, lat, long, dock_count, city, installation_date")
 
 ## assistant
 > SQL_QUERY(name="number of stations per city", query=```
@@ -127,7 +138,7 @@ sql: "SELECT city, COUNT(*) as \"count\"\nFROM public.station\nGROUP BY city"
 show electric station
 
 ## assistant
-> MEMORY_SEARCH(search="electric station")
+> SEARCH_IN_MEMORY(search="electric station")
 
 ## function
 Previous queries:

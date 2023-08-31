@@ -54,6 +54,8 @@ class Database(Base):
     organisationId = Column(String, ForeignKey("organisation.id"))
     ownerId = Column(String, ForeignKey("user.id"))
     public = Column(Boolean, nullable=False, default=False)
+    # Information save by the ai
+    memory = Column(String)
 
     organisation = relationship("Organisation")
     owner = relationship("User")

@@ -3,6 +3,7 @@
 import json
 import os
 
+import yaml
 from autochat import ChatGPT, Message
 from back.datalake import DatalakeFactory
 from back.models import Conversation, ConversationMessage, Query
@@ -23,7 +24,7 @@ class DatabaseChat:
     """
     ChatGPT with a database, execute functions.
     - SQL_QUERY: execute sql query and return the result (size limited)
-    - MEMORY_SEARCH: search in the memory the closest query and return the result
+    - SAVE_TO_MEMORY: save any text to memory
     """
 
     def __init__(self, session, database_id, conversation_id=None, stop_flags=None):
@@ -63,12 +64,24 @@ class DatabaseChat:
             raise StopException("Query stopped by user")
 
     @property
+    def context(self):
+        context = {
+            "DATABASE": {
+                "name": self.conversation.database.name,
+                "engine": self.conversation.database.engine,
+            },
+            "MEMORY": self.conversation.database.memory,
+        }
+        return yaml.dump(context)
+
+    @property
     def chat_gpt(self):
         chat_gpt = ChatGPT.from_template(
             "chat/chat_template.txt",
-            context=f"In {self.conversation.database.engine} database",
         )
+        chat_gpt.context = self.context
         chat_gpt.add_function(self.sql_query, FUNCTIONS["SQL_QUERY"])
+        chat_gpt.add_function(self.save_to_memory, FUNCTIONS["SAVE_TO_MEMORY"])
 
         messages = [
             Message(**m.to_autochat_message()) for m in self.conversation.messages
@@ -90,6 +103,13 @@ class DatabaseChat:
 
         output, _ = run_sql(self.datalake, query)
         return output
+
+    def save_to_memory(self, text: str, **kwargs):
+        if self.conversation.database.memory is None:
+            self.conversation.database.memory = text
+        else:
+            self.conversation.database.memory += "\n" + text
+        self.session.commit()
 
     def _run_conversation(self):
         # Message

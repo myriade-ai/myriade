@@ -103,7 +103,7 @@ class TestDatabase(unittest.TestCase):
                 ConversationMessage(
                     role="assistant",
                     functionCall={
-                        "name": "MEMORY_SEARCH",
+                        "name": "SEARCH_IN_MEMORY",
                         "arguments": {"search": "How many cars are blue?"},
                     },
                 ),
