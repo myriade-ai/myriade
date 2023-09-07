@@ -4,7 +4,7 @@ import json
 import os
 
 import yaml
-from autochat import ChatGPT, Message
+from autochat import ChatGPT, Message, StopLoopException
 from back.datalake import DatalakeFactory
 from back.models import Conversation, ConversationMessage, Query
 from chat.lock import StopException
@@ -25,6 +25,7 @@ class DatabaseChat:
     ChatGPT with a database, execute functions.
     - SQL_QUERY: execute sql query and return the result (size limited)
     - SAVE_TO_MEMORY: save any text to memory
+    - PLOT_WIDGET: plot a widget
     """
 
     def __init__(self, session, database_id, conversation_id=None, stop_flags=None):
@@ -82,6 +83,7 @@ class DatabaseChat:
         chat_gpt.context = self.context
         chat_gpt.add_function(self.sql_query, FUNCTIONS["SQL_QUERY"])
         chat_gpt.add_function(self.save_to_memory, FUNCTIONS["SAVE_TO_MEMORY"])
+        chat_gpt.add_function(self.plot_widget, FUNCTIONS["PLOT_WIDGET"])
 
         messages = [
             Message(**m.to_autochat_message()) for m in self.conversation.messages
@@ -110,6 +112,13 @@ class DatabaseChat:
         else:
             self.conversation.database.memory += "\n" + text
         self.session.commit()
+
+    def plot_widget(
+        self, title: str, outputType: str, sql: str, params: dict = None, **kwargs
+    ):
+        """TODO: add verification on the widget parameters and the sql query"""
+        raise StopLoopException("We want to stop after the widget")
+        return
 
     def _run_conversation(self):
         # Message

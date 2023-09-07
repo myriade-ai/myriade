@@ -183,13 +183,13 @@ tests-no-zope = ["cloudpickle", "cloudpickle", "hypothesis", "hypothesis", "mypy
 
 [[package]]
 name = "autochat"
-version = "0.1.4"
+version = "0.1.6"
 description = "Small ChatGPT library to support chat templates, and function calls"
 optional = false
 python-versions = "*"
 files = [
-    {file = "autochat-0.1.4-py3-none-any.whl", hash = "sha256:b49c44275b4df2408ea1502d9d6312909e80c02d2cddd5ccbed5365394b90d7d"},
-    {file = "autochat-0.1.4.tar.gz", hash = "sha256:8cd7a427a55b0cd2ab71e15d5ed7536d07672319224c8d02f0e71ebfa757802f"},
+    {file = "autochat-0.1.6-py3-none-any.whl", hash = "sha256:82550e2943e2f0f8c33761c00c94e822adc8409a999ab7e9e95f0dcc95fa1021"},
+    {file = "autochat-0.1.6.tar.gz", hash = "sha256:a0d59678575517cfe28c63561d111fa341e5a350de428d9640d93b4175622205"},
 ]
 
 [package.dependencies]
@@ -1440,4 +1440,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "070998d34e6a6e3d6dd14d039d45c5b5a5adf833ca3c996d1225e85b85416d90"
+content-hash = "a76130785014eb50ba93c735ce698d4e4c2e0edef62c0f76f50c1b0fcbf0c970"

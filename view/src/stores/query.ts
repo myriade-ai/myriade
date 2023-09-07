@@ -35,6 +35,20 @@ export const loadQuery = async (id: number) => {
   // querySQL.value = sqlPrettier.format(response.data.output);
 }
 
+export const executeQuery = async (databaseId: number, sql: string) => {
+  return await axios
+    .post('/api/query/_run', {
+      query: sql,
+      databaseId: databaseId
+    })
+    .then((response) => {
+      return {
+        rows: response.data.rows as any[],
+        count: response.data.count as number
+      }
+    })
+}
+
 export const runQuery = async () => {
   loading.value = true
   return await axios

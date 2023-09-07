@@ -1,0 +1,27 @@
+{
+    "name": "PLOT_WIDGET",
+    "description": "Display a plot",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Plot title"
+        },
+        "outputType": {
+          "type": "string",
+          "description": "Output type",
+          "enum": ["Doughnut2d", "Column2d", "Table", "Line"]
+        },
+        "sql": {
+          "type": "string",
+          "description": "SQL query"
+        },
+        "params": {
+          "type": "object",
+          "description": "Widget parameters"
+        }
+      },
+      "required": ["title", "outputType", "sql", "params"]
+    }
+}

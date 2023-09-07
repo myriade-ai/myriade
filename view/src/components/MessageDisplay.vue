@@ -24,6 +24,13 @@
       <p v-if="message.functionCall?.name === 'MEMORY_SEARCH'">
         Search: "{{ message.functionCall?.arguments?.search }}"
       </p>
+      <div v-else-if="message.functionCall?.name === 'PLOT_WIDGET' && databaseSelectedId">
+        <Widget
+          :database-id="databaseSelectedId"
+          :sql="message.functionCall?.arguments?.sql"
+          :context="message.functionCall?.arguments"
+        ></Widget>
+      </div>
       <SqlCode
         v-else-if="message.functionCall?.name === 'SQL_QUERY'"
         :code="message.functionCall?.arguments?.query"
@@ -51,18 +58,20 @@
 import SqlCode from '@/components/SqlCode.vue'
 import BaseTable from '@/components/BaseTable.vue'
 import BaseBuilder from '@/components/BaseBuilder.vue'
+import Widget from '@/components/Widget.vue'
 import yaml from 'js-yaml'
 import axios from 'axios'
 
 // Get databaseId from store
 import { useDatabases } from '../stores/databases'
-const { databaseSelectedId } = useDatabases()
+export const { databaseSelectedId } = useDatabases()
 
 export default {
   components: {
     SqlCode,
     BaseTable,
-    BaseBuilder
+    BaseBuilder,
+    Widget
   },
   props: {
     message: {
@@ -75,7 +84,8 @@ export default {
       sqlResult: [] as Array<{
         [key: string]: string | number | boolean | null
       }>,
-      sqlCount: 0
+      sqlCount: 0,
+      databaseSelectedId
     }
   },
   methods: {

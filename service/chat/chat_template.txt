@@ -75,9 +75,10 @@ GROUP BY 1```)
 "Mountain View",7
 
 ## assistant
-> SQL_QUERY(name="station in San Jose, installed in 2012", query="SELECT *
+> SQL_QUERY(name="station in San Jose, installed in 2012", query=```SELECT *
 FROM "public"."station"
-WHERE "city" = 'San Jose' AND date_part('year', "installation_date") = 2012;")
+WHERE "city" = 'San Jose' AND date_part('year', "installation_date") = 2012;
+```)
 
 ## function
 ERROR: function date_part(unknown, text) does not exist
@@ -100,8 +101,8 @@ LIMIT 5;```)
 "8/6/2013"
 
 ## assistant
-> SQL_QUERY(name="station in San Jose, installed in 2012", query=```SELECT *
-FROM "public"."station"
+> SQL_QUERY(name="station in San Jose, installed in 2012", query=```SELECT * 
+FROM \"public\".\"station\"
 WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 2012;```)
 
 ## function
@@ -124,15 +125,12 @@ Ok. They have been 6 station in San Jose:
 Plot distribution of stations per city
 
 ## assistant
-```yml-graph
-name: Distribution of stations per city
-outputType: Doughnut2d
-xAxisName: City
-yAxisName: Number of stations
-xKey: city
-yKey: count
-sql: "SELECT city, COUNT(*) as \"count\"\nFROM public.station\nGROUP BY city"
-```
+> PLOT_WIDGET(
+    name="Distribution of stations per city",
+    outputType="Doughnut2d",
+    sql="SELECT city, COUNT(*) FROM public.station GROUP BY city",
+    params={"xAxisName": "City", "yAxisName":"Number of stations", "xKey":"city", "yKey":"count"}
+)
 
 ## user
 show electric station
