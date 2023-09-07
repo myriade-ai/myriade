@@ -160,7 +160,11 @@ class Conversation(Base):
     owner = relationship("User")
     database = relationship("Database")
     messages = relationship(
-        "ConversationMessage", back_populates="conversation", lazy="joined"
+        "ConversationMessage",
+        back_populates="conversation",
+        lazy="joined",
+        # Order by id
+        order_by="ConversationMessage.id",
     )
 
 
