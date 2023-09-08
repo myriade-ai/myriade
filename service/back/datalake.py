@@ -1,8 +1,20 @@
 import json
+import sys
 from abc import ABC, abstractmethod, abstractproperty
 
 import sqlalchemy
 from sqlalchemy import text
+
+MAX_SIZE = 2 * 1024 * 1024  # 2MB in bytes
+
+
+class SizeLimitError(Exception):
+    pass
+
+
+def sizeof(obj):
+    # This function returns the size of an object in bytes
+    return sys.getsizeof(obj)
 
 
 class AbstractDatabase(ABC):
@@ -69,12 +81,27 @@ class SQLDatabase:
 
     def query(self, query):
         """
-        TODO: Query and fetch only the first 1000 rows, but return the total count
+        Run a query against the database
+        Limit the result to 2MB
         """
         with self.engine.connect() as connection:
-            # fetch max 1000 rows
-            rows = connection.execute(text(query)).fetchmany(1000)
-            return [dict(r._mapping) for r in rows]
+            result = connection.execute(text(query))
+
+            rows = []
+            total_size = 0
+
+            for row in result:
+                row_dict = dict(row._mapping)
+                row_size = sizeof(row_dict)
+
+                if total_size + row_size > MAX_SIZE:
+                    raise SizeLimitError(
+                        f"Result size is too big: {total_size + row_size} > {MAX_SIZE}"
+                    )
+
+                rows.append(row_dict)
+                total_size += row_size
+            return rows
 
     def create_transformation(self, name, query, materialized="table", schema="public"):
         if materialized == "table":
@@ -151,9 +178,15 @@ class SnowflakeDatabase(AbstractDatabase):
             cursor.execute(query)
             # On fetch maximum 1000 rows
             results = cursor.fetchmany(1000)
+            rows = results
+            # We continue fetching until there we pass MAX_SIZE
+            while results and sizeof(results) < MAX_SIZE:
+                results = cursor.fetchmany(1000)
+                rows += results
+
             column_names = [column[0] for column in cursor.description]
 
-            return [dict(zip(column_names, row)) for row in results]
+            return [dict(zip(column_names, row)) for row in rows]
 
 
 class DatalakeFactory:

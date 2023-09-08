@@ -1,9 +1,10 @@
 from functools import wraps
 
-from back.datalake import DatalakeFactory
+from back.datalake import DatalakeFactory, SizeLimitError
 from back.models import Database, Query
 from flask import Blueprint, g, jsonify, request
 from middleware import user_middleware
+from sqlalchemy.exc import SQLAlchemyError
 
 api = Blueprint("ai_api", __name__)
 
@@ -35,9 +36,12 @@ def run_query():
     """
     sql_query = request.json.get("query")
 
-    result = g.datalake.query(sql_query)
-    count = len(result)
-    return jsonify({"rows": result[:50], "count": count})
+    try:
+        result = g.datalake.query(sql_query)
+        count = len(result)
+        return jsonify({"rows": result, "count": count})
+    except (SQLAlchemyError, SizeLimitError) as e:
+        return jsonify({"message": str(e)}), 500
 
 
 @api.route("/query/<int:query_id>", methods=["GET", "PUT"])

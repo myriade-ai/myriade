@@ -35,7 +35,10 @@ export const loadQuery = async (id: number) => {
   // querySQL.value = sqlPrettier.format(response.data.output);
 }
 
-export const executeQuery = async (databaseId: number, sql: string) => {
+export const executeQuery = async (
+  databaseId: number,
+  sql: string
+): Promise<{ rows: any[]; count: number }> => {
   return await axios
     .post('/api/query/_run', {
       query: sql,
@@ -47,23 +50,25 @@ export const executeQuery = async (databaseId: number, sql: string) => {
         count: response.data.count as number
       }
     })
+    .catch((e) => {
+      throw new Error(e.response.data.message)
+    })
 }
 
 export const runQuery = async () => {
   loading.value = true
-  return await axios
-    .post('/api/query/_run', {
-      query: querySQL.value,
-      databaseId: databaseSelectedId.value
-    })
-    .then((response) => {
+  // @ts-ignore
+  return executeQuery(databaseSelectedId.value, querySQL.value)
+    .then(({ rows, count }) => {
       queryError.value = null
-      queryResults.value = response.data.rows
-      queryCount.value = response.data.count
+      // @ts-ignore
+      queryResults.value = rows
+      // @ts-ignore
+      queryCount.value = count
       return queryResults.value
     })
-    .catch((e) => {
-      queryError.value = e.response.data.message
+    .catch((message) => {
+      queryError.value = message
     })
     .finally(() => {
       loading.value = false
