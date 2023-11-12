@@ -40,7 +40,6 @@ class SQLDatabase:
         self.engine = sqlalchemy.create_engine(uri)
         self.inspector = sqlalchemy.inspect(self.engine)
         self.metadata = []
-        self.load_metadata()
 
     def dispose(self):
         # On destruct, close the engine
@@ -50,6 +49,10 @@ class SQLDatabase:
     def dialect(self):
         # "postgresql", "mysql", "sqlite", "mssql"
         return self.engine.name
+
+    def test_connection(self):
+        # Test connection by running a query
+        self.query("SELECT 1")
 
     def load_metadata(self):
         for schema in self.inspector.get_schema_names():
@@ -78,6 +81,7 @@ class SQLDatabase:
                 )
 
             # TODO add support for views
+        return self.metadata
 
     def query(self, query):
         """
@@ -122,7 +126,6 @@ class BigQueryDatabase:
         self.client = bigquery.Client(project=project_id)
         self.dataset_id = dataset_id
         self.metadata = []
-        self.load_metadata()
 
 
 class SnowflakeDatabase(AbstractDatabase):
@@ -139,8 +142,7 @@ class SnowflakeDatabase(AbstractDatabase):
     def load_metadata(self):
         query = "SHOW TABLES IN DATABASE {}".format(self.connection.database)
         tables = self.query(query)
-        for table in tables[:3]:
-            print("table", table)
+        for table in tables[:30]:
             schema = table["schema_name"]
             table_name = table["name"]
 
@@ -161,11 +163,13 @@ class SnowflakeDatabase(AbstractDatabase):
             self.metadata.append(
                 {
                     "schema": schema,
-                    "table": table_name,
+                    "name": table_name,
                     "is_view": False,
                     "columns": columns,
                 }
             )
+
+        return self.metadata
 
     def query(self, query):
         # Forbid DROP, DELETE, TRUNCATE, etc. queries
@@ -194,11 +198,11 @@ class DatalakeFactory:
     def create(dtype, **kwargs):
         if dtype == "snowflake":
             return SnowflakeDatabase(**kwargs)
-        elif dtype == "postgresql":
+        elif dtype == "postgres":
             user = kwargs.get("user")
             password = kwargs.get("password", "")
             host = kwargs.get("host")
-            uri = f"{dtype}://{user}:{password}@{host}/{kwargs['database']}"
+            uri = f"postgresql://{user}:{password}@{host}/{kwargs['database']}"
             if "options" in kwargs:
                 uri += "?options=" + "&".join(
                     [f"--{k}={v}" for k, v in kwargs["options"].items()]

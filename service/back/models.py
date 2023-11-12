@@ -56,6 +56,7 @@ class Database(Base):
     public = Column(Boolean, nullable=False, default=False)
     # Information save by the ai
     memory = Column(String)
+    tables_metadata = Column(JSONB)
 
     organisation = relationship("Organisation")
     owner = relationship("User")
@@ -63,7 +64,7 @@ class Database(Base):
     # Hotfix for engine, "postgres" should be "postgresql"
     @property
     def engine(self):
-        return self._engine.replace("postgres", "postgresql")
+        return self._engine  # .replace("postgres", "postgresql")
 
 
 class Organisation(Base):

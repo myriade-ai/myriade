@@ -78,6 +78,14 @@ def delete_conversation(conversation_id):
 @api.route("/databases", methods=["POST"])
 @user_middleware
 def create_database():
+    # Instaniate a new datalake object
+    datalake = DatalakeFactory.create(
+        request.json["engine"],
+        **request.json["details"],
+    )
+    # Test connection
+    datalake.test_connection()
+
     # Create a new database
     database = Database(
         name=request.json["name"],
@@ -87,6 +95,8 @@ def create_database():
         # organisationId=request.json["organisationId"],
         ownerId=g.user.id,
     )
+
+    database.tables_metadata = datalake.load_metadata()
 
     g.session.add(database)
     g.session.commit()
@@ -109,8 +119,26 @@ def update_database(database_id):
     database = g.session.query(Database).filter_by(id=database_id).first()
     database.name = request.json["name"]
     database.description = request.json["description"]
+
+    # If the engine info has changed, we need to check the connection
+    datalake = DatalakeFactory.create(
+        request.json["engine"],
+        **request.json["details"],
+    )
+    if (
+        database.engine != request.json["engine"]
+        or database.details != request.json["details"]
+        or database.name != request.json["name"]
+    ):
+        try:
+            datalake.test_connection()
+        except Exception as e:
+            return jsonify({"message": str(e.args[0])}), 400
+
+    database.tables_metadata = datalake.load_metadata()
     database._engine = request.json["engine"]
     database.details = request.json["details"]
+
     g.session.commit()
     return jsonify(database)
 
@@ -133,18 +161,10 @@ def get_databases():
 
 @api.route("/databases/<int:database_id>/schema", methods=["GET"])
 def get_schema(database_id):
-    # Get the user ID from request headers or other means (e.g. JWT)
-    user_id = request.headers.get("user_id")
-
     # Filter databases based on user ID and specific database ID
     database = g.session.query(Database).filter_by(id=database_id).first()
-    # Add a datalake object to the request
-    datalake = DatalakeFactory.create(
-        database.engine,
-        **database.details,
-    )
 
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    return jsonify(datalake.metadata)
+    return jsonify(database.tables_metadata)

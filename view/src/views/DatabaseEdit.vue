@@ -28,6 +28,7 @@
           >
             <option>postgres</option>
             <option>sqlite</option>
+            <option>snowflake</option>
           </select>
         </div>
       </base-field>
@@ -49,6 +50,15 @@
     <div class="mt-4 text-sm text-gray-500" v-if="database.engine === 'sqlite'">
       <p>Sqlite connection details</p>
       <base-input name="Path" v-model="database.details.filename" rules="required" />
+    </div>
+    <div class="mt-4 text-sm text-gray-500" v-if="database.engine === 'snowflake'">
+      <p>Snowflake connection details</p>
+      <base-input name="Account" v-model="database.details.account" rules="required" />
+      <base-input name="User" v-model="database.details.user" rules="required" />
+      <base-input name="Password" v-model="database.details.password" rules="required" />
+      <base-input name="Database" v-model="database.details.database" rules="required" />
+      <base-input name="Schema" v-model="database.details.schema" />
+      <base-input name="Warehouse" v-model="database.details.warehouse" />
     </div>
 
     <hr class="mt-5" />
@@ -138,7 +148,7 @@ const clickSave = async () => {
     router.push({ name: 'DatabaseList' })
   } catch (error) {
     console.error(error)
-    apiError.value = error.message
+    apiError.value = error.response.data.message
   }
 }
 </script>
