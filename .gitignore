@@ -1,5 +1,5 @@
 service/.cache
-service/run.sh
+service/.env.sh
 view/node_modules
 .DS_Store
 .ipynb_checkpoints
