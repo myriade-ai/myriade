@@ -1,9 +1,14 @@
 <template>
-  <BaseBuilder :context="props.context" :count="queryCount" :data="queryResults"></BaseBuilder>
+  <Chart
+    :data="queryResults"
+    :context="props.context"
+    :count="queryCount"
+    :visualisationParams="props.context.visualisationParams"
+  ></Chart>
 </template>
 
 <script setup lang="ts">
-import BaseBuilder from '@/components/BaseBuilder.vue'
+import Chart from '@/components/Chart.vue'
 import { executeQuery } from '../stores/query'
 
 import { defineProps, onMounted } from 'vue'
