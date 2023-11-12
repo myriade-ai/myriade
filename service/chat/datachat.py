@@ -1,5 +1,3 @@
-# TODO: Here we should tell if the message should be displayed or not ?? Could be done at compilation time !
-
 import json
 import os
 

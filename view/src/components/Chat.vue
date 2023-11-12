@@ -25,7 +25,7 @@
             </BaseSwitch>
           </div>
           <ul class="list-none">
-            <li v-for="(message, id) in messages" :key="id">
+            <li v-for="(message, id) in messagesWithDisplay" :key="id">
               <MessageDisplay
                 :key="id"
                 :message="message"
@@ -148,7 +148,7 @@ watch(
 )
 
 const hasHiddenMessages = computed(() => {
-  return messages.value.some((message) => message.display === false)
+  return messagesWithDisplay.value.some((message) => message.display === false)
 })
 
 const regenerate = async () => {
@@ -174,6 +174,26 @@ const sendMessage = async () => {
 const receiveMessage = async (message) => {
   messages.value.push(message)
 }
+
+/* Modify Message display according to the following rules:
+- if user message; display=true
+- if last message from assistant (before an user message) and functionCall is null; display=true
+else display=false
+*/
+const messagesWithDisplay = computed(() => {
+  const messagesWithDisplay = []
+  messages.value.forEach((message, index) => {
+    message.display = false
+    if (message.role === 'user') {
+      message.display = true
+    }
+    if (message.role === 'assistant' && !message.functionCall) {
+      message.display = true
+    }
+    messagesWithDisplay.push(message)
+  })
+  return messagesWithDisplay
+})
 
 const stopQuery = async () => {
   socket.emit('stop', conversationId.value)

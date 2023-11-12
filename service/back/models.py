@@ -83,7 +83,6 @@ class ConversationMessage(Base):
     role: str
     content: str
     data: dict
-    display: bool
     functionCall: dict
     queryId: int
 
@@ -94,7 +93,6 @@ class ConversationMessage(Base):
     content = Column(String, nullable=True)
     functionCall = Column(JSONB)
     data = Column(JSONB)
-    display = Column(Boolean, nullable=False, default=True)
     createdAt = Column(TIMESTAMP, nullable=False, default=text("now()"))
     updatedAt = Column(TIMESTAMP, nullable=False, default=text("now()"))
     queryId = Column(Integer, ForeignKey("query.id"), nullable=True)
@@ -117,7 +115,6 @@ class ConversationMessage(Base):
             "content": self.content,
             "functionCall": self.functionCall,
             "data": self.data,
-            "display": self.display,
             # "createdAt": self.createdAt,
             # "updatedAt": self.updatedAt,
             "queryId": self.queryId,
