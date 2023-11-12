@@ -1,7 +1,7 @@
 <template>
   <BaseTabs :tabs="options" :selected="outputType" @change="updateVisualisationParams" />
   <Chart
-    :data="data2"
+    :data="data"
     :context="context"
     :count="count"
     :visualisationParams="visualisationParams"
@@ -12,13 +12,15 @@
 import { defineComponent, computed, ref, watch, defineEmits } from 'vue'
 import BaseTable from '@/components/BaseTable.vue'
 import BaseTabs from '@/components/BaseTabs.vue'
+import Chart from '@/components/Chart.vue'
 
 export default defineComponent({
   name: 'BaseBuilder',
   props: ['data', 'context', 'count', 'visualisationParams'],
   components: {
     BaseTable,
-    BaseTabs
+    BaseTabs,
+    Chart
   },
   emits: ['updateVisualisationParamsEvent'],
   setup: (props, context) => {
@@ -70,7 +72,7 @@ export default defineComponent({
       })
     }
 
-    const data2 = computed(() => props.data)
+    const data = computed(() => props.data)
     const count = computed(() => props.count)
 
     const visType = computed(() => outputType.value.toLocaleLowerCase())
@@ -78,7 +80,7 @@ export default defineComponent({
       updateVisualisationParams,
       outputType,
       options,
-      data2,
+      data,
       hasOneValue,
       type: visType, // "doughnut2d", // "line", // "column2d",
       count

@@ -19,7 +19,7 @@ import BaseTable from '@/components/BaseTable.vue'
 import BaseTabs from '@/components/BaseTabs.vue'
 
 export default defineComponent({
-  name: 'BaseBuilder',
+  name: 'Chart',
   props: ['data', 'context', 'count', 'visualisationParams'],
   components: {
     BaseTable,
@@ -61,12 +61,12 @@ export default defineComponent({
 
     outputType.value = props.context.outputType ?? defaultVisualisation.value
 
-    // update defaultVisualisation when props.data changes
+    // update defaultVisualisation when props.context changes
     watch(
-      () => props.data,
+      () => props.visualisationParams,
       () => {
-        console.log('props.context.outputType', props.context.outputType)
-        outputType.value = props.context.outputType ?? defaultVisualisation.value
+        console.log('props.visualisationParams', props.visualisationParams)
+        outputType.value = props.visualisationParams.type
       }
     )
 
