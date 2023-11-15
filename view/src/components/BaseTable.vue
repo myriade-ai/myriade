@@ -1,4 +1,12 @@
 <template>
+  <div class="flex mt-1">
+    <button
+      class="ml-auto border border-transparent text-sm font-medium rounded-md shadow-sm text-black mt-1 px-2 py-1 bg-gray-100 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      @click="copyToClipboard"
+    >
+      {{ copyText }}
+    </button>
+  </div>
   <div ref="table"></div>
 </template>
 
@@ -6,6 +14,8 @@
 import { ref, reactive, onMounted, defineProps, watch } from 'vue'
 import { TabulatorFull as Tabulator } from 'tabulator-tables' //import Tabulator library
 import 'tabulator-tables/dist/css/tabulator_semanticui.min.css'
+import BaseButton from '@/components/BaseButton.vue'
+import BaseNotification from '@/components/BaseNotification.vue'
 
 const table = ref(null) // reference to your table element
 const tabulator = ref(null) // variable to hold your table
@@ -22,6 +32,15 @@ const props = defineProps({
   }
 })
 
+const copyText = ref('copy')
+const copyToClipboard = () => {
+  tabulator.value.copyToClipboard('all')
+  copyText.value = 'copied'
+  setTimeout(() => {
+    copyText.value = 'copy'
+  }, 1000)
+}
+
 watch(
   props,
   () => {
@@ -32,6 +51,7 @@ watch(
 
 onMounted(() => {
   tabulator.value = new Tabulator(table.value, {
+    clipboard: true,
     data: props.data,
     reactiveData: true,
     autoColumns: true,
@@ -51,5 +71,8 @@ onMounted(() => {
 .tabulator .tabulator-footer .tabulator-page.active {
   color: black;
   background-color: #f3f4f6;
+}
+.tabulator {
+  margin-top: 0.5rem;
 }
 </style>
