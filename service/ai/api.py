@@ -40,7 +40,7 @@ def run_query():
         result = g.datalake.query(sql_query)
         count = len(result)
         return jsonify({"rows": result, "count": count})
-    except (SQLAlchemyError, SizeLimitError) as e:
+    except Exception as e:
         return jsonify({"message": str(e)}), 500
 
 
