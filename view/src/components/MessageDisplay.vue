@@ -31,10 +31,11 @@
           :context="message.functionCall?.arguments"
         ></Widget>
       </div>
-      <SqlCode
-        v-else-if="message.functionCall?.name === 'SQL_QUERY'"
-        :code="message.functionCall?.arguments?.query"
-      />
+      <BaseEditor
+        v-if="message.functionCall?.name === 'SQL_QUERY'"
+        :modelValue="message.functionCall?.arguments?.query"
+        :read-only="true"
+      ></BaseEditor>
       <pre v-else>{{ message.functionCall?.arguments }}</pre>
     </div>
 
@@ -42,7 +43,12 @@
       <span style="white-space: pre-wrap" v-if="part.type === 'text'" :key="`text-${index}`">
         {{ part.content }}
       </span>
-      <SqlCode v-if="part.type === 'sql'" :code="part.content" :key="`sql-${index}`" />
+      <BaseEditor
+        v-if="part.type === 'sql'"
+        :modelValue="part.content"
+        :read-only="true"
+        :key="`sql-${index}`"
+      ></BaseEditor>
       <BaseTable v-if="part.type === 'json'" :data="part.content" :key="`json-${index}`" />
       <BaseBuilder
         v-if="(part.type === 'yml-graph' || part.type === 'yaml-graph') && sqlResult"
@@ -55,12 +61,12 @@
 </template>
 
 <script lang="ts">
-import SqlCode from '@/components/SqlCode.vue'
 import BaseTable from '@/components/BaseTable.vue'
 import BaseBuilder from '@/components/BaseBuilder.vue'
 import Widget from '@/components/Widget.vue'
 import yaml from 'js-yaml'
 import axios from 'axios'
+import BaseEditor from '@/components/BaseEditor.vue'
 
 // Get databaseId from store
 import { useDatabases } from '../stores/databases'
@@ -68,8 +74,8 @@ export const { databaseSelectedId } = useDatabases()
 
 export default {
   components: {
-    SqlCode,
     BaseTable,
+    BaseEditor,
     BaseBuilder,
     Widget
   },
