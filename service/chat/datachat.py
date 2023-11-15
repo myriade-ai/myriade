@@ -90,7 +90,9 @@ class DatabaseChat:
         chat_gpt.load_history(messages)
         return chat_gpt
 
-    def sql_query(self, query: str, name: str = None, from_response: Message = None):
+    def sql_query(
+        self, query: str = "", name: str = None, from_response: Message = None
+    ):
         _query = Query(
             query=name,
             databaseId=self.conversation.databaseId,

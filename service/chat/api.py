@@ -21,26 +21,6 @@ CONVERSATION_MAX_ATTEMPT = 10  # Number of attempts to ask the ai before giving 
 socket_session = None
 
 
-def user_has_access(user_id: int, database_id: int) -> bool:
-    """
-    Check if a user has access to a specific database.
-
-    :param user_id: The ID of the user.
-    :param database_id: The ID of the database.
-    :return: True if the user has access, False otherwise.
-    """
-    user = g.session.query(User).filter_by(id=user_id).first()
-
-    if not user:
-        return False
-
-    # Assuming you have a many-to-many relationship between User and Database models
-    # Replace 'user_databases' with the appropriate attribute name from your User model
-    accessible_databases = [db.id for db in user.user_databases]
-
-    return database_id in accessible_databases
-
-
 @socketio.on("stop")
 def handle_stop(conversation_id):
     print("Received stop signal for conversation_id", conversation_id)

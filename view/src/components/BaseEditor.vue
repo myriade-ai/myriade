@@ -6,7 +6,7 @@
     mode="sql"
     theme="monokai"
     :min-lines="isReadOnly ? 2 : 5"
-    :max-lines="10"
+    :max-lines="20"
     @keydown.enter.meta.exact="runQuery"
     :options="{ readOnly: isReadOnly, showPrintMargin: false }"
     placeholder="SELECT * FROM ..."

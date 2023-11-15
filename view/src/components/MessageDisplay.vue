@@ -169,6 +169,7 @@ export default {
 <style>
 .message-display {
   border: 1px solid #e5e7eb;
+  overflow: hidden;
 }
 .sql-code {
   border: 1px solid #e5e7eb;
