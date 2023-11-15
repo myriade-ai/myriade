@@ -50,12 +50,12 @@ def create_query():
     database_id = request.json.get("databaseId")
     visualisationParams = request.json.get("visualisationParams")
     query = request.json.get("query")
-    validatedSQL = request.json.get("sql")
+    sql = request.json.get("sql")
 
     new_query = Query(
         databaseId=database_id,
         query=query,
-        validatedSQL=validatedSQL,
+        sql=sql,
     )
     if visualisationParams:
         new_query.visualisationParams = visualisationParams
@@ -68,7 +68,7 @@ def create_query():
         "databaseId": new_query.databaseId,
         "visualisationParams": new_query.visualisationParams,
         "query": new_query.query,
-        "sql": new_query.validatedSQL,
+        "sql": new_query.sql,
     }
 
     return jsonify(response)
@@ -91,18 +91,14 @@ def handle_query_by_id(query_id):
         updated_visualisationParams = request.json.get("visualisationParams")
         query.visualisationParams = updated_visualisationParams
         query.query = request.json.get("query")
-        query.validatedSQL = request.json.get("sql")
+        query.sql = request.json.get("sql")
         g.session.commit()
-
-    # sql is validatedSQL or first result from choices
-    sql = query.validatedSQL or query.result["choices"][0]["text"].strip()
 
     response = {
         "databaseId": databaseId,
         "visualisationParams": query.visualisationParams,
         "query": query.query,
-        "sql": sql,
-        "validatedSQL": query.validatedSQL,
+        "sql": query.sql,
     }
 
     if request.method == "PUT":

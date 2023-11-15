@@ -172,7 +172,7 @@ class Query(Base):
     id = Column(Integer, primary_key=True)
     query = Column(String, nullable=False)
     databaseId = Column(Integer, ForeignKey("database.id"), nullable=False)
-    validatedSQL = Column(String)
+    sql = Column(String)
     result = Column(JSONB)
     comment = Column(String)
     creatorId = Column(String, ForeignKey("user.id"))

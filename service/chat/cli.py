@@ -15,7 +15,7 @@ def fetch_query_embedding():
             Query.databaseId == 131,
             Query.query != "???",
             Query.embedding == None,
-            Query.validatedSQL != None,  # Add this condition
+            Query.sql != None,  # Add this condition
         )
     )
     total = queries.count()

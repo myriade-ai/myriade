@@ -96,7 +96,7 @@ class DatabaseChat:
         _query = Query(
             query=name,
             databaseId=self.conversation.databaseId,
-            validatedSQL=query,
+            sql=query,
         )
         self.session.add(_query)
         self.session.commit()
