@@ -8,7 +8,7 @@
     :min-lines="isReadOnly ? 2 : 5"
     :max-lines="10"
     @keydown.enter.meta.exact="runQuery"
-    :options="{ readOnly: isReadOnly }"
+    :options="{ readOnly: isReadOnly, showPrintMargin: false }"
     placeholder="SELECT * FROM ..."
   />
 </template>
