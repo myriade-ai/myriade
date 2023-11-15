@@ -2,14 +2,13 @@ import { computed, ref } from 'vue'
 import axios from 'axios'
 import sqlPrettier from 'sql-prettier'
 import { useDatabases } from './databases'
-import router from '../router'
 
 const { selectDatabaseById, databaseSelectedId } = useDatabases()
 
+export const queryRef = ref(null)
+export const queryText = ref('')
 export const queryId = ref<number | null>(null)
-export const queryTextTranslation = ref('')
 export const querySQL = ref('')
-export const queryValidated = ref(false)
 export const queryResults = ref(null)
 export const queryCount = ref(null)
 export const queryError = ref(null)
@@ -21,18 +20,17 @@ export const loadQuery = async (id: number) => {
   const response = await axios.get(`/api/query/${id}`)
 
   const query = response.data
+  queryRef.value = query
+  queryText.value = query.query
   visualisationParams.value = query.visualisationParams
   await selectDatabaseById(query.databaseId)
 
   if (query.sql) {
-    queryTextTranslation.value = sqlPrettier.format(query.sql)
-    querySQL.value = queryTextTranslation.value
+    querySQL.value = query.sql
   }
-  queryValidated.value = query.validated
   if (querySQL.value) {
     runQuery()
   }
-  // querySQL.value = sqlPrettier.format(response.data.output);
 }
 
 export const executeQuery = async (
@@ -78,7 +76,8 @@ export const runQuery = async () => {
 export const updateQuery = async () => {
   console.log('updateQuery', queryId)
   await axios.put(`/api/query/${queryId.value}`, {
-    query: querySQL.value,
+    query: queryText.value,
+    sql: querySQL.value,
     visualisationParams: visualisationParams.value
   })
 }
@@ -89,15 +88,6 @@ export const updateVisualisationParams = async (params: any) => {
   await updateQuery()
 }
 
-// TODO: delete query?
-export const validateQuery = async () => {
-  queryTextTranslation.value = querySQL.value
-  await axios.post(`/api/query/${queryId.value}/validate`, {
-    query: querySQL.value
-  })
-  queryValidated.value = true
-}
-
 export const queryIsModified = computed(() => {
-  return querySQL.value !== queryTextTranslation.value
+  return querySQL.value !== queryRef?.value.sql || queryText.value !== queryRef?.value.query
 })

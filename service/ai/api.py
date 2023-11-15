@@ -60,6 +60,8 @@ def handle_query_by_id(query_id):
     if request.method == "PUT":
         updated_visualisationParams = request.json.get("visualisationParams")
         query.visualisationParams = updated_visualisationParams
+        query.query = request.json.get("query")
+        query.validatedSQL = request.json.get("sql")
         g.session.commit()
 
     # sql is validatedSQL or first result from choices
