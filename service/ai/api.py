@@ -44,6 +44,36 @@ def run_query():
         return jsonify({"message": str(e)}), 500
 
 
+@api.route("/query", methods=["POST"])
+@user_middleware
+def create_query():
+    database_id = request.json.get("databaseId")
+    visualisationParams = request.json.get("visualisationParams")
+    query = request.json.get("query")
+    validatedSQL = request.json.get("sql")
+
+    new_query = Query(
+        databaseId=database_id,
+        query=query,
+        validatedSQL=validatedSQL,
+    )
+    if visualisationParams:
+        new_query.visualisationParams = visualisationParams
+
+    g.session.add(new_query)
+    g.session.commit()
+
+    response = {
+        "id": new_query.id,
+        "databaseId": new_query.databaseId,
+        "visualisationParams": new_query.visualisationParams,
+        "query": new_query.query,
+        "sql": new_query.validatedSQL,
+    }
+
+    return jsonify(response)
+
+
 @api.route("/query/<int:query_id>", methods=["GET", "PUT"])
 @user_middleware
 def handle_query_by_id(query_id):

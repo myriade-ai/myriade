@@ -2,7 +2,7 @@
   <BaseButton
     class="float-right mt-1 ml-1 disabled:bg-gray-300"
     @click="updateQuery"
-    :disabled="!queryIsModified"
+    :disabled="!queryIsModified || !querySQL"
   >
     Save query</BaseButton
   >

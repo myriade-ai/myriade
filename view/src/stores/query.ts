@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import axios from 'axios'
 import sqlPrettier from 'sql-prettier'
 import { useDatabases } from './databases'
+import router from '../router'
 
 const { selectDatabaseById, databaseSelectedId } = useDatabases()
 
@@ -74,12 +75,23 @@ export const runQuery = async () => {
 }
 
 export const updateQuery = async () => {
-  console.log('updateQuery', queryId)
-  await axios.put(`/api/query/${queryId.value}`, {
-    query: queryText.value,
-    sql: querySQL.value,
-    visualisationParams: visualisationParams.value
-  })
+  if (queryId.value) {
+    await axios.put(`/api/query/${queryId.value}`, {
+      query: queryText.value,
+      sql: querySQL.value,
+      visualisationParams: visualisationParams.value
+    })
+  } else {
+    const response = await axios.post('/api/query', {
+      query: queryText.value,
+      sql: querySQL.value,
+      databaseId: databaseSelectedId.value,
+      visualisationParams: visualisationParams.value
+    })
+    queryId.value = response.data.id
+    router.push({ name: 'Query', params: { id: queryId.value } })
+  }
+  loadQuery(queryId.value as number)
 }
 
 export const updateVisualisationParams = async (params: any) => {
@@ -89,5 +101,5 @@ export const updateVisualisationParams = async (params: any) => {
 }
 
 export const queryIsModified = computed(() => {
-  return querySQL.value !== queryRef?.value.sql || queryText.value !== queryRef?.value.query
+  return querySQL.value !== queryRef.value?.sql || queryText.value !== queryRef.value?.query
 })
