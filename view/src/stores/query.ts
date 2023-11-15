@@ -95,11 +95,14 @@ export const updateQuery = async () => {
 }
 
 export const updateVisualisationParams = async (params: any) => {
-  console.log('updateVisualisationParams...', params)
   visualisationParams.value = params
-  await updateQuery()
 }
 
 export const queryIsModified = computed(() => {
-  return querySQL.value !== queryRef.value?.sql || queryText.value !== queryRef.value?.query
+  return (
+    querySQL.value !== queryRef.value?.sql ||
+    queryText.value !== queryRef.value?.query ||
+    JSON.stringify(visualisationParams.value) !==
+      JSON.stringify(queryRef.value?.visualisationParams)
+  )
 })

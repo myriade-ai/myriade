@@ -111,12 +111,7 @@ export default defineComponent({
           if (yDefaultKey === undefined) {
             // If there is no y-axis key, use the last key in the dictionary.
             yDefaultKey = keysSet.values().next().value
-            console.log('yDefaultKey...', yDefaultKey, Array(keysSet), keysSet.values())
           }
-
-          console.log('keysSet', keysSet)
-          console.log('yDefaultKey', yDefaultKey)
-          console.log('xDefaultKey', xDefaultKey)
 
           return {
             label: dict[xDefaultKey],
