@@ -126,7 +126,7 @@ Plot distribution of stations per city
 
 ## assistant
 > PLOT_WIDGET(
-    name="Distribution of stations per city",
+    caption="Distribution of stations per city",
     outputType="Doughnut2d",
     sql="SELECT city, COUNT(*) FROM public.station GROUP BY city",
     params={"xAxisName": "City", "yAxisName":"Number of stations", "xKey":"city", "yKey":"count"}

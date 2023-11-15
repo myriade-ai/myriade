@@ -4,9 +4,9 @@
     "parameters": {
       "type": "object",
       "properties": {
-        "title": {
+        "caption": {
           "type": "string",
-          "description": "Plot title"
+          "description": "Widget caption"
         },
         "outputType": {
           "type": "string",
@@ -22,6 +22,6 @@
           "description": "Widget parameters"
         }
       },
-      "required": ["title", "outputType", "sql", "params"]
+      "required": ["caption", "outputType", "sql", "params"]
     }
 }

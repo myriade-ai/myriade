@@ -28,7 +28,7 @@
         <Widget
           :database-id="databaseSelectedId"
           :sql="message.functionCall?.arguments?.sql"
-          :context="message.functionCall?.arguments"
+          :visualisationParams="visualisationParams"
         ></Widget>
       </div>
       <BaseEditor
@@ -117,6 +117,15 @@ export default {
     })
   },
   computed: {
+    visualisationParams() {
+      if (this.message.functionCall?.name !== 'PLOT_WIDGET') return
+      const params = this.message.functionCall?.arguments
+      return {
+        ...params,
+        caption: params?.caption,
+        type: params?.outputType
+      }
+    },
     parsedText() {
       const regex = /```((?:sql|json|ya?ml-graph))\s*([\s\S]*?)\s*```/g
       let match

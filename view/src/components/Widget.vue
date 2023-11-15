@@ -1,9 +1,8 @@
 <template>
   <Chart
     :data="queryResults"
-    :context="props.context"
     :count="queryCount"
-    :visualisationParams="props.context.visualisationParams"
+    :visualisationParams="props.visualisationParams"
   ></Chart>
 </template>
 
@@ -24,7 +23,7 @@ const props = defineProps({
     type: String,
     required: true
   },
-  context: {
+  visualisationParams: {
     type: Object,
     required: true
   }

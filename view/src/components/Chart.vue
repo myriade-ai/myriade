@@ -2,136 +2,72 @@
   <div v-if="outputType == 'Value'" class="text-center text-4xl py-16">
     {{ getUniqueValueOfTable }}
   </div>
-  <BaseTable v-if="outputType == 'Table'" :data="data2" :count="count"></BaseTable>
-  <fusioncharts
-    v-if="outputType != 'Table' && outputType != 'Value'"
-    :type="type"
-    width="100%"
-    dataFormat="json"
-    :dataSource="datasource"
-  >
-  </fusioncharts>
+  <BaseTable v-else-if="outputType == 'Table'" :data="props.data" :count="props.count"></BaseTable>
+  <fusioncharts v-else :type="visType" width="100%" dataFormat="json" :dataSource="dataSource" />
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import { defineComponent, computed, ref, watch, defineEmits } from 'vue'
 import BaseTable from '@/components/BaseTable.vue'
-import BaseTabs from '@/components/BaseTabs.vue'
 
-export default defineComponent({
-  name: 'Chart',
-  props: ['data', 'context', 'count', 'visualisationParams'],
-  components: {
-    BaseTable,
-    BaseTabs
-  },
-  setup: (props, context) => {
-    const options = computed(() => {
-      const defaultOptions = ['Table', 'Line', 'Doughnut2d', 'Column2d']
-      return defaultOptions.concat(hasOneValue.value ? ['Value'] : [])
-    })
-    const outputType = ref('Table')
+const props = defineProps<{
+  data: any[]
+  count: number
+  visualisationParams: any
+}>()
 
-    const hasOneValue = computed(() => {
-      return props.data.length === 1 && Object.keys(props.data[0]).length === 1
-    })
-    const hasTwoKeys = computed(() => {
-      return props.data.length >= 1 && Object.keys(props.data[0]).length === 2
-    })
+const outputType = computed(() => props.visualisationParams.type ?? 'Table')
+const columns = computed(() => (props.data.length ? Object.keys(props.data[0]) : ['a', 'b']))
+const visType = computed(() => outputType.value.toLocaleLowerCase())
 
-    const defaultVisualisation = computed(() => {
-      if (props.visualisationParams) {
-        return props.visualisationParams.type
+const getUniqueValueOfTable = computed(() => {
+  return props.data[0][Object.keys(props.data[0])[0]]
+})
+
+const dataSource = computed(() => {
+  return {
+    chart: {
+      caption: props.visualisationParams.caption, //Set the chart caption
+      xAxisName: props.visualisationParams.xAxisName ?? columns.value[0], // Set the x-axis name
+      yAxisName: props.visualisationParams.yAxisName ?? columns.value[1], // Set the y-axis name
+      // numberSuffix: "K",
+      theme: 'fusion'
+    },
+    // Chart Data - from step 2
+    // { id: 2, name: "911" }
+    data: props.data?.map((dict) => {
+      if (props.visualisationParams.xKey && props.visualisationParams.yKey) {
+        return {
+          label: dict[props.visualisationParams.xKey],
+          value: dict[props.visualisationParams.yKey]
+        }
       }
-      if (hasOneValue.value) {
-        return 'Value'
-      } else if (hasTwoKeys.value) {
-        return 'Line'
-      } else {
-        return 'Table'
+
+      // If "count" is in the dictionary, use it as the y-axis value.
+      // Otherwise, use the value of the first key in the dictionary.
+      const keysSet = new Set(Object.keys(dict))
+      const yDefaultKeys = ['count', 'total', 'sum', 'average', 'percentage']
+      const xDefaultKeys = ['year', 'id', 'name']
+      let yDefaultKey = yDefaultKeys.find((key) => keysSet.has(key))
+      let xDefaultKey = xDefaultKeys.find((key) => keysSet.has(key))
+      keysSet.delete(xDefaultKey)
+      keysSet.delete(yDefaultKey)
+
+      if (xDefaultKey === undefined) {
+        // If there is no x-axis key, use the first key in the dictionary.
+        xDefaultKey = keysSet.values().next().value
+        keysSet.delete(xDefaultKey)
       }
-    })
-    const getUniqueValueOfTable = computed(() => {
-      if (hasOneValue.value) {
-        return props.data[0][Object.keys(props.data[0])[0]]
-      } else {
-        return null
+      if (yDefaultKey === undefined) {
+        // If there is no y-axis key, use the last key in the dictionary.
+        yDefaultKey = keysSet.values().next().value
       }
-    })
 
-    outputType.value = props.context.outputType ?? defaultVisualisation.value
-
-    // update defaultVisualisation when props.context changes
-    watch(
-      () => props.visualisationParams,
-      () => {
-        console.log('props.visualisationParams', props.visualisationParams)
-        outputType.value = props.visualisationParams.type
-      }
-    )
-
-    const columns = computed(() => (props.data.length ? Object.keys(props.data[0]) : ['a', 'b']))
-    const data2 = computed(() => props.data)
-    const count = computed(() => props.count)
-
-    const dataTest = computed(() => {
       return {
-        chart: {
-          caption: props.context.name, //Set the chart caption
-          xAxisName: props.context.xAxisName ?? columns.value[0], // Set the x-axis name
-          yAxisName: props.context.yAxisName ?? columns.value[1], // Set the y-axis name
-          // numberSuffix: "K",
-          theme: 'fusion'
-        },
-        // Chart Data - from step 2
-        // { id: 2, name: "911" }
-        data: props.data?.map((dict) => {
-          if (props.context.xKey && props.context.yKey) {
-            return {
-              label: dict[props.context.xKey],
-              value: dict[props.context.yKey]
-            }
-          }
-
-          // If "count" is in the dictionary, use it as the y-axis value.
-          // Otherwise, use the value of the first key in the dictionary.
-          const keysSet = new Set(Object.keys(dict))
-          const yDefaultKeys = ['count', 'total', 'sum', 'average', 'percentage']
-          const xDefaultKeys = ['year', 'id', 'name']
-          let yDefaultKey = yDefaultKeys.find((key) => keysSet.has(key))
-          let xDefaultKey = xDefaultKeys.find((key) => keysSet.has(key))
-          keysSet.delete(xDefaultKey)
-          keysSet.delete(yDefaultKey)
-
-          if (xDefaultKey === undefined) {
-            // If there is no x-axis key, use the first key in the dictionary.
-            xDefaultKey = keysSet.values().next().value
-            keysSet.delete(xDefaultKey)
-          }
-          if (yDefaultKey === undefined) {
-            // If there is no y-axis key, use the last key in the dictionary.
-            yDefaultKey = keysSet.values().next().value
-          }
-
-          return {
-            label: dict[xDefaultKey],
-            value: dict[yDefaultKey]
-          }
-        })
+        label: dict[xDefaultKey],
+        value: dict[yDefaultKey]
       }
     })
-
-    const visType = computed(() => outputType.value.toLocaleLowerCase())
-    return {
-      outputType,
-      options,
-      data2,
-      hasOneValue,
-      getUniqueValueOfTable,
-      datasource: dataTest,
-      type: visType, // "doughnut2d", // "line", // "column2d",
-      count
-    }
   }
 })
 </script>

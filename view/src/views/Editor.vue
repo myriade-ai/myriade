@@ -9,10 +9,8 @@
         <template #title> There is an error in the SQL execution 😔 </template>
         {{ queryError }}
       </BaseAlert>
-      <!--TODO: fix-->
       <BaseBuilder
         v-if="queryResults !== null"
-        :context="querySQL"
         :count="queryCount"
         :data="queryResults"
         :visualisationParams="visualisationParams"
@@ -27,7 +25,6 @@ import BaseBuilder from '@/components/BaseBuilder.vue'
 import BaseQuery from '@/components/BaseQuery.vue'
 import {
   queryResults,
-  querySQL,
   queryError,
   queryCount,
   visualisationParams,
