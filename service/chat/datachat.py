@@ -45,7 +45,8 @@ class DatabaseChat:
 
     def __del__(self):
         # On destruct, close the engine
-        self.datalake.dispose()
+        if hasattr(self, "datalake"):
+            self.datalake.dispose()
 
     def _create_conversation(self, databaseId, name=None):
         # Create conversation object
