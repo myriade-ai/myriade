@@ -170,7 +170,7 @@ class Query(Base):
     __tablename__ = "query"
 
     id = Column(Integer, primary_key=True)
-    query = Column(String, nullable=False)
+    query = Column(String, nullable=True)
     databaseId = Column(Integer, ForeignKey("database.id"), nullable=False)
     sql = Column(String)
     result = Column(JSONB)

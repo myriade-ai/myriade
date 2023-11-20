@@ -41,7 +41,7 @@ def run_query():
         count = len(result)
         return jsonify({"rows": result, "count": count})
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        return jsonify({"message": e}), 500
 
 
 @api.route("/query", methods=["POST"])
