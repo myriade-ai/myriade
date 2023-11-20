@@ -12,28 +12,53 @@
         :class="currentConversation(conversation) ? 'bg-gray-300' : ''"
         @click.stop="selectConversation(conversation)"
       >
-        <div @click="selectConversation(conversation)" class="truncate">
-          {{ conversation.name || 'Unnamed...' }}
+        <div @click="selectConversation(conversation)" class="truncate flex-grow">
+          <span v-if="!editName">{{ conversation.name || 'Unnamed...' }}</span>
+          <input
+            v-else
+            ref="nameInput"
+            v-model="conversation.name"
+            class="bg-transparent border-none focus:ring-0 focus:outline-none"
+            style="width: 100vw"
+            :placeholder="'Unnamed...'"
+          />
         </div>
-        <button
-          @click.stop="deleteConversation(conversation.id)"
-          class="text-grey-500"
-          v-if="currentConversation(conversation)"
-        >
-          <TrashIcon class="h-5 w-5" />
-        </button>
+        <div class="flex-shrink-0 flex items-center">
+          <button
+            @click.stop="editConversationName(conversation.id)"
+            class="text-grey-500 ml-2"
+            v-if="currentConversation(conversation) && !editName"
+          >
+            <PencilIcon class="h-5 w-5" />
+          </button>
+          <button
+            @click.stop="updateConversationName(conversation)"
+            class="text-grey-500 ml-2"
+            v-if="currentConversation(conversation) && editName"
+          >
+            <CheckCircleIcon class="h-5 w-5" />
+          </button>
+          <button
+            @click.stop="deleteConversation(conversation.id)"
+            class="text-grey-500 ml-2"
+            v-if="currentConversation(conversation)"
+          >
+            <TrashIcon class="h-5 w-5" />
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, unref } from 'vue'
 import type { Ref } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
-import { TrashIcon } from '@heroicons/vue/24/outline'
+import { TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
+import { CheckCircleIcon } from '@heroicons/vue/24/outline'
 import { useRoute } from 'vue-router'
 
 // Output the conversations types
@@ -46,11 +71,13 @@ const router = useRouter()
 const route = useRoute()
 const currentPath = computed(() => route.path)
 const conversations: Ref<Conversation[]> = ref([])
+const editName = ref(false)
+const nameInput = ref(null)
 
 const fetchConversations = async () => {
   conversations.value = await axios
     .get('/api/conversations')
-    .then((res) => res.data.sort((a, b) => b.id - a.id))
+    .then((res) => res.data.sort((a: Conversation, b: Conversation) => b.id - a.id))
 }
 
 await fetchConversations()
@@ -79,6 +106,23 @@ const deleteConversation = async (id: number) => {
   if (router.currentRoute.value.params.id === id.toString()) {
     router.push({ path: '/' })
   }
+}
+
+const editConversationName = (id: number) => {
+  editName.value = true
+  // Focus the input ref nameInput
+  // TODO: fix
+  nextTick(() => {
+    if (nameInput.value) {
+      nameInput.value.focus()
+      nameInput.value.select()
+    }
+  })
+}
+
+const updateConversationName = async (conversation: Conversation) => {
+  await axios.put(`/api/conversations/${conversation.id}`, { name: conversation.name })
+  editName.value = false
 }
 </script>
 <style>

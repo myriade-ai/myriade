@@ -36,17 +36,15 @@ def get_conversations():
     # Filter conversations based on ownerId (userId) OR organisationId
     conversations = (
         g.session.query(Conversation)
-        .join(ConversationMessage)
         .filter(
             Conversation.ownerId == g.user.id,
         )
-        .filter(and_(Conversation.id == ConversationMessage.conversationId))
         .all()
     )
     return jsonify(conversations)
 
 
-@api.route("/conversations/<int:conversation_id>", methods=["GET"])
+@api.route("/conversations/<int:conversation_id>", methods=["GET", "PUT"])
 @user_middleware
 def get_conversation(conversation_id):
     conversation = (
@@ -55,6 +53,11 @@ def get_conversation(conversation_id):
         .filter(Conversation.id == conversation_id)
         .one()
     )
+
+    if request.method == "PUT":
+        # Update conversation name
+        conversation.name = request.json["name"]
+        g.session.commit()
 
     # TODO: redesign this to use a single query
     conversation_dict = dataclass_to_dict(conversation)

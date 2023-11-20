@@ -175,7 +175,7 @@ class SnowflakeDatabase(AbstractDatabase):
         # Forbid DROP, DELETE, TRUNCATE, etc. queries
         # If keyword is in query, raise ValueError
         for keyword in ["DROP", "DELETE", "TRUNCATE", "ALTER", "INSERT", "UPDATE"]:
-            if keyword in query.upper():
+            if keyword + " " in query.upper():
                 raise ValueError(f"Query contains forbidden keyword: {keyword}")
 
         with self.connection.cursor() as cursor:
