@@ -4,47 +4,59 @@
       <BaseButton class="w-full" @click="selectNewConversation">New Conversation</BaseButton>
     </div>
     <div class="overflow-y-auto">
-      <!-- Iterate through conversation items -->
-      <div
-        class="p-4 border-b border-gray-300 cursor-pointer hover:bg-gray-200 flex justify-between items-center"
-        v-for="conversation in conversations"
-        :key="conversation.id"
-        :class="currentConversation(conversation) ? 'bg-gray-300' : ''"
-        @click.stop="selectConversation(conversation)"
-      >
-        <div @click="selectConversation(conversation)" class="truncate flex-grow">
-          <span v-if="!editName">{{ conversation.name || 'Unnamed...' }}</span>
-          <input
-            v-else
-            :ref="setNameInputRef(conversation.id)"
-            v-model="conversation.name"
-            class="bg-transparent border-none focus:ring-0 focus:outline-none"
-            style="width: 100vw"
-            :placeholder="'Unnamed...'"
-          />
+      <!-- Iterate through conversation items and group by date -->
+      <div v-for="(group, date) in groupedConversations" :key="date">
+        <div class="px-4 py-2 text-gray-600">
+          {{
+            // Today, Yesterday, or the date
+            date === new Date().toLocaleDateString()
+              ? 'Today'
+              : date === new Date(Date.now() - 86400000).toLocaleDateString()
+              ? 'Yesterday'
+              : date
+          }}
         </div>
-        <div class="flex-shrink-0 flex items-center">
-          <button
-            @click.stop="editConversationName(conversation.id)"
-            class="text-grey-500 ml-2"
-            v-if="currentConversation(conversation) && !editName"
-          >
-            <PencilIcon class="h-5 w-5" />
-          </button>
-          <button
-            @click.stop="updateConversationName(conversation)"
-            class="text-grey-500 ml-2"
-            v-if="currentConversation(conversation) && editName"
-          >
-            <CheckCircleIcon class="h-5 w-5" />
-          </button>
-          <button
-            @click.stop="deleteConversation(conversation.id)"
-            class="text-grey-500 ml-2"
-            v-if="currentConversation(conversation)"
-          >
-            <TrashIcon class="h-5 w-5" />
-          </button>
+        <div
+          class="p-4 border-b border-gray-300 cursor-pointer hover:bg-gray-200 flex justify-between items-center"
+          v-for="conversation in group"
+          :key="conversation.id"
+          :class="currentConversation(conversation) ? 'bg-gray-300' : ''"
+          @click.stop="selectConversation(conversation)"
+        >
+          <div @click="selectConversation(conversation)" class="truncate flex-grow">
+            <span v-if="!editName">{{ conversation.name || 'Unnamed...' }}</span>
+            <input
+              v-else
+              :ref="setNameInputRef(conversation.id)"
+              v-model="conversation.name"
+              class="bg-transparent border-none focus:ring-0 focus:outline-none"
+              style="width: 100vw"
+              :placeholder="'Unnamed...'"
+            />
+          </div>
+          <div class="flex-shrink-0 flex items-center">
+            <button
+              @click.stop="editConversationName(conversation.id)"
+              class="text-grey-500 ml-2"
+              v-if="currentConversation(conversation) && !editName"
+            >
+              <PencilIcon class="h-5 w-5" />
+            </button>
+            <button
+              @click.stop="updateConversationName(conversation)"
+              class="text-grey-500 ml-2"
+              v-if="currentConversation(conversation) && editName"
+            >
+              <CheckCircleIcon class="h-5 w-5" />
+            </button>
+            <button
+              @click.stop="deleteConversation(conversation.id)"
+              class="text-grey-500 ml-2"
+              v-if="currentConversation(conversation)"
+            >
+              <TrashIcon class="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -65,6 +77,7 @@ import { useRoute } from 'vue-router'
 type Conversation = {
   id: number
   name: string
+  updatedAt: Date
 }
 
 const router = useRouter()
@@ -78,13 +91,67 @@ const setNameInputRef = (id: number) => (el: HTMLInputElement) => {
   nameInputs.value[id] = el
 }
 
+const groupConversationsByDate = (conversations: Conversation[]) => {
+  const now = new Date()
+  const today = now.toISOString().split('T')[0]
+  const yesterday = new Date(now.setDate(now.getDate() - 1)).toISOString().split('T')[0]
+  const sevenDaysAgo = new Date(now.setDate(now.getDate() - 6)).toISOString().split('T')[0]
+  const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 23)).toISOString().split('T')[0]
+
+  const groupedConversations: { [key: string]: Conversation[] } = {
+    Today: [],
+    Yesterday: [],
+    'Previous 7 days': [],
+    'Previous 30 days': [],
+    Older: []
+  }
+
+  conversations.forEach((conversation) => {
+    const conversationDate = conversation.updatedAt.toISOString().split('T')[0]
+
+    if (conversationDate === today) {
+      groupedConversations['Today'].push(conversation)
+    } else if (conversationDate === yesterday) {
+      groupedConversations['Yesterday'].push(conversation)
+    } else if (conversationDate >= sevenDaysAgo) {
+      groupedConversations['Previous 7 days'].push(conversation)
+    } else if (conversationDate >= thirtyDaysAgo) {
+      groupedConversations['Previous 30 days'].push(conversation)
+    } else {
+      groupedConversations['Older'].push(conversation)
+    }
+  })
+
+  // Remove empty groups
+  Object.keys(groupedConversations).forEach((key) => {
+    if (groupedConversations[key].length === 0) {
+      delete groupedConversations[key]
+    }
+  })
+
+  return groupedConversations
+}
+
 const fetchConversations = async () => {
   conversations.value = await axios
     .get('/api/conversations')
-    .then((res) => res.data.sort((a: Conversation, b: Conversation) => b.id - a.id))
+    // Parse the date string to a number
+    .then((res) =>
+      res.data.map((conversation: Conversation) => ({
+        ...conversation,
+        updatedAt: new Date(conversation.updatedAt)
+      }))
+    )
+    .then((data) =>
+      data.sort((a: Conversation, b: Conversation) => b.updatedAt.getTime() - a.updatedAt.getTime())
+    )
 }
 
 await fetchConversations()
+
+const groupedConversations = computed(() => {
+  return groupConversationsByDate(conversations.value)
+})
 
 const selectNewConversation = () => {
   router.push({ path: '/' })
