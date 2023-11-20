@@ -16,7 +16,7 @@
           <span v-if="!editName">{{ conversation.name || 'Unnamed...' }}</span>
           <input
             v-else
-            ref="nameInput"
+            :ref="setNameInputRef(conversation.id)"
             v-model="conversation.name"
             class="bg-transparent border-none focus:ring-0 focus:outline-none"
             style="width: 100vw"
@@ -72,7 +72,11 @@ const route = useRoute()
 const currentPath = computed(() => route.path)
 const conversations: Ref<Conversation[]> = ref([])
 const editName = ref(false)
-const nameInput = ref(null)
+const nameInputs = ref<{ [key: number]: HTMLInputElement }>({})
+
+const setNameInputRef = (id: number) => (el: HTMLInputElement) => {
+  nameInputs.value[id] = el
+}
 
 const fetchConversations = async () => {
   conversations.value = await axios
@@ -113,9 +117,10 @@ const editConversationName = (id: number) => {
   // Focus the input ref nameInput
   // TODO: fix
   nextTick(() => {
-    if (nameInput.value) {
-      nameInput.value.focus()
-      nameInput.value.select()
+    const inputElement = nameInputs.value[id]
+    if (inputElement) {
+      inputElement.focus()
+      inputElement.select()
     }
   })
 }
