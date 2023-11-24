@@ -43,6 +43,8 @@ class Database(Base):
     organisationId: str
     ownerId: str
     public: bool
+    safe_mode: bool
+    privacy_mode: bool
 
     __tablename__ = "database"
 
@@ -60,6 +62,9 @@ class Database(Base):
 
     organisation = relationship("Organisation")
     owner = relationship("User")
+
+    safe_mode = Column(Boolean, nullable=False, default=True, server_default="true")
+    privacy_mode = Column(Boolean, nullable=False, default=True, server_default="true")
 
     # Hotfix for engine, "postgres" should be "postgresql"
     @property

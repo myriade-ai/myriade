@@ -61,13 +61,20 @@
       <base-input name="Warehouse" v-model="database.details.warehouse" />
     </div>
 
+    <BaseSwitch v-model="database.privacy_mode" class="mt-5">
+      <span class="text-gray-700">Privacy protection</span>
+    </BaseSwitch>
+    <BaseSwitch v-model="database.safe_mode" class="mt-1">
+      <span class="text-gray-700">Safe mode (read-only)</span>
+    </BaseSwitch>
+
     <hr class="mt-5" />
 
     <BaseAlert class="mt-5" v-if="apiError">
       <template #title> There is an error 😔 </template>{{ apiError }}
     </BaseAlert>
 
-    <div class="pt-5">
+    <div class="py-5">
       <div class="flex justify-end">
         <button
           @click.prevent="clickDelete"
@@ -96,6 +103,7 @@ import router from '../router'
 import BaseField from '../components/BaseField.vue'
 import BaseInput from '../components/BaseInput.vue'
 import BaseAlert from '../components/BaseAlert.vue'
+import BaseSwitch from '../components/BaseSwitch.vue'
 import { Field, Form } from 'vee-validate'
 
 const route = useRoute()
@@ -111,7 +119,9 @@ const database = ref({
     user: '',
     password: '',
     database: ''
-  }
+  },
+  privacy_mode: true,
+  safe_mode: true
 } as any)
 const { selectDatabaseById, databaseSelected, createDatabase, updateDatabase, deleteDatabase } =
   useDatabases()
@@ -125,6 +135,9 @@ if (!isNew.value) {
   database.value.name = databaseSelected.value.name
   database.value.engine = databaseSelected.value.engine
   database.value.details = databaseSelected.value.details
+
+  database.value.privacy_mode = databaseSelected.value.privacy_mode
+  database.value.safe_mode = databaseSelected.value.safe_mode
 }
 
 const clickDelete = () => {

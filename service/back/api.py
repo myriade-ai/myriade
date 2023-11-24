@@ -97,6 +97,8 @@ def create_database():
         details=request.json["details"],
         # organisationId=request.json["organisationId"],
         ownerId=g.user.id,
+        privacy_mode=request.json["privacy_mode"],
+        safe_mode=request.json["safe_mode"],
     )
 
     database.tables_metadata = datalake.load_metadata()
@@ -141,6 +143,8 @@ def update_database(database_id):
     database.tables_metadata = datalake.load_metadata()
     database._engine = request.json["engine"]
     database.details = request.json["details"]
+    database.privacy_mode = request.json["privacy_mode"]
+    database.safe_mode = request.json["safe_mode"]
 
     g.session.commit()
     return jsonify(database)

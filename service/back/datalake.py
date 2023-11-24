@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 from abc import ABC, abstractmethod, abstractproperty
 
@@ -6,9 +7,29 @@ import sqlalchemy
 from sqlalchemy import text
 
 MAX_SIZE = 2 * 1024 * 1024  # 2MB in bytes
+HIDDEN_TEXT = "*** HIDDEN ***"
+UNSAFE_KEYWORDS = ["DROP", "DELETE", "TRUNCATE", "ALTER", "INSERT", "UPDATE"]
+PRIVACY_KEYWORDS = [  # TODO: use AI to detect sensitive data
+    "name",
+    "first_name",
+    "last_name",
+    "full_name",
+    "first name",
+    "last name",
+    "full name",
+    "address",
+    "email",
+    "phone",
+    "password",
+    "secret",
+]
 
 
 class SizeLimitError(Exception):
+    pass
+
+
+class UnsafeQueryError(Exception):
     pass
 
 
@@ -18,6 +39,9 @@ def sizeof(obj):
 
 
 class AbstractDatabase(ABC):
+    safe_mode = False
+    privacy_mode = False  # Remove name / address / email / phone number / password
+
     @abstractmethod
     def __init__(self):
         pass
@@ -31,11 +55,44 @@ class AbstractDatabase(ABC):
         pass
 
     @abstractmethod
-    def query(self, query):
+    def _query(self, query):
         pass
 
+    def query(self, sql):
+        if self.safe_mode:
+            # Forbid DROP, DELETE, TRUNCATE, etc. queries
+            # If keyword is in query, raise ValueError
+            for keyword in UNSAFE_KEYWORDS:
+                if keyword + " " in sql.upper():
+                    raise UnsafeQueryError(
+                        f"Query contains forbidden keyword {keyword}"
+                    )
 
-class SQLDatabase:
+        rows = self._query(sql)
+
+        if self.privacy_mode:
+            # Hide sensitive data from the result
+            # 1. Use column names to detect sensitive data
+            for row in rows:
+                for key in PRIVACY_KEYWORDS:
+                    if key in row:
+                        row[key] = HIDDEN_TEXT
+            # 2. Use text patterns to detect sensitive data (regex email, phone, etc.)
+            EMAIL_REGEX = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
+            PHONE_REGEX = r"""^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$"""
+            for row in rows:
+                for key, value in row.items():
+                    if isinstance(value, str):
+                        # Regex email
+                        value = re.sub(EMAIL_REGEX, HIDDEN_TEXT, value)
+                        # Regex phone
+                        value = re.sub(PHONE_REGEX, HIDDEN_TEXT, value)
+                        row[key] = value
+
+        return rows
+
+
+class SQLDatabase(AbstractDatabase):
     def __init__(self, uri):
         self.engine = sqlalchemy.create_engine(uri)
         self.inspector = sqlalchemy.inspect(self.engine)
@@ -83,7 +140,7 @@ class SQLDatabase:
             # TODO add support for views
         return self.metadata
 
-    def query(self, query):
+    def _query(self, query):
         """
         Run a query against the database
         Limit the result to 2MB
@@ -117,15 +174,6 @@ class SQLDatabase:
         else:
             raise ValueError("materialized must be 'table' or 'view'")
         # TODO: Reload metadata
-
-
-class BigQueryDatabase:
-    def __init__(self, project_id, dataset_id):
-        from google.cloud import bigquery
-
-        self.client = bigquery.Client(project=project_id)
-        self.dataset_id = dataset_id
-        self.metadata = []
 
 
 class SnowflakeDatabase(AbstractDatabase):
@@ -171,13 +219,7 @@ class SnowflakeDatabase(AbstractDatabase):
 
         return self.metadata
 
-    def query(self, query):
-        # Forbid DROP, DELETE, TRUNCATE, etc. queries
-        # If keyword is in query, raise ValueError
-        for keyword in ["DROP", "DELETE", "TRUNCATE", "ALTER", "INSERT", "UPDATE"]:
-            if keyword + " " in query.upper():
-                raise ValueError(f"Query contains forbidden keyword: {keyword}")
-
+    def _query(self, query):
         with self.connection.cursor() as cursor:
             cursor.execute(query)
             # On fetch maximum 1000 rows

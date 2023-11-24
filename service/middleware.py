@@ -18,11 +18,7 @@ def user_middleware(f):
         )
         if logged_user:
             g.user = logged_user
-
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            return jsonify({"message": str(e)}), 500
+        return f(*args, **kwargs)
 
     return decorated_function
 
@@ -30,15 +26,17 @@ def user_middleware(f):
 def database_middleware(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        databaseId = request.json.get("databaseId")
-        database = g.session.query(Database).filter_by(id=databaseId).first()
+        database_id = request.json.get("databaseId")
+        database = g.session.query(Database).filter_by(id=database_id).first()
         # Add a datalake object to the request
-
         datalake = DatalakeFactory.create(
             database.engine,
             **database.details,
         )
+        datalake.privacy_mode = database.privacy_mode
+        datalake.safe_mode = database.safe_mode
         g.datalake = datalake
+
         return f(*args, **kwargs)
 
     return decorated_function

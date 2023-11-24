@@ -7,6 +7,8 @@ export interface Database {
   name: string
   engine: string
   details: any
+  privacy_mode: boolean
+  safe_mode: boolean
 }
 
 const databases: Ref<Database[]> = ref([])
