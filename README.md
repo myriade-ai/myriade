@@ -39,6 +39,7 @@ If you don't have access to GPT-4, you can contact me on [Twitter](https://twitt
    ```
 
 3. **Set Environment Variables**:
+   in `service/.env.sh` file:
 
    ```bash
    export OPENAI_API_KEY=<Your_OpenAI_API_Key>
@@ -47,7 +48,7 @@ If you don't have access to GPT-4, you can contact me on [Twitter](https://twitt
 
 4. **Run the Backend**:
    ```bash
-   flask run
+   bash run.sh
    ```
 
 ### Frontend Setup (in `/view` directory)
