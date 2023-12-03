@@ -20,6 +20,8 @@ def run_query():
     sql_query = request.json.get("query")
 
     try:
+        # TODO: fix count from query
+        # rows, counts = g.datalake.query(sql_query)
         result = g.datalake.query(sql_query)
         count = len(result)
         return jsonify({"rows": result, "count": count})

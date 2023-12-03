@@ -32,11 +32,11 @@
         ></Widget>
       </div>
       <BaseEditor
-        v-if="message.functionCall?.name === 'SQL_QUERY'"
+        v-else-if="message.functionCall?.name === 'SQL_QUERY'"
         :modelValue="message.functionCall?.arguments?.query"
         :read-only="true"
       ></BaseEditor>
-      <pre v-else>{{ message.functionCall?.arguments }}</pre>
+      <pre v-else class="arguments">{{ message.functionCall?.arguments }}</pre>
     </div>
 
     <template v-for="(part, index) in parsedText">
@@ -186,5 +186,11 @@ export default {
   padding: 2px 4px;
   font-family: monospace;
   white-space: pre-wrap;
+}
+
+.arguments {
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 </style>

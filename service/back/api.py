@@ -154,13 +154,16 @@ def update_database(database_id):
 @user_middleware
 def get_databases():
     user = getattr(g, "user", None)
-    organisationId = g.organisationId
+    # organisationId = g.organisationId
     # Filter databases based on ownerId (userId) OR organisationId
     databases = (
-        g.session.query(Database)
-        .filter(
-            or_(Database.ownerId == user.id, Database.organisationId == organisationId)
-        )
+        g.session.query(Database).filter(Database.ownerId == user.id)
+        # .filter(
+        #     or_(
+        #
+        #         Database.organisationId == organisationId
+        #     )
+        # )
         .all()
     )
     return jsonify(databases)

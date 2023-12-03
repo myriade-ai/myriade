@@ -5,13 +5,13 @@ from back.models import Database, User
 from flask import g, jsonify, request
 
 # TODO: remove this
-organisationId = "6264fdaf-e8e2-41a8-a110-0fccc0e71277"
+# organisationId = None  # "6264fdaf-e8e2-41a8-a110-0fccc0e71277"
 
 
 def user_middleware(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        g.organisationId = organisationId
+        # g.organisationId = organisationId
         # Extract user information from the request
         logged_user = (
             g.session.query(User).filter(User.email == "admin@localhost").first()

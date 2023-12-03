@@ -11,10 +11,11 @@ from chat.sql_utils import run_sql
 
 MAX_DATA_SIZE = 4000  # Maximum size of the data to return
 
-# Read functions in ./functions/**.json
+# Load functions from a predefined path, independent of the current working directory
 FUNCTIONS = {}
-for filename in os.listdir("./chat/functions"):
-    with open("./chat/functions/" + filename) as f:
+functions_path = os.path.join(os.path.dirname(__file__), "functions")
+for filename in os.listdir(functions_path):
+    with open(os.path.join(functions_path, filename)) as f:
         FUNCTIONS[filename[:-5]] = json.load(f)
 
 
@@ -77,7 +78,7 @@ class DatabaseChat:
     @property
     def chat_gpt(self):
         chat_gpt = ChatGPT.from_template(
-            "chat/chat_template.txt",
+            os.path.join(os.path.dirname(__file__), "..", "chat", "chat_template.txt"),
         )
         chat_gpt.context = self.context
         chat_gpt.add_function(self.sql_query, FUNCTIONS["SQL_QUERY"])
@@ -115,7 +116,7 @@ class DatabaseChat:
         self.session.commit()
 
     def plot_widget(
-        self, title: str, outputType: str, sql: str, params: dict = None, **kwargs
+        self, caption: str, outputType: str, sql: str, params: dict = None, **kwargs
     ):
         """TODO: add verification on the widget parameters and the sql query"""
         raise StopLoopException("We want to stop after the widget")

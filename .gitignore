@@ -5,3 +5,4 @@ view/node_modules
 .ipynb_checkpoints
 __pycache__
 pgvector
+ai/spider

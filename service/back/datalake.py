@@ -156,6 +156,8 @@ class SQLDatabase(AbstractDatabase):
                 row_size = sizeof(row_dict)
 
                 if total_size + row_size > MAX_SIZE:
+                    # TODO: change this to get the first 1000 rows, and add a warning
+                    return rows
                     raise SizeLimitError(
                         f"Result size is too big: {total_size + row_size} > {MAX_SIZE}"
                     )
