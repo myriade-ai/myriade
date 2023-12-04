@@ -6,4 +6,5 @@ export OPENAI_MODEL="gpt-4-1106-preview"
 if [ -f .env.sh ]; then
     source .env.sh
 fi
+alembic upgrade head
 flask run
