@@ -62,7 +62,7 @@ We have developed built-in features to protect privacy and insure safety
 * **“Safe mode”:** limit to read-only query
 
 ## Tech Stacks
-- ****AI Interaction****: Using Autochat library with OpenAI GPT-4 API.
+- ****AI Interaction****: Using [Autochat](https://github.com/BenderV/autochat) library with OpenAI GPT-4 API.
 - ****Frontend****: Built using Vue3 and Vite
 - ****Backend****: Developed in Python
 - ****Database****: Postgres
