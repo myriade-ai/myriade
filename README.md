@@ -66,6 +66,12 @@ If you don't have access to GPT-4, you can contact me on [Twitter](https://twitt
 
 After completing the steps, open your browser and visit: [http://localhost:5173](http://localhost:5173)
 
+## Production Deployment
+
+```
+docker-compose up -d
+```
+
 ## Tech Stack
 
 - **AI Interaction**: Powered by OpenAI's GPT-4 API.

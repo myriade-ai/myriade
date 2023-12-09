@@ -23,7 +23,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watchEffect, watch } from 'vue'
 import { defineProps, defineEmits } from '@vue/runtime-core'
 import { Switch } from '@headlessui/vue'

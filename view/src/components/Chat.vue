@@ -87,7 +87,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import MessageDisplay from '@/components/MessageDisplay.vue'
 import BaseInput from '@/components/BaseInput.vue'
 import BaseSwitch from '@/components/BaseSwitch.vue'

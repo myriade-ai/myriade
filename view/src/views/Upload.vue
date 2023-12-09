@@ -3,6 +3,6 @@
     <BaseUpload></BaseUpload>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import BaseUpload from '../components/BaseUpload.vue'
 </script>

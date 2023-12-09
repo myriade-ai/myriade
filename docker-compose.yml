@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  db:
+    image: ankane/pgvector:latest # Postgres with vector similarity search
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ada
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    ports:
+      - "5432:5432"
+
+  service:
+    build: ./service
+    ports: # Public port is 4000, but the container is listening on 5000
+      - "4000:5000"
+    depends_on:
+      - db
+    environment:
+      FLASK_APP: app.py
+      FLASK_ENV: development
+      DATABASE_URL: postgresql://user:pass@db:5432/ada
+      OPENAI_API_KEY: XXX
+
+  view:
+    build: ./view
+    ports:
+      - "8080:80"
+    depends_on:
+      - service
+
+volumes:
+  postgres_data:

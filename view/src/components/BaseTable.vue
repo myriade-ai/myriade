@@ -10,7 +10,7 @@
   <div ref="table"></div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted, defineProps, watch } from 'vue'
 import { TabulatorFull as Tabulator } from 'tabulator-tables' //import Tabulator library
 import 'tabulator-tables/dist/css/tabulator_semanticui.min.css'

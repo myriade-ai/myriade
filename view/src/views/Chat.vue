@@ -5,7 +5,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import ConversationList from '@/components/ConversationList.vue'
 import Chat from '@/components/Chat.vue'
 </script>
