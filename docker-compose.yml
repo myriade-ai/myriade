@@ -7,10 +7,10 @@ services:
       - postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: ada
-      POSTGRES_USER: user
+      POSTGRES_USER: human
       POSTGRES_PASSWORD: pass
     ports:
-      - "5432:5432"
+      - "2345:5432" # To avoid conflicts with other Postgres instances
 
   service:
     build: ./service
@@ -21,7 +21,7 @@ services:
     environment:
       FLASK_APP: app.py
       FLASK_ENV: development
-      DATABASE_URL: postgresql://user:pass@db:5432/ada
+      DATABASE_URL: postgresql://human:pass@db:5432/ada
       OPENAI_API_KEY: XXX
 
   view:
