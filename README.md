@@ -42,7 +42,7 @@ docker-compose up -d
    bash run.sh
    ```
 
-### Frontend Setup (in `/view` directory)
+#### Frontend Setup (in `/view` directory)
 Install Dependencies
 ```
 yarn
