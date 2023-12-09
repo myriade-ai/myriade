@@ -1,5 +1,5 @@
 # ADA: Accelerate Data Analysis, with AI
-Ada is the best AI tool for Data Analyst, to explore your data in a safe, fast & accessible way.
+Ada is the best AI tool to explore your data in a safe, fast & accessible way.
 
 ![Ada Demo Screenshot](https://github.com/BenderV/ada/assets/2799516/6b1e457c-477d-4b22-a471-915c5f8ac8b6)
 
