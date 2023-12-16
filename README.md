@@ -13,6 +13,7 @@ Ada is the best AI tool to explore your data in a safe, fast & accessible way.
 
 ## Demo
 Check out this [2 min demo video](https://www.youtube.com/watch?v=rh8CWB0ClOc) to see Ada in action.
+Or better 👉 [try it yourself](https://ada.universaldata.io)
 
 ## Quick Start Guide
 ### Pre-requisites
