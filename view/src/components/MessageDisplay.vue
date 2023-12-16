@@ -1,7 +1,7 @@
 <template>
   <div
-    class="message-display p-4 mb-4 rounded-lg bg-gray-100"
-    :class="{ 'bg-gray-200': message.display === false }"
+    class="message-display px-4 py-4 mb-2 rounded-lg bg-gray-100"
+    :class="{ 'bg-gray-300': message.display === false }"
   >
     <!-- if message.display = hide, then show as light gray -->
     <p class="font-bold">
@@ -36,6 +36,10 @@
         :modelValue="message.functionCall?.arguments?.query"
         :read-only="true"
       ></BaseEditor>
+      <BaseEditorPreview
+        v-else-if="message.functionCall?.name === 'SUBMIT'"
+        :sqlQuery="message.functionCall?.arguments?.query"
+      ></BaseEditorPreview>
       <pre v-else class="arguments">{{ message.functionCall?.arguments }}</pre>
     </div>
 
@@ -67,6 +71,7 @@ import Widget from '@/components/Widget.vue'
 import yaml from 'js-yaml'
 import axios from 'axios'
 import BaseEditor from '@/components/BaseEditor.vue'
+import BaseEditorPreview from '@/components/BaseEditorPreview.vue'
 
 // Get databaseId from store
 import { useDatabases } from '../stores/databases'
@@ -76,6 +81,7 @@ export default {
   components: {
     BaseTable,
     BaseEditor,
+    BaseEditorPreview,
     BaseBuilder,
     Widget
   },

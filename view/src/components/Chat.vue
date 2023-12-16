@@ -181,18 +181,13 @@ const receiveMessage = async (message) => {
 else display=false
 */
 const messagesWithDisplay = computed(() => {
-  const messagesWithDisplay = []
-  messages.value.forEach((message, index) => {
-    message.display = false
-    if (message.role === 'user') {
-      message.display = true
-    }
-    if (message.role === 'assistant' && !message.functionCall) {
-      message.display = true
-    }
-    messagesWithDisplay.push(message)
+  return messages.value.map((message) => {
+    message.display =
+      message.role === 'user' ||
+      (message.role === 'assistant' &&
+        (!message.functionCall || ['SUBMIT', 'PLOT_WIDGET'].includes(message.functionCall.name)))
+    return message
   })
-  return messagesWithDisplay
 })
 
 const stopQuery = async () => {

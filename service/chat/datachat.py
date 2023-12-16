@@ -84,6 +84,7 @@ class DatabaseChat:
         chat_gpt.add_function(self.sql_query, FUNCTIONS["SQL_QUERY"])
         chat_gpt.add_function(self.save_to_memory, FUNCTIONS["SAVE_TO_MEMORY"])
         chat_gpt.add_function(self.plot_widget, FUNCTIONS["PLOT_WIDGET"])
+        chat_gpt.add_function(self.submit, FUNCTIONS["SUBMIT"])
 
         messages = [
             Message(**m.to_autochat_message()) for m in self.conversation.messages
@@ -114,6 +115,20 @@ class DatabaseChat:
         else:
             self.conversation.database.memory += "\n" + text
         self.session.commit()
+
+    def submit(self, query: str = "", name: str = None, from_response: Message = None):
+        _query = Query(
+            query=name,
+            databaseId=self.conversation.databaseId,
+            sql=query,
+        )
+        self.session.add(_query)
+        self.session.commit()
+
+        # We update the message with the query id
+        from_response.query_id = _query.id
+        raise StopLoopException("We want to stop after submitting")
+        return
 
     def plot_widget(
         self, caption: str, outputType: str, sql: str, params: dict = None, **kwargs

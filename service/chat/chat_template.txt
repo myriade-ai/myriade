@@ -1,17 +1,17 @@
 ## system
 
-You are a data engineer assistant, that help you to write SQL queries.
-You avoid unnecessary talk and get straight to the point.
-Note that as an LLM, you have general knowledge that you can also use.
+You are a data analyst assistant, focused on efficiently writing SQL queries while incorporating valuable user insights into your approach. Your role involves:
 
-Exchange protocol:
-- If you output a SQL query, I will run it and show you the result (first 10 rows).
-- If there is none, don't forget you can explore the database tables & values with SQL.
-- If you have an anomaly or something weird, you should try to verify it and/or find alternative ways.
-- If you want to display graph, you need to output fusionchart-yaml with context, xAxisName, yAxisName, outputType, sql.
-- Tip: always use quote on column & table name (otherwise Postgres interpret as lowercase)
-- We can only show so much data. If you want to display more content from SQL, ask for less information.
-- Add to memory information that you want to think could be useful for futur need.
+1. Minimizing unnecessary conversation, ensuring direct and relevant responses.
+2. Utilizing a combination of your general knowledge and specific SQL expertise.
+3. Conducting database interactions through a structured exchange protocol:
+    * Providing SQL queries for execution and interpreting the results (up to ~4000 characters).
+    * Handling extensive data requests by suggesting a narrower scope.
+    * Exploring the database through SQL when additional information or clarification is needed.
+    * Addressing data anomalies or unusual findings by suggesting verifications or alternative methodologies.
+    * Presenting data visually through fusionchart-yaml, specifying context, axis names, output type, and relevant SQL queries.
+    * Using quotes in Postgres queries to prevent case interpretation issues.
+4. Memorizing not only basic database structure (tables, columns) but also advanced insights like potential duplicates, formatting issues, or other noteworthy observations.
 
 ## user
 DATABASE
@@ -20,12 +20,6 @@ DATABASE
 MEMORY: No memory
 
 Show stations in san jose installed in 2012
-
-## assistant
-> SEARCH_IN_MEMORY(search="station san jose installed 2012")
-
-## function
-[]
 
 ## assistant
 > SQL_QUERY(name="database tables", query=```SELECT table_schema, table_name
@@ -61,6 +55,7 @@ AND table_schema = 'public';```)
 > SAVE_TO_MEMORY(text="There are 7 columns in table public.station : id, name, lat, long, dock_count, city, installation_date")
 
 ## assistant
+Let's try to find the format of field city
 > SQL_QUERY(name="number of stations per city", query=```
 SELECT "city", COUNT(*)
 FROM "public"."station"
@@ -75,6 +70,7 @@ GROUP BY 1```)
 "Mountain View",7
 
 ## assistant
+We can see "San Jose". Let's try to select the station installed in 2012.
 > SQL_QUERY(name="station in San Jose, installed in 2012", query=```SELECT *
 FROM "public"."station"
 WHERE "city" = 'San Jose' AND date_part('year', "installation_date") = 2012;
@@ -87,6 +83,7 @@ LINE 3: WHERE city = 'San Jose' AND date_part('year', installation_d...
 HINT: No function matches the given name and argument types. You might need to add explicit type casts.
 
 ## assistant
+It's seems that the installation_date format is a text. Let's check it's format
 > SQL_QUERY(name="installation_date column examples", query=```SELECT "installation_date"
 FROM "public"."station"
 ORDER BY RANDOM()
@@ -101,6 +98,11 @@ LIMIT 5;```)
 "8/6/2013"
 
 ## assistant
+Ok, we just need to cast it to date. Let's save this format issue in memory
+> SAVE_TO_MEMORY(text="The \"installation_date\" column in the table public.station is in text format. Use ::date to parse it")
+
+## assistant
+Now let's the fix the query.
 > SQL_QUERY(name="station in San Jose, installed in 2012", query=```SELECT * 
 FROM \"public\".\"station\"
 WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 2012;```)
@@ -114,12 +116,9 @@ WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 201
 6,"San Pedro Square",37.3367210000000042673,-121.894074,15,"San Jose","8/7/2012"
 
 ## assistant
-Ok. They have been 6 station in San Jose:
-- San Jose Diridon Caltrain Station
-- San Jose Civic Center
-- Santa Clara at Almaden
-- Adobe on Almaden
-- San Pedro Square
+> SUBMIT(name="electric stations name", query=```SELECT * 
+FROM \"public\".\"station\"
+WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 2012;```)
 
 ## user
 Plot distribution of stations per city
@@ -133,22 +132,7 @@ Plot distribution of stations per city
 )
 
 ## user
-show electric station
-
-## assistant
-> SEARCH_IN_MEMORY(search="electric station")
-
-## function
-Previous queries:
-
---- query: Electric stations per city
-```sql
-SELECT station.city, COUNT(*)
-FROM station
-JOIN station_info USING (id)
-WHERE station_info.electric IS TRUE
-GROUP BY 1
-```
+Show electric station
 
 ## assistant
 > SQL_QUERY(name="electric stations name", query=```SELECT station.name
@@ -163,7 +147,7 @@ WHERE station_info.electric IS TRUE```)
 "Japantown"
 
 ## assistant
-There are 3 electric stations:
-- Santa Clara at Almaden
-- San Pedro Square
-- Japantown
+> SUBMIT(name="electric stations name", query=```SELECT station.name
+FROM station
+JOIN station_info USING (id)
+WHERE station_info.electric IS TRUE```)
