@@ -107,7 +107,9 @@ const config = useConfigStore()
 
 const route = useRoute()
 const router = useRouter()
-const socket = io('/')
+// Environment variable to set the dbt API endpoint.
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL
+const socket = io(SOCKET_URL)
 const inputTextarea = ref(null)
 
 const { databaseSelected, databases, selectDatabaseById } = useDatabases()
