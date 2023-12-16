@@ -127,7 +127,7 @@ export default {
       if (this.message.functionCall?.name !== 'PLOT_WIDGET') return
       const params = this.message.functionCall?.arguments
       return {
-        ...params,
+        ...params?.params,
         caption: params?.caption,
         type: params?.outputType
       }
