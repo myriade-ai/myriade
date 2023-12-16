@@ -1,7 +1,7 @@
 <template>
-  <div class="flex mt-1">
+  <div class="flex mt-0" style="margin-top: -40px">
     <button
-      class="ml-auto border border-transparent text-sm font-medium rounded-md shadow-sm text-black mt-1 px-2 py-1 bg-gray-100 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      class="clipboard ml-auto border border-transparent text-sm font-medium rounded-md shadow-sm text-black mt-1 px-2 py-1 bg-gray-100 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
       @click="copyToClipboard"
     >
       {{ copyText }}
@@ -74,5 +74,12 @@ onMounted(() => {
 }
 .tabulator {
   margin-top: 0.5rem;
+}
+.clipboard {
+  top: 48px;
+  position: relative;
+  background-color: red;
+  z-index: 100;
+  right: 10px;
 }
 </style>
