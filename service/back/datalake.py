@@ -253,6 +253,20 @@ class DatalakeFactory:
                 )
             print(uri)
             return SQLDatabase(uri)
+        elif dtype == "mysql":
+            user = kwargs.get("user")
+            password = kwargs.get("password", "")
+            host = kwargs.get("host")
+            ssl_parameters = {"rejectUnauthorized": True}
+            ssl_parameters_json = json.dumps(ssl_parameters)
+            uri = f"mysql://{user}:{password}@{host}/{kwargs['database']}?ssl={ssl_parameters_json}"
+            if "options" in kwargs:
+                uri += "?" + "&".join(
+                    [f"{k}={v}" for k, v in kwargs["options"].items()]
+                )
+            print(uri)
+            return SQLDatabase(uri)
+
         elif dtype == "sqlite":
             return SQLDatabase("sqlite:///" + kwargs["filename"])
         else:

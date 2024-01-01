@@ -29,12 +29,26 @@
             <option>postgres</option>
             <option>sqlite</option>
             <option>snowflake</option>
+            <option>mysql</option>
           </select>
         </div>
       </base-field>
 
       <div class="mt-4 text-sm text-gray-500" v-if="database.engine === 'postgres'">
         <p>Postgres connection details</p>
+        <base-input
+          name="Host"
+          v-model="database.details.host"
+          placeholder="localhost"
+          rules="required"
+        />
+        <base-input name="Port" v-model="database.details.port" type="number" />
+        <base-input name="User" v-model="database.details.user" />
+        <base-input name="Password" v-model="database.details.password" />
+        <base-input name="Database" v-model="database.details.database" rules="required" />
+      </div>
+      <div class="mt-4 text-sm text-gray-500" v-if="database.engine === 'mysql'">
+        <p>Mysql connection details</p>
         <base-input
           name="Host"
           v-model="database.details.host"
