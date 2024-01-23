@@ -21,6 +21,7 @@ export const loadQuery = async (id: number) => {
   const response = await axios.get(`/api/query/${id}`)
 
   const query = response.data
+  query.sql = sqlPrettier.format(query.sql)
   queryRef.value = query
   queryText.value = query.query
   visualisationParams.value = query.visualisationParams
