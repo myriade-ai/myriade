@@ -72,6 +72,7 @@
       <base-input name="Password" v-model="database.details.password" rules="required" />
       <base-input name="Database" v-model="database.details.database" rules="required" />
       <base-input name="Schema" v-model="database.details.schema" />
+      <base-input name="Role" v-model="database.details.role" />
       <base-input name="Warehouse" v-model="database.details.warehouse" />
     </div>
 

@@ -91,6 +91,10 @@ class AbstractDatabase(ABC):
 
         return rows
 
+    def test_connection(self):
+        # Test connection by running a query
+        self.query("SELECT 1;")
+
 
 class SQLDatabase(AbstractDatabase):
     def __init__(self, uri):
@@ -106,10 +110,6 @@ class SQLDatabase(AbstractDatabase):
     def dialect(self):
         # "postgresql", "mysql", "sqlite", "mssql"
         return self.engine.name
-
-    def test_connection(self):
-        # Test connection by running a query
-        self.query("SELECT 1")
 
     def load_metadata(self):
         for schema in self.inspector.get_schema_names():

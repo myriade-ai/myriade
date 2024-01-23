@@ -86,9 +86,7 @@ class DatabaseChat:
         chat_gpt.add_function(self.plot_widget, FUNCTIONS["PLOT_WIDGET"])
         chat_gpt.add_function(self.submit, FUNCTIONS["SUBMIT"])
 
-        messages = [
-            Message(**m.to_autochat_message()) for m in self.conversation.messages
-        ]
+        messages = [m.to_autochat_message() for m in self.conversation.messages]
         chat_gpt.load_history(messages)
         return chat_gpt
 
@@ -139,9 +137,7 @@ class DatabaseChat:
 
     def _run_conversation(self):
         # Message
-        messages = [
-            Message(**m.to_autochat_message()) for m in self.conversation.messages
-        ]
+        messages = [m.to_autochat_message() for m in self.conversation.messages]
         self.chat_gpt.load_history(messages)
         for m in self.chat_gpt.run_conversation():
             message = ConversationMessage.from_autochat_message(m)

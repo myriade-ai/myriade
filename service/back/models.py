@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass
 
 from autochat import Message
+from autochat.chatgpt import Message as AutoChatMessage
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import TIMESTAMP, Boolean, Column, ForeignKey, Integer, String, text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -125,13 +126,15 @@ class ConversationMessage(Base):
             "queryId": self.queryId,
         }
 
-    def to_autochat_message(self):
-        return {
-            "role": self.role,
-            "name": self.name,
-            "content": self.content,
-            "function_call": self.functionCall,
-        }
+    def to_autochat_message(self) -> AutoChatMessage:
+        return AutoChatMessage(
+            **{
+                "role": self.role,
+                "name": self.name,
+                "content": self.content,
+                "function_call": self.functionCall,
+            }
+        )
 
     @classmethod
     def from_autochat_message(cls, message: Message):
