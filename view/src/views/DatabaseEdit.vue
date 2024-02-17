@@ -129,8 +129,6 @@ const database = ref({
   description: '',
   engine: 'postgres',
   details: {
-    host: '',
-    port: 5432,
     user: '',
     password: '',
     database: ''
