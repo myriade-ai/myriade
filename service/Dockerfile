@@ -17,7 +17,7 @@ RUN pip install poetry && poetry config virtualenvs.create false && poetry insta
 COPY . .
 
 # Inform Docker that the container listens on the specified port at runtime.
-EXPOSE 5000
+EXPOSE 4000
 
 RUN ls -la /app
 

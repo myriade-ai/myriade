@@ -14,8 +14,8 @@ services:
 
   service:
     build: ./service
-    ports: # Public port is 4000, but the container is listening on 5000
-      - "4000:5000"
+    ports: # Public port is 4000, but the container is listening on 4000
+      - "4000:4000"
     depends_on:
       - db
     environment:
