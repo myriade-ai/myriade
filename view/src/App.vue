@@ -14,8 +14,8 @@ export default defineComponent({
   name: 'App',
   setup() {
     useMeta({
-      title: 'Olympe',
-      description: 'Explore your data with Olympe!',
+      title: 'Ada',
+      description: 'Explore your data with Ada!',
       htmlAttrs: { lang: 'en' }
     })
     const layout = computed<string>(() => {
