@@ -17,7 +17,6 @@
 import { defineComponent, computed } from 'vue'
 import type { WritableComputedRef } from 'vue'
 import { VAceEditor } from 'vue3-ace-editor'
-import sqlPrettier from 'sql-prettier'
 import 'brace/theme/monokai'
 import 'brace/mode/sql'
 
@@ -43,10 +42,6 @@ const isReadOnly = computed(() => props.readOnly)
 
 const inputText: WritableComputedRef<string> = computed({
   get() {
-    if (props.readOnly) {
-      // prettify sql for readonly mode
-      return sqlPrettier.format(props.modelValue)
-    }
     return props.modelValue
   },
   set(value) {

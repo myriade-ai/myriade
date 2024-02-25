@@ -29,6 +29,7 @@
               <MessageDisplay
                 :key="id"
                 :message="message"
+                @editInlineClick="editInline"
                 v-if="message?.display !== false || config.showHiddenMessages"
               />
             </li>
@@ -69,8 +70,24 @@
         </div>
       </div>
       <div class="w-full py-8">
-        <div class="w-full flex">
-          <!-- input if return key is pressed, not if ctrl or shift is pressed -->
+        <button
+          class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-sm hover:bg-gray-50"
+          :style="editMode == 'TEXT' ? 'background-color: #e5e7eb' : ''"
+          @click="editMode = 'TEXT'"
+        >
+          Text
+        </button>
+        <button
+          class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 mx-0.5 text-sm font-medium leading-5 text-gray-700 shadow-sm hover:bg-gray-50"
+          :style="editMode == 'SQL' ? 'background-color: #e5e7eb' : ''"
+          @click="editMode = 'SQL'"
+        >
+          Editor
+        </button>
+        <div class="w-full flex py-1" v-if="editMode == 'SQL'">
+          <BaseEditor v-model="inputSQL" @run-query="sendMessage" />
+        </div>
+        <div class="w-full flex py-1" v-else>
           <textarea
             @input="resizeTextarea"
             @keydown.enter="handleEnter"
@@ -78,7 +95,7 @@
             class="flex-grow py-2 px-3 rounded border border-gray-300"
             rows="1"
             placeholder="Type your message"
-            v-model="queryInput"
+            v-model="inputText"
           ></textarea>
           <BaseButton class="w-24 ml-2" @click="sendMessage">Send</BaseButton>
         </div>
@@ -89,19 +106,19 @@
 
 <script setup lang="ts">
 import MessageDisplay from '@/components/MessageDisplay.vue'
-import BaseInput from '@/components/BaseInput.vue'
 import BaseSwitch from '@/components/BaseSwitch.vue'
 import BaseSelector from '@/components/BaseSelector.vue'
 import BaseButton from '@/components/BaseButton.vue'
+import BaseEditor from '@/components/BaseEditor.vue'
 import { ref, watch, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import axios from 'axios'
 import io from 'socket.io-client'
 import { useDatabases } from '@/stores/databases'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
-import { HiOutlineRefreshIcon } from '@heroicons/vue/24/solid'
 import { useConfigStore } from '@/stores/config'
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
+import sqlPrettier from 'sql-prettier'
 
 const config = useConfigStore()
 
@@ -121,18 +138,27 @@ const STATUS = {
   ERROR: 'error'
 }
 
-const queryInput = ref('')
+const inputText = ref('')
+const inputSQL = ref('')
 const messages = ref([])
 const conversationId = computed(() => route.params.id)
 const queryStatus = ref(STATUS.CLEAR)
 const errorMessage = ref('')
 const lastMessage = computed(() => messages.value[messages.value.length - 1])
+const editMode = ref('TEXT')
 
 const fetchMessages = async () => {
   // Replace with your dbt API endpoint to fetch messages.
   axios.get(`/api/conversations/${conversationId.value}`).then((response) => {
     const conversation = response.data
-    messages.value = conversation.messages
+    // pretty parse
+    messages.value = conversation.messages.map((message) => {
+      let query = message?.functionCall?.arguments?.query
+      if (query) {
+        message.functionCall.arguments.query = sqlPrettier.format(query)
+      }
+      return message
+    })
     selectDatabaseById(conversation.databaseId)
   })
 }
@@ -140,7 +166,7 @@ const fetchMessages = async () => {
 watch(
   () => route.params.id,
   (newValue) => {
-    queryInput.value = ''
+    inputText.value = ''
     if (newValue) {
       fetchMessages()
     } else {
@@ -148,6 +174,11 @@ watch(
     }
   }
 )
+
+const editInline = (query) => {
+  inputSQL.value = query
+  editMode.value = 'SQL'
+}
 
 const hasHiddenMessages = computed(() => {
   return messagesWithDisplay.value.some((message) => message.display === false)
@@ -164,9 +195,14 @@ const sendMessage = async () => {
     return
   }
   // Post in json format to your back-end API endpoint to get the response.
-  const question = queryInput.value
-  // Emit ask question and messages.length to the server.
-  socket.emit('ask', question, conversationId.value, databaseSelected.value.id)
+  if (editMode.value == 'SQL') {
+    // Emit query and messages.length to the server.
+    socket.emit('query', inputSQL.value, conversationId.value, databaseSelected.value.id)
+  } else {
+    // Emit ask question and messages.length to the server.
+    socket.emit('ask', inputText.value, conversationId.value, databaseSelected.value.id)
+  }
+
   // After 100ms, clear the input.
   setTimeout(() => {
     clearInput()
@@ -202,7 +238,8 @@ const handleEnter = (event) => {
   }
 }
 const clearInput = () => {
-  queryInput.value = ''
+  inputText.value = ''
+  inputSQL.value = ''
   resizeTextarea()
 }
 

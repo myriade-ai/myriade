@@ -8,14 +8,11 @@
       <span class="flex justify-between items-center w-full">
         {{ message.role }}
         <!-- Link to /query/{{ message.queryId }} if message.queryId is defined -->
-        <a
-          :href="`/query/${message.queryId}`"
-          class="text-blue-500"
-          v-if="message.queryId"
-          target="_blank"
-        >
-          Edit
-        </a>
+        <span v-if="message.queryId">
+          <button class="text-blue-500" @click="editInline">Edit inline</button>
+          /
+          <a :href="`/query/${message.queryId}`" class="text-blue-500" target="_blank"> Edit </a>
+        </span>
       </span>
     </p>
 
@@ -91,6 +88,7 @@ export default {
       required: true
     }
   },
+  emits: ['editInlineClick'],
   data() {
     return {
       sqlResult: [] as Array<{
@@ -101,6 +99,9 @@ export default {
     }
   },
   methods: {
+    editInline() {
+      this.$emit('editInlineClick', this.message.functionCall?.arguments?.query)
+    },
     async executeSql(sql: string) {
       try {
         const result = await axios.post('/api/query/_run', {
