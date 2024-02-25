@@ -7,6 +7,14 @@
       <div class="px-4 py-2" v-if="tables?.length === 0">
         No table available. <br />Please contact support.
       </div>
+      <DatabaseExplorerItems
+        v-for="(table, ind) in usedTables"
+        :key="ind"
+        :table="table"
+        :showColumns="table.name == showTableKey"
+        @click="onClick(table.name)"
+        @dblclick="onDblClick(table)"
+      />
       <input
         type="text"
         placeholder="search table"
@@ -14,40 +22,14 @@
         id="searchTables"
         v-model="searchTablesInput"
       />
-      <li
+      <DatabaseExplorerItems
         v-for="(table, ind) in filteredTables"
-        @click="onClick(ind)"
-        v-on:dblclick="onDblClick(ind)"
-      >
-        <div class="block hover:bg-gray-50">
-          <div class="px-4 py-4 sm:px-6">
-            <div class="flex items-center justify-between">
-              <div
-                class="text-sm font-medium truncate"
-                :class="isTableUsed(table) ? 'text-blue-600' : 'text-gray-600'"
-              >
-                {{ table.schema }}.{{ table.name }}
-              </div>
-            </div>
-            <div class="flex justify-between">
-              <div class="sm:flex">
-                <div class="flex items-center text-sm text-gray-500">
-                  {{ table.description }}
-                </div>
-              </div>
-            </div>
-            <div v-for="column in table.columns" v-if="ind == showTableIndex">
-              <div class="mt-2 flex justify-between">
-                <div class="sm:flex">
-                  <div class="flex items-center text-sm text-gray-500">
-                    {{ column.name }}: {{ column.type }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </li>
+        :key="ind"
+        :table="table"
+        :showColumns="table.name == showTableKey"
+        @click="onClick(table.name)"
+        @dblclick="onDblClick(table)"
+      />
       <div v-if="filteredTables.length == 0" class="block hover:bg-gray-50">
         <p class="px-4 py-4 sm:px-6">No tables</p>
       </div>
@@ -59,25 +41,22 @@
 import { ref, watchEffect, computed } from 'vue'
 import { useDatabases } from '../stores/databases'
 import { querySQL, runQuery } from '../stores/query'
+import DatabaseExplorerItems from './DatabaseExplorerItems.vue'
+import type { Table } from '../stores/tables'
 
 const { databaseSelectedId, fetchDatabaseTables } = useDatabases()
 
-interface Column {
-  name: string
-  type: string
-}
-
-interface Table {
-  name: string
-  schema: string
-  description: string
-  columns: Column[]
-  used: Boolean // information if the table is used in the query
-}
-
-const showTableIndex = ref(null)
-const searchTablesInput = ref('')
 const tables = ref<Table[]>([])
+const showTableKey = ref<string | null>(null)
+
+watchEffect(async () => {
+  const selectedDatabaseId = databaseSelectedId.value
+  if (selectedDatabaseId) {
+    tables.value = await fetchDatabaseTables(selectedDatabaseId)
+  }
+})
+
+const searchTablesInput = ref('')
 
 function extractTables(sqlQuery) {
   // Regular expression to match table names following FROM, JOIN, and UPDATE keywords
@@ -132,28 +111,27 @@ const sortedTables = computed(() => {
 
 const filteredTables = computed(() => {
   return sortedTables.value.filter((table: Table) => {
-    return table.name.includes(searchTablesInput.value)
+    return table.name.includes(searchTablesInput.value) && !isTableUsed(table)
   })
 })
 
-const onClick = (tableInd: number) => {
-  if (showTableIndex.value == tableInd) {
-    showTableIndex.value = null
+const usedTables = computed(() => {
+  return tables.value.filter((table: Table) => {
+    return isTableUsed(table)
+  })
+})
+
+const onClick = (key: string) => {
+  if (showTableKey.value == key) {
+    showTableKey.value = null
   } else {
-    showTableIndex.value = tableInd
+    showTableKey.value = key
   }
 }
 
-const onDblClick = (tableInd: number) => {
-  const tableSelected = tables.value[tableInd]
-  querySQL.value = `SELECT * FROM "${tableSelected.schema}"."${tableSelected.name}";`
+const onDblClick = (table: Table) => {
+  querySQL.value = `SELECT * FROM "${table.schema}"."${table.name}";`
+  searchTablesInput.value = '' // reset input
   runQuery()
 }
-
-watchEffect(async () => {
-  const selectedDatabaseId = databaseSelectedId.value
-  if (selectedDatabaseId) {
-    tables.value = await fetchDatabaseTables(selectedDatabaseId)
-  }
-})
 </script>
