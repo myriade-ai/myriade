@@ -101,8 +101,9 @@ class DatabaseChat:
         self.session.add(_query)
         self.session.commit()
 
-        # We update the message with the query id
-        from_response.query_id = _query.id
+        if from_response:
+            # We update the message with the query id
+            from_response.query_id = _query.id
 
         output, _ = run_sql(self.datalake, query)
         return output

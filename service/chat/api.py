@@ -1,4 +1,4 @@
-from back.models import User
+from back.models import ConversationMessage, User
 from back.session import Session
 from chat.datachat import DatabaseChat
 from chat.lock import (
@@ -44,6 +44,37 @@ def handle_ask(question, conversation_id=None, database_id=None):
     ).ask(question)
     for message in iterator:
         emit("response", message.to_dict())
+
+
+@socketio.on("query")
+@handle_stop_flag
+def handle_query(query, conversation_id=None, database_id=None):
+    chat = DatabaseChat(
+        socket_session, database_id, conversation_id, conversation_stop_flags
+    )
+
+    user_message = ConversationMessage(
+        role="user",
+        functionCall={
+            "name": "SQL_QUERY",
+            "arguments": {
+                "query": query,
+            },
+        },
+        conversationId=chat.conversation.id,
+    )
+    socket_session.add(user_message)
+    emit("response", user_message.to_dict())
+
+    content = chat.sql_query(query)
+    message = ConversationMessage(
+        role="function",
+        content=content,
+        conversationId=chat.conversation.id,
+    )
+    socket_session.add(message)
+    socket_session.commit()
+    emit("response", message.to_dict())
 
 
 @socketio.on("regenerate")
