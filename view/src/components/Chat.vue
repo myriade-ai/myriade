@@ -210,7 +210,12 @@ const sendMessage = async () => {
 }
 
 const receiveMessage = async (message) => {
-  messages.value.push(message)
+  let existing = messages.value.find((m) => m.id === message.id)
+  if (existing) {
+    existing.queryId = message.queryId
+  } else {
+    messages.value.push(message)
+  }
 }
 
 /* Modify Message display according to the following rules:

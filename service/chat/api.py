@@ -64,9 +64,17 @@ def handle_query(query, conversation_id=None, database_id=None):
         conversationId=chat.conversation.id,
     )
     socket_session.add(user_message)
+    socket_session.commit()
+    emit("response", user_message.to_dict())
+    # Run the SQL
+    message = user_message.to_autochat_message()
+    content = chat.sql_query(query, from_response=message)
+    user_message.queryId = message.query_id
+    # Update the message with the linked query
+    socket_session.add(user_message)
     emit("response", user_message.to_dict())
 
-    content = chat.sql_query(query)
+    # Display the response
     message = ConversationMessage(
         role="function",
         content=content,
