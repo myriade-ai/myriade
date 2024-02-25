@@ -111,7 +111,10 @@ const sortedTables = computed(() => {
 
 const filteredTables = computed(() => {
   return sortedTables.value.filter((table: Table) => {
-    return table.name.includes(searchTablesInput.value) && !isTableUsed(table)
+    return (
+      table.name.toLocaleLowerCase().includes(searchTablesInput.value.toLocaleLowerCase()) &&
+      !isTableUsed(table)
+    )
   })
 })
 
