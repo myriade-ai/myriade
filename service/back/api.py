@@ -157,7 +157,8 @@ def get_databases():
     # organisationId = g.organisationId
     # Filter databases based on ownerId (userId) OR organisationId
     databases = (
-        g.session.query(Database).filter(Database.ownerId == user.id)
+        g.session.query(Database)
+        .filter(Database.ownerId == user.id)
         # .filter(
         #     or_(
         #
