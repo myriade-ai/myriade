@@ -77,6 +77,7 @@ def handle_query(query, conversation_id=None, database_id=None):
     # Display the response
     message = ConversationMessage(
         role="function",
+        name="SQL_QUERY",
         content=content,
         conversationId=chat.conversation.id,
     )
