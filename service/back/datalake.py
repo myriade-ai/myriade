@@ -58,6 +58,11 @@ class AbstractDatabase(ABC):
     def _query(self, query):
         pass
 
+    def query_count(self, sql):
+        count_request = f"SELECT COUNT(*) FROM ({sql.replace(';', '')}) AS foo"
+        result = self._query(count_request)
+        return result[0]["count"]
+
     def query(self, sql):
         if self.safe_mode:
             # Forbid DROP, DELETE, TRUNCATE, etc. queries
@@ -69,6 +74,14 @@ class AbstractDatabase(ABC):
                     )
 
         rows = self._query(sql)
+        if sum([sizeof(r) for r in rows]) > MAX_SIZE * 0.9:
+            try:
+                count = self.query_count(sql)
+            except Exception:
+                # TODO: should throw error
+                count = None
+        else:
+            count = len(rows)
 
         if self.privacy_mode:
             # Hide sensitive data from the result
@@ -89,7 +102,7 @@ class AbstractDatabase(ABC):
                         value = re.sub(PHONE_REGEX, HIDDEN_TEXT, value)
                         row[key] = value
 
-        return rows
+        return rows, count
 
     def test_connection(self):
         # Test connection by running a query
@@ -156,11 +169,7 @@ class SQLDatabase(AbstractDatabase):
                 row_size = sizeof(row_dict)
 
                 if total_size + row_size > MAX_SIZE:
-                    # TODO: change this to get the first 1000 rows, and add a warning
                     return rows
-                    raise SizeLimitError(
-                        f"Result size is too big: {total_size + row_size} > {MAX_SIZE}"
-                    )
 
                 rows.append(row_dict)
                 total_size += row_size

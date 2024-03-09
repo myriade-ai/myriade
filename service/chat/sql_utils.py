@@ -22,7 +22,7 @@ def run_sql(connection, sql):
         # Assuming you have a Database instance named 'database'
         # TODO: switch to logger
         # print("Executing SQL query: {}".format(sql))
-        rows = connection.query(sql)
+        rows, count = connection.query(sql)
     except Exception as e:
         # If there's an error executing the query, inform the user
         execution_response = ERROR_TEMPLATE.format(error=str(e))
@@ -44,6 +44,6 @@ def run_sql(connection, sql):
         execution_response = RESULT_TEMPLATE.format(
             sample=results_dumps,
             len_sample=len(results_limited),
-            len_total=len(rows),
+            len_total=count,
         )
         return execution_response, True
