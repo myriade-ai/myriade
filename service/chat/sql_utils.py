@@ -12,8 +12,7 @@ RESULT_TEMPLATE = """Results {len_sample}/{len_total} rows:
 ERROR_TEMPLATE = """An error occurred while executing the SQL query:
 ```error
 {error}
-```
-Please correct the query and try again.
+```Please correct the query and try again.
 """
 
 
