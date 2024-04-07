@@ -20,6 +20,13 @@
       <span style="white-space: pre-wrap" v-if="part.type === 'text'" :key="`text-${index}`">
         {{ part.content }}
       </span>
+      <div
+        style="white-space: pre-wrap; background-color: #db282873; padding: 0.6rem"
+        v-if="part.type === 'error'"
+        :key="`error-${index}`"
+      >
+        {{ part.content }}
+      </div>
       <BaseEditor
         v-if="part.type === 'sql'"
         :modelValue="part.content"
@@ -135,7 +142,7 @@ export default {
       }
     },
     parsedText() {
-      const regex = /```((?:sql|json|ya?ml-graph))\s*([\s\S]*?)\s*```/g
+      const regex = /```((?:sql|json|error|ya?ml-graph))\s*([\s\S]*?)\s*```/g
       let match
       let lastIndex = 0
       const parts = []
@@ -158,6 +165,8 @@ export default {
           // TODO: verify that this is a valid graph yaml
           content = yaml.load(match[2].trim())
           console.log('content', content)
+        } else if (type === 'error') {
+          content = match[2]
         } else {
           throw new Error(`Unknown type ${type}`)
         }
