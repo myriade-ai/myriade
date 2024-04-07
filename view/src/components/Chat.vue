@@ -214,6 +214,10 @@ const receiveMessage = async (message) => {
   if (existing) {
     existing.queryId = message.queryId
   } else {
+    let query = message?.functionCall?.arguments?.query
+    if (query) {
+      message.functionCall.arguments.query = sqlPrettier.format(query)
+    }
     messages.value.push(message)
   }
 }
