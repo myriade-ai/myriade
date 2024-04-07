@@ -16,6 +16,25 @@
       </span>
     </p>
 
+    <template v-for="(part, index) in parsedText">
+      <span style="white-space: pre-wrap" v-if="part.type === 'text'" :key="`text-${index}`">
+        {{ part.content }}
+      </span>
+      <BaseEditor
+        v-if="part.type === 'sql'"
+        :modelValue="part.content"
+        :read-only="true"
+        :key="`sql-${index}`"
+      ></BaseEditor>
+      <BaseTable v-if="part.type === 'json'" :data="part.content" :key="`json-${index}`" />
+      <BaseBuilder
+        v-if="(part.type === 'yml-graph' || part.type === 'yaml-graph') && sqlResult"
+        :context="part.content"
+        :count="sqlCount"
+        :data="sqlResult"
+      ></BaseBuilder>
+    </template>
+
     <div v-if="message.functionCall">
       <b>> {{ message.functionCall?.name }} </b>
       <p v-if="message.functionCall?.name === 'MEMORY_SEARCH'">
@@ -36,28 +55,10 @@
       <BaseEditorPreview
         v-else-if="message.functionCall?.name === 'SUBMIT'"
         :sqlQuery="message.functionCall?.arguments?.query"
+        :database-id="databaseSelectedId"
       ></BaseEditorPreview>
       <pre v-else class="arguments">{{ message.functionCall?.arguments }}</pre>
     </div>
-
-    <template v-for="(part, index) in parsedText">
-      <span style="white-space: pre-wrap" v-if="part.type === 'text'" :key="`text-${index}`">
-        {{ part.content }}
-      </span>
-      <BaseEditor
-        v-if="part.type === 'sql'"
-        :modelValue="part.content"
-        :read-only="true"
-        :key="`sql-${index}`"
-      ></BaseEditor>
-      <BaseTable v-if="part.type === 'json'" :data="part.content" :key="`json-${index}`" />
-      <BaseBuilder
-        v-if="(part.type === 'yml-graph' || part.type === 'yaml-graph') && sqlResult"
-        :context="part.content"
-        :count="sqlCount"
-        :data="sqlResult"
-      ></BaseBuilder>
-    </template>
   </div>
 </template>
 
