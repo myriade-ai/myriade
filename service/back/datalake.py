@@ -2,6 +2,7 @@ import json
 import re
 import sys
 from abc import ABC, abstractmethod, abstractproperty
+from typing import Tuple
 
 import sqlalchemy
 from sqlalchemy import text
@@ -198,15 +199,17 @@ class SnowflakeDatabase(AbstractDatabase):
     def dialect(self):
         return "snowflake"
 
+    # TODO: should run the process asynchronously
     def load_metadata(self):
         query = "SHOW TABLES IN DATABASE {}".format(self.connection.database)
-        tables = self.query(query)
+        tables, _ = self.query(query)
         for table in tables[:30]:
             schema = table["schema_name"]
             table_name = table["name"]
 
             columns = []
-            for column in self.query(f"SHOW COLUMNS IN {schema}.{table_name}"):
+            result, _ = self.query(f"SHOW COLUMNS IN {schema}.{table_name}")
+            for column in result:
                 print("column", column)
                 # 'column_name': 'HEU', 'data_type': '{"type":"TIME","precision":0,"scale":9,"nullable":true}',
                 column["data_type"] = json.loads(column["data_type"])
