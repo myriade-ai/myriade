@@ -95,4 +95,4 @@ For any issues, please open an issue on GitHub or contact me on [Twitter](https:
 
 ## License
 
-[MIT](LICENSE.md) - Feel free to use and modify, but please attribute appropriately.
+[LICENSE](LICENSE) - AGPL
