@@ -87,8 +87,8 @@ We have developed built-in features to protect privacy and insure safety
 
 ## FAQs
 
-Q: How secure is my data with Ada / OpenAI?
-A: Since it's open source, you can run Ada on your own server and keep your data private. OpenAI's API is also secure and encrypted, and they don't use your data for training with the API.
+- Q: How secure is my data with Ada / OpenAI?
+- A: Since it's open source, you can run Ada on your own server and keep your data private. OpenAI's API is also secure and encrypted, and they don't use your data for training with the API.
 
 ## Troubleshooting & Contribution
 
