@@ -5,6 +5,7 @@ import yaml
 from autochat import ChatGPT, Message, StopLoopException
 from back.datalake import DatalakeFactory
 from back.models import Conversation, ConversationMessage, Query
+
 from chat.lock import StopException
 from chat.memory_utils import find_closest_embeddings
 from chat.sql_utils import run_sql
@@ -27,7 +28,9 @@ class DatabaseChat:
     - PLOT_WIDGET: plot a widget
     """
 
-    def __init__(self, session, database_id, conversation_id=None, stop_flags=None):
+    def __init__(
+        self, session, database_id, conversation_id=None, stop_flags=None, model=None
+    ):
         self.session = session
         if conversation_id is None:
             # Create conversation object
@@ -43,6 +46,7 @@ class DatabaseChat:
             **self.conversation.database.details,
         )
         self.stop_flags = stop_flags
+        self.model = model
 
     def __del__(self):
         # On destruct, close the engine
@@ -88,6 +92,8 @@ class DatabaseChat:
 
         messages = [m.to_autochat_message() for m in self.conversation.messages]
         chat_gpt.load_history(messages)
+        if self.model:
+            chat_gpt.model = self.model
         return chat_gpt
 
     def sql_query(

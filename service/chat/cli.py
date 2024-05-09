@@ -39,29 +39,3 @@ def search_query(query):
     # queries = Query.memory_search(session, "select * from users")
     for query in queries:
         print(query.query)
-
-
-@chat_cli.cli.command("export-conversations")
-def export_conversations():
-    session = Session()
-    conversations = session.query(Conversation).all()
-
-    export_conversations = []
-    for conversation in conversations:
-        export_messages = []
-        # If less than 2 messages, skip
-        if len(conversation.messages) <= 2:
-            continue
-        for message in conversation.messages:
-            export_message = message.to_autochat_message().to_openai_dict()
-            export_messages.append(export_message)
-        export_conversations.append(
-            {
-                "messages": export_messages,
-            }
-        )
-
-    with open("conversations_export.jsonl", "w") as f:
-        for conversation in export_conversations:
-            f.write(json.dumps(conversation) + "\n")
-    click.echo("Conversations have been exported to 'conversations_export.jsonl'.")

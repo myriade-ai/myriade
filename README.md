@@ -44,6 +44,7 @@ docker-compose up -d
    in `service/.env.sh` file:
 
    ```bash
+   export AUTOCHAT_MODEL=<Your_OpenAI_Model>
    export OPENAI_API_KEY=<Your_OpenAI_API_Key>
    export DATABASE_URL=<Your_Postgres_Database_URL>
    ```
