@@ -54,13 +54,13 @@ files = [
 
 [[package]]
 name = "autochat"
-version = "0.1.13"
+version = "0.1.14"
 description = "Small ChatGPT library to support chat templates, and function calls"
 optional = false
 python-versions = "*"
 files = [
-    {file = "autochat-0.1.13-py3-none-any.whl", hash = "sha256:8ea29d14bd948c90373c3c661a3a835d3e895c57e36f0fed816262b13f6e09b6"},
-    {file = "autochat-0.1.13.tar.gz", hash = "sha256:6ec802ed93b1892c7e1a49c5006454e781fce150e54fd679e8a9a2cbdf94ed5c"},
+    {file = "autochat-0.1.14-py3-none-any.whl", hash = "sha256:94cd00e468dd94982ec6c7e3f7a7008ef29c178bd1848fc4a3afcd82985d5f1d"},
+    {file = "autochat-0.1.14.tar.gz", hash = "sha256:26fbc48c6d8bfafdd2f3df07a2313759b1d07f9fedc7c6fbf85b347df8d999bf"},
 ]
 
 [package.dependencies]
@@ -1455,4 +1455,4 @@ snowflake = ["snowflake-connector-python"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "c7c8e92197414102526f82d7638dc4e223d9fa6f870717ca5607dbc79fe64e8e"
+content-hash = "173396ed28b4f2baa558a71dfcaf17cbd8a708b459b9fbb890bf8a6c456a950a"
