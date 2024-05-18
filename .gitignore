@@ -6,3 +6,6 @@ view/node_modules
 __pycache__
 pgvector
 ai
+.tmuxinator.yml
+*.code-workspace
+service/start.sh

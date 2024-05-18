@@ -1,6 +1,6 @@
 import json
 
-MAX_DATA_SIZE = 4000  # Maximum size of the data to return
+from autochat import OUTPUT_SIZE_LIMIT
 
 RESULT_TEMPLATE = """Results {len_sample}/{len_total} rows:
 ```json
@@ -33,7 +33,7 @@ def run_sql(connection, sql):
         for row in rows:
             results_limited.append(row)
             total_size += len(json.dumps(row, default=str))
-            if total_size > MAX_DATA_SIZE:
+            if total_size > OUTPUT_SIZE_LIMIT:
                 break
 
         # Display in JSON

@@ -4,8 +4,6 @@ from flask_socketio import emit
 
 conversation_stop_flags = {}
 stop_flag_lock = Lock()
-MAX_DATA_SIZE = 4000  # Maximum size of the data to return
-CONVERSATION_MAX_ATTEMPT = 10  # Number of attempts to ask the ai before giving up
 
 
 class StopException(Exception):

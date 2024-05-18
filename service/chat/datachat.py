@@ -10,8 +10,6 @@ from chat.lock import StopException
 from chat.memory_utils import find_closest_embeddings
 from chat.sql_utils import run_sql
 
-MAX_DATA_SIZE = 4000  # Maximum size of the data to return
-
 # Load functions from a predefined path, independent of the current working directory
 FUNCTIONS = {}
 functions_path = os.path.join(os.path.dirname(__file__), "functions")
@@ -114,7 +112,7 @@ class DatabaseChat:
         output, _ = run_sql(self.datalake, query)
         return output
 
-    def save_to_memory(self, text: str, **kwargs):
+    def save_to_memory(self, text: str):
         if self.conversation.database.memory is None:
             self.conversation.database.memory = text
         else:
@@ -135,9 +133,7 @@ class DatabaseChat:
         raise StopLoopException("We want to stop after submitting")
         return
 
-    def plot_widget(
-        self, caption: str, outputType: str, sql: str, params: dict = None, **kwargs
-    ):
+    def plot_widget(self, caption: str, outputType: str, sql: str, params: dict = None):
         """TODO: add verification on the widget parameters and the sql query"""
         raise StopLoopException("We want to stop after the widget")
         return

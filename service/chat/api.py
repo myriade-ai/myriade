@@ -15,9 +15,6 @@ api = Blueprint("chat_api", __name__)
 
 from app import socketio
 
-MAX_DATA_SIZE = 4000  # Maximum size of the data to return
-CONVERSATION_MAX_ATTEMPT = 10  # Number of attempts to ask the ai before giving up
-
 socket_session = None
 
 
