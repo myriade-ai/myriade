@@ -46,6 +46,8 @@ class Database(Base):
     public: bool
     safe_mode: bool
     privacy_mode: bool
+    dbt_catalog: dict
+    dbt_manifest: dict
 
     __tablename__ = "database"
 
@@ -60,6 +62,8 @@ class Database(Base):
     # Information save by the ai
     memory = Column(String)
     tables_metadata = Column(JSONB)
+    dbt_catalog = Column(JSONB)
+    dbt_manifest = Column(JSONB)
 
     organisation = relationship("Organisation")
     owner = relationship("User")

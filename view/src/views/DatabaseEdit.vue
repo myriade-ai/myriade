@@ -76,6 +76,50 @@
       <base-input name="Warehouse" v-model="database.details.warehouse" />
     </div>
 
+    <div class="mt-4 block text-sm font-medium text-gray-700" @click="toggleDbtSupport">
+      <p>DBT Support <span v-if="isDbtSupportOpen">▼</span><span v-else>▶</span></p>
+    </div>
+    <div v-if="isDbtSupportOpen">
+      <p class="text-sm text-gray-500">
+        Add DBT json files so the AI can leverage DBT (experimental)
+      </p>
+      <div class="flex flex-col">
+        <label class="text-gray-700">Catalog</label>
+        <a
+          v-if="databaseSelected.dbt_catalog"
+          :href="
+            'data:text/json;charset=utf-8,' +
+            encodeURIComponent(JSON.stringify(databaseSelected.dbt_catalog))
+          "
+          download="catalog.json"
+          class="text-blue-600 hover:text-blue-800"
+          >catalog.json</a
+        >
+        <input
+          type="file"
+          @change="handleCatalogFileUpload"
+          class="mb-2 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+        />
+
+        <label class="text-gray-700 mt-4">Manifest</label>
+        <a
+          v-if="databaseSelected.dbt_manifest"
+          :href="
+            'data:text/json;charset=utf-8,' +
+            encodeURIComponent(JSON.stringify(databaseSelected.dbt_manifest))
+          "
+          download="manifest.json"
+          class="text-blue-600 hover:text-blue-800"
+          >manifest.json</a
+        >
+        <input
+          type="file"
+          @change="handleManifestFileUpload"
+          class="mb-2 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+        />
+      </div>
+    </div>
+
     <BaseSwitch v-model="database.privacy_mode" class="mt-5">
       <span class="text-gray-700">Privacy protection</span>
     </BaseSwitch>
@@ -134,7 +178,9 @@ const database = ref({
     database: ''
   },
   privacy_mode: true,
-  safe_mode: true
+  safe_mode: true,
+  dbt_catalog: null,
+  dbt_manifest: null
 } as any)
 const { selectDatabaseById, databaseSelected, createDatabase, updateDatabase, deleteDatabase } =
   useDatabases()
@@ -151,6 +197,8 @@ if (!isNew.value) {
 
   database.value.privacy_mode = databaseSelected.value.privacy_mode
   database.value.safe_mode = databaseSelected.value.safe_mode
+  database.value.dbt_catalog = databaseSelected.value.dbt_catalog
+  database.value.dbt_manifest = databaseSelected.value.dbt_manifest
 }
 
 const clickDelete = () => {
@@ -176,5 +224,30 @@ const clickSave = async () => {
     console.error(error)
     apiError.value = error.response.data.message
   }
+}
+const handleFileUpload = (event: any, key: 'dbt_catalog' | 'dbt_manifest') => {
+  const file = event.target.files[0]
+  const reader = new FileReader()
+  reader.onload = (event: any) => {
+    try {
+      database.value[key] = JSON.parse(event.target.result)
+    } catch (error) {
+      console.error(`Error parsing JSON for ${key}:`, error)
+    }
+  }
+  reader.readAsText(file)
+}
+
+const handleCatalogFileUpload = (event: any) => {
+  handleFileUpload(event, 'dbt_catalog')
+}
+
+const handleManifestFileUpload = (event: any) => {
+  handleFileUpload(event, 'dbt_manifest')
+}
+
+const isDbtSupportOpen = ref(database.value.dbt_catalog || database.value.dbt_manifest)
+const toggleDbtSupport = () => {
+  isDbtSupportOpen.value = !isDbtSupportOpen.value
 }
 </script>

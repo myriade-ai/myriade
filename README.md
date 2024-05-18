@@ -12,6 +12,7 @@ Ada is the best AI tool to explore your data in a safe, fast & accessible way.
 - **Human Friendly:** Query in English, Ada will take care of the rest.
 - **“Take Over” Mode:** Built-in Editor to run SQL
 - **Built-in Privacy & Safety:** Use with a peace of mind
+- **DBT Support:** Upload DBT catalog and manifest to leverage DBT (experimental)
 
 ## Demo
 

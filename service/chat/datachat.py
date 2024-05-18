@@ -5,7 +5,7 @@ import yaml
 from autochat import ChatGPT, Message, StopLoopException
 from back.datalake import DatalakeFactory
 from back.models import Conversation, ConversationMessage, Query
-
+from chat.dbt_utils import DBT
 from chat.lock import StopException
 from chat.memory_utils import find_closest_embeddings
 from chat.sql_utils import run_sql
@@ -45,6 +45,13 @@ class DatabaseChat:
         )
         self.stop_flags = stop_flags
         self.model = model
+
+        self.dbt = None
+        if self.conversation.database.dbt_catalog:
+            self.dbt = DBT(
+                catalog=self.conversation.database.dbt_catalog,
+                manifest=self.conversation.database.dbt_manifest,
+            )
 
     def __del__(self):
         # On destruct, close the engine
@@ -87,6 +94,11 @@ class DatabaseChat:
         chat_gpt.add_function(self.save_to_memory, FUNCTIONS["SAVE_TO_MEMORY"])
         chat_gpt.add_function(self.plot_widget, FUNCTIONS["PLOT_WIDGET"])
         chat_gpt.add_function(self.submit, FUNCTIONS["SUBMIT"])
+
+        if self.dbt:
+            chat_gpt.add_function(self.dbt.fetch_model_list)
+            chat_gpt.add_function(self.dbt.search_models)
+            chat_gpt.add_function(self.dbt.fetch_model)
 
         messages = [m.to_autochat_message() for m in self.conversation.messages]
         chat_gpt.load_history(messages)
