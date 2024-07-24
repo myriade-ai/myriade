@@ -154,7 +154,7 @@ const groupedConversations = computed(() => {
 })
 
 const selectNewConversation = () => {
-  router.push({ path: '/' })
+  router.push({ path: '/chat/new' })
 }
 
 const selectConversation = (conversation: Conversation) => {

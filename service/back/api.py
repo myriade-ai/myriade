@@ -7,6 +7,7 @@ from sqlalchemy import and_, or_
 api = Blueprint("back_api", __name__)
 
 import dataclasses
+import json
 from datetime import datetime
 from typing import List, Union
 
@@ -161,8 +162,7 @@ def get_databases():
     # organisationId = g.organisationId
     # Filter databases based on ownerId (userId) OR organisationId
     databases = (
-        g.session.query(Database)
-        .filter(Database.ownerId == user.id)
+        g.session.query(Database).filter(Database.ownerId == user.id)
         # .filter(
         #     or_(
         #
@@ -172,6 +172,29 @@ def get_databases():
         .all()
     )
     return jsonify(databases)
+
+
+@api.route("/databases/<int:database_id>/questions", methods=["GET"])
+@user_middleware
+def get_questions(database_id):
+    database = g.session.query(Database).filter_by(id=database_id).first()
+
+    from autochat import ChatGPT
+
+    chat_gpt = ChatGPT()
+    # if exist ; add database.memory, dbt.catalog, dbt.manifest
+    chat_gpt.context = json.dumps(database.tables_metadata)
+
+    def questions(question1: str, question2: str, question3: str):
+        pass
+
+    chat_gpt.add_function(questions)
+    message = chat_gpt.ask(
+        "Generate 3 questions that the user can ask based on the context (database schema, past conversations, etc)"
+    )
+    response_dict = message.function_call["arguments"]
+    response_values = list(response_dict.values())
+    return jsonify(response_values)
 
 
 @api.route("/databases/<int:database_id>/schema", methods=["GET"])
