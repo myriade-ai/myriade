@@ -1,5 +1,5 @@
 <template>
-  <div class="w-72 h-screen bg-gray-100 flex flex-col text-sm">
+  <div class="w-72 bg-gray-100 flex flex-col text-sm">
     <div class="px-4 py-2">
       <BaseButton class="w-full" @click="selectNewConversation">New Conversation</BaseButton>
     </div>
@@ -69,10 +69,8 @@ import type { Ref } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
-import { TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
-import { CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { TrashIcon, PencilIcon, XMarkIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import { useRoute } from 'vue-router'
-
 // Output the conversations types
 type Conversation = {
   id: number

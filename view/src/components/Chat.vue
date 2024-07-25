@@ -1,8 +1,8 @@
 <template>
-  <div class="w-full h-screen flex justify-center items-center px-4">
+  <div class="w-full h-screen flex justify-center items-center">
     <div class="flex flex-col w-full max-w-2xl h-full">
       <div class="flex flex-col flex-grow h-full overflow-y-auto">
-        <div class="w-full pt-4">
+        <div class="w-full lg:pt-4">
           <!-- Dropdown to select the dabase to query -->
           <label class="block text-gray-700 text-sm font-bold mb-2" for="database">
             Database
