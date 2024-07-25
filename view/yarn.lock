@@ -3162,6 +3162,11 @@ vue3-grid-layout@^1.0.0:
     element-resize-detector "^1.2.1"
     lodash "^4.17.21"
 
+vue3-touch-events@^4.1.8:
+  version "4.1.8"
+  resolved "https://registry.yarnpkg.com/vue3-touch-events/-/vue3-touch-events-4.1.8.tgz#0cc7389a9fc2ecc6b34095b27d7174d5d3edc300"
+  integrity sha512-8Zs0mj5k/7R579JHsc5w1V2IqAkNlz2gJs18bRV4T5WyCMfd5sBf2ESJ2xR8z+n7ypgK8fQO5MmDOPal0Evf3Q==
+
 vue@^3.2.26, vue@^3.2.47:
   version "3.2.47"
   resolved "https://registry.yarnpkg.com/vue/-/vue-3.2.47.tgz#3eb736cbc606fc87038dbba6a154707c8a34cff0"

@@ -70,7 +70,7 @@
         </div>
       </div>
 
-      <div class="w-full py-8">
+      <div class="w-full py-2 lg:py-4">
         <transition
           enter-active-class="transition-all duration-300 ease-out"
           enter-from-class="opacity-0 transform translate-y-4"

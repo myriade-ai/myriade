@@ -39,7 +39,8 @@
     "vue-prism-editor": "^2.0.0-alpha.2",
     "vue-router": "^4.1.6",
     "vue3-ace-editor": "^2.2.1",
-    "vue3-grid-layout": "^1.0.0"
+    "vue3-grid-layout": "^1.0.0",
+    "vue3-touch-events": "^4.1.8"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.2.0",

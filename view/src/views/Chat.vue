@@ -58,15 +58,10 @@
         <ConversationList class="h-screen" />
       </div>
     </div>
-    <div class="w-full h-screen flex justify-center items-center px-4">
-      <div class="flex flex-col h-screen">
-        <div class="lg:hidden">
-          <button type="button" class="pt-4" @click="sidebarOpen = true">
-            <span class="sr-only">Open sidebar</span>
-            <Bars3Icon class="block h-6 w-6" aria-hidden="true" />
-          </button>
-        </div>
-        <Chat />
+    <div class="w-full h-screen flex justify-center items-center px-2">
+      <div class="flex flex-col h-screen w-full">
+        <!-- only when swipe right can trigger the callback -->
+        <Chat v-touch:swipe.right="onSwipe" />
       </div>
     </div>
   </div>
@@ -80,4 +75,8 @@ import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessu
 import { XMarkIcon, Bars3Icon } from '@heroicons/vue/24/solid'
 
 const sidebarOpen = ref(false)
+
+const onSwipe = () => {
+  sidebarOpen.value = true
+}
 </script>
