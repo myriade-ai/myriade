@@ -67,6 +67,9 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
     )
+
+    # Add projectId column to conversation table
+    op.add_column("conversation", sa.Column("projectId", sa.Integer(), nullable=True))
     op.create_foreign_key(None, "conversation", "project", ["projectId"], ["id"])
 
     # Add default values to createdAt & updatedAt columns of tables conversation, conversation_message, query
@@ -102,6 +105,7 @@ def downgrade() -> None:
     op.drop_constraint(
         "conversation_projectId_fkey", "conversation", type_="foreignkey"
     )
+    op.drop_column("conversation", "projectId")
     op.drop_table("project_tables")
     op.drop_table("project")
 
