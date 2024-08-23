@@ -277,10 +277,12 @@
     "@fusioncharts/features" "^1.6.0"
     "@fusioncharts/utils" "^1.6.0"
 
-"@headlessui/vue@^1.6.7":
-  version "1.7.12"
-  resolved "https://registry.yarnpkg.com/@headlessui/vue/-/vue-1.7.12.tgz#963b2eb2f548278c49f2d1e67f0a4a84f54078da"
-  integrity sha512-IV0k1I2I8Bj37HljFF231Y9cpldfiucf+inMCxA/VPoQT6UTxo0N/rb78CrogBxXNfsPxKmz3y/nlv+eRz6zvg==
+"@headlessui/vue@^0.0.0-insiders.a08be96":
+  version "0.0.0-insiders.a08be96"
+  resolved "https://registry.yarnpkg.com/@headlessui/vue/-/vue-0.0.0-insiders.a08be96.tgz#8ba5f5b36220b10025b88b6c1c1d4fc39b325ff5"
+  integrity sha512-8j+O453uZuN0gN+N9Vsphiov413Wwd6C6RRVkmknZcCf/7RK0SISoFrGP5HZS3MdQ/D9t7Dbr10ASnV6ZxS/9A==
+  dependencies:
+    "@tanstack/vue-virtual" "3.0.0-beta.60"
 
 "@heroicons/vue@^2.0.16":
   version "2.0.16"
@@ -464,6 +466,18 @@
   integrity sha512-y5mb86JUoiUgBjY/o6FJSFZSEttfb3Q5gllE4xoKjAAD+vBrnIhE4dViwUuow3va8mpH4s9jyUbUbrRGoRdc2Q==
   dependencies:
     mini-svg-data-uri "^1.2.3"
+
+"@tanstack/virtual-core@3.0.0-beta.60":
+  version "3.0.0-beta.60"
+  resolved "https://registry.yarnpkg.com/@tanstack/virtual-core/-/virtual-core-3.0.0-beta.60.tgz#fcac07cb182d41929208899062de8c9510cf42ed"
+  integrity sha512-QlCdhsV1+JIf0c0U6ge6SQmpwsyAT0oQaOSZk50AtEeAyQl9tQrd6qCHAslxQpgphrfe945abvKG8uYvw3hIGA==
+
+"@tanstack/vue-virtual@3.0.0-beta.60":
+  version "3.0.0-beta.60"
+  resolved "https://registry.yarnpkg.com/@tanstack/vue-virtual/-/vue-virtual-3.0.0-beta.60.tgz#f32c41f1b5dfacc40f8d427874947a24f71aba60"
+  integrity sha512-sJdNB4IAHzM8a4rEozQlp7RjXJ/0nFf9tIaJNfJ1mCygORCmoJBBoepvkVSgzPLxJROQNNNm2sSlp+2d+R15rw==
+  dependencies:
+    "@tanstack/virtual-core" "3.0.0-beta.60"
 
 "@types/json-schema@^7.0.9":
   version "7.0.11"

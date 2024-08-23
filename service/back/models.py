@@ -4,7 +4,17 @@ from dataclasses import dataclass
 from autochat import Message
 from autochat.chatgpt import Message as AutoChatMessage
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import TIMESTAMP, Boolean, Column, ForeignKey, Integer, String, text
+from sqlalchemy import (
+    TIMESTAMP,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -34,8 +44,15 @@ def format_to_snake_case(**kwargs):
     return kwargs
 
 
+class DefaultBase:
+    createdAt = Column(DateTime, nullable=False, server_default=func.now())
+    updatedAt = Column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
 @dataclass
-class Database(Base):
+class Database(DefaultBase, Base):
     id: int
     name: str
     description: str
@@ -77,7 +94,7 @@ class Database(Base):
         return self._engine  # .replace("postgres", "postgresql")
 
 
-class Organisation(Base):
+class Organisation(DefaultBase, Base):
     __tablename__ = "organisation"
 
     id = Column(String, primary_key=True)
@@ -85,7 +102,7 @@ class Organisation(Base):
 
 
 @dataclass
-class ConversationMessage(Base):
+class ConversationMessage(DefaultBase, Base):
     __tablename__ = "conversation_message"
 
     id: int
@@ -103,8 +120,6 @@ class ConversationMessage(Base):
     content = Column(String, nullable=True)
     functionCall = Column(JSONB)
     data = Column(JSONB)
-    createdAt = Column(TIMESTAMP, nullable=False, default=text("now()"))
-    updatedAt = Column(TIMESTAMP, nullable=False, default=text("now()"))
     queryId = Column(Integer, ForeignKey("query.id"), nullable=True)
     reqId = Column(String, nullable=True)
 
@@ -149,13 +164,14 @@ class ConversationMessage(Base):
 
 
 @dataclass
-class Conversation(Base):
+class Conversation(DefaultBase, Base):
     __tablename__ = "conversation"
 
     id: int
     name: str
     ownerId: str
     databaseId: int
+    projectId: int
     createdAt: str
     updatedAt: str
     # messages: List[ConversationMessage] = field(default_factory=list)
@@ -163,9 +179,8 @@ class Conversation(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     ownerId = Column(String, ForeignKey("user.id"))
+    projectId = Column(Integer, ForeignKey("project.id"))
     databaseId = Column(Integer, ForeignKey("database.id"), nullable=False)
-    createdAt = Column(TIMESTAMP, nullable=False, default=text("now()"))
-    updatedAt = Column(TIMESTAMP, nullable=False, default=text("now()"))
 
     owner = relationship("User")
     database = relationship("Database")
@@ -176,9 +191,10 @@ class Conversation(Base):
         # Order by id
         order_by="ConversationMessage.id",
     )
+    project = relationship("Project")
 
 
-class Query(Base):
+class Query(DefaultBase, Base):
     __tablename__ = "query"
 
     id = Column(Integer, primary_key=True)
@@ -188,8 +204,6 @@ class Query(Base):
     result = Column(JSONB)
     comment = Column(String)
     creatorId = Column(String, ForeignKey("user.id"))
-    createdAt = Column(TIMESTAMP, nullable=False, default=text("now()"))
-    updatedAt = Column(TIMESTAMP, nullable=False, default=text("now()"))
     tag = Column(String)
     tables = Column(String)
     wheres = Column(String)
@@ -201,7 +215,7 @@ class Query(Base):
     visualisationParams = Column(JSONB)
 
 
-class User(Base):
+class User(DefaultBase, Base):
     __tablename__ = "user"
 
     email = Column(String, nullable=False, unique=True)
@@ -211,7 +225,7 @@ class User(Base):
     # organisation = relationship("Organisation")
 
 
-class UserOrganisation(Base):
+class UserOrganisation(DefaultBase, Base):
     __tablename__ = "user_organisation"
 
     userId = Column(String, ForeignKey("user.id"), primary_key=True)
@@ -219,6 +233,57 @@ class UserOrganisation(Base):
 
     organisation = relationship("Organisation")
     user = relationship("User")
+
+
+@dataclass
+class ProjectTables(DefaultBase, Base):
+    __tablename__ = "project_tables"
+
+    databaseName: str
+    schemaName: str
+    tableName: str
+
+    id = Column(Integer, primary_key=True)
+    projectId = Column(Integer, ForeignKey("project.id"), nullable=False)
+    databaseName = Column(String)
+    schemaName = Column(String)
+    tableName = Column(String)
+
+    project = relationship("Project", back_populates="tables")
+
+
+@dataclass
+class Project(DefaultBase, Base):
+    __tablename__ = "project"
+
+    id: int
+    name: str
+    description: str
+    creatorId: str  # warning, it's a string
+    organisationId: str
+    databaseId: int  # temporary
+    # TODO: change
+    # tables: [ProjectTables]
+    # tables: List[ConversationMessage] = field(default_factory=list)
+
+    id = Column(Integer, primary_key=True)  # TODO: transform to uuid
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    creatorId = Column(String, ForeignKey("user.id"), nullable=False)
+    organisationId = Column(String, ForeignKey("organisation.id"))
+    databaseId = Column(Integer, ForeignKey("database.id"), nullable=False)
+
+    creator = relationship("User")
+    organisation = relationship("Organisation")
+    tables = relationship(
+        "ProjectTables",
+        back_populates="project",
+        cascade="all, delete-orphan",
+        lazy="joined",
+        # Order by id
+        # order_by="ProjectTable.id",
+    )
+    conversations = relationship("Conversation", back_populates="project")
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ import Editor from './views/Editor.vue'
 import DatabaseList from './views/DatabaseList.vue'
 import Upload from './views/Upload.vue'
 import Chat from './views/Chat.vue'
+import ProjectList from './views/ProjectList.vue'
 
 function loadView(view: string) {
   return () => import(`./views/${view}.vue`)
@@ -52,6 +53,16 @@ const routes = [
     path: '/databases/:id',
     name: 'DatabaseEdit',
     component: loadView('DatabaseEdit')
+  },
+  {
+    path: '/projects',
+    name: 'ProjectList',
+    component: ProjectList
+  },
+  {
+    path: '/projects/:id',
+    name: 'ProjectEdit',
+    component: loadView('ProjectEdit')
   }
 ]
 

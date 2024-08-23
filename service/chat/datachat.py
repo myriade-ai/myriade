@@ -27,12 +27,20 @@ class DatabaseChat:
     """
 
     def __init__(
-        self, session, database_id, conversation_id=None, stop_flags=None, model=None
+        self,
+        session,
+        database_id,
+        conversation_id=None,
+        stop_flags=None,
+        model=None,
+        project_id=None,
     ):
         self.session = session
         if conversation_id is None:
             # Create conversation object
-            self.conversation = self._create_conversation(databaseId=database_id)
+            self.conversation = self._create_conversation(
+                databaseId=database_id, project_id=project_id
+            )
         else:
             self.conversation = (
                 self.session.query(Conversation).filter_by(id=conversation_id).first()
@@ -58,12 +66,13 @@ class DatabaseChat:
         if hasattr(self, "datalake"):
             self.datalake.dispose()
 
-    def _create_conversation(self, databaseId, name=None):
+    def _create_conversation(self, databaseId, name=None, project_id=None):
         # Create conversation object
         conversation = Conversation(
             databaseId=databaseId,
             ownerId="admin",  # TODO make it dynamic
             name=name,
+            projectId=project_id,
         )
         self.session.add(conversation)
         self.session.commit()
@@ -82,6 +91,16 @@ class DatabaseChat:
             },
             "MEMORY": self.conversation.database.memory,
         }
+        if self.conversation.project:
+            context["PROJECT"] = {
+                "name": self.conversation.project.name,
+                "description": self.conversation.project.description,
+                "tables": [
+                    {"schema": table.schemaName, "table": table.tableName}
+                    for table in self.conversation.project.tables
+                ],
+            }
+
         return yaml.dump(context)
 
     @property

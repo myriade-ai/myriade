@@ -1,5 +1,11 @@
 from back.datalake import DatalakeFactory
-from back.models import Conversation, ConversationMessage, Database
+from back.models import (
+    Conversation,
+    ConversationMessage,
+    Database,
+    Project,
+    ProjectTables,
+)
 from flask import Blueprint, g, jsonify, request
 from middleware import user_middleware
 from sqlalchemy import and_, or_
@@ -174,16 +180,59 @@ def get_databases():
     return jsonify(databases)
 
 
-@api.route("/databases/<int:database_id>/questions", methods=["GET"])
+@api.route("/contexts/<string:context_id>/questions", methods=["GET"])
 @user_middleware
-def get_questions(database_id):
-    database = g.session.query(Database).filter_by(id=database_id).first()
+def get_questions(context_id):
+    # context is "project-{projectId}" or "database-{databaseId}"
+    if context_id.startswith("project-"):
+        project_id = int(context_id.split("-")[1])
+        project = g.session.query(Project).filter_by(id=project_id).first()
+        database = g.session.query(Database).filter_by(id=project.databaseId).first()
+    elif context_id.startswith(
+        "database-"
+    ):  # Note: will be removed once we have context / project
+        database_id = int(context_id.split("-")[1])
+        database = g.session.query(Database).filter_by(id=database_id).first()
+
+    # If project, filter database.tables_metadata with project.tables
+    tables_metadata = database.tables_metadata
+
+    if context_id.startswith("project-"):
+        tables_metadata = [
+            # if any (name match tableName and schema match schemaName) in project.tables
+            table_metadata
+            for table_metadata in tables_metadata
+            if any(
+                table_metadata["name"] == project_table.tableName
+                and table_metadata["schema"] == project_table.schemaName
+                for project_table in project.tables
+            )
+        ]
+        context = (
+            "# Project Name: "
+            + project.name
+            + "\n# Database Name: "
+            + database.name
+            + "\n# Database Description: "
+            + database.description
+            + "\n# Tables: "
+            + str(tables_metadata)
+        )
+    else:
+        context = (
+            "# Name: "
+            + database.name
+            + "\n# Description: "
+            + database.description
+            + "\n# Tables: "
+            + str(tables_metadata)
+        )
 
     from autochat import ChatGPT
 
     chat_gpt = ChatGPT()
     # if exist ; add database.memory, dbt.catalog, dbt.manifest
-    chat_gpt.context = json.dumps(database.tables_metadata)
+    chat_gpt.context = json.dumps(context)
 
     def questions(question1: str, question2: str, question3: str):
         pass
@@ -206,3 +255,104 @@ def get_schema(database_id):
         return jsonify({"error": "Database not found"}), 404
 
     return jsonify(database.tables_metadata)
+
+
+# Get all projects of the user or it's organisation
+@api.route("/projects", methods=["GET"])
+@user_middleware
+def get_projects():
+    projects = (
+        g.session.query(Project)
+        .filter(
+            or_(
+                Project.creatorId == g.user.id,
+                # Project.organisationId == g.organisationId,
+            )
+        )
+        .all()
+    )
+
+    return jsonify(projects)
+
+
+# Get specific project
+@api.route("/projects/<int:project_id>", methods=["GET"])
+@user_middleware
+def get_project(project_id):
+    project = (
+        g.session.query(Project)
+        # .join(ProjectTables, Project.tables, isouter=True)
+        .filter_by(id=project_id).first()
+    )
+
+    # # Verify user access
+    if (
+        project.creatorId
+        != g.user.id
+        # and project.organisationId != g.user.organisationId
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    project_dict = dataclass_to_dict(project)
+    project_dict["tables"] = dataclass_to_dict(project.tables)
+    return jsonify(project_dict)
+
+
+# Create, update, delete projects
+@api.route("/projects", methods=["POST"])
+@user_middleware
+def create_project():
+    data = request.get_json()
+    required_fields = ["name", "description", "databaseId"]
+
+    if not all(field in data for field in required_fields):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    new_project = Project(**{field: data[field] for field in required_fields})
+    new_project.creatorId = g.user.id
+
+    # Handle creation of ProjectTables
+    if "tables" in data:
+        new_project.tables = [
+            ProjectTables(
+                databaseName=table.get("databaseName"),
+                schemaName=table.get("schemaName"),
+                tableName=table.get("tableName"),
+            )
+            for table in data["tables"]
+        ]
+
+    g.session.add(new_project)
+    g.session.commit()
+    return jsonify(new_project)
+
+
+@api.route("/projects/<int:project_id>", methods=["PUT"])
+@user_middleware
+def update_project(project_id):
+    data = request.get_json()
+    project = g.session.query(Project).filter_by(id=project_id).first()
+    # update name, description or tables
+    project.name = data.get("name")
+    project.description = data.get("description")
+    project.databaseId = data.get("databaseId")
+    project.tables = [
+        ProjectTables(
+            projectId=project_id,
+            databaseName=table.get("databaseName"),
+            schemaName=table.get("schemaName"),
+            tableName=table.get("tableName"),
+        )
+        for table in data.get("tables", [])
+    ]
+    g.session.commit()
+    return "ok"
+
+
+@api.route("/projects/<int:project_id>", methods=["DELETE"])
+@user_middleware
+def delete_project(project_id):
+    project = g.session.query(Project).filter_by(id=project_id).first()
+    g.session.delete(project)
+    g.session.commit()
+    return jsonify({"message": "Project deleted successfully"})
