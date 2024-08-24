@@ -72,7 +72,7 @@ import ConversationList from '@/components/ConversationList.vue'
 import Chat from '@/components/Chat.vue'
 import { ref } from 'vue'
 import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue'
-import { XMarkIcon, Bars3Icon } from '@heroicons/vue/24/solid'
+import { XMarkIcon } from '@heroicons/vue/24/solid'
 
 const sidebarOpen = ref(false)
 

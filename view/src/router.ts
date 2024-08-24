@@ -5,7 +5,7 @@ import { useDatabases } from './stores/databases'
 import Editor from './views/Editor.vue'
 import DatabaseList from './views/DatabaseList.vue'
 import Upload from './views/Upload.vue'
-import Chat from './views/Chat.vue'
+import Chat from './views/ChatPage.vue'
 import ProjectList from './views/ProjectList.vue'
 
 function loadView(view: string) {
