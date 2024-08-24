@@ -32,17 +32,29 @@
                   </span>
                 </button>
               </li>
-              <li
-                v-if="internalMessageGroups[index]"
-                v-for="message in group.internalMessages"
-                :key="message.id"
+              <transition-group
+                name="internal-messages"
+                enter-active-class="transition-all duration-300 ease-out"
+                enter-from-class="opacity-0 max-h-0"
+                enter-to-class="opacity-100 max-h-[1000px]"
+                leave-active-class="transition-all duration-300 ease-in"
+                leave-from-class="opacity-100 max-h-[1000px]"
+                leave-to-class="opacity-0 max-h-0"
               >
-                <MessageDisplay
-                  :message="message"
-                  @editInlineClick="editInline"
-                  class="bg-gray-300"
-                />
-              </li>
+                <li
+                  v-if="internalMessageGroups[index]"
+                  v-for="message in group.internalMessages"
+                  :key="message.id"
+                  class="overflow-hidden"
+                >
+                  <MessageDisplay
+                    :message="message"
+                    @editInlineClick="editInline"
+                    class="bg-gray-300"
+                    style="border: 1px solid rgb(205 205 205)"
+                  />
+                </li>
+              </transition-group>
             </template>
           </ul>
         </div>
@@ -453,5 +465,23 @@ const applySuggestion = (suggestion: string) => {
 <style scoped>
 textarea {
   height: auto;
+}
+
+.internal-messages-enter-active,
+.internal-messages-leave-active {
+  transition: all 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.internal-messages-enter-from,
+.internal-messages-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+.internal-messages-enter-to,
+.internal-messages-leave-from {
+  opacity: 1;
+  max-height: 1000px;
 }
 </style>
