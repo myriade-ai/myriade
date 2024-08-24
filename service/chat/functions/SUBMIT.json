@@ -1,6 +1,6 @@
 {
     "name": "SUBMIT",
-    "description": "Give the official response from the previous demand / query",
+    "description": "Give the final response from the user demand/query",
     "parameters": {
       "type": "object",
       "properties": {

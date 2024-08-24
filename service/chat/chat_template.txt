@@ -117,6 +117,7 @@ WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 201
 6,"San Pedro Square",37.3367210000000042673,-121.894074,15,"San Jose","8/7/2012"
 
 ## assistant
+The are 5 stations in San Jose installed in 2012
 > SUBMIT(name="electric stations name", query=```SELECT * 
 FROM \"public\".\"station\"
 WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 2012;```)
