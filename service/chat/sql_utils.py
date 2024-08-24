@@ -1,6 +1,7 @@
 import json
 
 from autochat import OUTPUT_SIZE_LIMIT
+from autochat.utils import limit_data_size
 
 RESULT_TEMPLATE = """Results {len_sample}/{len_total} rows:
 ```json
@@ -8,6 +9,7 @@ RESULT_TEMPLATE = """Results {len_sample}/{len_total} rows:
 ```
 """
 
+JSON_OUTPUT_SIZE_LIMIT = OUTPUT_SIZE_LIMIT / 2  # Json is 2x larger than csv
 
 ERROR_TEMPLATE = """An error occurred while executing the SQL query:
 ```error
@@ -27,16 +29,8 @@ def run_sql(connection, sql):
         execution_response = ERROR_TEMPLATE.format(error=str(e))
         return execution_response, False
     else:
-        # Take every row until the total size is less than 1000 characters
-        results_limited = []
-        total_size = 0
-        for row in rows:
-            results_limited.append(row)
-            total_size += len(json.dumps(row, default=str))
-            if total_size > OUTPUT_SIZE_LIMIT:
-                break
-
-        # Display in JSON
+        # Take every row until the total size is less than JSON_OUTPUT_SIZE_LIMIT
+        results_limited = limit_data_size(rows, character_limit=JSON_OUTPUT_SIZE_LIMIT)
         results_dumps = json.dumps(results_limited, default=str)
 
         # Send the result back to chat_gpt as the new question
