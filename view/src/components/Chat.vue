@@ -313,14 +313,21 @@ const receiveMessage = async (message) => {
 /* Modify Message display according to the following rules:
 - if user message; display=true
 - if last message from assistant (before an user message) and functionCall is null; display=true
+- if function message and previous message is from user; display=true
 else display=false
 */
 const messagesWithDisplay = computed(() => {
-  return messages.value.map((message) => {
-    message.display =
-      message.role === 'user' ||
-      (message.role === 'assistant' &&
-        (!message.functionCall || ['SUBMIT', 'PLOT_WIDGET'].includes(message.functionCall.name)))
+  return messages.value.map((message, index) => {
+    const prevMessage = index > 0 ? messages.value[index - 1] : null
+    const isUser = message.role === 'user'
+    const isAssistant = message.role === 'assistant'
+    const isFunction = message.role === 'function'
+    const isValidAssistantMessage =
+      isAssistant &&
+      (!message.functionCall || ['SUBMIT', 'PLOT_WIDGET'].includes(message.functionCall.name))
+    const isFunctionAfterUser = isFunction && prevMessage?.role === 'user'
+
+    message.display = isUser || isValidAssistantMessage || isFunctionAfterUser
     return message
   })
 })
