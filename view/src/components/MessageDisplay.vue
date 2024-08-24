@@ -17,9 +17,11 @@
     </p>
 
     <template v-for="(part, index) in parsedText">
-      <span style="white-space: pre-wrap" v-if="part.type === 'text'" :key="`text-${index}`">
-        {{ part.content }}
-      </span>
+      <span
+        v-if="part.type === 'text'"
+        :key="`text-${index}`"
+        v-html="renderMarkdown(part.content)"
+      ></span>
       <div
         style="white-space: pre-wrap; background-color: #db282873; padding: 0.6rem"
         v-if="part.type === 'error'"
@@ -77,6 +79,7 @@ import yaml from 'js-yaml'
 import axios from 'axios'
 import BaseEditor from '@/components/BaseEditor.vue'
 import BaseEditorPreview from '@/components/BaseEditorPreview.vue'
+import { marked } from 'marked'
 
 // Get databaseId from store
 import { useDatabases } from '../stores/databases'
@@ -122,6 +125,9 @@ export default {
       } catch (error) {
         console.error('Error executing SQL:', error)
       }
+    },
+    renderMarkdown(text: string) {
+      return marked(text)
     }
   },
   mounted() {
@@ -209,5 +215,36 @@ export default {
   font-family: monospace;
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+.message-display :deep(h1) {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.message-display :deep(h2) {
+  font-size: 1.3em;
+  font-weight: bold;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.message-display :deep(p) {
+  margin-bottom: 0.5em;
+}
+
+.message-display :deep(ul),
+.message-display :deep(ol) {
+  margin-left: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.message-display :deep(code) {
+  background-color: #f0f0f0;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: monospace;
 }
 </style>
