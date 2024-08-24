@@ -102,34 +102,58 @@
           </div>
         </transition>
         <br />
-        <button
-          class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-sm hover:bg-gray-50"
-          :style="editMode == 'TEXT' ? 'background-color: #e5e7eb' : ''"
-          @click="editMode = 'TEXT'"
-        >
-          Text
-        </button>
-        <button
-          class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 mx-0.5 text-sm font-medium leading-5 text-gray-700 shadow-sm hover:bg-gray-50"
-          :style="editMode == 'SQL' ? 'background-color: #e5e7eb' : ''"
-          @click="editMode = 'SQL'"
-        >
-          Editor
-        </button>
-        <div class="w-full flex py-1" v-if="editMode == 'SQL'">
-          <BaseEditor v-model="inputSQL" @run-query="sendMessage" />
-        </div>
-        <div class="w-full flex py-1" v-else>
-          <textarea
-            @input="resizeTextarea"
-            @keydown.enter="handleEnter"
-            ref="inputTextarea"
-            class="flex-grow py-2 px-3 rounded border border-gray-300"
-            rows="1"
-            placeholder="Type your message"
-            v-model="inputText"
-          ></textarea>
-          <BaseButton class="w-24 ml-2" @click="sendMessage">Send</BaseButton>
+        <div id="input-container">
+          <button
+            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-sm hover:bg-gray-50"
+            :style="editMode == 'TEXT' ? 'background-color: #e5e7eb' : ''"
+            @click="editMode = 'TEXT'"
+          >
+            Text
+          </button>
+          <button
+            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 mx-0.5 text-sm font-medium leading-5 text-gray-700 shadow-sm hover:bg-gray-50"
+            :style="editMode == 'SQL' ? 'background-color: #e5e7eb' : ''"
+            @click="editMode = 'SQL'"
+          >
+            Editor
+          </button>
+          <div class="w-full flex py-1 relative" v-if="editMode == 'SQL'">
+            <BaseEditor v-model="inputSQL" @run-query="sendMessage" />
+            <button
+              v-if="inputSQL.trim().length > 0"
+              class="absolute right-2 top-1/2 transform -translate-y-1/2"
+              @click="sendMessage"
+            >
+              <PaperAirplaneIcon class="h-6 w-6 text-gray-300 hover:text-white" />
+            </button>
+          </div>
+          <div class="w-full flex py-1 relative" v-else>
+            <textarea
+              @input="resizeTextarea"
+              @keydown.enter="handleEnter"
+              ref="inputTextarea"
+              class="flex-grow py-2 px-3 pr-10 rounded border border-gray-300"
+              rows="1"
+              placeholder="Type your message"
+              v-model="inputText"
+            ></textarea>
+            <transition
+              enter-active-class="transition-opacity duration-300 ease-out"
+              enter-from-class="opacity-0"
+              enter-to-class="opacity-100"
+              leave-active-class="transition-opacity duration-300 ease-in"
+              leave-from-class="opacity-100"
+              leave-to-class="opacity-0"
+            >
+              <button
+                v-if="inputText.trim().length > 0"
+                class="absolute right-2 top-1/2 transform -translate-y-1/2"
+                @click="sendMessage"
+              >
+                <PaperAirplaneIcon class="h-6 w-6 text-gray-300 hover:text-gray-500" />
+              </button>
+            </transition>
+          </div>
         </div>
       </div>
     </div>
@@ -155,6 +179,7 @@ import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import sqlPrettier from 'sql-prettier'
 // Import sparkles from heroicons
 import { SparklesIcon } from '@heroicons/vue/24/solid'
+import { PaperAirplaneIcon } from '@heroicons/vue/24/solid'
 
 const config = useConfigStore()
 
