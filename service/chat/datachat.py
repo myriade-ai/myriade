@@ -78,7 +78,7 @@ class DatabaseChat:
         self.session.commit()
         return conversation
 
-    def query_stop_flag(self):
+    def check_stop_flag(self):
         if self.stop_flags.get(str(self.conversation.id)):
             raise StopException("Query stopped by user")
 
@@ -174,6 +174,7 @@ class DatabaseChat:
         messages = [m.to_autochat_message() for m in self.conversation.messages]
         self.chat_gpt.load_history(messages)
         for m in self.chat_gpt.run_conversation():
+            self.check_stop_flag()
             message = ConversationMessage.from_autochat_message(m)
             message.conversationId = self.conversation.id
             self.session.add(message)
