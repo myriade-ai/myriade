@@ -14,24 +14,36 @@
             :disabled="conversationId"
           />
           <br />
-          <div class="flex items-center justify-between mb-4 pl-2" v-if="hasHiddenMessages">
-            <BaseSwitch
-              :modelValue="config.showHiddenMessages"
-              @update:modelValue="config.updateShowHiddenMessages"
-              class="float-right"
-            >
-              <span class="text-gray-700">Show hidden messages</span>
-            </BaseSwitch>
-          </div>
           <ul class="list-none">
-            <li v-for="(message, id) in messagesWithDisplay" :key="id">
-              <MessageDisplay
-                :key="id"
-                :message="message"
-                @editInlineClick="editInline"
-                v-if="message?.display !== false || config.showHiddenMessages"
-              />
-            </li>
+            <template v-for="(group, index) in messageGroups" :key="index">
+              <li v-for="message in group.publicMessages" :key="message.id">
+                <MessageDisplay :message="message" @editInlineClick="editInline" />
+              </li>
+              <li v-if="group.internalMessages.length > 0" class="flex justify-center">
+                <button
+                  @click="toggleInternalMessages(index)"
+                  class="inline-flex items-center px-3 py-1 my-1 text-sm text-gray-500 rounded-full hover:bg-gray-200"
+                >
+                  <EyeIcon v-if="!internalMessageGroups[index]" class="h-4 w-4 mr-2" />
+                  <EyeSlashIcon v-else class="h-4 w-4 mr-2" />
+                  <span>
+                    {{ internalMessageGroups[index] ? 'Hide' : 'Show' }}
+                    {{ group.internalMessages.length }} internal messages
+                  </span>
+                </button>
+              </li>
+              <li
+                v-if="internalMessageGroups[index]"
+                v-for="message in group.internalMessages"
+                :key="message.id"
+              >
+                <MessageDisplay
+                  :message="message"
+                  @editInlineClick="editInline"
+                  class="bg-gray-300"
+                />
+              </li>
+            </template>
           </ul>
         </div>
 
@@ -180,6 +192,7 @@ import sqlPrettier from 'sql-prettier'
 // Import sparkles from heroicons
 import { SparklesIcon } from '@heroicons/vue/24/solid'
 import { PaperAirplaneIcon } from '@heroicons/vue/24/solid'
+import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 
 const config = useConfigStore()
 
@@ -268,10 +281,6 @@ const editInline = (query) => {
   editMode.value = 'SQL'
 }
 
-const hasHiddenMessages = computed(() => {
-  return messagesWithDisplay.value.some((message) => message.display === false)
-})
-
 const regenerate = async () => {
   // Replace with your dbt API endpoint to regenerate the conversation.
   socket.emit('regenerate', null, conversationId.value, chatContextSelected.value.id)
@@ -310,27 +319,49 @@ const receiveMessage = async (message) => {
   }
 }
 
-/* Modify Message display according to the following rules:
-- if user message; display=true
-- if last message from assistant (before an user message) and functionCall is null; display=true
-- if function message and previous message is from user; display=true
-else display=false
-*/
-const messagesWithDisplay = computed(() => {
-  return messages.value.map((message, index) => {
-    const prevMessage = index > 0 ? messages.value[index - 1] : null
-    const isUser = message.role === 'user'
-    const isAssistant = message.role === 'assistant'
-    const isFunction = message.role === 'function'
-    const isValidAssistantMessage =
-      isAssistant &&
-      (!message.functionCall || ['SUBMIT', 'PLOT_WIDGET'].includes(message.functionCall.name))
-    const isFunctionAfterUser = isFunction && prevMessage?.role === 'user'
+const internalMessageGroups = ref<{ [key: number]: boolean }>({})
 
-    message.display = isUser || isValidAssistantMessage || isFunctionAfterUser
-    return message
+const toggleInternalMessages = (index: number) => {
+  internalMessageGroups.value[index] = !internalMessageGroups.value[index]
+}
+
+const messageGroups = computed(() => {
+  const groups = []
+  let currentGroup = { publicMessages: [], internalMessages: [] }
+
+  messages.value.forEach((message, index) => {
+    const isPublic = shouldDisplayMessage(message, index)
+
+    if (isPublic) {
+      if (currentGroup.internalMessages.length > 0 || currentGroup.publicMessages.length > 0) {
+        groups.push({ ...currentGroup })
+        currentGroup = { publicMessages: [], internalMessages: [] }
+      }
+      currentGroup.publicMessages.push(message)
+    } else {
+      currentGroup.internalMessages.push(message)
+    }
   })
+
+  if (currentGroup.publicMessages.length > 0 || currentGroup.internalMessages.length > 0) {
+    groups.push(currentGroup)
+  }
+
+  return groups
 })
+
+const shouldDisplayMessage = (message, index) => {
+  const prevMessage = index > 0 ? messages.value[index - 1] : null
+  const isUser = message.role === 'user'
+  const isAssistant = message.role === 'assistant'
+  const isFunction = message.role === 'function'
+  const isValidAssistantMessage =
+    isAssistant &&
+    (!message.functionCall || ['SUBMIT', 'PLOT_WIDGET'].includes(message.functionCall.name))
+  const isFunctionAfterUser = isFunction && prevMessage?.role === 'user'
+
+  return isUser || isValidAssistantMessage || isFunctionAfterUser
+}
 
 const stopQuery = async () => {
   socket.emit('stop', conversationId.value)

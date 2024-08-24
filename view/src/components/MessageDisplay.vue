@@ -1,9 +1,9 @@
 <template>
   <div
-    class="message-display px-4 py-4 mb-2 rounded-lg bg-gray-100"
+    class="message-display px-4 py-4 my-2 rounded-lg bg-gray-100"
     :class="{ 'bg-gray-300': message.display === false }"
   >
-    <!-- if message.display = hide, then show as light gray -->
+    <!-- if message.display = false, then show as light gray (internal message) -->
     <p class="font-bold">
       <span class="flex justify-between items-center w-full">
         {{ message.role }}
