@@ -33,7 +33,7 @@ def run_sql(connection, sql):
         results_limited = limit_data_size(rows, character_limit=JSON_OUTPUT_SIZE_LIMIT)
         results_dumps = json.dumps(results_limited, default=str)
 
-        # Send the result back to chat_gpt as the new question
+        # Send the result back to the chatbot as the new question
         execution_response = RESULT_TEMPLATE.format(
             sample=results_dumps,
             len_sample=len(results_limited),

@@ -54,18 +54,22 @@ files = [
 
 [[package]]
 name = "autochat"
-version = "0.1.14"
-description = "Small ChatGPT library to support chat templates, and function calls"
+version = "0.3.0"
+description = "Small OpenAI/Anthropic library to support chat templates, and function calls"
 optional = false
 python-versions = "*"
 files = [
-    {file = "autochat-0.1.14-py3-none-any.whl", hash = "sha256:94cd00e468dd94982ec6c7e3f7a7008ef29c178bd1848fc4a3afcd82985d5f1d"},
-    {file = "autochat-0.1.14.tar.gz", hash = "sha256:26fbc48c6d8bfafdd2f3df07a2313759b1d07f9fedc7c6fbf85b347df8d999bf"},
+    {file = "autochat-0.3.0-py3-none-any.whl", hash = "sha256:c0ec12348861fde95284924db79813be870c6d8a7b9634afaa83cefd662d2b52"},
+    {file = "autochat-0.3.0.tar.gz", hash = "sha256:263226db469a3c0434b6ee28e6ee825fe3e24fef0f8f5ed76909349491e4ff71"},
 ]
 
 [package.dependencies]
-openai = "1.26.0"
 tenacity = "8.3.0"
+
+[package.extras]
+all = ["anthropic (==0.3.1)", "openai (==1.26.0)"]
+anthropic = ["anthropic (==0.3.1)"]
+openai = ["openai (==1.26.0)"]
 
 [[package]]
 name = "bidict"
@@ -1455,4 +1459,4 @@ snowflake = ["snowflake-connector-python"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "173396ed28b4f2baa558a71dfcaf17cbd8a708b459b9fbb890bf8a6c456a950a"
+content-hash = "fdbd8652193d879a1038666f5a66f434b65df632d22dd8dddfc6eeead3ca732e"

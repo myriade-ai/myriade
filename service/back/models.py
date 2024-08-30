@@ -1,8 +1,7 @@
 import json
 from dataclasses import dataclass
 
-from autochat import Message
-from autochat.chatgpt import Message as AutoChatMessage
+from autochat import Message as AutoChatMessage
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     TIMESTAMP,
@@ -112,6 +111,7 @@ class ConversationMessage(DefaultBase, Base):
     data: dict
     functionCall: dict
     queryId: int
+    functionCallId: str
 
     id = Column(Integer, primary_key=True)
     conversationId = Column(Integer, ForeignKey("conversation.id"), nullable=False)
@@ -122,6 +122,7 @@ class ConversationMessage(DefaultBase, Base):
     data = Column(JSONB)
     queryId = Column(Integer, ForeignKey("query.id"), nullable=True)
     reqId = Column(String, nullable=True)
+    functionCallId = Column(String, nullable=True)
 
     conversation = relationship("Conversation", back_populates="messages")
 
@@ -143,6 +144,7 @@ class ConversationMessage(DefaultBase, Base):
             # "createdAt": self.createdAt,
             # "updatedAt": self.updatedAt,
             "queryId": self.queryId,
+            "functionCallId": self.functionCallId,
         }
 
     def to_autochat_message(self) -> AutoChatMessage:
@@ -152,11 +154,12 @@ class ConversationMessage(DefaultBase, Base):
                 "name": self.name,
                 "content": self.content,
                 "function_call": self.functionCall,
+                "function_call_id": self.functionCallId,
             }
         )
 
     @classmethod
-    def from_autochat_message(cls, message: Message):
+    def from_autochat_message(cls, message: AutoChatMessage):
         kwargs = format_to_camel_case(**message.__dict__)
         # rewrite id to reqId
         kwargs["reqId"] = kwargs.pop("id", None)

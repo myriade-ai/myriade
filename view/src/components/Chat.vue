@@ -450,8 +450,14 @@ watch(chatContextSelected, async () => {
 })
 
 const fetchAISuggestions = async () => {
-  const response = await axios.get(`/api/contexts/${chatContextSelected.value.id}/questions`)
-  aiSuggestions.value = response.data
+  try {
+    const response = await axios.get(`/api/contexts/${chatContextSelected.value.id}/questions`)
+    aiSuggestions.value = response.data
+  } catch (error) {
+    console.error('Error fetching AI suggestions:', error)
+    // You might want to set an error state or show a notification to the user here
+    aiSuggestions.value = [] // Reset suggestions in case of error
+  }
 }
 
 const applySuggestion = (suggestion: string) => {

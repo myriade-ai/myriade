@@ -2,7 +2,7 @@ import json
 import os
 
 import yaml
-from autochat import ChatGPT, Message, StopLoopException
+from autochat import Autochat, Message, StopLoopException
 from back.datalake import DatalakeFactory
 from back.models import Conversation, ConversationMessage, Query
 from chat.dbt_utils import DBT
@@ -17,10 +17,12 @@ for filename in os.listdir(functions_path):
     with open(os.path.join(functions_path, filename)) as f:
         FUNCTIONS[filename[:-5]] = json.load(f)
 
+AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
+
 
 class DatabaseChat:
     """
-    ChatGPT with a database, execute functions.
+    Chatbot assistant with a database, execute functions.
     - SQL_QUERY: execute sql query and return the result (size limited)
     - SAVE_TO_MEMORY: save any text to memory
     - PLOT_WIDGET: plot a widget
@@ -104,26 +106,25 @@ class DatabaseChat:
         return yaml.dump(context)
 
     @property
-    def chat_gpt(self):
-        chat_gpt = ChatGPT.from_template(
-            os.path.join(os.path.dirname(__file__), "..", "chat", "chat_template.txt"),
-        )
-        chat_gpt.context = self.context
-        chat_gpt.add_function(self.sql_query, FUNCTIONS["SQL_QUERY"])
-        chat_gpt.add_function(self.save_to_memory, FUNCTIONS["SAVE_TO_MEMORY"])
-        chat_gpt.add_function(self.plot_widget, FUNCTIONS["PLOT_WIDGET"])
-        chat_gpt.add_function(self.submit, FUNCTIONS["SUBMIT"])
-
-        if self.dbt:
-            chat_gpt.add_function(self.dbt.fetch_model_list)
-            chat_gpt.add_function(self.dbt.search_models)
-            chat_gpt.add_function(self.dbt.fetch_model)
-
+    def chatbot(self):
         messages = [m.to_autochat_message() for m in self.conversation.messages]
-        chat_gpt.load_history(messages)
+        chatbot = Autochat.from_template(
+            os.path.join(os.path.dirname(__file__), "..", "chat", "chat_template.txt"),
+            provider=AUTOCHAT_PROVIDER,
+            context=self.context,
+            messages=messages,
+        )
+        chatbot.add_function(self.sql_query, FUNCTIONS["SQL_QUERY"])
+        chatbot.add_function(self.save_to_memory, FUNCTIONS["SAVE_TO_MEMORY"])
+        chatbot.add_function(self.plot_widget, FUNCTIONS["PLOT_WIDGET"])
+        chatbot.add_function(self.submit, FUNCTIONS["SUBMIT"])
+        if self.dbt:
+            chatbot.add_function(self.dbt.fetch_model_list)
+            chatbot.add_function(self.dbt.search_models)
+            chatbot.add_function(self.dbt.fetch_model)
         if self.model:
-            chat_gpt.model = self.model
-        return chat_gpt
+            chatbot.model = self.model
+        return chatbot
 
     def sql_query(
         self, query: str = "", name: str = None, from_response: Message = None
@@ -172,8 +173,8 @@ class DatabaseChat:
     def _run_conversation(self):
         # Message
         messages = [m.to_autochat_message() for m in self.conversation.messages]
-        self.chat_gpt.load_history(messages)
-        for m in self.chat_gpt.run_conversation():
+        self.chatbot.load_messages(messages)
+        for m in self.chatbot.run_conversation():
             self.check_stop_flag()
             message = ConversationMessage.from_autochat_message(m)
             message.conversationId = self.conversation.id

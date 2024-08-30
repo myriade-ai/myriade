@@ -14,8 +14,11 @@ api = Blueprint("back_api", __name__)
 
 import dataclasses
 import json
+import os
 from datetime import datetime
 from typing import List, Union
+
+AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
 
 
 def dataclass_to_dict(obj: Union[object, List[object]]) -> Union[dict, List[dict]]:
@@ -228,18 +231,20 @@ def get_questions(context_id):
             + str(tables_metadata)
         )
 
-    from autochat import ChatGPT
+    from autochat import Autochat
 
-    chat_gpt = ChatGPT()
-    # if exist ; add database.memory, dbt.catalog, dbt.manifest
-    chat_gpt.context = json.dumps(context)
+    questionAssistant = Autochat(
+        provider=AUTOCHAT_PROVIDER, context=json.dumps(context)
+    )
+    # TODO: if exist ; add database.memory, dbt.catalog, dbt.manifest
 
     def questions(question1: str, question2: str, question3: str):
         pass
 
-    chat_gpt.add_function(questions)
-    message = chat_gpt.ask(
-        "Generate 3 questions that the user can ask based on the context (database schema, past conversations, etc)"
+    questionAssistant.add_function(questions)
+
+    message = questionAssistant.ask(
+        "Generate 3 business questions about different topics that the user can ask based on the context (database schema, past conversations, etc)"
     )
     response_dict = message.function_call["arguments"]
     response_values = list(response_dict.values())

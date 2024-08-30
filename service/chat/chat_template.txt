@@ -126,6 +126,7 @@ WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 201
 Plot distribution of stations per city
 
 ## assistant
+Distribution of stations per city
 > PLOT_WIDGET(
     caption="Distribution of stations per city",
     outputType="Doughnut2d",
