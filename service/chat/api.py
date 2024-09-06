@@ -106,14 +106,16 @@ def handle_query(query, conversation_id=None, context_id=None):
     emit("response", message.to_dict())
 
 
-@socketio.on("regenerate")
+@socketio.on("regenerateFromMessage")
 @handle_stop_flag
-def handle_regenerate(_, conversation_id=None, context_id=None):
+def handle_regenerate_from_message(message_id, conversation_id=None, context_id=None):
+    """
+    Regenerate the conversation from a specific message
+    Delete all messages after the message_id and regenerate the conversation
+    If the message is from the assistant, delete it
+    If the message is from the user, regenerate the conversation from the next message
+    """
     database_id, project_id = extract_context(context_id)
-    """
-    If the last message is an assistant response, delete it and reask the question
-    If the last message is an user response, rerun the query
-    """
     chat = DatabaseChat(
         socket_session,
         database_id,
@@ -121,13 +123,24 @@ def handle_regenerate(_, conversation_id=None, context_id=None):
         conversation_stop_flags,
         project_id=project_id,
     )
-    last_message = chat.conversation.messages[-1]
-    if last_message.role == "assistant":
-        socket_session.delete(last_message)
-        socket_session.commit()
-        emit("delete-message", last_message.id)
+    # Clear all messages after the message_id
+    messages = (
+        socket_session.query(ConversationMessage)
+        .filter(ConversationMessage.id > message_id)
+        .all()
+    )
+    for message in messages:
+        emit("delete-message", message.id)
+        socket_session.delete(message)
+    # Also, if the message is from the assistant, delete it
 
-    # Restart the conversation
+    message = socket_session.query(ConversationMessage).filter_by(id=message_id).first()
+    if message.role == "assistant":
+        emit("delete-message", message.id)
+        socket_session.delete(message)
+
+    socket_session.commit()
+    # Regenerate the conversation
     for message in chat._run_conversation():
         print("MESSAGE", message.to_dict())
         emit("response", message.to_dict())

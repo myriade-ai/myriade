@@ -7,11 +7,20 @@
     <p class="font-bold">
       <span class="flex justify-between items-center w-full">
         {{ message.role }}
-        <!-- Link to /query/{{ message.queryId }} if message.queryId is defined -->
-        <span v-if="message.queryId">
-          <button class="text-blue-500" @click="editInline">Edit inline</button>
-          /
-          <a :href="`/query/${message.queryId}`" class="text-blue-500" target="_blank"> Edit </a>
+        <span class="flex items-center space-x-2">
+          <span v-if="message.queryId">
+            <button class="text-blue-500" @click="editInline">Edit inline</button>
+            /
+            <a :href="`/query/${message.queryId}`" class="text-blue-500" target="_blank">Edit</a>
+            /
+          </span>
+          <button
+            class="text-gray-400 hover:text-gray-600"
+            title="Regenerate from this message"
+            @click="$emit('regenerateFromMessage', message.id)"
+          >
+            <ArrowPathIcon class="h-4 w-4" />
+          </button>
         </span>
       </span>
     </p>
@@ -80,6 +89,7 @@ import axios from 'axios'
 import BaseEditor from '@/components/BaseEditor.vue'
 import BaseEditorPreview from '@/components/BaseEditorPreview.vue'
 import { marked } from 'marked'
+import { ArrowPathIcon } from '@heroicons/vue/24/outline'
 
 // Get databaseId from store
 import { useDatabases } from '../stores/databases'
@@ -91,7 +101,8 @@ export default {
     BaseEditor,
     BaseEditorPreview,
     BaseBuilder,
-    Widget
+    Widget,
+    ArrowPathIcon
   },
   props: {
     message: {
@@ -99,7 +110,7 @@ export default {
       required: true
     }
   },
-  emits: ['editInlineClick'],
+  emits: ['editInlineClick', 'regenerateFromMessage'],
   data() {
     return {
       sqlResult: [] as Array<{

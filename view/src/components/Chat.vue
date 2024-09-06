@@ -17,7 +17,11 @@
           <ul class="list-none">
             <template v-for="(group, index) in messageGroups" :key="index">
               <li v-for="message in group.publicMessages" :key="message.id">
-                <MessageDisplay :message="message" @editInlineClick="editInline" />
+                <MessageDisplay
+                  :message="message"
+                  @editInlineClick="editInline"
+                  @regenerateFromMessage="regenerateFromMessage"
+                />
               </li>
               <li v-if="group.internalMessages.length > 0" class="flex justify-center">
                 <button
@@ -67,13 +71,10 @@
                 <p class="text-red-500">{{ errorMessage }}</p>
               </div>
               <div>
-                <BaseButton class="my-4" @click="regenerate">Regenerate</BaseButton>
+                <BaseButton class="my-4" @click="regenerateFromMessage(lastMessage.id)">
+                  Regenerate
+                </BaseButton>
               </div>
-            </div>
-
-            <!-- Display Regenerating button if query is not running and last message is not a query -->
-            <div v-else-if="queryStatus != STATUS.RUNNING && lastMessage">
-              <BaseButton @click="regenerate">Regenerate</BaseButton>
             </div>
 
             <div v-if="queryStatus === STATUS.RUNNING">
@@ -293,11 +294,6 @@ const editInline = (query) => {
   editMode.value = 'SQL'
 }
 
-const regenerate = async () => {
-  // Replace with your dbt API endpoint to regenerate the conversation.
-  socket.emit('regenerate', null, conversationId.value, chatContextSelected.value.id)
-}
-
 const sendMessage = async () => {
   // If query is already running, do nothing.
   if (queryStatus.value === STATUS.RUNNING) {
@@ -465,6 +461,15 @@ const applySuggestion = (suggestion: string) => {
   sendMessage()
   // Empty the suggestions
   aiSuggestions.value = []
+}
+
+const regenerateFromMessage = async (messageId) => {
+  socket.emit(
+    'regenerateFromMessage',
+    messageId,
+    conversationId.value,
+    chatContextSelected.value.id
+  )
 }
 </script>
 
