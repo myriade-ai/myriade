@@ -163,6 +163,8 @@ class ConversationMessage(DefaultBase, Base):
         kwargs = format_to_camel_case(**message.__dict__)
         # rewrite id to reqId
         kwargs["reqId"] = kwargs.pop("id", None)
+        # Dismiss image for now
+        kwargs.pop("image", None)
         return ConversationMessage(**kwargs)
 
 
