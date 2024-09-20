@@ -97,10 +97,6 @@ all = ["anthropic (==0.34.2)", "openai (==1.26.0)"]
 anthropic = ["anthropic (==0.34.2)"]
 openai = ["openai (==1.26.0)"]
 
-[package.source]
-type = "directory"
-url = "../../autochat"
-
 [[package]]
 name = "bidict"
 version = "0.23.1"
