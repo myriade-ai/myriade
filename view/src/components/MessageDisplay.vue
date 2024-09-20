@@ -25,7 +25,17 @@
       </span>
     </p>
 
-    <template v-for="(part, index) in parsedText">
+    <!-- if PLOT_FUSIONCHART -->
+    <div v-if="message.role === 'function' && message?.name === 'PLOT_WIDGET'">
+      <fusioncharts
+        v-if="message.data"
+        :type="message.data.type"
+        width="100%"
+        dataFormat="json"
+        :dataSource="message.data.dataSource"
+      />
+    </div>
+    <template v-else v-for="(part, index) in parsedText">
       <span
         v-if="part.type === 'text'"
         :key="`text-${index}`"
@@ -58,13 +68,6 @@
       <p v-if="message.functionCall?.name === 'MEMORY_SEARCH'">
         Search: "{{ message.functionCall?.arguments?.search }}"
       </p>
-      <div v-else-if="message.functionCall?.name === 'PLOT_WIDGET' && databaseSelectedId">
-        <Widget
-          :database-id="databaseSelectedId"
-          :sql="message.functionCall?.arguments?.sql"
-          :visualisationParams="visualisationParams"
-        ></Widget>
-      </div>
       <BaseEditor
         v-else-if="message.functionCall?.name === 'SQL_QUERY'"
         :modelValue="message.functionCall?.arguments?.query"

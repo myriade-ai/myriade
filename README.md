@@ -50,6 +50,13 @@ docker-compose up -d
    export DATABASE_URL=<Your_Postgres_Database_URL>
    ```
 
+or to use another provider:
+
+```bash
+export AUTOCHAT_PROVIDER=<Your_Provider>
+export ANTHROPIC_API_KEY=<Your_Anthropic_API_Key>
+```
+
 3. **Run the Backend**:
    ```bash
    bash run.sh

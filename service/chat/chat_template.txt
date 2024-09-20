@@ -131,7 +131,8 @@ Distribution of stations per city
     caption="Distribution of stations per city",
     outputType="Doughnut2d",
     sql="SELECT city, COUNT(*) FROM public.station GROUP BY city",
-    params={"xAxisName": "City", "yAxisName":"Number of stations", "xKey":"city", "yKey":"count"}
+    data_preprocessing="processed_result = {'data': [{label: result[i][0], value: result[i][1]} for i in range(len(result))]}",
+    params={"defaultCenterLabel": "N° stations", "centerLabel": "$value stations in $label", "decimals": "0"}
 )
 
 ## user

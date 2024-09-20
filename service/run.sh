@@ -1,5 +1,5 @@
 export FLASK_APP=app.py
-export FLASK_DEBUG=true
+
 
 # Read .env.sh
 if [ -f .env.sh ]; then

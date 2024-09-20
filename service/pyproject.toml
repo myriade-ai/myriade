@@ -16,11 +16,12 @@ snowflake-connector-python = "^3.0.1"
 psycopg2-binary = "^2.9.7"
 pgvector = "0.1.8"
 alembic = "^1.11.2"
-autochat = {extras = ["all"], version = "^0.3.3"}
+autochat = {extras = ["all"], version = "^0.3.4"}
 openai = "1.26.0"
 pydantic = "1.10.13"
 pyyaml = "6.0.1"
 mysqlclient = {version = "^2.2.1", optional = true}
+playwright = "^1.46.0"
 
 [tool.poetry.extras]
 mysql = ["mysqlclient"]
@@ -30,3 +31,6 @@ all = ["mysql", "snowflake"]
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+autochat = { path = "../../autochat", extras = ["all"], develop = true }

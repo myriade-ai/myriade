@@ -1,6 +1,6 @@
 import json
 import os
-
+import requests
 import yaml
 from autochat import Autochat, Message, StopLoopException
 from back.datalake import DatalakeFactory
@@ -8,9 +8,13 @@ from back.models import Conversation, ConversationMessage, Query
 from chat.dbt_utils import DBT
 from chat.lock import StopException
 from chat.memory_utils import find_closest_embeddings
+from chat.render import render_chart
 from chat.sql_utils import run_sql
+from PIL import Image as PILImage
+import io
 
 # Load functions from a predefined path, independent of the current working directory
+
 FUNCTIONS = {}
 functions_path = os.path.join(os.path.dirname(__file__), "functions")
 for filename in os.listdir(functions_path):
@@ -18,6 +22,26 @@ for filename in os.listdir(functions_path):
         FUNCTIONS[filename[:-5]] = json.load(f)
 
 AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
+
+
+def python_transform(code, result):
+    # Create a local namespace for execution
+    local_namespace = {"result": result}
+
+    # Compile the code object once for better performance
+    code_obj = compile(code, "<string>", "exec")
+
+    # Execute the data_preprocessing code
+    exec(code_obj, {}, local_namespace)
+
+    # Retrieve the processed result
+    return local_namespace.get("processed_result")
+
+
+def fetch_chart_code_sample(chart_type: str) -> str:
+    return requests.get(
+        f"https://www.fusioncharts.com/dev/portal/attribute/{chart_type.lower()}/code"
+    ).json()["json"]
 
 
 class DatabaseChat:
@@ -165,10 +189,53 @@ class DatabaseChat:
         raise StopLoopException("We want to stop after submitting")
         return
 
-    def plot_widget(self, caption: str, outputType: str, sql: str, params: dict = None):
+    def plot_widget(
+        self,
+        caption: str,
+        outputType: str,
+        sql: str,
+        params: dict = None,
+        data_preprocessing: str = None,
+        from_response: Message = None,
+    ):
         """TODO: add verification on the widget parameters and the sql query"""
-        raise StopLoopException("We want to stop after the widget")
-        return
+        # Execute SQL query
+        rows, _ = self.datalake.query(sql)
+
+        if data_preprocessing:
+            # Fields can be "data", "categories", "dataset", ..
+            data_fields = python_transform(data_preprocessing, rows)
+            if isinstance(data_fields, list):
+                data_fields = {"data": data_fields}
+
+        # Generate FusionCharts configuration
+        chart_config = {
+            "type": outputType.lower(),
+            "renderAt": "chart-container",
+            "width": "100%",
+            "height": "400",
+            "dataFormat": "json",
+            "dataSource": {
+                "chart": {
+                    "caption": caption,
+                    **params,
+                    "theme": "fusion",
+                },
+                **data_fields,
+            },
+        }
+
+        sample_code = fetch_chart_code_sample(outputType.lower())
+        chart_image_bytes = render_chart(chart_config)
+        image = PILImage.open(io.BytesIO(chart_image_bytes))
+        return Message(
+            name="PLOT_WIDGET",
+            role="function",
+            content=f"# chart_config\n{json.dumps(chart_config)}\n\n# sample_code for {outputType}\n{sample_code}",
+            function_call_id=from_response.function_call_id,
+            data=chart_config,
+            image=image,
+        )
 
     def _run_conversation(self):
         # Message

@@ -366,9 +366,10 @@ const shouldDisplayMessage = (message, index) => {
   const isValidAssistantMessage =
     isAssistant &&
     (!message.functionCall || ['SUBMIT', 'PLOT_WIDGET'].includes(message.functionCall.name))
+  const isPlotWidget = message.name === 'PLOT_WIDGET'
   const isFunctionAfterUser = isFunction && prevMessage?.role === 'user'
 
-  return isUser || isValidAssistantMessage || isFunctionAfterUser
+  return isUser || isValidAssistantMessage || isFunctionAfterUser || isPlotWidget
 }
 
 const stopQuery = async () => {
