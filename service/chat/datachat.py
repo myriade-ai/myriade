@@ -57,7 +57,7 @@ class DatabaseChat:
         session,
         database_id,
         conversation_id=None,
-        stop_flags=None,
+        stop_flags={},
         model=None,
         project_id=None,
     ):

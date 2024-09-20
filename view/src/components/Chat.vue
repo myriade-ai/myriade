@@ -217,7 +217,7 @@ const socket = io(SOCKET_URL)
 const inputTextarea = ref(null)
 
 const { fetchProjects, projects } = useProjects()
-const { databaseSelected, selectDatabaseById, fetchDatabases, databases } = useDatabases()
+const { fetchDatabases, databases } = useDatabases()
 await fetchProjects({ refresh: true })
 await fetchDatabases({ refresh: true })
 
@@ -271,7 +271,16 @@ const fetchMessages = async () => {
       }
       return message
     })
-    selectDatabaseById(conversation.databaseId)
+    // Select the context (from response databaseId or projectId)
+    if (conversation.databaseId) {
+      chatContextSelected.value = chatContext.value.find(
+        (context) => context.id === `database-${conversation.databaseId}`
+      )
+    } else if (conversation.projectId) {
+      chatContextSelected.value = chatContext.value.find(
+        (context) => context.id === `project-${conversation.projectId}`
+      )
+    }
   })
 }
 
