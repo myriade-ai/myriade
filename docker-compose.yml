@@ -22,9 +22,9 @@ services:
       FLASK_APP: app.py
       FLASK_ENV: development
       DATABASE_URL: postgresql://human:pass@db:5432/ada
-      # Need dummy env var so build doesn't fail. You need to change it!
-      OPENAI_API_KEY: XXX
-
+      AUTOCHAT_PROVIDER: anthropic
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
   view:
     build: ./view
     ports:
