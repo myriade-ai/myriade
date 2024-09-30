@@ -13,6 +13,10 @@ COPY pyproject.toml poetry.lock ./
 # Install Python dependencies
 RUN pip install poetry && poetry config virtualenvs.create false && poetry install --only main
 
+# Install Playwright and its dependencies
+RUN playwright install chromium
+RUN playwright install-deps chromium
+
 # Copy the rest of the application's code
 COPY . .
 
