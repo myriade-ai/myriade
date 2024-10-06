@@ -148,6 +148,11 @@ class DatabaseChat:
             chatbot.add_function(self.dbt.fetch_model)
         if self.model:
             chatbot.model = self.model
+
+        def message_is_answer(function_call, function_response):
+            return function_call.content.startswith("<ANSWER>")
+
+        chatbot.should_pause_conversation = message_is_answer
         return chatbot
 
     def sql_query(

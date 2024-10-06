@@ -370,15 +370,12 @@ const messageGroups = computed(() => {
 const shouldDisplayMessage = (message, index) => {
   const prevMessage = index > 0 ? messages.value[index - 1] : null
   const isUser = message.role === 'user'
-  const isAssistant = message.role === 'assistant'
   const isFunction = message.role === 'function'
-  const isValidAssistantMessage =
-    isAssistant &&
-    (!message.functionCall || ['SUBMIT', 'PLOT_WIDGET'].includes(message.functionCall.name))
-  const isPlotWidget = message.name === 'PLOT_WIDGET'
   const isFunctionAfterUser = isFunction && prevMessage?.role === 'user'
+  const isFunctionAfterAnswer = isFunction && prevMessage?.isAnswer
+  const isAnwser = message.isAnswer
 
-  return isUser || isValidAssistantMessage || isFunctionAfterUser || isPlotWidget
+  return isUser || isFunctionAfterUser || isAnwser || isFunctionAfterAnswer
 }
 
 const stopQuery = async () => {
@@ -452,7 +449,9 @@ const aiSuggestions = ref([])
 
 watch(chatContextSelected, async () => {
   aiSuggestions.value = []
-  await fetchAISuggestions()
+  if (!conversationId.value) {
+    await fetchAISuggestions()
+  }
 })
 
 const fetchAISuggestions = async () => {

@@ -114,6 +114,7 @@ class ConversationMessage(DefaultBase, Base):
     functionCall: dict
     queryId: int
     functionCallId: str
+    isAnswer: bool
 
     id = Column(Integer, primary_key=True)
     conversationId = Column(Integer, ForeignKey("conversation.id"), nullable=False)
@@ -126,6 +127,7 @@ class ConversationMessage(DefaultBase, Base):
     reqId = Column(String, nullable=True)
     functionCallId = Column(String, nullable=True)
     image = Column(LargeBinary, nullable=True)
+    isAnswer = Column(Boolean, nullable=False, default=False)
 
     conversation = relationship("Conversation", back_populates="messages")
 
@@ -148,6 +150,7 @@ class ConversationMessage(DefaultBase, Base):
             # "updatedAt": self.updatedAt,
             "queryId": self.queryId,
             "functionCallId": self.functionCallId,
+            "isAnswer": self.isAnswer,
         }
         if self.functionCall and self.functionCall.get("name") == "PLOT_WIDGET":
             message["dataSource"] = self.data
@@ -165,6 +168,8 @@ class ConversationMessage(DefaultBase, Base):
         )
         if self.image:
             message.image = AutoChatImage.from_bytes(self.image)
+        if self.isAnswer:
+            message.content = "<ANSWER>" + message.content
         return message
 
     @classmethod
@@ -175,6 +180,10 @@ class ConversationMessage(DefaultBase, Base):
         # transfrom image from PIL to binary
         if message.image:
             kwargs["image"] = message.image.to_bytes()
+        # isAnswer: parse message.content depends on <ANSWER> tag
+        if message.content and message.content.startswith("<ANSWER>"):
+            kwargs["isAnswer"] = True
+            kwargs["content"] = message.content.split("<ANSWER>", 1)[1]
         return ConversationMessage(**kwargs)
 
 
