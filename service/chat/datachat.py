@@ -150,7 +150,9 @@ class DatabaseChat:
             chatbot.model = self.model
 
         def message_is_answer(function_call, function_response):
-            return function_call.content.startswith("<ANSWER>")
+            if function_call.content:
+                return function_call.content.startswith("<ANSWER>")
+            return False
 
         chatbot.should_pause_conversation = message_is_answer
         return chatbot
