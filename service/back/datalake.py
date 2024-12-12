@@ -188,11 +188,34 @@ class SQLDatabase(AbstractDatabase):
         # TODO: Reload metadata
 
 
+class SnowflakeConnectionPool:
+    _instances = {}
+
+    @classmethod
+    def get_connection(cls, connection_params):
+        # Create a unique key from connection parameters
+        key = tuple(sorted(connection_params.items()))
+
+        if key not in cls._instances:
+            import snowflake.connector
+
+            cls._instances[key] = snowflake.connector.connect(**connection_params)
+
+        return cls._instances[key]
+
+    @classmethod
+    def close_all(cls):
+        for conn in cls._instances.values():
+            try:
+                conn.close()
+            except Exception:
+                pass
+        cls._instances.clear()
+
+
 class SnowflakeDatabase(AbstractDatabase):
     def __init__(self, **kwargs):
-        import snowflake.connector
-
-        self.connection = snowflake.connector.connect(**kwargs)
+        self.connection = SnowflakeConnectionPool.get_connection(kwargs)
         self.metadata = []
 
     @property
@@ -283,3 +306,8 @@ class DatalakeFactory:
             return SQLDatabase("sqlite:///" + kwargs["filename"])
         else:
             raise ValueError(f"Unknown database type: {dtype}")
+
+
+def cleanup_connections():
+    # TODO: use a context manager to close the connections
+    SnowflakeConnectionPool.close_all()
