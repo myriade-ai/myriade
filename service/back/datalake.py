@@ -34,6 +34,10 @@ class UnsafeQueryError(Exception):
     pass
 
 
+class ConnectionError(Exception):
+    pass
+
+
 def sizeof(obj):
     # This function returns the size of an object in bytes
     return sys.getsizeof(obj)
@@ -112,9 +116,12 @@ class AbstractDatabase(ABC):
 
 class SQLDatabase(AbstractDatabase):
     def __init__(self, uri):
-        self.engine = sqlalchemy.create_engine(uri)
-        self.inspector = sqlalchemy.inspect(self.engine)
-        self.metadata = []
+        try:
+            self.engine = sqlalchemy.create_engine(uri)
+            self.inspector = sqlalchemy.inspect(self.engine)
+            self.metadata = []
+        except sqlalchemy.exc.OperationalError as e:
+            raise ConnectionError(e)
 
     def dispose(self):
         # On destruct, close the engine
@@ -199,7 +206,10 @@ class SnowflakeConnectionPool:
         if key not in cls._instances:
             import snowflake.connector
 
-            cls._instances[key] = snowflake.connector.connect(**connection_params)
+            try:
+                cls._instances[key] = snowflake.connector.connect(**connection_params)
+            except snowflake.connector.errors.OperationalError as e:
+                raise ConnectionError(e)
 
         return cls._instances[key]
 

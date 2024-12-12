@@ -130,7 +130,8 @@
     <hr class="mt-5" />
 
     <BaseAlert class="mt-5" v-if="apiError">
-      <template #title> There is an error 😔 </template>{{ apiError }}
+      <template #title> There is an error 😔 </template>
+      {{ apiError }}
     </BaseAlert>
 
     <div class="py-5">
@@ -220,9 +221,10 @@ const clickSave = async () => {
       await updateDatabase(database.value.id, database.value)
     }
     router.push({ name: 'DatabaseList' })
-  } catch (error) {
+  } catch (error: any) {
     console.error(error)
-    apiError.value = error.response.data.message
+    apiError.value =
+      error.response?.data?.message || error.message || 'An unexpected error occurred'
   }
 }
 const handleFileUpload = (event: any, key: 'dbt_catalog' | 'dbt_manifest') => {

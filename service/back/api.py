@@ -1,4 +1,4 @@
-from back.datalake import DatalakeFactory
+from back.datalake import DatalakeFactory, ConnectionError
 from back.models import (
     Conversation,
     ConversationMessage,
@@ -91,13 +91,16 @@ def delete_conversation(conversation_id):
 @api.route("/databases", methods=["POST"])
 @user_middleware
 def create_database():
-    # Instaniate a new datalake object
-    datalake = DatalakeFactory.create(
-        request.json["engine"],
-        **request.json["details"],
-    )
-    # Test connection
-    datalake.test_connection()
+    try:
+        # Instaniate a new datalake object
+        datalake = DatalakeFactory.create(
+            request.json["engine"],
+            **request.json["details"],
+        )
+        # Test connection
+        datalake.test_connection()
+    except ConnectionError as e:
+        return jsonify({"message": str(e.args[0])}), 400
 
     # Create a new database
     database = Database(
