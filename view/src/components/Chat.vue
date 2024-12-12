@@ -272,13 +272,13 @@ const fetchMessages = async () => {
       return message
     })
     // Select the context (from response databaseId or projectId)
-    if (conversation.databaseId) {
-      chatContextSelected.value = chatContext.value.find(
-        (context) => context.id === `database-${conversation.databaseId}`
-      )
-    } else if (conversation.projectId) {
+    if (conversation.projectId) {
       chatContextSelected.value = chatContext.value.find(
         (context) => context.id === `project-${conversation.projectId}`
+      )
+    } else if (conversation.databaseId) {
+      chatContextSelected.value = chatContext.value.find(
+        (context) => context.id === `database-${conversation.databaseId}`
       )
     }
   })
