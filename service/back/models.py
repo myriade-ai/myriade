@@ -308,6 +308,24 @@ class Project(DefaultBase, Base):
         # order_by="ProjectTable.id",
     )
     conversations = relationship("Conversation", back_populates="project")
+    notes = relationship("Note", back_populates="project")
+
+
+@dataclass
+class Note(DefaultBase, Base):
+    __tablename__ = "note"
+
+    id: int
+    title: str
+    content: str
+    projectId: int
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String)
+    content = Column(String)
+    projectId = Column(Integer, ForeignKey("project.id"))
+
+    project = relationship("Project", back_populates="notes")
 
 
 if __name__ == "__main__":

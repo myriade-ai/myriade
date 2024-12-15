@@ -17,7 +17,6 @@ psycopg2-binary = "^2.9.7"
 pgvector = "0.1.8"
 alembic = "^1.11.2"
 autochat = {extras = ["all"], version = "^0.3.7"}
-openai = "1.26.0"
 pydantic = "1.10.13"
 pyyaml = "6.0.1"
 mysqlclient = {version = "^2.2.1", optional = true}

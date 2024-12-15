@@ -10,8 +10,10 @@ from chat.lock import StopException
 from chat.memory_utils import find_closest_embeddings
 from chat.render import render_chart
 from chat.sql_utils import run_sql
+from chat.notes import Notes
 from PIL import Image as PILImage
 import io
+
 
 # Load functions from a predefined path, independent of the current working directory
 
@@ -146,6 +148,10 @@ class DatabaseChat:
             chatbot.add_function(self.dbt.fetch_model_list)
             chatbot.add_function(self.dbt.search_models)
             chatbot.add_function(self.dbt.fetch_model)
+        if self.conversation.project:
+            notes = Notes(self.session, chatbot, self.conversation.project)
+            chatbot.add_tool(notes, "Notes")
+
         if self.model:
             chatbot.model = self.model
 
