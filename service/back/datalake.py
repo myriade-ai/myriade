@@ -291,7 +291,8 @@ class DatalakeFactory:
             user = kwargs.get("user")
             password = kwargs.get("password", "")
             host = kwargs.get("host")
-            uri = f"postgresql://{user}:{password}@{host}/{kwargs['database']}"
+            port = kwargs.get("port", "5432")
+            uri = f"postgresql://{user}:{password}@{host}:{port}/{kwargs['database']}"
             if "options" in kwargs:
                 uri += "?options=" + "&".join(
                     [f"--{k}={v}" for k, v in kwargs["options"].items()]
