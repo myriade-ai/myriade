@@ -2,7 +2,8 @@ import json
 import os
 import requests
 import yaml
-from autochat import Autochat, Message, StopLoopException
+from autochat import Autochat, Message
+from autochat.chat import StopLoopException
 from back.datalake import DatalakeFactory
 from back.models import Conversation, ConversationMessage, Query
 from chat.dbt_utils import DBT

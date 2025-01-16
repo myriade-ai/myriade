@@ -247,7 +247,8 @@ def get_questions(context_id):
     questionAssistant.add_function(questions)
 
     message = questionAssistant.ask(
-        "Generate 3 business questions about different topics that the user can ask based on the context (database schema, past conversations, etc)"
+        "Generate 3 business questions about different topics that the user can ask based on the context (database schema, past conversations, etc)",
+        tool_choice={"type": "tool", "name": "questions"},  # anthropic specific
     )
     response_dict = message.function_call["arguments"]
     response_values = list(response_dict.values())

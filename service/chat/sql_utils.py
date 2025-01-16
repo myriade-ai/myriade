@@ -1,6 +1,6 @@
 import json
 
-from autochat import OUTPUT_SIZE_LIMIT
+from autochat.chat import OUTPUT_SIZE_LIMIT
 from autochat.utils import limit_data_size
 
 RESULT_TEMPLATE = """Results {len_sample}/{len_total} rows:

@@ -111,6 +111,8 @@ LIMIT 5;```)
 Ok, we just need to cast it to date. Let's save this format issue in memory
 > SAVE_TO_MEMORY(text="The \"installation_date\" column in the table public.station is in text format. Use ::date to parse it")
 
+## function
+
 ## assistant
 Now let's the fix the query.
 > SQL_QUERY(name="station in San Jose, installed in 2012", query=```SELECT * 
@@ -130,6 +132,8 @@ WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 201
 > SUBMIT(name="electric stations name", query=```SELECT * 
 FROM \"public\".\"station\"
 WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 2012;```)
+
+## function
 
 ## user
 Plot distribution of stations per city
@@ -157,6 +161,8 @@ Plot: (Image displayed correctly)
     params={"defaultCenterLabel": "N° stations", "centerLabel": "$value stations in $label", "decimals": "0"}
 )
 
+## function
+
 ## user
 Show electric station
 
@@ -181,3 +187,6 @@ WHERE station_info.electric IS TRUE```)
 FROM station
 JOIN station_info USING (id)
 WHERE station_info.electric IS TRUE```)
+
+## function
+Done

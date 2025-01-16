@@ -1,7 +1,7 @@
 import json
 from dataclasses import dataclass
 
-from autochat import Message as AutoChatMessage, Image as AutoChatImage
+from autochat.model import Message as AutoChatMessage, Image as AutoChatImage
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     TIMESTAMP,
@@ -133,7 +133,6 @@ class ConversationMessage(DefaultBase, Base):
 
     # format params before creating the object
     def __init__(self, **kwargs):
-        kwargs = format_to_camel_case(**kwargs)
         super().__init__(**kwargs)
 
     def to_dict(self):
@@ -145,7 +144,7 @@ class ConversationMessage(DefaultBase, Base):
             "name": self.name,
             "content": self.content,
             "functionCall": self.functionCall,
-            "data": self.data,
+            "data": self.data,  # TODO: remove
             # "createdAt": self.createdAt,
             # "updatedAt": self.updatedAt,
             "queryId": self.queryId,
@@ -175,6 +174,11 @@ class ConversationMessage(DefaultBase, Base):
     @classmethod
     def from_autochat_message(cls, message: AutoChatMessage):
         kwargs = format_to_camel_case(**message.__dict__)
+        kwargs["functionCall"] = message.function_call
+        kwargs["functionCallId"] = message.function_call_id
+        kwargs["content"] = message.content
+        # TODO: add image, function_result ?
+
         # rewrite id to reqId
         kwargs["reqId"] = kwargs.pop("id", None)
         # transfrom image from PIL to binary
@@ -184,6 +188,9 @@ class ConversationMessage(DefaultBase, Base):
         if message.content and message.content.startswith("<ANSWER>"):
             kwargs["isAnswer"] = True
             kwargs["content"] = message.content.split("<ANSWER>", 1)[1]
+
+        # limit to model in the dataclass
+        kwargs = {k: v for k, v in kwargs.items() if k in cls.__dataclass_fields__}
         return ConversationMessage(**kwargs)
 
 
