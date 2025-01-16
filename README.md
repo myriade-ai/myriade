@@ -25,13 +25,13 @@ Or better 👉 [try it yourself](https://ada.universaldata.io)
 
 ### Docker installation
 
-```
+```bash
 docker-compose up -d
 ```
 
 ### Manual installation
 
-#### Backend Setup (in `/service` directory)
+#### Backend Setup (in [`/service`](/service) directory)
 
 1. **Install Dependencies**:
 
@@ -60,17 +60,17 @@ export ANTHROPIC_API_KEY=<Your_Anthropic_API_Key>
    bash run.sh
    ```
 
-#### Frontend Setup (in `/view` directory)
+#### Frontend Setup (in [`/view`](/view) directory)
 
 Install Dependencies
 
-```
+```bash
 yarn
 ```
 
 Run the front-end
 
-```
+```bash
 yarn dev
 ```
 
@@ -78,7 +78,7 @@ After completing the steps, open your browser and visit: [http://localhost:5173]
 
 ## Privacy & Safety
 
-We have developed built-in features to protect privacy and insure safety
+We have developed built-in features to protect privacy and ensure safety
 
 - **Preview only:** Model only have preview of the requested data
 - **“Privacy protection”:** hide fields about name, location
