@@ -7,11 +7,14 @@ WORKDIR /app
 # Install system dependencies (if any)
 # RUN apt-get update && apt-get install -y --no-install-recommends [packages]
 
-# Copy poetry.lock and pyproject.toml
-COPY pyproject.toml poetry.lock ./
+# Install uv package installer
+RUN pip install uv
 
-# Install Python dependencies
-RUN pip install poetry && poetry config virtualenvs.create false && poetry install --only main
+# Copy poetry.lock and pyproject.toml
+COPY ../pyproject.toml ../uv.lock ./
+
+# Install Python dependencies using uv sync
+RUN uv sync
 
 # Install Playwright and its dependencies
 RUN playwright install chromium

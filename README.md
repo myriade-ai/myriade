@@ -38,7 +38,7 @@ docker-compose up -d
 1. **Install Dependencies**:
 
    ```bash
-   poetry install
+   uv sync
    ```
 
 2. **Set Environment Variables**:
