@@ -1,4 +1,4 @@
-from back.models import Project, Note
+from back.models import Note, Project
 
 
 class NoteService:

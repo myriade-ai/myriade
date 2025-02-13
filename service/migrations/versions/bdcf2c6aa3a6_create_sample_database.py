@@ -9,7 +9,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
-from back.models import Database
+
 from data.sample.create import create_sample_database, delete_sample_database
 
 # revision identifiers, used by Alembic.

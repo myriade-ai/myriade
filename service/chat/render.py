@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+
 import numpy as np
 from playwright.async_api import async_playwright
 

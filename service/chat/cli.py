@@ -1,11 +1,10 @@
-import json
 
 import click
-from back.models import Conversation, Query
-from back.session import Session
-from chat.memory_utils import find_closest_embeddings, generate_embedding
 from flask import Blueprint, g
 from sqlalchemy import and_
+
+from back.models import Query
+from chat.memory_utils import find_closest_embeddings, generate_embedding
 
 chat_cli = Blueprint("chat_cli", __name__)
 

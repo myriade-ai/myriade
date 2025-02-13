@@ -2,7 +2,6 @@ import json
 import re
 import sys
 from abc import ABC, abstractmethod, abstractproperty
-from typing import Tuple
 
 import sqlalchemy
 from sqlalchemy import text
@@ -121,7 +120,7 @@ class SQLDatabase(AbstractDatabase):
             self.inspector = sqlalchemy.inspect(self.engine)
             self.metadata = []
         except sqlalchemy.exc.OperationalError as e:
-            raise ConnectionError(e)
+            raise ConnectionError() from e
 
     def dispose(self):
         # On destruct, close the engine
@@ -209,7 +208,7 @@ class SnowflakeConnectionPool:
             try:
                 cls._instances[key] = snowflake.connector.connect(**connection_params)
             except snowflake.connector.errors.OperationalError as e:
-                raise ConnectionError(e)
+                raise ConnectionError() from e
 
         return cls._instances[key]
 
@@ -244,7 +243,6 @@ class SnowflakeDatabase(AbstractDatabase):
             result, _ = self.query(f"SHOW COLUMNS IN {schema}.{table_name}")
             for column in result:
                 print("column", column)
-                # 'column_name': 'HEU', 'data_type': '{"type":"TIME","precision":0,"scale":9,"nullable":true}',
                 column["data_type"] = json.loads(column["data_type"])
                 columns.append(
                     {

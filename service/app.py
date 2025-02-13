@@ -1,6 +1,7 @@
-from back.session import Session
 from flask import Flask, g
 from flask_socketio import SocketIO
+
+from back.session import Session
 
 socketio = SocketIO(cors_allowed_origins="*")
 

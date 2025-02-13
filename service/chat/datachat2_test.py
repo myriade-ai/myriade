@@ -1,7 +1,7 @@
-import json
 from unittest.mock import Mock, patch
 
 import pytest
+
 from chat.datachat import DatabaseChat, python_transform
 
 
@@ -137,7 +137,7 @@ processed_result = df_melted[['label', 'value']].to_dict('records')
 """
 
     # Call the plot_widget method with data preprocessing
-    result = database_chat.plot_widget(
+    database_chat.plot_widget(
         caption="Product Sales Over Time",
         outputType="Line",
         sql="SELECT date, product_a, product_b FROM sales",
