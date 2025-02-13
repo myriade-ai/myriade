@@ -1,19 +1,17 @@
-import json
 from dataclasses import dataclass
 
-from autochat.model import Message as AutoChatMessage, Image as AutoChatImage
+from autochat.model import Image as AutoChatImage
+from autochat.model import Message as AutoChatMessage
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
-    TIMESTAMP,
     Boolean,
     Column,
     DateTime,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     func,
-    LargeBinary,
-    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base

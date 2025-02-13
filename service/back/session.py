@@ -24,7 +24,7 @@ def json_deserial(d):
         for key, value in json_dict.items():
             try:
                 json_dict[key] = datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
-            except:
+            except Exception:
                 pass
         return json_dict
 

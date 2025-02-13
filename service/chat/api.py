@@ -1,4 +1,8 @@
-from back.models import ConversationMessage, Project, User
+from flask import Blueprint
+from flask_socketio import emit
+
+from app import socketio
+from back.models import ConversationMessage, Project
 from back.session import Session
 from chat.datachat import DatabaseChat
 from chat.lock import (
@@ -8,15 +12,9 @@ from chat.lock import (
     handle_stop_flag,
     stop_flag_lock,
 )
-from flask import Blueprint, g
-from flask_socketio import emit
 
 api = Blueprint("chat_api", __name__)
-
-from app import socketio
-
 socket_session = None
-
 
 @socketio.on("stop")
 def handle_stop(conversation_id):

@@ -22,6 +22,9 @@ pyyaml = "6.0.1"
 mysqlclient = {version = "^2.2.1", optional = true}
 playwright = "^1.46.0"
 
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.9.6"
+
 [tool.poetry.extras]
 mysql = ["mysqlclient"]
 snowflake = ["snowflake-connector-python"]
@@ -30,3 +33,50 @@ all = ["mysql", "snowflake"]
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 220
+target-version = "py39"
+
+# Enable Pyflakes (`F`) and Import sorting (`I`)
+[tool.ruff.lint]
+select = ["E", "F", "B", "I"]
+ignore = ["E711"]
+
+# Allow autofix for all enabled rules (when `--fix`) is provided
+fixable = ["ALL"]
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "migrations",
+]
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.isort]
+known-first-party = ["back", "chat", "ai"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10

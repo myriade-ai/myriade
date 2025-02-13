@@ -1,8 +1,9 @@
 from functools import wraps
 
+from flask import g, request
+
 from back.datalake import DatalakeFactory
 from back.models import Database, User
-from flask import g, jsonify, request
 
 # TODO: remove this
 # organisationId = None  # "6264fdaf-e8e2-41a8-a110-0fccc0e71277"

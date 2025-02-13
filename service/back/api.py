@@ -1,4 +1,13 @@
-from back.datalake import DatalakeFactory, ConnectionError
+import dataclasses
+import json
+import os
+from datetime import datetime
+from typing import List, Union
+
+from flask import Blueprint, g, jsonify, request
+from sqlalchemy import or_
+
+from back.datalake import ConnectionError, DatalakeFactory
 from back.models import (
     Conversation,
     ConversationMessage,
@@ -6,18 +15,11 @@ from back.models import (
     Project,
     ProjectTables,
 )
-from flask import Blueprint, g, jsonify, request
 from middleware import user_middleware
-from sqlalchemy import and_, or_
 
 api = Blueprint("back_api", __name__)
 
-import dataclasses
-import json
-import os
-from datetime import datetime
-from typing import List, Union
-
+AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
 AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
 
 
@@ -247,7 +249,8 @@ def get_questions(context_id):
     questionAssistant.add_function(questions)
 
     message = questionAssistant.ask(
-        "Generate 3 business questions about different topics that the user can ask based on the context (database schema, past conversations, etc)",
+        "Generate 3 business questions about different topics that the user can ask "
+        "based on the context (database schema, past conversations, etc)",
         tool_choice={"type": "tool", "name": "questions"},  # anthropic specific
     )
     response_dict = message.function_call["arguments"]

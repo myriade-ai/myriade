@@ -1,20 +1,20 @@
+import io
 import json
 import os
+
 import requests
 import yaml
 from autochat import Autochat, Message
 from autochat.chat import StopLoopException
+from PIL import Image as PILImage
+
 from back.datalake import DatalakeFactory
 from back.models import Conversation, ConversationMessage, Query
 from chat.dbt_utils import DBT
 from chat.lock import StopException
-from chat.memory_utils import find_closest_embeddings
+from chat.notes import Notes
 from chat.render import render_chart
 from chat.sql_utils import run_sql
-from chat.notes import Notes
-from PIL import Image as PILImage
-import io
-
 
 # Load functions from a predefined path, independent of the current working directory
 
@@ -60,7 +60,7 @@ class DatabaseChat:
         session,
         database_id,
         conversation_id=None,
-        stop_flags={},
+        stop_flags=None,
         model=None,
         project_id=None,
     ):
@@ -80,7 +80,10 @@ class DatabaseChat:
             self.conversation.database.engine,
             **self.conversation.database.details,
         )
-        self.stop_flags = stop_flags
+        if stop_flags is None:
+            self.stop_flags = {}
+        else:
+            self.stop_flags = stop_flags
         self.model = model
 
         self.dbt = None

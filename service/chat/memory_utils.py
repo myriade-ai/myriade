@@ -1,4 +1,5 @@
 import openai
+
 from back.models import Query
 
 
