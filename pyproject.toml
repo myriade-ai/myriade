@@ -23,11 +23,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["ruff"]
 mysql = ["mysqlclient>=2.2.1"]
 snowflake = ["snowflake-connector-python>=3.0.1"]
 # Note: Postgres is included by default as the database of the project
 all = ["mysql", "snowflake"]  
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "pytest>=8.3.4",
+]
 
 [tool.ruff]
 line-length = 220
