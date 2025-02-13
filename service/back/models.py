@@ -250,6 +250,7 @@ class User(DefaultBase, Base):
     email = Column(String, nullable=False, unique=True)
     id = Column(String, primary_key=True)
     pictureUrl = Column(String)
+    is_admin = Column(Boolean, nullable=False, default=False)
     # organisationId = Column(String, ForeignKey("organisation.id"))
     # organisation = relationship("Organisation")
 
