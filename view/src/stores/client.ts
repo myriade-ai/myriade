@@ -3,7 +3,11 @@ import type { AuthenticationInfo, IAuthClient } from '@propelauth/javascript'
 import { ref } from 'vue'
 import axios from 'axios'
 
-export const user = ref(null)
+export const user = ref({
+  isAdmin: false,
+  email: null,
+  id: null
+})
 
 // If VITE_PROPELAUTH_URL is undefined, then have a mockup auth server
 // Otherwise, use the real auth server
@@ -42,14 +46,16 @@ if (import.meta.env.VITE_PROPELAUTH_URL === undefined) {
 }
 
 export const authenticate = async () => {
-  // Seems a bug that this call the api multiple times...
   const authInfo = await client.getAuthenticationInfoOrNull()
   if (!authInfo) {
     client.redirectToLoginPage()
   }
 
-  console.log('You are logged in as ' + authInfo.user.email) //
-  user.value = authInfo.user
+  user.value = {
+    isAdmin: authInfo.user.email === 'admin@localhost', // Temporary solution until backend is updated
+    email: authInfo.user.email,
+    id: authInfo.user.userId
+  }
   axios.defaults.headers.common['Authorization'] = `Bearer ${authInfo.accessToken}`
 }
 

@@ -1,6 +1,6 @@
 from functools import wraps
 
-from flask import g, request
+from flask import g, request, jsonify
 
 from back.datalake import DatalakeFactory
 from back.models import Database, User
@@ -38,6 +38,16 @@ def database_middleware(f):
         datalake.safe_mode = database.safe_mode
         g.datalake = datalake
 
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not hasattr(g, "user") or not g.user.is_admin:
+            return jsonify({"error": "Admin access required"}), 403
         return f(*args, **kwargs)
 
     return decorated_function

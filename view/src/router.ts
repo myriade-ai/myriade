@@ -1,5 +1,5 @@
 import { createWebHistory, createRouter } from 'vue-router'
-import { authenticate } from './stores/client'
+import { authenticate, user } from './stores/client'
 import { loadQuery } from './stores/query'
 import { useDatabases } from './stores/databases'
 import Editor from './views/Editor.vue'
@@ -74,6 +74,14 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   await authenticate()
+  
+  // Admin-only routes
+  const adminRoutes = ['/databases', '/projects']
+  if (adminRoutes.some(route => to.path.startsWith(route)) && !user.value?.isAdmin) {
+    next('/')
+    return
+  }
+  
   await fetchDatabases({ refresh: false })
   next()
 })

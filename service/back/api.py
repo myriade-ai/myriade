@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import List, Union
 
 from flask import Blueprint, g, jsonify, request
-from middleware import user_middleware
+from middleware import user_middleware, admin_required
 from sqlalchemy import or_
 
 from back.datalake import ConnectionError, DatalakeFactory
@@ -91,6 +91,7 @@ def delete_conversation(conversation_id):
 
 @api.route("/databases", methods=["POST"])
 @user_middleware
+@admin_required
 def create_database():
     try:
         # Instaniate a new datalake object
@@ -126,6 +127,7 @@ def create_database():
 
 @api.route("/databases/<int:database_id>", methods=["DELETE"])
 @user_middleware
+@admin_required
 def delete_database(database_id):
     # Delete database
     g.session.query(Database).filter_by(id=database_id).delete()

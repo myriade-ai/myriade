@@ -163,12 +163,15 @@ const isRouteActive = (navPath: string) => {
   )
 }
 
-const navigation = [
+const navigation = computed(() => [
   { name: 'Chat', href: '/' },
   { name: 'Query', href: '/query' },
-  { name: 'Databases', href: '/databases' },
-  { name: 'Projects', href: '/projects' }
-]
+  // Only show these items to admins
+  ...(user.value?.isAdmin ? [
+    { name: 'Databases', href: '/databases' },
+    { name: 'Projects', href: '/projects' }
+  ] : [])
+])
 const userNavigation = [
   { name: 'Your Profile', click: client.redirectToAccountPage },
   { name: 'Organisation', click: client.redirectToOrgPage },
