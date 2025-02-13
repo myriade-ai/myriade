@@ -1,16 +1,22 @@
 <template>
   <base-field :name="name">
-    <Field
-      :name="name"
-      :type="type"
-      v-model="model"
-      :placeholder="placeholder"
-      class="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-      :rules="rules"
-    />
-    <ErrorMessage :name="name" class="sm:text-sm text-red-400" />
+    <div class="relative block w-full max-w-lg">
+      <Field
+        :name="props.name"
+        :type="props.type"
+        v-model="model"
+        :placeholder="props.placeholder"
+        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+        :rules="props.rules"
+      />
+      <div class="input-slot-container">
+        <slot />
+      </div>
+    </div>
+    <ErrorMessage :name="props.name" class="sm:text-sm text-red-400" />
   </base-field>
 </template>
+
 <script setup lang="ts">
 import BaseField from '../components/BaseField.vue'
 // Name from props
@@ -39,7 +45,7 @@ interface Props {
   type?: string
 }
 
-const { name, placeholder, modelValue, type, rules } = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   placeholder: '',
   type: 'text',
   rules: ''
@@ -48,7 +54,20 @@ const { name, placeholder, modelValue, type, rules } = withDefaults(defineProps<
 const emit = defineEmits(['update:modelValue'])
 
 const model = computed({
-  get: () => modelValue,
+  get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val)
 })
 </script>
+
+<style scoped>
+.input-slot-container {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+</style>

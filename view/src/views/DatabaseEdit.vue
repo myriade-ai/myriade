@@ -44,7 +44,11 @@
         />
         <base-input name="Port" v-model="database.details.port" type="number" />
         <base-input name="User" v-model="database.details.user" />
-        <base-input name="Password" v-model="database.details.password" />
+        <base-input-password
+          name="Password"
+          v-model="database.details.password"
+          placeholder="Enter password"
+        />
         <base-input name="Database" v-model="database.details.database" rules="required" />
       </div>
       <div class="mt-4 text-sm text-gray-500" v-if="database.engine === 'mysql'">
@@ -57,7 +61,11 @@
         />
         <base-input name="Port" v-model="database.details.port" type="number" />
         <base-input name="User" v-model="database.details.user" />
-        <base-input name="Password" v-model="database.details.password" />
+        <base-input-password
+          name="Password"
+          v-model="database.details.password"
+          placeholder="Enter password"
+        />
         <base-input name="Database" v-model="database.details.database" rules="required" />
       </div>
     </div>
@@ -69,7 +77,12 @@
       <p>Snowflake connection details</p>
       <base-input name="Account" v-model="database.details.account" rules="required" />
       <base-input name="User" v-model="database.details.user" rules="required" />
-      <base-input name="Password" v-model="database.details.password" rules="required" />
+      <base-input-password
+        name="Password"
+        v-model="database.details.password"
+        placeholder="Enter password"
+        rules="required"
+      />
       <base-input name="Database" v-model="database.details.database" rules="required" />
       <base-input name="Schema" v-model="database.details.schema" />
       <base-input name="Role" v-model="database.details.role" />
@@ -164,7 +177,8 @@ import BaseField from '../components/BaseField.vue'
 import BaseInput from '../components/BaseInput.vue'
 import BaseAlert from '../components/BaseAlert.vue'
 import BaseSwitch from '../components/BaseSwitch.vue'
-import { Field, Form } from 'vee-validate'
+import BaseInputPassword from '@/components/BaseInputPassword.vue'
+import { Form } from 'vee-validate'
 
 const route = useRoute()
 const apiError = ref(null)
