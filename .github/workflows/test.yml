@@ -29,4 +29,4 @@ jobs:
         env:
           OPENAI_API_KEY: fake
           ANTHROPIC_API_KEY: fake
-        run: pytest tests
+        run: pytest
