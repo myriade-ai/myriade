@@ -1,7 +1,7 @@
+from app import socketio
 from flask import Blueprint
 from flask_socketio import emit
 
-from app import socketio
 from back.models import ConversationMessage, Project
 from back.session import Session
 from chat.datachat import DatabaseChat

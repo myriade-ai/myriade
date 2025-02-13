@@ -24,9 +24,6 @@ all = [
     { name = "mysql" },
     { name = "snowflake" },
 ]
-dev = [
-    { name = "ruff" },
-]
 mysql = [
     { name = "mysqlclient" },
 ]
@@ -37,6 +34,7 @@ snowflake = [
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
@@ -53,14 +51,16 @@ requires-dist = [
     { name = "psycopg2-binary", specifier = ">=2.9.7" },
     { name = "pyyaml", specifier = ">=6.0.1" },
     { name = "requests", specifier = ">=2.28.2" },
-    { name = "ruff", marker = "extra == 'dev'" },
     { name = "snowflake", marker = "extra == 'all'" },
     { name = "snowflake-connector-python", marker = "extra == 'snowflake'", specifier = ">=3.0.1" },
     { name = "sqlalchemy", specifier = ">=2.0.6" },
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8.3.4" }]
+dev = [
+    { name = "pytest", specifier = ">=8.3.4" },
+    { name = "ruff" },
+]
 
 [[package]]
 name = "alembic"
