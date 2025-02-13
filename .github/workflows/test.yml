@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
-          uv sync --frozen
+          uv sync --frozen --dev
       - name: Run tests
         env:
           OPENAI_API_KEY: fake
