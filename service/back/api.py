@@ -20,7 +20,6 @@ from back.models import (
 api = Blueprint("back_api", __name__)
 
 AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
-AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
 
 
 def dataclass_to_dict(obj: Union[object, List[object]]) -> Union[dict, List[dict]]:
