@@ -1,5 +1,3 @@
-[![CI](https://github.com/BenderV/ada/actions/workflows/ci.yml/badge.svg)](https://github.com/BenderV/ada/actions/workflows/ci.yml)
-
 # ADA: Accelerate Data Analysis, with AI
 
 Ada is the best AI tool to explore your data in a safe, fast & accessible way.

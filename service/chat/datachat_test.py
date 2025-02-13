@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
 
-TEST_DATABASE_URL = "postgresql://localhost/adatest"
+TEST_DATABASE_URL = "postgresql://localhost/ada-test"
 
 
 class TestDatabase(unittest.TestCase):

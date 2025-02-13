@@ -2,7 +2,7 @@ import json
 import os
 from datetime import date, datetime
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = os.environ["DATABASE_URL"]
@@ -44,7 +44,9 @@ def setup_database(refresh=False):
     # Create all tables
     Base.metadata.create_all(_engine)
 
-    # TODO: CREATE EXTENSION vector;
+    # Create vector extension if it doesn't exist
+    with _engine.connect() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
 
     # Return the engine
     return _engine
