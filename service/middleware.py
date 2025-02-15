@@ -1,12 +1,9 @@
 from functools import wraps
 
-from flask import g, request, jsonify
+from flask import g, jsonify, request
 
 from back.datalake import DatalakeFactory
 from back.models import Database, User
-
-# TODO: remove this
-# organisationId = None  # "6264fdaf-e8e2-41a8-a110-0fccc0e71277"
 
 
 def user_middleware(f):
