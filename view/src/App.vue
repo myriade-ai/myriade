@@ -42,7 +42,7 @@ watch(
         firstName: newUserClerk.firstName,
         lastName: newUserClerk.lastName,
         imageUrl: newUserClerk.imageUrl,
-        isAdmin: newUserClerk.organizationMemberships[0].role === "org:admin",
+        isAdmin: newUserClerk.organizationMemberships[0]?.role === "org:admin",
       }
     }
   },
