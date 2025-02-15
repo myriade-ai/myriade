@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import List, Union
 
 from flask import Blueprint, g, jsonify, request
-from middleware import user_middleware, admin_required
+from middleware import admin_required, user_middleware
 from sqlalchemy import or_
 
 from back.datalake import ConnectionError, DatalakeFactory
