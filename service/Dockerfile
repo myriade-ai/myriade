@@ -11,12 +11,13 @@ WORKDIR /app
 RUN pip install uv
 
 # Copy poetry.lock and pyproject.toml
-COPY ../pyproject.toml ../uv.lock ./
+COPY ./pyproject.toml ./uv.lock ./
 
 # Install Python dependencies using uv sync
 RUN uv sync
 
 # Install Playwright and its dependencies
+RUN pip install playwright
 RUN playwright install chromium
 RUN playwright install-deps chromium
 
