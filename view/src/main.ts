@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import './assets/main.css'
 import App from './App.vue'
 import { createMetaManager } from 'vue-meta'
 import LayoutDefault from '@/layouts/default.vue'
@@ -10,12 +11,15 @@ import FusionCharts from 'fusioncharts'
 import Charts from 'fusioncharts/fusioncharts.charts'
 import FusionTheme from 'fusioncharts/themes/fusioncharts.theme.fusion'
 import piniaPluginPersistedState from 'pinia-plugin-persistedstate'
-
 import router from './router'
-
 import Vue3TouchEvents, { type Vue3TouchEventsOptions } from 'vue3-touch-events'
+import { clerkPlugin } from '@clerk/vue'
 
-import './assets/main.css'
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+if (!PUBLISHABLE_KEY) {
+  throw new Error('Add your Clerk Publishable Key to the .env.local file')
+}
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -32,4 +36,5 @@ app.use<Vue3TouchEventsOptions>(Vue3TouchEvents, {
 app.component('layout-default', LayoutDefault)
 app.use(createMetaManager())
 app.use(VueFusionCharts, FusionCharts, Charts, FusionTheme)
+app.use(clerkPlugin, { publishableKey: PUBLISHABLE_KEY })
 app.mount('#app')

@@ -1,21 +1,28 @@
 from functools import wraps
 
 from flask import g, jsonify, request
+from middlewares.clerk import clerk_middleware
 
 from back.datalake import DatalakeFactory
 from back.models import Database, User
 
 
 def user_middleware(f):
+    @clerk_middleware
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # g.organisationId = organisationId
-        # Extract user information from the request
-        logged_user = (
-            g.session.query(User).filter(User.email == "admin@localhost").first()
-        )
-        if logged_user:
-            g.user = logged_user
+        # Get or create user based on Clerk authentication
+        user = g.session.query(User).filter(User.id == g.user_id).first()
+        if not user:
+            # Create new user from Clerk data
+            user = User(
+                id=g.user_id,
+                email=g.user_email,
+            )
+            g.session.add(user)
+            g.session.commit()
+
+        g.user = user
         return f(*args, **kwargs)
 
     return decorated_function
