@@ -1,10 +1,10 @@
 from functools import wraps
 
 from flask import g, jsonify, request
-from middlewares.clerk import clerk_middleware
 
 from back.datalake import DatalakeFactory
 from back.models import Database, User
+from middlewares.clerk import clerk_middleware
 
 
 def user_middleware(f):
@@ -41,7 +41,6 @@ def database_middleware(f):
         datalake.privacy_mode = database.privacy_mode
         datalake.safe_mode = database.safe_mode
         g.datalake = datalake
-
         return f(*args, **kwargs)
 
     return decorated_function

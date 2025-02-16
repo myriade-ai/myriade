@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import List, Union
 
 from flask import Blueprint, g, jsonify, request
-from middleware import admin_required, user_middleware
 from sqlalchemy import or_
 
 from back.datalake import ConnectionError, DatalakeFactory
@@ -16,6 +15,7 @@ from back.models import (
     Project,
     ProjectTables,
 )
+from middleware import admin_required, user_middleware
 
 api = Blueprint("back_api", __name__)
 
