@@ -22,10 +22,12 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install dependencies
+        working-directory: ./service
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           uv sync --frozen --dev
       - name: Run tests
+        working-directory: ./service
         env:
           OPENAI_API_KEY: fake
           ANTHROPIC_API_KEY: fake
