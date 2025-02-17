@@ -27,9 +27,6 @@
               </router-link>
             </div>
           </div>
-          <SignedIn>
-            <UserButton />
-          </SignedIn>
           <!-- Profile is hidden for now -->
           <!-- <div class="hidden sm:ml-6 sm:flex sm:items-center"> -->
           <div class="hidden">
@@ -153,9 +150,8 @@ import {
   MenuItem,
   MenuItems
 } from '@headlessui/vue'
-import { BellIcon, XMarkIcon, Bars3Icon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, Bars3Icon } from '@heroicons/vue/24/outline'
 import { user } from '../stores/client'
-import { SignedIn, UserButton } from '@clerk/vue'
 
 const route = useRoute()
 const currentPath = computed(() => route.path)

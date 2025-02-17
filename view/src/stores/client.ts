@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 
-// Initialize Clerk with your Clerk Publishable Key
 type User = {
   id: string | null
   email: string | null
