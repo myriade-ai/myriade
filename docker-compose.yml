@@ -11,9 +11,12 @@ services:
       POSTGRES_PASSWORD: pass
     ports:
       - "2345:5432" # To avoid conflicts with other Postgres instances
+    networks:
+      - ada-network
 
   service:
     build: ./service
+    image: benderville/ada-service:latest
     ports: # Public port is 4000, but the container is listening on 4000
       - "4000:4000"
     depends_on:
@@ -26,14 +29,24 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+    networks:
+      - ada-network
+
   view:
     build: ./view
+    image: benderville/ada-view:latest
     ports:
       - "8080:80"
     depends_on:
       - service
     environment:
       VITE_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+    networks:
+      - ada-network
+
+networks:
+  ada-network:
+    driver: bridge
 
 volumes:
   postgres_data:

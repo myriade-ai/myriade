@@ -8,6 +8,7 @@ socketio = SocketIO(cors_allowed_origins="*")
 
 def create_app():
     app = Flask(__name__)
+
     app.json.sort_keys = False
 
     from ai.api import api as ai_api

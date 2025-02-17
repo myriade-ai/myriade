@@ -5,7 +5,7 @@ FROM python:3.11.4
 WORKDIR /app
 
 # Install system dependencies (if any)
-# RUN apt-get update && apt-get install -y --no-install-recommends [packages]
+RUN apt-get update && apt-get install -y --no-install-recommends
 
 # Install uv package installer
 RUN pip install uv
@@ -13,13 +13,18 @@ RUN pip install uv
 # Copy poetry.lock and pyproject.toml
 COPY ./pyproject.toml ./uv.lock ./
 
-# Install Python dependencies using uv sync
-RUN uv sync
+## Install Python dependencies using uv sync
+# RUN uv sync --locked --no-dev
+
+RUN uv pip compile pyproject.toml > requirements.txt
+RUN uv pip install --system -r requirements.txt
 
 # Install Playwright and its dependencies
-RUN pip install playwright
-RUN playwright install chromium
-RUN playwright install-deps chromium
+RUN uv pip install --system playwright
+# RUN playwright install chromium
+# RUN playwright install-deps chromium
+
+RUN uv pip install --system clerk_backend_api
 
 # Copy the rest of the application's code
 COPY . .
