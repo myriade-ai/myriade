@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.1.1 (2025-02-17)
+
+### Bug Fixes
+
+- Build
+  ([`fad9940`](https://github.com/catalys-intelligence/ada/commit/fad9940c22817b03c63499872dfae2642e68fcd4))
+
+### Chores
+
+- Add build workflow
+  ([`0c2945a`](https://github.com/catalys-intelligence/ada/commit/0c2945a94767fa2b984215d14306703aa923fd23))
+
+
 ## v0.1.0 (2025-02-17)
 
 ### Bug Fixes
