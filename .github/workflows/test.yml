@@ -21,7 +21,6 @@ jobs:
         uses: astral-sh/setup-uv@v5
       - name: "Set up Python"
         uses: actions/setup-python@v5
-        working-directory: ./service
         with:
           python-version-file: "pyproject.toml"
       - name: Install the project
