@@ -25,7 +25,8 @@ jobs:
         working-directory: ./service
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
-          uv pip install --system -r pyproject.toml -E dev
+          uv pip compile pyproject.toml --all-extras > requirements.txt
+          uv pip install --system -r requirements.txt
       - name: Run tests
         working-directory: ./service
         env:
