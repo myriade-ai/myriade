@@ -7,5 +7,5 @@ if [ -f .env.sh ]; then
 fi
 
 
-alembic upgrade head
-flask run --host=0.0.0.0 --port=4000
+python -m alembic upgrade head
+python -m flask run --host=0.0.0.0 --port=4000
