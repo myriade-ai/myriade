@@ -22,7 +22,7 @@ jobs:
       - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
-          python-version-file: "pyproject.toml"
+          python-version-file: "service/pyproject.toml"
       - name: Install the project
         working-directory: ./service
         run: uv sync --all-extras --dev
