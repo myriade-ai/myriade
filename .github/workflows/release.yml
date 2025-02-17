@@ -6,7 +6,6 @@ on:
     types:
       - completed
     branches: [master]
-    if: ${{github.event.workflow_run.conclusion == 'success'}}
 
 jobs:
   release:
@@ -22,10 +21,10 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Set up Python
+      - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version-file: "service/pyproject.toml"
       - name: Python Semantic Release
         uses: python-semantic-release/python-semantic-release@master
         with:
