@@ -36,7 +36,6 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 220
 target-version = "py39"
 
 # Enable Pyflakes (`F`) and Import sorting (`I`)

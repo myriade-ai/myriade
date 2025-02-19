@@ -248,8 +248,8 @@ def get_questions(context_id):
     questionAssistant.add_function(questions)
 
     message = questionAssistant.ask(
-        "Generate 3 business questions about different topics that the user can ask "
-        "based on the context (database schema, past conversations, etc)",
+        "Generate 3 business questions about different topics that the user "
+        + "can ask based on the context (database schema, past conversations, etc)",
         tool_choice={"type": "tool", "name": "questions"},  # anthropic specific
     )
     response_dict = message.function_call["arguments"]
@@ -294,7 +294,8 @@ def get_project(project_id):
     project = (
         g.session.query(Project)
         # .join(ProjectTables, Project.tables, isouter=True)
-        .filter_by(id=project_id).first()
+        .filter_by(id=project_id)
+        .first()
     )
 
     # # Verify user access

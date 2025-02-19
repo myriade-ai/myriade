@@ -16,6 +16,7 @@ from chat.lock import (
 api = Blueprint("chat_api", __name__)
 socket_session = None
 
+
 @socketio.on("stop")
 def handle_stop(conversation_id):
     print("Received stop signal for conversation_id", conversation_id)

@@ -1,10 +1,11 @@
 """init
 
 Revision ID: f5da7bf41365
-Revises: 
+Revises:
 Create Date: 2023-08-13 13:23:37.050415
 
 """
+
 from typing import Sequence, Union
 
 import pgvector

@@ -1,6 +1,7 @@
 """
 Create sqlite database from sample.sql
 """
+
 import os
 import sqlite3
 
