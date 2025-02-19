@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.2.0 (2025-02-19)
+
+### Features
+
+- **readme**: Update
+  ([`cb1f223`](https://github.com/catalys-intelligence/ada/commit/cb1f223ef5167fdc0afac345d0233f095831e833))
+
+
 ## v0.1.1 (2025-02-17)
 
 ### Bug Fixes
