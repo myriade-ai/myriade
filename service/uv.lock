@@ -18,6 +18,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "requests" },
     { name = "sqlalchemy" },
+    { name = "workos" },
 ]
 
 [package.optional-dependencies]
@@ -56,6 +57,7 @@ requires-dist = [
     { name = "snowflake", marker = "extra == 'all'" },
     { name = "snowflake-connector-python", marker = "extra == 'snowflake'", specifier = ">=3.0.1" },
     { name = "sqlalchemy", specifier = ">=2.0.6" },
+    { name = "workos", specifier = ">=4.15.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -1072,6 +1074,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9f/69/83029f1f6300c5fb2471d621ab06f6ec6b3324685a2ce0f9777fd4a8b71e/werkzeug-3.1.3.tar.gz", hash = "sha256:60723ce945c19328679790e3282cc758aa4a6040e4bb330f53d30fa546d44746", size = 806925 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/52/24/ab44c871b0f07f491e5d2ad12c9bd7358e527510618cb1b803a88e986db1/werkzeug-3.1.3-py3-none-any.whl", hash = "sha256:54b78bf3716d19a65be4fceccc0d1d7b89e608834989dfae50ea87564639213e", size = 224498 },
+]
+
+[[package]]
+name = "workos"
+version = "4.15.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/30/39/1afa3b8f10188bb4b1c5a25d8a8b8eedee51cd43b831bd23a83101c7096b/workos-4.15.0.tar.gz", hash = "sha256:4f0a3b01683da84935852cd44d671ad882ca36cce1ea4745cf81ec1b4df8854f", size = 27106 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8e/d4/1bea1772b882c823a4e04824ad1df5d210bada15e53c4510220c876a55d2/workos-4.15.0-py3-none-any.whl", hash = "sha256:6ff4707a5c7340d1df0c5567823a43f9f4b26a221794c323f958c51db4bf5ec1", size = 38034 },
 ]
 
 [[package]]
