@@ -53,7 +53,10 @@ class TestParseFunction(unittest.TestCase):
         result = parse_function(text)
         expected = {
             "name": "FUNCTION",
-            "arguments": '{"name": "argument1", "description": "describes something", "query": "SELECT column\\nFROM table;"}',
+            "arguments": (
+                '{"name": "argument1", "description": "describes something", ',
+                '"query": "SELECT column\\nFROM table;"}',
+            ),
         }
         self.assertEqual(result, expected)
 
@@ -68,7 +71,11 @@ class TestParseFunction(unittest.TestCase):
         result = parse_function(text)
         expected = {
             "name": "SQL_QUERY",
-            "arguments": '{"name": "installation_date column examples", "query": "SELECT installation_date\\nFROM public.station\\nORDER BY RANDOM()\\nLIMIT 5;"}',
+            "arguments": (
+                '{"name": "installation_date column examples", '
+                '"query": "SELECT installation_date\\nFROM public.station\\n'
+                'ORDER BY RANDOM()\\nLIMIT 5;"}'
+            ),
         }
         self.assertEqual(result, expected)
 
