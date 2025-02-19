@@ -24,8 +24,6 @@ RUN uv pip install --system playwright
 # RUN playwright install chromium
 # RUN playwright install-deps chromium
 
-RUN uv pip install --system clerk_backend_api
-
 # Copy the rest of the application's code
 COPY . .
 

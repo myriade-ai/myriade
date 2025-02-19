@@ -26,7 +26,8 @@ services:
       AUTOCHAT_PROVIDER: anthropic
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      WORKOS_API_KEY: ${WORKOS_API_KEY}
+      WORKOS_CLIENT_ID: ${WORKOS_CLIENT_ID}
     networks:
       - ada-network
 

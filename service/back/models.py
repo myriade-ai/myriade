@@ -249,7 +249,7 @@ class Query(DefaultBase, Base):
 class User(DefaultBase, Base):
     __tablename__ = "user"
 
-    id = Column(String, primary_key=True)  # Clerk user ID
+    id = Column(String, primary_key=True)
     email = Column(String, nullable=False, unique=True)
 
 

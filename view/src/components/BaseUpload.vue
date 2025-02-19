@@ -55,7 +55,7 @@
 import { CloudArrowUpIcon } from '@heroicons/vue/24/solid'
 
 import { onMounted, onUnmounted, ref } from 'vue'
-import axios from 'axios'
+import axios from '@/plugins/axios'
 import { useDatabases } from '../stores/databases'
 import BaseNotification from './BaseNotification.vue'
 
