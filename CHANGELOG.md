@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.2.1 (2025-02-19)
+
+### Bug Fixes
+
+- **dependencies**: Add workos
+  ([`aa922c3`](https://github.com/catalys-intelligence/ada/commit/aa922c3eb0e76b61b8645933f0e771981bf8d62d))
+
+
 ## v0.2.0 (2025-02-19)
 
 ### Features
