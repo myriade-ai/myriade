@@ -110,7 +110,7 @@ def create_database():
         description=request.json["description"],
         _engine=request.json["engine"],
         details=request.json["details"],
-        # organisationId=request.json["organisationId"],
+        organisationId=g.organisation.id,
         ownerId=g.user.id,
         privacy_mode=request.json["privacy_mode"],
         safe_mode=request.json["safe_mode"],
@@ -142,6 +142,7 @@ def update_database(database_id):
     database = g.session.query(Database).filter_by(id=database_id).first()
     database.name = request.json["name"]
     database.description = request.json["description"]
+    database.organisationId = g.organisation.id
 
     # If the engine info has changed, we need to check the connection
     datalake = DatalakeFactory.create(
@@ -173,17 +174,14 @@ def update_database(database_id):
 @api.route("/databases", methods=["GET"])
 @user_middleware
 def get_databases():
-    user = getattr(g, "user", None)
-    # organisationId = g.organisationId
-    # Filter databases based on ownerId (userId) OR organisationId
     databases = (
-        g.session.query(Database).filter(Database.ownerId == user.id)
-        # .filter(
-        #     or_(
-        #
-        #         Database.organisationId == organisationId
-        #     )
-        # )
+        g.session.query(Database)
+        .filter(
+            or_(
+                Database.organisationId == g.organisation.id,
+                Database.ownerId == g.user.id,
+            )
+        )
         .all()
     )
     return jsonify(databases)
@@ -260,6 +258,7 @@ def get_questions(context_id):
 
 
 @api.route("/databases/<int:database_id>/schema", methods=["GET"])
+@user_middleware
 def get_schema(database_id):
     # Filter databases based on user ID and specific database ID
     database = g.session.query(Database).filter_by(id=database_id).first()
@@ -279,7 +278,7 @@ def get_projects():
         .filter(
             or_(
                 Project.creatorId == g.user.id,
-                # Project.organisationId == g.organisationId,
+                Project.organisationId == g.organisation.id,
             )
         )
         .all()
@@ -299,11 +298,7 @@ def get_project(project_id):
     )
 
     # # Verify user access
-    if (
-        project.creatorId
-        != g.user.id
-        # and project.organisationId != g.user.organisationId
-    ):
+    if project.creatorId != g.user.id and project.organisationId != g.organisation.id:
         return jsonify({"error": "Access denied"}), 403
 
     project_dict = dataclass_to_dict(project)
@@ -323,6 +318,7 @@ def create_project():
 
     new_project = Project(**{field: data[field] for field in required_fields})
     new_project.creatorId = g.user.id
+    new_project.organisationId = g.organisation.id
 
     # Handle creation of ProjectTables
     if "tables" in data:
@@ -347,6 +343,7 @@ def update_project(project_id):
     project = g.session.query(Project).filter_by(id=project_id).first()
     # update name, description or tables
     project.name = data.get("name")
+    project.organisationId = g.organisation.id
     project.description = data.get("description")
     project.databaseId = data.get("databaseId")
     project.tables = [

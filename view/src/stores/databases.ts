@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import type { Ref, WritableComputedRef } from 'vue'
-import axios from 'axios'
+import axios from '@/plugins/axios'
 
 export interface Database {
   id: number

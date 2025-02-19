@@ -9,3 +9,4 @@ ai
 .tmuxinator.yml
 *.code-workspace
 service/start.sh
+service/.env

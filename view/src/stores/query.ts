@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import axios from 'axios'
+import axios from '@/plugins/axios'
 import sqlPrettier from 'sql-prettier'
 import { useDatabases } from './databases'
 import router from '../router'

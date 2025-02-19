@@ -67,7 +67,7 @@
 import { computed, nextTick, ref, unref } from 'vue'
 import type { Ref } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
-import axios from 'axios'
+import axios from '@/plugins/axios'
 import { useRouter } from 'vue-router'
 import { TrashIcon, PencilIcon, XMarkIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import { useRoute } from 'vue-router'
