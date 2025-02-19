@@ -109,7 +109,8 @@ def downgrade() -> None:
     op.drop_table("project_tables")
     op.drop_table("project")
 
-    # Drop expressions now() from createdAt & updatedAt columns of tables conversation, conversation_message, query
+    # Drop expressions now() from createdAt & updatedAt columns of
+    # tables conversation, conversation_message, query
     op.alter_column("conversation", "createdAt", server_default=None, nullable=True)
     op.alter_column("conversation", "updatedAt", server_default=None, nullable=True)
     op.alter_column(
