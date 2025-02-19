@@ -151,7 +151,7 @@ import {
   MenuItems
 } from '@headlessui/vue'
 import { XMarkIcon, Bars3Icon } from '@heroicons/vue/24/outline'
-import { user } from '../stores/client'
+import { user } from '@/stores/auth'
 
 const route = useRoute()
 const currentPath = computed(() => route.path)
@@ -168,9 +168,11 @@ const navigation = computed(() => [
   { name: 'Chat', href: '/' },
   { name: 'Query', href: '/query' },
   // Only show these items to admins
-  ...(user.value?.isAdmin ? [
-    { name: 'Databases', href: '/databases' },
-    { name: 'Projects', href: '/projects' }
-  ] : [])
+  ...(user.value?.isAdmin
+    ? [
+        { name: 'Databases', href: '/databases' },
+        { name: 'Projects', href: '/projects' }
+      ]
+    : [])
 ])
 </script>

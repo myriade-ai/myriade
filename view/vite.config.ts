@@ -13,9 +13,12 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     proxy: {
+      '/auth': {
+        target: 'http://127.0.0.1:4000',
+        rewrite: (path) => path.replace(/^\/auth/, '')
+      },
       '/api': {
         target: 'http://127.0.0.1:4000',
-        changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       },
       '/socket.io': {

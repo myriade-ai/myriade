@@ -1,18 +1,17 @@
 import { createWebHistory, createRouter } from 'vue-router'
-import { user } from './stores/client'
 import { loadQuery } from './stores/query'
-import { useDatabases } from './stores/databases'
 import Editor from './views/Editor.vue'
 import DatabaseList from './views/DatabaseList.vue'
 import Upload from './views/Upload.vue'
 import Chat from './views/ChatPage.vue'
 import ProjectList from './views/ProjectList.vue'
+import Login from '@/views/Login.vue'
+import User from '@/views/User.vue'
+import { authGuard } from '@/auth'
 
 function loadView(view: string) {
   return () => import(`./views/${view}.vue`)
 }
-
-const { fetchDatabases } = useDatabases()
 
 const routes = [
   {
@@ -63,24 +62,25 @@ const routes = [
     path: '/projects/:id',
     name: 'ProjectEdit',
     component: loadView('ProjectEdit')
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login,
+    meta: { requiresGuest: true }
+  },
+  {
+    path: '/user',
+    name: 'User',
+    component: User
   }
 ]
 
 const router = createRouter({
-  //history: createWebHistory(import.meta.env.BASE_URL),
   history: createWebHistory(),
   routes
 })
 
-router.beforeEach(async (to, from, next) => {
-  const adminRoutes = ['/databases', '/projects']
-  if (adminRoutes.some(route => to.path.startsWith(route)) && !user.value?.isAdmin) {
-    next('/')
-    return
-  }
-  
-  await fetchDatabases({ refresh: false })
-  next()
-})
+router.beforeEach(authGuard)
 
 export default router
