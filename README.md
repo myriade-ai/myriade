@@ -1,4 +1,4 @@
-# ADA: Accelerate Data Analysis, with AI
+# ADA: Accelerate Data Analysis
 
 Ada is the best AI tool to explore your data in a safe, fast & accessible way.
 
