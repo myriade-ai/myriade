@@ -53,10 +53,7 @@ class TestParseFunction(unittest.TestCase):
         result = parse_function(text)
         expected = {
             "name": "FUNCTION",
-            "arguments": (
-                '{"name": "argument1", "description": "describes something", ',
-                '"query": "SELECT column\\nFROM table;"}',
-            ),
+            "arguments": '{"name": "argument1", "description": "describes something", "query": "SELECT column\\nFROM table;"}',  # noqa: E501
         }
         self.assertEqual(result, expected)
 
