@@ -19,8 +19,6 @@ def auth():
 
 @api.route("/callback")
 def callback():
-    frontend_url = request.scheme + "://" + request.host
-
     if request.args.get("error"):
         error_params = urlencode(
             {
