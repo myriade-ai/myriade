@@ -15,9 +15,7 @@ cookie_password = "mkPRI77h3M6iehoYFhwWXQ27f2sGpPuM"
 
 # Generate a proper Fernet key from the password
 cookie_password_bytes = cookie_password.encode()
-cookie_password_b64 = base64.urlsafe_b64encode(
-    hashlib.sha256(cookie_password_bytes).digest()
-).decode("utf-8")
+cookie_password_b64 = base64.urlsafe_b64encode(hashlib.sha256(cookie_password_bytes).digest()).decode("utf-8")
 
 
 def with_auth(f):
@@ -39,3 +37,15 @@ def with_auth(f):
             return jsonify({"error": "Unauthorized"}), 401
 
     return decorated_function
+
+
+def socket_auth(*args, **kwargs):
+    session = workos_client.user_management.load_sealed_session(
+        sealed_session=request.cookies.get("wos_session"),
+        cookie_password=cookie_password_b64,
+    )
+    auth_response = session.authenticate()
+    if auth_response.authenticated:
+        return auth_response
+
+    raise Exception("Unauthorized")

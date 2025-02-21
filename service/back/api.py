@@ -81,9 +81,7 @@ def get_conversation(conversation_id):
 @user_middleware
 def delete_conversation(conversation_id):
     # Delete conversation and all related messages
-    g.session.query(ConversationMessage).filter_by(
-        conversationId=conversation_id
-    ).delete()
+    g.session.query(ConversationMessage).filter_by(conversationId=conversation_id).delete()
     g.session.query(Conversation).filter_by(id=conversation_id).delete()
     g.session.commit()
     return jsonify({"success": True})
@@ -142,7 +140,7 @@ def update_database(database_id):
     database = g.session.query(Database).filter_by(id=database_id).first()
     database.name = request.json["name"]
     database.description = request.json["description"]
-    database.organisationId = g.organisation.id
+    database.organisationId = g.organization_id
 
     # If the engine info has changed, we need to check the connection
     datalake = DatalakeFactory.create(
@@ -178,7 +176,7 @@ def get_databases():
         g.session.query(Database)
         .filter(
             or_(
-                Database.organisationId == g.organisation.id,
+                Database.organisationId == g.organization_id if g.organization_id is not None else False,
                 Database.ownerId == g.user.id,
             )
         )
@@ -195,9 +193,7 @@ def get_questions(context_id):
         project_id = int(context_id.split("-")[1])
         project = g.session.query(Project).filter_by(id=project_id).first()
         database = g.session.query(Database).filter_by(id=project.databaseId).first()
-    elif context_id.startswith(
-        "database-"
-    ):  # Note: will be removed once we have context / project
+    elif context_id.startswith("database-"):  # Note: will be removed once we have context / project
         database_id = int(context_id.split("-")[1])
         database = g.session.query(Database).filter_by(id=database_id).first()
 
@@ -237,9 +233,7 @@ def get_questions(context_id):
 
     from autochat import Autochat
 
-    questionAssistant = Autochat(
-        provider=AUTOCHAT_PROVIDER, context=json.dumps(context)
-    )
+    questionAssistant = Autochat(provider=AUTOCHAT_PROVIDER, context=json.dumps(context))
     # TODO: if exist ; add database.memory, dbt.catalog, dbt.manifest
 
     def questions(question1: str, question2: str, question3: str):
@@ -278,7 +272,7 @@ def get_projects():
         .filter(
             or_(
                 Project.creatorId == g.user.id,
-                Project.organisationId == g.organisation.id,
+                Project.organisationId == g.organization_id if g.organization_id is not None else False,
             )
         )
         .all()
@@ -299,7 +293,7 @@ def get_project(project_id):
     )
 
     # # Verify user access
-    if project.creatorId != g.user.id and project.organisationId != g.organisation.id:
+    if project.creatorId != g.user.id and project.organisationId != g.organization_id:
         return jsonify({"error": "Access denied"}), 403
 
     project_dict = dataclass_to_dict(project)
@@ -319,7 +313,7 @@ def create_project():
 
     new_project = Project(**{field: data[field] for field in required_fields})
     new_project.creatorId = g.user.id
-    new_project.organisationId = g.organisation.id
+    new_project.organisationId = g.organization_id
 
     # Handle creation of ProjectTables
     if "tables" in data:
@@ -344,7 +338,7 @@ def update_project(project_id):
     project = g.session.query(Project).filter_by(id=project_id).first()
     # update name, description or tables
     project.name = data.get("name")
-    project.organisationId = g.organisation.id
+    project.organisationId = g.organization_id
     project.description = data.get("description")
     project.databaseId = data.get("databaseId")
     project.tables = [

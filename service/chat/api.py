@@ -1,4 +1,5 @@
 from flask import Blueprint
+from flask import session
 from flask_socketio import emit
 
 from app import socketio
@@ -12,6 +13,7 @@ from chat.lock import (
     handle_stop_flag,
     stop_flag_lock,
 )
+from auth.auth import socket_auth
 
 api = Blueprint("chat_api", __name__)
 socket_session = None
@@ -27,9 +29,7 @@ def handle_stop(conversation_id):
             emit_status(conversation_id, STATUS.TO_STOP)
 
         else:
-            print(
-                f"No active 'ask' process found for conversation_id {conversation_id}"
-            )
+            print(f"No active 'ask' process found for conversation_id {conversation_id}")
 
 
 def extract_context(context_id):
@@ -54,6 +54,7 @@ def handle_ask(question, conversation_id=None, context_id=None):
         database_id,
         conversation_id,
         conversation_stop_flags,
+        user_id=session["user"].id,
         project_id=project_id,
     ).ask(question)
     for message in iterator:
@@ -123,11 +124,7 @@ def handle_regenerate_from_message(message_id, conversation_id=None, context_id=
         project_id=project_id,
     )
     # Clear all messages after the message_id
-    messages = (
-        socket_session.query(ConversationMessage)
-        .filter(ConversationMessage.id > message_id)
-        .all()
-    )
+    messages = socket_session.query(ConversationMessage).filter(ConversationMessage.id > message_id).all()
     for message in messages:
         emit("delete-message", message.id)
         socket_session.delete(message)
@@ -150,6 +147,10 @@ def on_connect():
     # This is where you would initialize your session
     # or any other per-connection resources.
     global socket_session
+    auth_response = socket_auth()
+    session["user"] = auth_response.user
+    session["role"] = auth_response.role
+    session["organization_id"] = auth_response.organization_id
     socket_session = Session()
 
 
