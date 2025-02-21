@@ -5,7 +5,7 @@ from datetime import date, datetime
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = os.environ["DATABASE_URL"]
+from config import DATABASE_URL
 
 
 def json_serial(d):

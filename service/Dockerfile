@@ -33,4 +33,4 @@ EXPOSE 4000
 RUN ls -la /app
 
 # Define the command to run the Flask application
-CMD ["bash", "run.sh"]
+CMD ["bash", "start.sh"]
