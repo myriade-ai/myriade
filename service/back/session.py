@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import date, datetime
 
 from sqlalchemy import create_engine, text

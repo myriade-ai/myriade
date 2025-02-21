@@ -2,7 +2,7 @@ from flask import Blueprint, session
 from flask_socketio import emit
 
 from app import socketio
-from auth.auth import socket_auth
+from auth.auth import UnauthorizedError, socket_auth
 from back.models import ConversationMessage, Project
 from back.session import Session
 from chat.datachat import DatabaseChat
@@ -152,11 +152,21 @@ def on_connect():
     # This is where you would initialize your session
     # or any other per-connection resources.
     global socket_session
-    auth_response = socket_auth()
-    session["user"] = auth_response.user
-    session["role"] = auth_response.role
-    session["organization_id"] = auth_response.organization_id
-    socket_session = Session()
+    try:
+        auth_response = socket_auth()
+        session["user"] = auth_response.user
+        session["role"] = auth_response.role
+        session["organization_id"] = auth_response.organization_id
+        socket_session = Session()
+    except UnauthorizedError as e:
+        emit("error", str(e))
+        return False  # Reject the connection
+    except Exception as e:
+        if socket_session:
+            socket_session.close()
+        emit("error", "Internal server error occurred during connection")
+        print(f"Unexpected error during socket connection: {str(e)}")
+        return False  # Reject the connection
 
 
 @socketio.on("disconnect")
