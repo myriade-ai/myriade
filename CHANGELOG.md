@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.3.8 (2025-02-21)
+
+### Bug Fixes
+
+- Ruff
+  ([`bdb0c40`](https://github.com/catalys-intelligence/ada/commit/bdb0c4072596921bde389de54ba0b15bb91cf912))
+
+
 ## v0.3.7 (2025-02-21)
 
 ### Bug Fixes
