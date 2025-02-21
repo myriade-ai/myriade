@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.3.4 (2025-02-21)
+
+### Bug Fixes
+
+- Add https scheme
+  ([`feefac8`](https://github.com/catalys-intelligence/ada/commit/feefac810121e500b09cbecfdaee749fb54f8f58))
+
+
 ## v0.3.3 (2025-02-21)
 
 ### Bug Fixes
