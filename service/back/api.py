@@ -81,7 +81,9 @@ def get_conversation(conversation_id):
 @user_middleware
 def delete_conversation(conversation_id):
     # Delete conversation and all related messages
-    g.session.query(ConversationMessage).filter_by(conversationId=conversation_id).delete()
+    g.session.query(ConversationMessage).filter_by(
+        conversationId=conversation_id
+    ).delete()
     g.session.query(Conversation).filter_by(id=conversation_id).delete()
     g.session.commit()
     return jsonify({"success": True})
@@ -176,7 +178,9 @@ def get_databases():
         g.session.query(Database)
         .filter(
             or_(
-                Database.organisationId == g.organization_id if g.organization_id is not None else False,
+                Database.organisationId == g.organization_id
+                if g.organization_id is not None
+                else False,
                 Database.ownerId == g.user.id,
             )
         )
@@ -193,7 +197,9 @@ def get_questions(context_id):
         project_id = int(context_id.split("-")[1])
         project = g.session.query(Project).filter_by(id=project_id).first()
         database = g.session.query(Database).filter_by(id=project.databaseId).first()
-    elif context_id.startswith("database-"):  # Note: will be removed once we have context / project
+    elif context_id.startswith(
+        "database-"
+    ):  # Note: will be removed once we have context / project
         database_id = int(context_id.split("-")[1])
         database = g.session.query(Database).filter_by(id=database_id).first()
 
@@ -233,7 +239,9 @@ def get_questions(context_id):
 
     from autochat import Autochat
 
-    questionAssistant = Autochat(provider=AUTOCHAT_PROVIDER, context=json.dumps(context))
+    questionAssistant = Autochat(
+        provider=AUTOCHAT_PROVIDER, context=json.dumps(context)
+    )
     # TODO: if exist ; add database.memory, dbt.catalog, dbt.manifest
 
     def questions(question1: str, question2: str, question3: str):
@@ -272,7 +280,9 @@ def get_projects():
         .filter(
             or_(
                 Project.creatorId == g.user.id,
-                Project.organisationId == g.organization_id if g.organization_id is not None else False,
+                Project.organisationId == g.organization_id
+                if g.organization_id is not None
+                else False,
             )
         )
         .all()

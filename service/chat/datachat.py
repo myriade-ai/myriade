@@ -99,7 +99,9 @@ class DatabaseChat:
         if hasattr(self, "datalake"):
             self.datalake.dispose()
 
-    def _create_conversation(self, databaseId, name=None, project_id=None, user_id=None):
+    def _create_conversation(
+        self, databaseId, name=None, project_id=None, user_id=None
+    ):
         # Create conversation object
         conversation = Conversation(
             databaseId=databaseId,
