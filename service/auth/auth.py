@@ -23,8 +23,11 @@ cookie_password_b64 = base64.urlsafe_b64encode(
 def with_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        if not request.cookies.get("wos_session"):
+            raise Exception("Unauthorized")
+
         session = workos_client.user_management.load_sealed_session(
-            sealed_session=request.cookies.get("wos_session"),
+            sealed_session=request.cookies["wos_session"],
             cookie_password=cookie_password_b64,
         )
         auth_response = session.authenticate()
@@ -42,8 +45,11 @@ def with_auth(f):
 
 
 def socket_auth(*args, **kwargs):
+    if not request.cookies.get("wos_session"):
+        raise Exception("Unauthorized")
+
     session = workos_client.user_management.load_sealed_session(
-        sealed_session=request.cookies.get("wos_session"),
+        sealed_session=request.cookies["wos_session"],
         cookie_password=cookie_password_b64,
     )
     auth_response = session.authenticate()
