@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.3.3 (2025-02-21)
+
+### Bug Fixes
+
+- Add start.sh
+  ([`0f803d3`](https://github.com/catalys-intelligence/ada/commit/0f803d30dcd1c0f672be61959fb15499109f01d3))
+
+
 ## v0.3.2 (2025-02-21)
 
 ### Bug Fixes
