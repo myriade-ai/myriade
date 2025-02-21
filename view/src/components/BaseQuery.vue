@@ -53,5 +53,7 @@ import { useDatabases } from '../stores/databases'
 import BaseSelector from './BaseSelector.vue'
 import { ArrowPathIcon } from '@heroicons/vue/24/outline'
 
-const { databaseSelected, databases } = useDatabases()
+const { databaseSelected, databases, fetchDatabases } = useDatabases()
+
+fetchDatabases({ refresh: true })
 </script>

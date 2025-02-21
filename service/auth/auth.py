@@ -1,9 +1,14 @@
 import base64
 import hashlib
 from functools import wraps
+from typing import Union
 
-from flask import g, jsonify, request
+from flask import g, jsonify, make_response, request
 from workos import WorkOSClient
+from workos.types.user_management.session import (
+    AuthenticateWithSessionCookieErrorResponse,
+    AuthenticateWithSessionCookieSuccessResponse,
+)
 
 from config import WORKOS_API_KEY, WORKOS_CLIENT_ID
 
@@ -28,25 +33,71 @@ class UnauthorizedError(Exception):
 def with_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not request.cookies.get("wos_session"):
-            return jsonify({"error": "Unauthorized"}), 401
+        # Validate session cookie exists
+        session_cookie = request.cookies.get("wos_session")
+        if not session_cookie:
+            return jsonify({"error": "No session cookie"}), 401
 
-        session = workos_client.user_management.load_sealed_session(
-            sealed_session=request.cookies["wos_session"],
-            cookie_password=cookie_password_b64,
-        )
-        auth_response = session.authenticate()
+        # Load and authenticate session
+        try:
+            auth_response, is_refreshed = _authenticate_session(session_cookie)
+        except UnauthorizedError as e:
+            return jsonify({"error": str(e)}), 401
 
-        if auth_response.authenticated:
-            g.user = auth_response.user
-            g.role = auth_response.role
-            g.organization_id = auth_response.organization_id
-            return f(*args, **kwargs)
+        # Set user context
+        _set_user_context(auth_response)
 
-        if auth_response.authenticated is False:
-            return jsonify({"error": "Unauthorized"}), 401
+        # Execute wrapped function
+        res = f(*args, **kwargs)
+
+        # Return response with refreshed session cookie if needed
+        if is_refreshed:
+            return _create_response_with_cookie(res, auth_response.sealed_session)
+        return res
 
     return decorated_function
+
+
+def _authenticate_session(
+    session_cookie,
+) -> tuple[AuthenticateWithSessionCookieSuccessResponse, bool]:
+    """Authenticate and potentially refresh the session."""
+    session = workos_client.user_management.load_sealed_session(
+        sealed_session=session_cookie,
+        cookie_password=cookie_password_b64,
+    )
+
+    auth_response = session.authenticate()
+    if auth_response.authenticated:
+        return auth_response, False  # type: ignore
+
+    # Try refreshing the session
+    refreshed_auth_response = session.refresh()
+    if not refreshed_auth_response.authenticated:
+        raise UnauthorizedError(refreshed_auth_response.reason)  # type: ignore
+
+    return refreshed_auth_response, True  # type: ignore
+
+
+def _set_user_context(auth_response):
+    """Set user context in Flask's g object."""
+    g.user = auth_response.user
+    g.role = auth_response.role
+    g.organization_id = auth_response.organization_id
+
+
+def _create_response_with_cookie(response, sealed_session):
+    """Create response with refreshed session cookie."""
+    response = make_response(response)
+    response.set_cookie(
+        "wos_session",
+        sealed_session,
+        secure=True,
+        httponly=True,
+        samesite="lax",
+        domain=None,
+    )
+    return response
 
 
 def socket_auth(*args, **kwargs):

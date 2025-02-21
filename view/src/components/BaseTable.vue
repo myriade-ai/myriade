@@ -78,7 +78,7 @@ onMounted(() => {
 .clipboard {
   top: 48px;
   position: relative;
-  background-color: red;
+  background-color: #ccc;
   z-index: 100;
   right: 10px;
 }
