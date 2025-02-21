@@ -29,7 +29,9 @@ def handle_stop(conversation_id):
             emit_status(conversation_id, STATUS.TO_STOP)
 
         else:
-            print(f"No active 'ask' process found for conversation_id {conversation_id}")
+            print(
+                f"No active 'ask' process found for conversation_id {conversation_id}"
+            )
 
 
 def extract_context(context_id):
@@ -124,7 +126,11 @@ def handle_regenerate_from_message(message_id, conversation_id=None, context_id=
         project_id=project_id,
     )
     # Clear all messages after the message_id
-    messages = socket_session.query(ConversationMessage).filter(ConversationMessage.id > message_id).all()
+    messages = (
+        socket_session.query(ConversationMessage)
+        .filter(ConversationMessage.id > message_id)
+        .all()
+    )
     for message in messages:
         emit("delete-message", message.id)
         socket_session.delete(message)

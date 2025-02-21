@@ -15,7 +15,9 @@ cookie_password = "mkPRI77h3M6iehoYFhwWXQ27f2sGpPuM"
 
 # Generate a proper Fernet key from the password
 cookie_password_bytes = cookie_password.encode()
-cookie_password_b64 = base64.urlsafe_b64encode(hashlib.sha256(cookie_password_bytes).digest()).decode("utf-8")
+cookie_password_b64 = base64.urlsafe_b64encode(
+    hashlib.sha256(cookie_password_bytes).digest()
+).decode("utf-8")
 
 
 def with_auth(f):
