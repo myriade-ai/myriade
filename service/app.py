@@ -1,7 +1,11 @@
+from dotenv import load_dotenv
 from flask import Flask, g
 from flask_socketio import SocketIO
 
 from back.session import Session
+
+# Load environment variables from .env file
+load_dotenv()
 
 socketio = SocketIO(cors_allowed_origins="*")
 
