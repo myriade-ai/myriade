@@ -1,12 +1,10 @@
 import base64
 import hashlib
 from functools import wraps
-from typing import Union
 
 from flask import g, jsonify, make_response, request
 from workos import WorkOSClient
 from workos.types.user_management.session import (
-    AuthenticateWithSessionCookieErrorResponse,
     AuthenticateWithSessionCookieSuccessResponse,
 )
 
