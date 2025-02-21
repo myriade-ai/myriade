@@ -10,7 +10,8 @@ export const authGuard = async (to, from, next) => {
     } catch (error) {
       console.error('Auth check failed:', error)
     }
+    next()
+  } else {
+    next()
   }
-
-  next()
 }
