@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.3.7 (2025-02-21)
+
+### Bug Fixes
+
+- Nginx setup and refresh token
+  ([`9c5c158`](https://github.com/catalys-intelligence/ada/commit/9c5c158d6ec24dbd13a313b81179dccc409ae4cf))
+
+
 ## v0.3.6 (2025-02-21)
 
 ### Bug Fixes
