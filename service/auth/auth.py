@@ -1,6 +1,5 @@
 import base64
 import hashlib
-import os
 from functools import wraps
 
 from flask import g, jsonify, request
