@@ -88,7 +88,10 @@ class DatabaseChat:
         self.model = model
 
         self.dbt = None
-        if self.conversation.database.dbt_catalog:
+        if (
+            self.conversation.database.dbt_catalog
+            and self.conversation.database.dbt_manifest
+        ):
             self.dbt = DBT(
                 catalog=self.conversation.database.dbt_catalog,
                 manifest=self.conversation.database.dbt_manifest,
