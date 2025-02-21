@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.3.6 (2025-02-21)
+
+### Bug Fixes
+
+- Add nginx proxy for auth
+  ([`935910e`](https://github.com/catalys-intelligence/ada/commit/935910e9f6f955f8a6e3b81df25b0b20521c2df7))
+
+
 ## v0.3.5 (2025-02-21)
 
 ### Bug Fixes
