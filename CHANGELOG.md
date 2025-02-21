@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.3.0 (2025-02-21)
+
+### Bug Fixes
+
+- Fix docker scripts
+  ([`5d1b380`](https://github.com/catalys-intelligence/ada/commit/5d1b380013a1b8cbdce2f00b06ebb8f42b18dac3))
+
+### Features
+
+- Improve scripts
+  ([`a27e8eb`](https://github.com/catalys-intelligence/ada/commit/a27e8ebcd2730c4a70eac96ab8618affeb511242))
+
+
 ## v0.2.2 (2025-02-21)
 
 ### Bug Fixes
