@@ -211,7 +211,8 @@ def get_questions(context_id):
 
     if context_id.startswith("project-"):
         tables_metadata = [
-            # if any (name match tableName and schema match schemaName) in project.tables
+            # if any (name match tableName and schema match schemaName)
+            # in project.tables
             table_metadata
             for table_metadata in tables_metadata
             if any(

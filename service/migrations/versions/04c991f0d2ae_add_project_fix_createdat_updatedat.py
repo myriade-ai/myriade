@@ -72,7 +72,8 @@ def upgrade() -> None:
     op.add_column("conversation", sa.Column("projectId", sa.Integer(), nullable=True))
     op.create_foreign_key(None, "conversation", "project", ["projectId"], ["id"])
 
-    # Add default values to createdAt & updatedAt columns of tables conversation, conversation_message, query
+    # Add default values to createdAt & updatedAt columns of tables
+    # conversation, conversation_message, quert
     op.alter_column(
         "conversation", "createdAt", server_default=sa.text("now()"), nullable=False
     )

@@ -40,7 +40,7 @@ class TestParseFunction(unittest.TestCase):
         result = parse_function(text)
         expected = {
             "name": "FUNCTION",
-            "arguments": '{"name": "argument1", "query": "SELECT column\\nFROM table;"}',
+            "arguments": '{"name": "argument1", "query": "SELECT column\\nFROM table;"}',  # noqa: E501
         }
         self.assertEqual(result, expected)
 
@@ -49,7 +49,7 @@ class TestParseFunction(unittest.TestCase):
         > FUNCTION(name="argument1", description="describes something", query=```SELECT column
         FROM table;
         ```)
-        """
+        """  # noqa: E501
         result = parse_function(text)
         expected = {
             "name": "FUNCTION",
@@ -64,7 +64,7 @@ class TestParseFunction(unittest.TestCase):
         ORDER BY RANDOM()
         LIMIT 5;
         ```)
-        """
+        """  # noqa: E501
         result = parse_function(text)
         expected = {
             "name": "SQL_QUERY",

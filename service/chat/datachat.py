@@ -251,7 +251,7 @@ class DatabaseChat:
         return Message(
             name="PLOT_WIDGET",
             role="function",
-            content=f"# chart_config\n{json.dumps(chart_config)}\n\n# sample_code for {outputType}\n{sample_code}",
+            content=f"# chart_config\n{json.dumps(chart_config)}\n\n# sample_code for {outputType}\n{sample_code}",  # noqa: E501
             function_call_id=from_response.function_call_id,
             data=chart_config,
             image=image,
