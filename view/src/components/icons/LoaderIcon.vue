@@ -1,5 +1,5 @@
 <template>
-  <svg width="180ox" height="80px" viewBox="0 0 187.3 93.7" preserveAspectRatio="xMidYMid meet">
+  <svg width="180px" height="80px" viewBox="0 0 187.3 93.7" preserveAspectRatio="xMidYMid meet">
     <path
       stroke="#2563EB"
       id="outline"

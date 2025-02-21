@@ -295,7 +295,6 @@ class DatalakeFactory:
                 uri += "?options=" + "&".join(
                     [f"--{k}={v}" for k, v in kwargs["options"].items()]
                 )
-            print(uri)
             return SQLDatabase(uri)
         elif dtype == "mysql":
             user = kwargs.get("user")
@@ -308,7 +307,6 @@ class DatalakeFactory:
                 uri += "?" + "&".join(
                     [f"{k}={v}" for k, v in kwargs["options"].items()]
                 )
-            print(uri)
             return SQLDatabase(uri)
 
         elif dtype == "sqlite":
