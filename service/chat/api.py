@@ -162,4 +162,5 @@ def on_connect():
 @socketio.on("disconnect")
 def on_disconnect():
     # Cleanup: Close or remove any resources you initialized on connect
-    socket_session.close()
+    if socket_session:
+        socket_session.close()
