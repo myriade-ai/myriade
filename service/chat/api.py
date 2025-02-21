@@ -1,8 +1,8 @@
-from flask import Blueprint
-from flask import session
+from flask import Blueprint, session
 from flask_socketio import emit
 
 from app import socketio
+from auth.auth import socket_auth
 from back.models import ConversationMessage, Project
 from back.session import Session
 from chat.datachat import DatabaseChat
@@ -13,7 +13,6 @@ from chat.lock import (
     handle_stop_flag,
     stop_flag_lock,
 )
-from auth.auth import socket_auth
 
 api = Blueprint("chat_api", __name__)
 socket_session = None
