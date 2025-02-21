@@ -6,9 +6,11 @@ from functools import wraps
 from flask import g, jsonify, request
 from workos import WorkOSClient
 
+from config import WORKOS_API_KEY, WORKOS_CLIENT_ID
+
 workos_client = WorkOSClient(
-    api_key=os.environ["WORKOS_API_KEY"],
-    client_id=os.environ["WORKOS_CLIENT_ID"],
+    api_key=WORKOS_API_KEY,
+    client_id=WORKOS_CLIENT_ID,
 )
 
 cookie_password = "mkPRI77h3M6iehoYFhwWXQ27f2sGpPuM"

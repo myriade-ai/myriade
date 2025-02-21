@@ -57,7 +57,7 @@ export ANTHROPIC_API_KEY=<Your_Anthropic_API_Key>
 
 3. **Run the Backend**:
    ```bash
-   bash run.sh
+   bash start.sh dev
    ```
 
 #### Frontend Setup (in [`/view`](/view) directory)
