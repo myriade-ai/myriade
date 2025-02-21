@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.3.2 (2025-02-21)
+
+### Bug Fixes
+
+- Dbt error
+  ([`ba332a6`](https://github.com/catalys-intelligence/ada/commit/ba332a6def9047a6de6e2d32dad3c78311617668))
+
+
 ## v0.3.1 (2025-02-21)
 
 ### Bug Fixes
