@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.3.1 (2025-02-21)
+
+### Bug Fixes
+
+- Unathorized handling
+  ([`dbde7e1`](https://github.com/catalys-intelligence/ada/commit/dbde7e1b3236aadad2e4cd5a2d24991097d6ed63))
+
+
 ## v0.3.0 (2025-02-21)
 
 ### Bug Fixes
