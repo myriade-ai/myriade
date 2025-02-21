@@ -11,7 +11,6 @@ dependencies = [
     { name = "diskcache" },
     { name = "flask" },
     { name = "flask-socketio" },
-    { name = "httpx" },
     { name = "pgvector" },
     { name = "playwright" },
     { name = "psycopg2-binary" },
@@ -42,11 +41,10 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.11.2" },
-    { name = "autochat", extras = ["all"], specifier = ">=0.5.0" },
+    { name = "autochat", extras = ["all"], specifier = "==0.7.0" },
     { name = "diskcache", specifier = ">=5.4.0" },
     { name = "flask", specifier = ">=2.2.3" },
     { name = "flask-socketio", specifier = ">=5.3.3" },
-    { name = "httpx", specifier = "==0.27.2" },
     { name = "mysql", marker = "extra == 'all'" },
     { name = "mysqlclient", marker = "extra == 'mysql'", specifier = ">=2.2.1" },
     { name = "pgvector", specifier = ">=0.1.8" },
@@ -57,7 +55,7 @@ requires-dist = [
     { name = "snowflake", marker = "extra == 'all'" },
     { name = "snowflake-connector-python", marker = "extra == 'snowflake'", specifier = ">=3.0.1" },
     { name = "sqlalchemy", specifier = ">=2.0.6" },
-    { name = "workos", specifier = ">=4.15.0" },
+    { name = "workos", specifier = "==5.15.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -141,16 +139,15 @@ wheels = [
 
 [[package]]
 name = "autochat"
-version = "0.5.0"
+version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "httpx" },
     { name = "pillow" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c2/84/21cf66ef0f3953051b6ce1d7a18074e325bbda5432e472fcca86edb5ef6e/autochat-0.5.0.tar.gz", hash = "sha256:e566cd7ca01923dfc4437c58ed4cca7dc49f8390049c671989ce3f1f44913792", size = 22225 }
+sdist = { url = "https://files.pythonhosted.org/packages/23/c7/70630e3e0fc04627b6082bb6624f3fe0bc1503c30d9ea3782924ad44060a/autochat-0.7.0.tar.gz", hash = "sha256:a0c737f05b63cf728de86c66073a7f0f642354ce2d7dcaaa3dce82f73c91f6a9", size = 23650 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/35/6d/6e9dd349e79c99cb0901709cb8acb5b183ea38117705093c02a169484299/autochat-0.5.0-py3-none-any.whl", hash = "sha256:810c8bb20acb7ee19df25b1d2332e10adf90ab0073d296aaa6c9dc017b4c5b1a", size = 20429 },
+    { url = "https://files.pythonhosted.org/packages/f0/be/dfcb19b7a4c1040df4c28cee5059c5df316047108c8ee418b5191d4cbd03/autochat-0.7.0-py3-none-any.whl", hash = "sha256:33d443db3703e1ee370006bf8f9c435b88a9d51dea149c83b36c50e339bd2394", size = 20679 },
 ]
 
 [package.optional-dependencies]
@@ -399,18 +396,17 @@ wheels = [
 
 [[package]]
 name = "httpx"
-version = "0.27.2"
+version = "0.28.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "certifi" },
     { name = "httpcore" },
     { name = "idna" },
-    { name = "sniffio" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/78/82/08f8c936781f67d9e6b9eeb8a0c8b4e406136ea4c3d1f89a5db71d42e0e6/httpx-0.27.2.tar.gz", hash = "sha256:f7c2be1d2f3c3c3160d441802406b206c2b76f5947b11115e6df10c6c65e66c2", size = 144189 }
+sdist = { url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc", size = 141406 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/56/95/9377bcb415797e44274b51d46e3249eba641711cf3348050f76ee7b15ffc/httpx-0.27.2-py3-none-any.whl", hash = "sha256:7bb2708e112d8fdd7829cd4243970f0c223274051cb35ee80c03301ee29a3df0", size = 76395 },
+    { url = "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad", size = 73517 },
 ]
 
 [[package]]
@@ -562,7 +558,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/a9/75/10dd1f8116a8b796c
 
 [[package]]
 name = "openai"
-version = "1.52.2"
+version = "1.63.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -574,9 +570,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a5/78/1c4658043cdbb7faf7f388cbb3902d5f8b9a307e10f2021b1a8a4b0b8b15/openai-1.52.2.tar.gz", hash = "sha256:87b7d0f69d85f5641678d414b7ee3082363647a5c66a462ed7f3ccb59582da0d", size = 310119 }
+sdist = { url = "https://files.pythonhosted.org/packages/e6/1c/11b520deb71f9ea54ced3c52cd6a5f7131215deba63ad07f23982e328141/openai-1.63.2.tar.gz", hash = "sha256:aeabeec984a7d2957b4928ceaa339e2ead19c61cfcf35ae62b7c363368d26360", size = 356902 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/55/4c/906b5b32c4c01402ac3b4c3fc28f601443ac5c6f13c84a95dd178c8d545d/openai-1.52.2-py3-none-any.whl", hash = "sha256:57e9e37bc407f39bb6ec3a27d7e8fb9728b2779936daa1fcf95df17d3edfaccc", size = 386947 },
+    { url = "https://files.pythonhosted.org/packages/15/64/db3462b358072387b8e93e6e6a38d3c741a17b4a84171ef01d6c85c63f25/openai-1.63.2-py3-none-any.whl", hash = "sha256:1f38b27b5a40814c2b7d8759ec78110df58c4a614c25f182809ca52b080ff4d4", size = 472282 },
 ]
 
 [[package]]
@@ -1078,14 +1074,17 @@ wheels = [
 
 [[package]]
 name = "workos"
-version = "4.15.0"
+version = "5.15.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "requests" },
+    { name = "cryptography" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "pyjwt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/30/39/1afa3b8f10188bb4b1c5a25d8a8b8eedee51cd43b831bd23a83101c7096b/workos-4.15.0.tar.gz", hash = "sha256:4f0a3b01683da84935852cd44d671ad882ca36cce1ea4745cf81ec1b4df8854f", size = 27106 }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/12/9b2c0f33896df013a73e9f923a0b79425cba59b8f34614ac764119d49bfc/workos-5.15.0.tar.gz", hash = "sha256:bc434e05fadbcb346040f0f46dc203cc3358ad9ba6637c75eeea42ecc79f7ad3", size = 71863 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8e/d4/1bea1772b882c823a4e04824ad1df5d210bada15e53c4510220c876a55d2/workos-4.15.0-py3-none-any.whl", hash = "sha256:6ff4707a5c7340d1df0c5567823a43f9f4b26a221794c323f958c51db4bf5ec1", size = 38034 },
+    { url = "https://files.pythonhosted.org/packages/79/8e/5bc464b519cc54f58cfd9b7e955013e1cd3928b57790b300a128e897ccc0/workos-5.15.0-py3-none-any.whl", hash = "sha256:41e7628afbcb73f543b4831af3d501db2cabc63b64fce48ebf6177330f1a81f3", size = 82086 },
 ]
 
 [[package]]
