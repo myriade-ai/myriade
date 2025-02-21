@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.2.2 (2025-02-21)
+
+### Bug Fixes
+
+- Add user identification for socket
+  ([`8273a5b`](https://github.com/catalys-intelligence/ada/commit/8273a5b10eed4eb2069a55c1ba9ed5176354918a))
+
+### Chores
+
+- Upgrade dependencies
+  ([`d82225d`](https://github.com/catalys-intelligence/ada/commit/d82225df7f072b0f4535d8f0f3a6ccecae1adc68))
+
+
 ## v0.2.1 (2025-02-19)
 
 ### Bug Fixes
