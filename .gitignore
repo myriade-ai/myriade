@@ -8,7 +8,6 @@ pgvector
 ai
 .tmuxinator.yml
 *.code-workspace
-service/start.sh
 service/.env
 service/.env.test
 service/.env.dev
