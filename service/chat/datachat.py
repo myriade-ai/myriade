@@ -63,12 +63,13 @@ class DatabaseChat:
         stop_flags=None,
         model=None,
         project_id=None,
+        user_id=None,
     ):
         self.session = session
         if conversation_id is None:
             # Create conversation object
             self.conversation = self._create_conversation(
-                databaseId=database_id, project_id=project_id
+                databaseId=database_id, project_id=project_id, user_id=user_id
             )
         else:
             self.conversation = (
@@ -98,11 +99,11 @@ class DatabaseChat:
         if hasattr(self, "datalake"):
             self.datalake.dispose()
 
-    def _create_conversation(self, databaseId, name=None, project_id=None):
+    def _create_conversation(self, databaseId, name=None, project_id=None, user_id=None):
         # Create conversation object
         conversation = Conversation(
             databaseId=databaseId,
-            ownerId="admin",  # TODO make it dynamic
+            ownerId=user_id,
             name=name,
             projectId=project_id,
         )
