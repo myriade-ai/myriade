@@ -93,11 +93,13 @@ def delete_conversation(conversation_id):
 @user_middleware
 @admin_required
 def create_database():
+    data = request.get_json()
+
     try:
         # Instaniate a new datalake object
         datalake = DatalakeFactory.create(
-            request.json["engine"],
-            **request.json["details"],
+            data["engine"],
+            **data["details"],
         )
         # Test connection
         datalake.test_connection()
@@ -106,16 +108,16 @@ def create_database():
 
     # Create a new database
     database = Database(
-        name=request.json["name"],
-        description=request.json["description"],
-        _engine=request.json["engine"],
-        details=request.json["details"],
+        name=data["name"],
+        description=data["description"],
+        _engine=data["engine"],
+        details=data["details"],
         organisationId=g.organisation.id,
         ownerId=g.user.id,
-        privacy_mode=request.json["privacy_mode"],
-        safe_mode=request.json["safe_mode"],
-        dbt_catalog=request.json["dbt_catalog"],
-        dbt_manifest=request.json["dbt_manifest"],
+        privacy_mode=data["privacy_mode"],
+        safe_mode=data["safe_mode"],
+        dbt_catalog=data["dbt_catalog"],
+        dbt_manifest=data["dbt_manifest"],
     )
 
     database.tables_metadata = datalake.load_metadata()
@@ -138,21 +140,22 @@ def delete_database(database_id):
 @api.route("/databases/<int:database_id>", methods=["PUT"])
 @user_middleware
 def update_database(database_id):
+    data = request.get_json()
     # Update database
     database = g.session.query(Database).filter_by(id=database_id).first()
-    database.name = request.json["name"]
-    database.description = request.json["description"]
+    database.name = data["name"]
+    database.description = data["description"]
     database.organisationId = g.organization_id
 
     # If the engine info has changed, we need to check the connection
     datalake = DatalakeFactory.create(
-        request.json["engine"],
-        **request.json["details"],
+        data["engine"],
+        **data["details"],
     )
     if (
-        database.engine != request.json["engine"]
-        or database.details != request.json["details"]
-        or database.name != request.json["name"]
+        database.engine != data["engine"]
+        or database.details != data["details"]
+        or database.name != data["name"]
     ):
         try:
             datalake.test_connection()
@@ -160,12 +163,12 @@ def update_database(database_id):
             return jsonify({"message": str(e.args[0])}), 400
 
     database.tables_metadata = datalake.load_metadata()
-    database._engine = request.json["engine"]
-    database.details = request.json["details"]
-    database.privacy_mode = request.json["privacy_mode"]
-    database.safe_mode = request.json["safe_mode"]
-    database.dbt_catalog = request.json["dbt_catalog"]
-    database.dbt_manifest = request.json["dbt_manifest"]
+    database._engine = data["engine"]
+    database.details = data["details"]
+    database.privacy_mode = data["privacy_mode"]
+    database.safe_mode = data["safe_mode"]
+    database.dbt_catalog = data["dbt_catalog"]
+    database.dbt_manifest = data["dbt_manifest"]
 
     g.session.commit()
     return jsonify(database)
