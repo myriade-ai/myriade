@@ -1,0 +1,264 @@
+# serializer version: 1
+# name: test_functions
+  list([
+    'sql_query',
+    'save_to_memory',
+    'PLOT_WIDGET',
+    'submit',
+    'Notes-Notes__close_note',
+    'Notes-Notes__create_note',
+    'Notes-Notes__delete_note',
+    'Notes-Notes__list_notes',
+    'Notes-Notes__open_note',
+  ])
+# ---
+# name: test_functions_schema
+  list([
+    dict({
+      'description': 'Run an SQL query on the database and return the result',
+      'name': 'sql_query',
+      'parameters': dict({
+        'properties': dict({
+          'name': dict({
+            'default': '',
+            'description': 'The name/title of the query',
+            'title': 'Name',
+            'type': 'string',
+          }),
+          'query': dict({
+            'description': "The SQL query string to be executed. Don't forget to escape this if you use double quote.",
+            'title': 'Query',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'query',
+        ]),
+        'title': 'Input for `sql_query`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': "Add a text to the AI's memory",
+      'name': 'save_to_memory',
+      'parameters': dict({
+        'properties': dict({
+          'text': dict({
+            'description': 'The text to add to the memory',
+            'title': 'Text',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'text',
+        ]),
+        'title': 'Input for `save_to_memory`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Display a plot (using FusionCharts)',
+      'name': 'PLOT_WIDGET',
+      'parameters': dict({
+        'properties': dict({
+          'caption': dict({
+            'description': 'Widget caption',
+            'type': 'string',
+          }),
+          'data_preprocessing': dict({
+            'description': "Python code to transform result from SQL so it can be rendered by FusionCharts. It has access to 'result' variable. The transformed result should be stored in 'processed_result' variable. data usual types = {'data': [{label: str, value: int}]}. Common fields are 'data', 'datasets', 'categories'",
+            'example': '''
+              import pandas as pd
+              df = pd.DataFrame(result)
+              processed_result = df.groupby('category').sum().reset_index().to_dict('records')
+            ''',
+            'type': 'string',
+          }),
+          'outputType': dict({
+            'description': 'Output type. MS stands for multiseries',
+            'enum': list([
+              'Column3D',
+              'Column2D',
+              'Line',
+              'Area2D',
+              'Bar2D',
+              'Pie2D',
+              'Pie3D',
+              'Doughnut2D',
+              'Doughnut3D',
+              'Pareto2D',
+              'Pareto3D',
+              'MSColumn2D',
+              'MSColumn3D',
+              'MSLine',
+              'MSBar2D',
+              'MSBar3D',
+              'MSArea',
+              'Marimekko',
+              'ZoomLine',
+              'StackedColumn3D',
+              'StackedColumn2D',
+              'StackedBar2D',
+              'StackedBar3D',
+              'StackedArea2D',
+              'MSStackedColumn2D',
+              'MSCombi3D',
+              'MSCombi2D',
+              'MSColumnLine3D',
+              'StackedColumn2DLine',
+              'StackedColumn3DLine',
+              'MSCombiDY2D',
+              'MSColumn3DLineDY',
+              'StackedColumn3DLineDY',
+              'MSStackedColumn2DLineDY',
+              'Scatter',
+              'Bubble',
+              'ScrollColumn2D',
+              'ScrollLine2D',
+              'ScrollArea2D',
+              'ScrollStackedColumn2D',
+              'ScrollCombi2D',
+              'ScrollCombiDY2D',
+              'SSGrid',
+            ]),
+            'type': 'string',
+          }),
+          'params': dict({
+            'description': 'Widget parameters',
+            'type': 'object',
+          }),
+          'sql': dict({
+            'description': 'FusionCharts configuration object. If you want to display a multiseries chart, you need to set the seriesKey',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'caption',
+          'outputType',
+          'sql',
+          'params',
+        ]),
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Give the final response from the user demand/query',
+      'name': 'submit',
+      'parameters': dict({
+        'properties': dict({
+          'name': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': "The name/title of the query. 'SQL' only for now",
+            'title': 'Name',
+          }),
+          'query': dict({
+            'description': "The SQL query string to be executed. Don't forget to escape this if you use double quote.",
+            'title': 'Query',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'query',
+        ]),
+        'title': 'Input for `submit`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': None,
+      'name': 'Notes-Notes__close_note',
+      'parameters': dict({
+        'properties': dict({
+          'id': dict({
+            'title': 'Id',
+            'type': 'integer',
+          }),
+        }),
+        'required': list([
+          'id',
+        ]),
+        'title': 'Input for `close_note`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': None,
+      'name': 'Notes-Notes__create_note',
+      'parameters': dict({
+        'properties': dict({
+          'content': dict({
+            'title': 'Content',
+            'type': 'string',
+          }),
+          'title': dict({
+            'title': 'Title',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'title',
+          'content',
+        ]),
+        'title': 'Input for `create_note`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Delete a note from the project',
+      'name': 'Notes-Notes__delete_note',
+      'parameters': dict({
+        'properties': dict({
+          'id': dict({
+            'title': 'Id',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'id',
+        ]),
+        'title': 'Input for `delete_note`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': None,
+      'name': 'Notes-Notes__list_notes',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `list_notes`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': None,
+      'name': 'Notes-Notes__open_note',
+      'parameters': dict({
+        'properties': dict({
+          'id': dict({
+            'title': 'Id',
+            'type': 'integer',
+          }),
+        }),
+        'required': list([
+          'id',
+        ]),
+        'title': 'Input for `open_note`',
+        'type': 'object',
+      }),
+    }),
+  ])
+# ---
+# name: test_tools
+  dict({
+    'Notes': 'Notes',
+  })
+# ---

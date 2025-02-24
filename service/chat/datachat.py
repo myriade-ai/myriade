@@ -22,7 +22,7 @@ FUNCTIONS = {}
 functions_path = os.path.join(os.path.dirname(__file__), "functions")
 for filename in os.listdir(functions_path):
     with open(os.path.join(functions_path, filename)) as f:
-        FUNCTIONS[filename[:-5]] = json.load(f)
+        FUNCTIONS[filename.replace(".json", "")] = json.load(f)
 
 AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
 
@@ -150,10 +150,10 @@ class DatabaseChat:
             context=self.context,
             messages=messages,
         )
-        chatbot.add_function(self.sql_query, FUNCTIONS["SQL_QUERY"])
-        chatbot.add_function(self.save_to_memory, FUNCTIONS["SAVE_TO_MEMORY"])
+        chatbot.add_function(self.sql_query)
+        chatbot.add_function(self.save_to_memory)
         chatbot.add_function(self.plot_widget, FUNCTIONS["PLOT_WIDGET"])
-        chatbot.add_function(self.submit, FUNCTIONS["SUBMIT"])
+        chatbot.add_function(self.submit)
         if self.dbt:
             chatbot.add_function(self.dbt.fetch_model_list)
             chatbot.add_function(self.dbt.search_models)
@@ -174,8 +174,14 @@ class DatabaseChat:
         return chatbot
 
     def sql_query(
-        self, query: str = "", name: str = None, from_response: Message = None
+        self, query: str, name: str = "", from_response: Message | None = None
     ):
+        """
+        Run an SQL query on the database and return the result
+        Args:
+            query: The SQL query string to be executed. Don't forget to escape this if you use double quote.
+            name: The name/title of the query
+        """  # noqa: E501
         _query = Query(
             query=name,
             databaseId=self.conversation.databaseId,
@@ -192,13 +198,29 @@ class DatabaseChat:
         return output
 
     def save_to_memory(self, text: str):
+        """
+        Add a text to the AI's memory
+        Args:
+            text: The text to add to the memory
+        """
         if self.conversation.database.memory is None:
             self.conversation.database.memory = text
         else:
             self.conversation.database.memory += "\n" + text
         self.session.commit()
 
-    def submit(self, query: str = "", name: str = None, from_response: Message = None):
+    def submit(
+        self,
+        from_response: Message,
+        query: str,
+        name: str | None = None,
+    ):
+        """
+        Give the final response from the user demand/query
+        Args:
+            query: The SQL query string to be executed. Don't forget to escape this if you use double quote.
+            name: The name/title of the query. 'SQL' only for now
+        """  # noqa: E501
         _query = Query(
             query=name,
             databaseId=self.conversation.databaseId,
@@ -221,7 +243,15 @@ class DatabaseChat:
         data_preprocessing: str = None,
         from_response: Message = None,
     ):
-        """TODO: add verification on the widget parameters and the sql query"""
+        """
+        Display a plot (using FusionCharts)
+        Args:
+            caption: Widget caption
+            outputType: Output type. MS stands for multiseries
+            sql: FusionCharts configuration object. If you want to display a multiseries chart, you need to set the seriesKey
+            params: Widget parameters
+            data_preprocessing: The data preprocessing code
+        """  # noqa: E501
         # Execute SQL query
         rows, _ = self.datalake.query(sql)
 

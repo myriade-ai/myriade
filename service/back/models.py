@@ -13,11 +13,23 @@ from sqlalchemy import (
     String,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.types import JSON, TypeDecorator
 
 Base = declarative_base()
+
+
+class JSONB(TypeDecorator):
+    """Custom type that uses JSONB for PostgreSQL and JSON for other databases."""
+
+    impl = JSON
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            return dialect.type_descriptor(PG_JSONB())
+        return dialect.type_descriptor(JSON())
 
 
 def format_to_camel_case(**kwargs):
