@@ -23,12 +23,6 @@ class DBT:
                 model["metadata"]["comment"] or model["manifest"]["description"] or ""
             )
 
-    @classmethod
-    def from_directory(cls, directory: str):
-        catalog = read_json(directory + "/catalog.json")
-        manifest = read_json(directory + "/manifest.json")
-        return cls(catalog, manifest)
-
     def fetch_model_list(self):
         """Return a list of models in the DBT catalog.
         Return: key, description
