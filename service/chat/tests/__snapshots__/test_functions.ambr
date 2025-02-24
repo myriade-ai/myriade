@@ -5,6 +5,9 @@
     'save_to_memory',
     'PLOT_WIDGET',
     'submit',
+    'DBT-test__fetch_model',
+    'DBT-test__fetch_model_list',
+    'DBT-test__search_models',
     'Notes-Notes__close_note',
     'Notes-Notes__create_note',
     'Notes-Notes__delete_note',
@@ -173,6 +176,50 @@
       }),
     }),
     dict({
+      'description': 'Fetch all model details from the DBT catalog.',
+      'name': 'DBT-test__fetch_model',
+      'parameters': dict({
+        'properties': dict({
+          'key': dict({
+            'title': 'Key',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'key',
+        ]),
+        'title': 'Input for `fetch_model`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Return a list of models in the DBT catalog. Return: key, description',
+      'name': 'DBT-test__fetch_model_list',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `fetch_model_list`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Search for a model in the DBT catalog. Return: key, description',
+      'name': 'DBT-test__search_models',
+      'parameters': dict({
+        'properties': dict({
+          'query': dict({
+            'title': 'Query',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'query',
+        ]),
+        'title': 'Input for `search_models`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': None,
       'name': 'Notes-Notes__close_note',
       'parameters': dict({
@@ -260,5 +307,6 @@
 # name: test_tools
   dict({
     'Notes': 'Notes',
+    'test': 'DBT',
   })
 # ---

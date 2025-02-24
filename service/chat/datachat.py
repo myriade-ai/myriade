@@ -155,9 +155,7 @@ class DatabaseChat:
         chatbot.add_function(self.plot_widget, FUNCTIONS["PLOT_WIDGET"])
         chatbot.add_function(self.submit)
         if self.dbt:
-            chatbot.add_function(self.dbt.fetch_model_list)
-            chatbot.add_function(self.dbt.search_models)
-            chatbot.add_function(self.dbt.fetch_model)
+            chatbot.add_tool(self.dbt, self.conversation.database.name)
         if self.conversation.project:
             notes = Notes(self.session, chatbot, self.conversation.project)
             chatbot.add_tool(notes, "Notes")

@@ -50,6 +50,8 @@ def database(session):
         _engine="sqlite",
         details={"filename": ":memory:"},
         memory="test memory",
+        dbt_manifest={"sources": {}, "nodes": {}},
+        dbt_catalog={"sources": {}, "nodes": {}},
     )
     session.add(database)
     session.commit()
