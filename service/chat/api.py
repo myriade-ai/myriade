@@ -77,7 +77,7 @@ def handle_query(query, conversation_id=None, context_id=None):
     user_message = ConversationMessage(
         role="user",
         functionCall={
-            "name": "SQL_QUERY",
+            "name": "sql_query",
             "arguments": {
                 "query": query,
             },
@@ -98,7 +98,7 @@ def handle_query(query, conversation_id=None, context_id=None):
     # Display the response
     message = ConversationMessage(
         role="function",
-        name="SQL_QUERY",
+        name="sql_query",
         content=content,
         conversationId=chat.conversation.id,
     )

@@ -161,7 +161,7 @@ class ConversationMessage(DefaultBase, Base):
             "functionCallId": self.functionCallId,
             "isAnswer": self.isAnswer,
         }
-        if self.functionCall and self.functionCall.get("name") == "PLOT_WIDGET":
+        if self.functionCall and self.functionCall.get("name") == "plot_widget":
             message["dataSource"] = self.data
             message["visualisationParams"] = self.data
         return message

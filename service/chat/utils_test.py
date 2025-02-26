@@ -59,7 +59,7 @@ class TestParseFunction(unittest.TestCase):
 
     def test_parse_function(self):
         text = """
-        > SQL_QUERY(name="installation_date column examples", query=```SELECT installation_date
+        > sql_query(name="installation_date column examples", query=```SELECT installation_date
         FROM public.station
         ORDER BY RANDOM()
         LIMIT 5;
@@ -67,7 +67,7 @@ class TestParseFunction(unittest.TestCase):
         """  # noqa: E501
         result = parse_function(text)
         expected = {
-            "name": "SQL_QUERY",
+            "name": "sql_query",
             "arguments": (
                 '{"name": "installation_date column examples", '
                 '"query": "SELECT installation_date\\nFROM public.station\\n'
