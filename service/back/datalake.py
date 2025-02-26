@@ -116,11 +116,13 @@ class AbstractDatabase(ABC):
 class SQLDatabase(AbstractDatabase):
     def __init__(self, uri):
         try:
-            self.engine = sqlalchemy.create_engine(uri)
+            # Add connect_timeout parameter to the engine creation
+            connect_args = {"connect_timeout": 5}
+            self.engine = sqlalchemy.create_engine(uri, connect_args=connect_args)
             self.inspector = sqlalchemy.inspect(self.engine)
             self.metadata = []
         except sqlalchemy.exc.OperationalError as e:
-            raise ConnectionError() from e
+            raise ConnectionError(e) from e
 
     def dispose(self):
         # On destruct, close the engine
