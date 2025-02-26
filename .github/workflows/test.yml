@@ -34,4 +34,4 @@ jobs:
         env:
           OPENAI_API_KEY: fake
           ANTHROPIC_API_KEY: fake
-        run: uv run pytest
+        run: PYTHONPATH=$PYTHONPATH:. uv run pytest
