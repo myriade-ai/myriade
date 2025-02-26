@@ -1,6 +1,31 @@
 # CHANGELOG
 
 
+## v0.3.9 (2025-02-26)
+
+### Bug Fixes
+
+- Try to fix test run
+  ([`e935d95`](https://github.com/catalys-intelligence/ada/commit/e935d9540e576faf95e32884d4b363fcdf0f6b37))
+
+### Chores
+
+- Add ip information for database timeout
+  ([`8e206b7`](https://github.com/catalys-intelligence/ada/commit/8e206b782a5fad0d5a238aaf2ae1a35641b02f51))
+
+- Add tests for functions and use autochat inspect schema for functions
+  ([`dfbbf04`](https://github.com/catalys-intelligence/ada/commit/dfbbf04c9a84d0e1b5aa59a3704f8b92320a844b))
+
+- Clean code
+  ([`2a82b19`](https://github.com/catalys-intelligence/ada/commit/2a82b192e549d822a55ecc8e7490f055c4970ca1))
+
+- Move tests
+  ([`f459076`](https://github.com/catalys-intelligence/ada/commit/f45907601828b0827420d4b6a0e4444da7d8c9de))
+
+- Update autochat to v 0.9.1
+  ([`488b91e`](https://github.com/catalys-intelligence/ada/commit/488b91e211195a0c4ce8a84936bb959ac4ab19f2))
+
+
 ## v0.3.8 (2025-02-21)
 
 ### Bug Fixes
