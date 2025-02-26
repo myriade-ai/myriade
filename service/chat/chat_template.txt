@@ -32,7 +32,7 @@ MEMORY: No memory
 Show stations in san jose installed in 2012
 
 ## assistant
-> SQL_QUERY(name="database tables", query=```SELECT table_schema, table_name
+> sql_query(name="database tables", query=```SELECT table_schema, table_name
 FROM information_schema.tables
 WHERE table_schema NOT IN ('pg_catalog', 'information_schema')```)
 
@@ -46,7 +46,7 @@ WHERE table_schema NOT IN ('pg_catalog', 'information_schema')```)
 > SAVE_TO_MEMORY(text="There are 3 tables in schema public : station, station_info, status")
 
 ## assistant
-> SQL_QUERY(name="public.station columns", query=```SELECT column_name, data_type, is_nullable, column_default
+> sql_query(name="public.station columns", query=```SELECT column_name, data_type, is_nullable, column_default
 FROM information_schema.columns
 WHERE table_name = 'station'
 AND table_schema = 'public';```)
@@ -66,7 +66,7 @@ AND table_schema = 'public';```)
 
 ## assistant
 Let's try to find the format of field city
-> SQL_QUERY(name="number of stations per city", query=```
+> sql_query(name="number of stations per city", query=```
 SELECT "city", COUNT(*)
 FROM "public"."station"
 GROUP BY 1```)
@@ -81,7 +81,7 @@ GROUP BY 1```)
 
 ## assistant
 We can see "San Jose". Let's try to select the station installed in 2012.
-> SQL_QUERY(name="station in San Jose, installed in 2012", query=```SELECT *
+> sql_query(name="station in San Jose, installed in 2012", query=```SELECT *
 FROM "public"."station"
 WHERE "city" = 'San Jose' AND date_part('year', "installation_date") = 2012;
 ```)
@@ -94,7 +94,7 @@ HINT: No function matches the given name and argument types. You might need to a
 
 ## assistant
 It's seems that the installation_date format is a text. Let's check it's format
-> SQL_QUERY(name="installation_date column examples", query=```SELECT "installation_date"
+> sql_query(name="installation_date column examples", query=```SELECT "installation_date"
 FROM "public"."station"
 ORDER BY RANDOM()
 LIMIT 5;```)
@@ -115,7 +115,7 @@ Ok, we just need to cast it to date. Let's save this format issue in memory
 
 ## assistant
 Now let's the fix the query.
-> SQL_QUERY(name="station in San Jose, installed in 2012", query=```SELECT * 
+> sql_query(name="station in San Jose, installed in 2012", query=```SELECT * 
 FROM \"public\".\"station\"
 WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 2012;```)
 
@@ -140,7 +140,7 @@ Plot distribution of stations per city
 
 ## assistant
 Let's try to display the distribution of station per city
-> PLOT_WIDGET(
+> plot_widget(
     caption="Distribution of stations per city",
     outputType="Doughnut2d",
     sql="SELECT city, COUNT(*) FROM public.station GROUP BY city",
@@ -153,7 +153,7 @@ Plot: (Image displayed correctly)
 
 ## assistant
 <ANSWER>Here is the distribution of stations per city
-> PLOT_WIDGET(
+> plot_widget(
     caption="Distribution of stations per city",
     outputType="Doughnut2d",
     sql="SELECT city, COUNT(*) FROM public.station GROUP BY city",
@@ -167,7 +167,7 @@ Plot: (Image displayed correctly)
 Show electric station
 
 ## assistant
-> SQL_QUERY(name="electric stations name", query=```SELECT station.name
+> sql_query(name="electric stations name", query=```SELECT station.name
 FROM station
 JOIN station_info USING (id)
 WHERE station_info.electric IS TRUE```)

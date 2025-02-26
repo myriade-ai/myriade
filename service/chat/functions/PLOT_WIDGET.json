@@ -1,5 +1,5 @@
 {
-    "name": "PLOT_WIDGET",
+    "name": "plot_widget",
     "description": "Display a plot (using FusionCharts)",
     "parameters": {
       "type": "object",

@@ -50,9 +50,6 @@ def fetch_chart_code_sample(chart_type: str) -> str:
 class DatabaseChat:
     """
     Chatbot assistant with a database, execute functions.
-    - SQL_QUERY: execute sql query and return the result (size limited)
-    - SAVE_TO_MEMORY: save any text to memory
-    - PLOT_WIDGET: plot a widget
     """
 
     def __init__(
@@ -152,7 +149,7 @@ class DatabaseChat:
         )
         chatbot.add_function(self.sql_query)
         chatbot.add_function(self.save_to_memory)
-        chatbot.add_function(self.plot_widget, FUNCTIONS["PLOT_WIDGET"])
+        chatbot.add_function(self.plot_widget, FUNCTIONS["plot_widget"])
         chatbot.add_function(self.submit)
         if self.dbt:
             chatbot.add_tool(self.dbt, self.conversation.database.name)
@@ -280,7 +277,7 @@ class DatabaseChat:
         chart_image_bytes = render_chart(chart_config)
         image = PILImage.open(io.BytesIO(chart_image_bytes))
         return Message(
-            name="PLOT_WIDGET",
+            name="plot_widget",
             role="function",
             content=f"# chart_config\n{json.dumps(chart_config)}\n\n# sample_code for {outputType}\n{sample_code}",  # noqa: E501
             function_call_id=from_response.function_call_id,

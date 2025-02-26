@@ -26,7 +26,7 @@
     </p>
 
     <!-- if PLOT_FUSIONCHART -->
-    <div v-if="message.role === 'function' && message?.name === 'PLOT_WIDGET'">
+    <div v-if="message.role === 'function' && message?.name === 'plot_widget'">
       <fusioncharts
         v-if="message.data"
         :type="message.data.type"
@@ -65,16 +65,16 @@
 
     <div v-if="message.functionCall">
       <b>> {{ message.functionCall?.name }} </b>
-      <p v-if="message.functionCall?.name === 'MEMORY_SEARCH'">
+      <p v-if="message.functionCall?.name === 'memory_search'">
         Search: "{{ message.functionCall?.arguments?.search }}"
       </p>
       <BaseEditor
-        v-else-if="message.functionCall?.name === 'SQL_QUERY'"
+        v-else-if="message.functionCall?.name === 'sql_query'"
         :modelValue="message.functionCall?.arguments?.query"
         :read-only="true"
       ></BaseEditor>
       <BaseEditorPreview
-        v-else-if="message.functionCall?.name === 'SUBMIT'"
+        v-else-if="message.functionCall?.name === 'submit'"
         :sqlQuery="message.functionCall?.arguments?.query"
         :database-id="databaseSelectedId"
       ></BaseEditorPreview>
@@ -153,7 +153,7 @@ export default {
   },
   computed: {
     visualisationParams() {
-      if (this.message.functionCall?.name !== 'PLOT_WIDGET') return
+      if (this.message.functionCall?.name !== 'plot_widget') return
       const params = this.message.functionCall?.arguments
       return {
         ...params?.params,

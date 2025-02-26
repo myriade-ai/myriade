@@ -3,7 +3,7 @@
   list([
     'sql_query',
     'save_to_memory',
-    'PLOT_WIDGET',
+    'plot_widget',
     'submit',
     'DBT-test__fetch_model',
     'DBT-test__fetch_model_list',
@@ -61,7 +61,7 @@
     }),
     dict({
       'description': 'Display a plot (using FusionCharts)',
-      'name': 'PLOT_WIDGET',
+      'name': 'plot_widget',
       'parameters': dict({
         'properties': dict({
           'caption': dict({
