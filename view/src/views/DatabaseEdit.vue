@@ -145,6 +145,20 @@
     <BaseAlert class="mt-5" v-if="apiError">
       <template #title> There is an error 😔 </template>
       {{ apiError }}
+      <!-- Server IP whitelist information section - always visible -->
+      <br />
+      <br />
+      <div v-if="isConnectionTimeout">
+        <p>
+          The server was unable to establish a connection to your database. This is often due to
+          firewall rules or network restrictions that prevent our server from accessing your
+          database.
+        </p>
+        <p class="font-medium">
+          Please ensure that you have whitelisted the IP address of this server ({{ serverIp }}) in
+          your database
+        </p>
+      </div>
     </BaseAlert>
 
     <div class="py-5">
@@ -169,7 +183,7 @@
 
 <script setup lang="ts">
 import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
-import { computed, defineComponent, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useDatabases } from '../stores/databases'
 import { useRoute } from 'vue-router'
 import router from '../router'
@@ -182,6 +196,20 @@ import { Form } from 'vee-validate'
 
 const route = useRoute()
 const apiError = ref(null)
+const serverIp = ref('')
+
+const getServerIp = async () => {
+  try {
+    const response = await fetch('/api/server-info')
+    const data = await response.json()
+    serverIp.value = data.ip
+  } catch (error) {
+    console.error('Error fetching server IP:', error)
+  }
+}
+getServerIp()
+
+// Type our response to include server_ip
 const database = ref({
   id: null,
   name: '',
@@ -241,6 +269,11 @@ const clickSave = async () => {
       error.response?.data?.message || error.message || 'An unexpected error occurred'
   }
 }
+
+const isConnectionTimeout = computed(() => {
+  return apiError.value?.includes('timeout')
+})
+
 const handleFileUpload = (event: any, key: 'dbt_catalog' | 'dbt_manifest') => {
   const file = event.target.files[0]
   const reader = new FileReader()

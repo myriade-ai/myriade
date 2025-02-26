@@ -96,12 +96,11 @@ def create_database():
     data = request.get_json()
 
     try:
-        # Instaniate a new datalake object
+        # Instantiate a new datalake object
         datalake = DatalakeFactory.create(
             data["engine"],
             **data["details"],
         )
-        # Test connection
         datalake.test_connection()
     except ConnectionError as e:
         return jsonify({"message": str(e.args[0])}), 400
@@ -124,6 +123,7 @@ def create_database():
 
     g.session.add(database)
     g.session.commit()
+
     return jsonify(database)
 
 
@@ -141,6 +141,7 @@ def delete_database(database_id):
 @user_middleware
 def update_database(database_id):
     data = request.get_json()
+
     # Update database
     database = g.session.query(Database).filter_by(id=database_id).first()
     database.name = data["name"]
@@ -160,7 +161,7 @@ def update_database(database_id):
         try:
             datalake.test_connection()
         except Exception as e:
-            return jsonify({"message": str(e.args[0])}), 400
+            return jsonify({"message": str(e)}), 400
 
     database.tables_metadata = datalake.load_metadata()
     database._engine = data["engine"]
@@ -171,6 +172,7 @@ def update_database(database_id):
     database.dbt_manifest = data["dbt_manifest"]
 
     g.session.commit()
+
     return jsonify(database)
 
 
@@ -273,6 +275,15 @@ def get_schema(database_id):
         return jsonify({"error": "Database not found"}), 404
 
     return jsonify(database.tables_metadata)
+
+
+@api.route("/server-info", methods=["GET"])
+def get_server_info():
+    """Get the server IP address to guide the user who needs to whitelist"""
+    import requests
+
+    response = requests.get("https://api.ipify.org", timeout=5)
+    return jsonify({"ip": response.text.strip()})
 
 
 # Get all projects of the user or it's organisation
