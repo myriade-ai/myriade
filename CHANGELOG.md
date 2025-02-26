@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.3.11 (2025-02-26)
+
+### Bug Fixes
+
+- Update plot widget functions
+  ([`2af4bad`](https://github.com/catalys-intelligence/ada/commit/2af4bad73908e0073fd92c0c0769273a1b36a420))
+
+
 ## v0.3.10 (2025-02-26)
 
 ### Bug Fixes
