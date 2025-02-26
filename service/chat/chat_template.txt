@@ -43,7 +43,7 @@ WHERE table_schema NOT IN ('pg_catalog', 'information_schema')```)
 "public","status"
 
 ## assistant
-> SAVE_TO_MEMORY(text="There are 3 tables in schema public : station, station_info, status")
+> save_to_memory(text="There are 3 tables in schema public : station, station_info, status")
 
 ## assistant
 > sql_query(name="public.station columns", query=```SELECT column_name, data_type, is_nullable, column_default
@@ -62,7 +62,7 @@ AND table_schema = 'public';```)
 "installation_date","text","YES",
 
 ## assistant
-> SAVE_TO_MEMORY(text="There are 7 columns in table public.station : id, name, lat, long, dock_count, city, installation_date")
+> save_to_memory(text="There are 7 columns in table public.station : id, name, lat, long, dock_count, city, installation_date")
 
 ## assistant
 Let's try to find the format of field city
@@ -109,7 +109,7 @@ LIMIT 5;```)
 
 ## assistant
 Ok, we just need to cast it to date. Let's save this format issue in memory
-> SAVE_TO_MEMORY(text="The \"installation_date\" column in the table public.station is in text format. Use ::date to parse it")
+> save_to_memory(text="The \"installation_date\" column in the table public.station is in text format. Use ::date to parse it")
 
 ## function
 
@@ -129,7 +129,7 @@ WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 201
 
 ## assistant
 <ANSWER>The are 5 stations in San Jose installed in 2012
-> SUBMIT(name="electric stations name", query=```SELECT * 
+> submit(name="electric stations name", query=```SELECT * 
 FROM \"public\".\"station\"
 WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 2012;```)
 
@@ -183,7 +183,7 @@ WHERE station_info.electric IS TRUE```)
 - Santa Clara at Almaden
 - San Pedro Square
 - Japantown
-> SUBMIT(name="electric stations name", query=```SELECT station.name
+> submit(name="electric stations name", query=```SELECT station.name
 FROM station
 JOIN station_info USING (id)
 WHERE station_info.electric IS TRUE```)
