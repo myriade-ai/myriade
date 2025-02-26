@@ -43,7 +43,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.11.2" },
-    { name = "autochat", extras = ["all"], specifier = "==0.9.1" },
+    { name = "autochat", extras = ["all"], specifier = "==0.9.2" },
     { name = "diskcache", specifier = ">=5.4.0" },
     { name = "flask", specifier = ">=2.2.3" },
     { name = "flask-socketio", specifier = ">=5.3.3" },
@@ -142,15 +142,15 @@ wheels = [
 
 [[package]]
 name = "autochat"
-version = "0.9.1"
+version = "0.9.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pillow" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/20/35/b6ab4d13a68f2857bd6fc6a307baca79df61d2896fcfb3f57d85f70862e5/autochat-0.9.1.tar.gz", hash = "sha256:10aab4ab911a0c2d941c0b335add5ae231f6595568cca27f67cf4c07b7f62da1", size = 25430 }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/a3/0d25be191992e3a7155de2058b98c353ca0054a04da4bf6f1bf21f98869d/autochat-0.9.2.tar.gz", hash = "sha256:eabe072537f647eaa760094a0d20889a49763696005831e1947b2c793283da78", size = 25456 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a5/bc/9deb4f7fbfe4955eaf0bf2c7b31888cd05907566692c64c7069d26f8e8cf/autochat-0.9.1-py3-none-any.whl", hash = "sha256:21409271177e5bd5b1259601cf57907f8e3478a8e002ee9828c6833eadcc55ae", size = 21639 },
+    { url = "https://files.pythonhosted.org/packages/f2/f8/405252c487a452e20da1349e7096db779b7829ef4fe112e0a0ba0442bfa6/autochat-0.9.2-py3-none-any.whl", hash = "sha256:85532463ee6b4065af978e08863a49a4bcfcf716930212cdba5fd03562c6476b", size = 21674 },
 ]
 
 [package.optional-dependencies]
