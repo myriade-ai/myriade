@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.3.10 (2025-02-26)
+
+### Bug Fixes
+
+- Function names
+  ([`5021fa5`](https://github.com/catalys-intelligence/ada/commit/5021fa5ea43cb183a2a80061f13637b2136b1150))
+
+### Chores
+
+- Update autochat to v 0.9.2
+  ([`0ccb5c3`](https://github.com/catalys-intelligence/ada/commit/0ccb5c3c9f16f09149c320d819c345b0e3a41bc4))
+
+
 ## v0.3.9 (2025-02-26)
 
 ### Bug Fixes
