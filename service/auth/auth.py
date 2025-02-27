@@ -3,12 +3,17 @@ import hashlib
 from functools import wraps
 
 from flask import g, jsonify, make_response, request
-from workos import WorkOSClient
 from workos.types.user_management.session import (
     AuthenticateWithSessionCookieSuccessResponse,
 )
 
-from config import WORKOS_API_KEY, WORKOS_CLIENT_ID
+from config import OFFLINE_MODE, WORKOS_API_KEY, WORKOS_CLIENT_ID
+
+if OFFLINE_MODE:
+    from auth.mock import MockWorkOSClient as WorkOSClient
+else:
+    from workos import WorkOSClient
+
 
 workos_client = WorkOSClient(
     api_key=WORKOS_API_KEY,
