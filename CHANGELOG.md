@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v0.3.12 (2025-03-05)
+
+### Bug Fixes
+
+- Test that use sqlite
+  ([`b3e83ae`](https://github.com/catalys-intelligence/ada/commit/b3e83aed9bf574fd20e831890f5c9f36f3b93cf6))
+
+### Chores
+
+- Add offline mode
+  ([`ad2976d`](https://github.com/catalys-intelligence/ada/commit/ad2976dd92bea8e6ee5f107e6083fd4919f1c885))
+
+- Fixed
+  ([`05d5bd9`](https://github.com/catalys-intelligence/ada/commit/05d5bd981ec35cf470edd91ca63f6e9afcedede5))
+
+
 ## v0.3.11 (2025-02-26)
 
 ### Bug Fixes
