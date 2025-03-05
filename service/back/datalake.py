@@ -114,11 +114,9 @@ class AbstractDatabase(ABC):
 
 
 class SQLDatabase(AbstractDatabase):
-    def __init__(self, uri):
+    def __init__(self, uri, **kwargs):
         try:
-            # Add connect_timeout parameter to the engine creation
-            connect_args = {"connect_timeout": 5}
-            self.engine = sqlalchemy.create_engine(uri, connect_args=connect_args)
+            self.engine = sqlalchemy.create_engine(uri, **kwargs)
             self.inspector = sqlalchemy.inspect(self.engine)
             self.metadata = []
         except sqlalchemy.exc.OperationalError as e:
@@ -194,6 +192,12 @@ class SQLDatabase(AbstractDatabase):
         else:
             raise ValueError("materialized must be 'table' or 'view'")
         # TODO: Reload metadata
+
+
+class PostgresDatabase(SQLDatabase):
+    def __init__(self, uri):
+        self.connect_args = {"connect_timeout": 5}
+        super().__init__(uri, connect_args=self.connect_args)
 
 
 class SnowflakeConnectionPool:
@@ -297,7 +301,7 @@ class DatalakeFactory:
                 uri += "?options=" + "&".join(
                     [f"--{k}={v}" for k, v in kwargs["options"].items()]
                 )
-            return SQLDatabase(uri)
+            return PostgresDatabase(uri)
         elif dtype == "mysql":
             user = kwargs.get("user")
             password = kwargs.get("password", "")
