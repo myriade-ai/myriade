@@ -25,17 +25,7 @@
       </span>
     </p>
 
-    <!-- if PLOT_FUSIONCHART -->
-    <div v-if="message.role === 'function' && message?.name === 'plot_widget'">
-      <fusioncharts
-        v-if="message.data"
-        :type="message.data.type"
-        width="100%"
-        dataFormat="json"
-        :dataSource="message.data.dataSource"
-      />
-    </div>
-    <template v-else v-for="(part, index) in parsedText">
+    <template v-for="(part, index) in parsedText">
       <span
         v-if="part.type === 'text'"
         :key="`text-${index}`"
@@ -55,12 +45,6 @@
         :key="`sql-${index}`"
       ></BaseEditor>
       <BaseTable v-if="part.type === 'json'" :data="part.content" :key="`json-${index}`" />
-      <BaseBuilder
-        v-if="(part.type === 'yml-graph' || part.type === 'yaml-graph') && sqlResult"
-        :context="part.content"
-        :count="sqlCount"
-        :data="sqlResult"
-      ></BaseBuilder>
     </template>
 
     <div v-if="message.functionCall">
@@ -78,6 +62,9 @@
         :sqlQuery="message.functionCall?.arguments?.query"
         :database-id="databaseSelectedId"
       ></BaseEditorPreview>
+      <div v-else-if="message?.functionCall?.name === 'render_echarts'">
+        <Echart :option="message.functionCall?.arguments?.chart_options" />
+      </div>
       <pre v-else class="arguments">{{ message.functionCall?.arguments }}</pre>
     </div>
   </div>
@@ -85,14 +72,13 @@
 
 <script lang="ts">
 import BaseTable from '@/components/BaseTable.vue'
-import BaseBuilder from '@/components/BaseBuilder.vue'
-import Widget from '@/components/Widget.vue'
 import yaml from 'js-yaml'
 import axios from '@/plugins/axios'
 import BaseEditor from '@/components/BaseEditor.vue'
 import BaseEditorPreview from '@/components/BaseEditorPreview.vue'
 import { marked } from 'marked'
 import { ArrowPathIcon } from '@heroicons/vue/24/outline'
+import Echart from '@/components/Echart.vue'
 
 // Get databaseId from store
 import { useDatabases } from '../stores/databases'
@@ -103,9 +89,8 @@ export default {
     BaseTable,
     BaseEditor,
     BaseEditorPreview,
-    BaseBuilder,
-    Widget,
-    ArrowPathIcon
+    ArrowPathIcon,
+    Echart
   },
   props: {
     message: {
@@ -153,7 +138,7 @@ export default {
   },
   computed: {
     visualisationParams() {
-      if (this.message.functionCall?.name !== 'plot_widget') return
+      // TO DELETE ?
       const params = this.message.functionCall?.arguments
       return {
         ...params?.params,
