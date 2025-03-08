@@ -1,6 +1,21 @@
 # CHANGELOG
 
 
+## v0.4.2 (2025-03-08)
+
+### Bug Fixes
+
+- **serialisation**: Decimal
+  ([`bdc391b`](https://github.com/catalys-intelligence/ada/commit/bdc391b52c6d0dc990497cc138c237ed6c05bfcb))
+
+PRO-112
+
+- **session**: Try to catch exception and rollback
+  ([`9edecac`](https://github.com/catalys-intelligence/ada/commit/9edecac7ca44701d6464389022c7bb560dd55867))
+
+PRO-113
+
+
 ## v0.4.1 (2025-03-08)
 
 ### Bug Fixes
