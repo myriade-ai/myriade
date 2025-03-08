@@ -1,4 +1,6 @@
+import json
 from dataclasses import dataclass
+from decimal import Decimal
 
 from autochat.model import Image as AutoChatImage
 from autochat.model import Message as AutoChatMessage
@@ -21,10 +23,22 @@ from sqlalchemy.types import JSON, TypeDecorator
 Base = declarative_base()
 
 
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
+
+
 class JSONB(TypeDecorator):
     """Custom type that uses JSONB for PostgreSQL and JSON for other databases."""
 
     impl = JSON
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            return json.loads(json.dumps(value, cls=DecimalEncoder))
+        return value
 
     def load_dialect_impl(self, dialect):
         if dialect.name == "postgresql":
