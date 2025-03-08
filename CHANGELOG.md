@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.4.1 (2025-03-08)
+
+### Bug Fixes
+
+- **chart**: Render labels inside chart
+  ([`680ea4a`](https://github.com/catalys-intelligence/ada/commit/680ea4a18a761cc3aab1472492b7cc229c95124b))
+
+
 ## v0.4.0 (2025-03-08)
 
 ### Features
