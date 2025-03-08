@@ -147,7 +147,7 @@ class ConversationMessage(DefaultBase, Base):
 
     def to_dict(self):
         # Export to dict, only keys declared in the dataclass
-        message = {
+        return {
             "id": self.id,
             "conversationId": self.conversationId,
             "role": self.role,
@@ -161,10 +161,6 @@ class ConversationMessage(DefaultBase, Base):
             "functionCallId": self.functionCallId,
             "isAnswer": self.isAnswer,
         }
-        if self.functionCall and self.functionCall.get("name") == "plot_widget":
-            message["dataSource"] = self.data
-            message["visualisationParams"] = self.data
-        return message
 
     def to_autochat_message(self) -> AutoChatMessage:
         message = AutoChatMessage(
