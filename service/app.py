@@ -29,6 +29,8 @@ def create_app():
     @app.teardown_appcontext
     def close_session(exception=None):
         if hasattr(g, "session"):
+            if exception:
+                g.session.rollback()
             g.session.close()
 
     socketio.init_app(app)

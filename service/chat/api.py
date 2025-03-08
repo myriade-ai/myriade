@@ -174,3 +174,11 @@ def on_disconnect():
     # Cleanup: Close or remove any resources you initialized on connect
     if socket_session:
         socket_session.close()
+
+
+@socketio.on_error_default
+def default_error_handler(e):
+    socket_session.rollback()
+
+    # You could emit a standardized error message:
+    emit("error", {"error": str(e)})
