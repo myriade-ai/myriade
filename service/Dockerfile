@@ -19,11 +19,6 @@ COPY ./pyproject.toml ./uv.lock ./
 RUN uv pip compile pyproject.toml > requirements.txt
 RUN uv pip install --system -r requirements.txt
 
-# Install Playwright and its dependencies
-RUN uv pip install --system playwright
-# RUN playwright install chromium
-# RUN playwright install-deps chromium
-
 # Copy the rest of the application's code
 COPY . .
 

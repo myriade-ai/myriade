@@ -3,8 +3,8 @@
   list([
     'sql_query',
     'save_to_memory',
-    'plot_widget',
     'submit',
+    'render_echarts',
     'DBT-test__fetch_model',
     'DBT-test__fetch_model_list',
     'DBT-test__search_models',
@@ -60,91 +60,6 @@
       }),
     }),
     dict({
-      'description': 'Display a plot (using FusionCharts)',
-      'name': 'plot_widget',
-      'parameters': dict({
-        'properties': dict({
-          'caption': dict({
-            'description': 'Widget caption',
-            'type': 'string',
-          }),
-          'data_preprocessing': dict({
-            'description': "Python code to transform result from SQL so it can be rendered by FusionCharts. It has access to 'result' variable. The transformed result should be stored in 'processed_result' variable. data usual types = {'data': [{label: str, value: int}]}. Common fields are 'data', 'datasets', 'categories'",
-            'example': '''
-              import pandas as pd
-              df = pd.DataFrame(result)
-              processed_result = df.groupby('category').sum().reset_index().to_dict('records')
-            ''',
-            'type': 'string',
-          }),
-          'outputType': dict({
-            'description': 'Output type. MS stands for multiseries',
-            'enum': list([
-              'Column3D',
-              'Column2D',
-              'Line',
-              'Area2D',
-              'Bar2D',
-              'Pie2D',
-              'Pie3D',
-              'Doughnut2D',
-              'Doughnut3D',
-              'Pareto2D',
-              'Pareto3D',
-              'MSColumn2D',
-              'MSColumn3D',
-              'MSLine',
-              'MSBar2D',
-              'MSBar3D',
-              'MSArea',
-              'Marimekko',
-              'ZoomLine',
-              'StackedColumn3D',
-              'StackedColumn2D',
-              'StackedBar2D',
-              'StackedBar3D',
-              'StackedArea2D',
-              'MSStackedColumn2D',
-              'MSCombi3D',
-              'MSCombi2D',
-              'MSColumnLine3D',
-              'StackedColumn2DLine',
-              'StackedColumn3DLine',
-              'MSCombiDY2D',
-              'MSColumn3DLineDY',
-              'StackedColumn3DLineDY',
-              'MSStackedColumn2DLineDY',
-              'Scatter',
-              'Bubble',
-              'ScrollColumn2D',
-              'ScrollLine2D',
-              'ScrollArea2D',
-              'ScrollStackedColumn2D',
-              'ScrollCombi2D',
-              'ScrollCombiDY2D',
-              'SSGrid',
-            ]),
-            'type': 'string',
-          }),
-          'params': dict({
-            'description': 'Widget parameters',
-            'type': 'object',
-          }),
-          'sql': dict({
-            'description': 'FusionCharts configuration object. If you want to display a multiseries chart, you need to set the seriesKey',
-            'type': 'string',
-          }),
-        }),
-        'required': list([
-          'caption',
-          'outputType',
-          'sql',
-          'params',
-        ]),
-        'type': 'object',
-      }),
-    }),
-    dict({
       'description': 'Give the final response from the user demand/query',
       'name': 'submit',
       'parameters': dict({
@@ -172,6 +87,30 @@
           'query',
         ]),
         'title': 'Input for `submit`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Display a chart (using Echarts 4). Provide the chart_options without the "dataset" parameter We will SQL result to fill the dataset.source automatically Don\'t forget to Map from Data to Charts (series.encode) Don\'t use specific color in the chart_options unless the user asked for it When creating bar charts with ECharts, make sure to set the correct axis types. For categorical data (like driver names) use \'category\' type on the x-axis when displaying bars vertically, or on the y-axis when displaying bars horizontally. For numerical data (like wins or points) use \'value\' type on the corresponding axis. Also verify that the encode properties correctly map your data fields to the appropriate axes (\'x\' for categories, \'y\' for values in vertical bar charts; reversed in horizontal bar charts).',
+      'name': 'render_echarts',
+      'parameters': dict({
+        'properties': dict({
+          'chart_options': dict({
+            'description': 'The options of the chart',
+            'title': 'Chart Options',
+            'type': 'object',
+          }),
+          'sql': dict({
+            'description': 'The SQL query to execute',
+            'title': 'Sql',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'chart_options',
+          'sql',
+        ]),
+        'title': 'Input for `render_echarts`',
         'type': 'object',
       }),
     }),

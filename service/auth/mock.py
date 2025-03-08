@@ -22,11 +22,18 @@ MOCK_ORGANIZATION_DATA = {
 }
 
 
+# Add MockSSOClient class
+class MockSSOClient:
+    def get_authorization_url(self, provider, redirect_uri):
+        return "http://localhost:4000/callback?code=mock_code"
+
+
 # Mock WorkOS client for development mode
 class MockWorkOSClient:
     def __init__(self, api_key, client_id):
         self.organizations = MockOrganizationsClient()
         self.user_management = MockUserManagementClient()
+        self.sso = MockSSOClient()
 
 
 # Mock Organizations client for development mode
