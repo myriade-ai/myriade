@@ -1,6 +1,18 @@
 # CHANGELOG
 
 
+## v0.4.0 (2025-03-08)
+
+### Features
+
+- **chart**: Refacto / move from fusionchart to echarts
+  ([#7](https://github.com/catalys-intelligence/ada/pull/7),
+  [`4ddb122`](https://github.com/catalys-intelligence/ada/commit/4ddb122fb39e9e86f98c565324ea6cf60d3d8430))
+
+* remove fusionchart, add echarts * remove playwright * remove retry * remove chart on page query
+  (and components associated) * fix bugs on retry
+
+
 ## v0.3.12 (2025-03-05)
 
 ### Bug Fixes
