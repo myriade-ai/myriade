@@ -16,7 +16,13 @@ const props = defineProps({
 })
 
 // Create a computed property that watches the input option
-const chartOption = computed(() => props.option)
+const chartOption = computed(() => {
+  return {
+    ...props.option,
+    grid: { containLabel: true },
+    tooltip: { extraCssText: 'width:200px; white-space:pre-wrap;' }
+  }
+})
 </script>
 
 <style scoped>
