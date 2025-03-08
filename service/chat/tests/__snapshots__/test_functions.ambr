@@ -4,6 +4,7 @@
     'sql_query',
     'save_to_memory',
     'submit',
+    'render_echarts',
     'DBT-test__fetch_model',
     'DBT-test__fetch_model_list',
     'DBT-test__search_models',
@@ -86,6 +87,30 @@
           'query',
         ]),
         'title': 'Input for `submit`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Display a chart (using Echarts 4). Provide the chart_options without the "dataset" parameter We will SQL result to fill the dataset.source automatically Don\'t forget to Map from Data to Charts (series.encode) Don\'t use specific color in the chart_options unless the user asked for it When creating bar charts with ECharts, make sure to set the correct axis types. For categorical data (like driver names) use \'category\' type on the x-axis when displaying bars vertically, or on the y-axis when displaying bars horizontally. For numerical data (like wins or points) use \'value\' type on the corresponding axis. Also verify that the encode properties correctly map your data fields to the appropriate axes (\'x\' for categories, \'y\' for values in vertical bar charts; reversed in horizontal bar charts).',
+      'name': 'render_echarts',
+      'parameters': dict({
+        'properties': dict({
+          'chart_options': dict({
+            'description': 'The options of the chart',
+            'title': 'Chart Options',
+            'type': 'object',
+          }),
+          'sql': dict({
+            'description': 'The SQL query to execute',
+            'title': 'Sql',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'chart_options',
+          'sql',
+        ]),
+        'title': 'Input for `render_echarts`',
         'type': 'object',
       }),
     }),

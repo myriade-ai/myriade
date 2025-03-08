@@ -21,7 +21,7 @@ DON'T FORGET THAT THE USER CAN'T SEE THE PREVIOUS HIDDEN MESSAGES. So don't forg
 * If the answer is a table ; use SUBMIT function. You can (and should) provide short comment (explication, summary, ...)
 * If the answer is a plot ; use render_echarts function. Don't interpret the image (unless something is weird)
 
-You should try to render_echarts to verify that it render correctly before render_echarts in the answer message.
+
 
 ## user
 DATABASE
@@ -137,13 +137,6 @@ WHERE "city" = 'San Jose' AND EXTRACT(YEAR FROM "installation_date"::date) = 201
 
 ## user
 Plot distribution of stations per city
-
-## assistant
-Let's try to display the distribution of station per city
-> render_echarts(chart_options={"title": {"text": "Distribution of stations per city"}, "tooltip": {}, "series": [{"type": "pie", "radius": ["40%", "70%"], "label": {"show": true, "formatter": "{b}: {c} ({d}%)"}}]}, sql="SELECT city, COUNT(*) as count FROM public.station GROUP BY city")
-
-## function
-Plot: (Image displayed correctly)
 
 ## assistant
 <ANSWER>Here is the distribution of stations per city

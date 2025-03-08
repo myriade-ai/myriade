@@ -200,6 +200,7 @@ class DatabaseChat:
         self,
         chart_options: dict,
         sql: str,
+        from_response: Message | None = None,
     ):
         """
         Display a chart (using Echarts 4).
@@ -207,10 +208,14 @@ class DatabaseChat:
         We will SQL result to fill the dataset.source automatically
         Don't forget to Map from Data to Charts (series.encode)
         Don't use specific color in the chart_options unless the user asked for it
+        When creating bar charts with ECharts, make sure to set the correct axis types.
+        For categorical data (like driver names) use 'category' type on the x-axis when displaying bars vertically, or on the y-axis when displaying bars horizontally.
+        For numerical data (like wins or points) use 'value' type on the corresponding axis.
+        Also verify that the encode properties correctly map your data fields to the appropriate axes ('x' for categories, 'y' for values in vertical bar charts; reversed in horizontal bar charts).
         Args:
             chart_options: The options of the chart
             sql: The SQL query to execute
-        """
+        """  # noqa: E501
         # Execute SQL query
         rows, _ = self.datalake.query(sql)
 
@@ -219,7 +224,8 @@ class DatabaseChat:
             "source": rows,
         }
 
-        raise StopLoopException("We want to stop after plotting")
+        # We want to stop after rendering the chart
+        raise StopLoopException("We want to stop after rendering the chart")
 
     def _run_conversation(self):
         # Message

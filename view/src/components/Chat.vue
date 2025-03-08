@@ -54,6 +54,7 @@
                   <MessageDisplay
                     :message="message"
                     @editInlineClick="editInline"
+                    @regenerateFromMessage="regenerateFromMessage"
                     class="bg-gray-300"
                     style="border: 1px solid rgb(205 205 205)"
                   />
@@ -187,7 +188,6 @@
 
 <script setup lang="ts">
 import MessageDisplay from '@/components/MessageDisplay.vue'
-import BaseSwitch from '@/components/BaseSwitch.vue'
 import BaseSelector from '@/components/BaseSelector.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseEditor from '@/components/BaseEditor.vue'

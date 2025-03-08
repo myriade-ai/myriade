@@ -15,6 +15,7 @@
             /
           </span>
           <button
+            v-if="message.role !== 'function'"
             class="text-gray-400 hover:text-gray-600"
             title="Regenerate from this message"
             @click="$emit('regenerateFromMessage', message.id)"
