@@ -395,7 +395,11 @@ const clearInput = () => {
 
 const handleConversationChange = (message) => {
   // If message has conversationId, it is a new conversation.
-  if (message.conversationId !== 'new' && message.conversationId !== conversationId.value) {
+  if (
+    route.params.id === 'new' && // if we are on the new conversation page
+    message.conversationId !== 'new' && // if the message is not a new conversation
+    message.conversationId !== conversationId.value // if the message is not the current conversation
+  ) {
     router.push({ path: `/chat/${message.conversationId}` })
   }
 }
