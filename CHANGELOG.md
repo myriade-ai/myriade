@@ -1,6 +1,16 @@
 # CHANGELOG
 
 
+## v0.4.3 (2025-03-09)
+
+### Bug Fixes
+
+- Bug delete conversation messages...
+  ([`b13cb27`](https://github.com/catalys-intelligence/ada/commit/b13cb27937efa4790425f4fba00851cef5a3b127))
+
+PRO-118
+
+
 ## v0.4.2 (2025-03-08)
 
 ### Bug Fixes
