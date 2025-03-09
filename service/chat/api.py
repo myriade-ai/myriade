@@ -124,17 +124,20 @@ def handle_regenerate_from_message(message_id, conversation_id=None, context_id=
         conversation_stop_flags,
         project_id=project_id,
     )
-    # Clear all messages after the message_id
+    # Clear all messages after the message_id, from the conversation
     messages = (
         socket_session.query(ConversationMessage)
-        .filter(ConversationMessage.id > message_id)
+        .filter(
+            ConversationMessage.id > message_id,
+            ConversationMessage.conversationId == conversation_id,
+        )
         .all()
     )
     for message in messages:
         emit("delete-message", message.id)
         socket_session.delete(message)
-    # Also, if the message is from the assistant, delete it
 
+    # Also, if the message is from the assistant, delete it
     message = socket_session.query(ConversationMessage).filter_by(id=message_id).first()
     if message.role == "assistant":
         emit("delete-message", message.id)
