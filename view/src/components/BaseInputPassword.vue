@@ -27,7 +27,7 @@ const showPassword = ref(false)
 const emit = defineEmits(['update:modelValue'])
 
 const props = defineProps<{
-  modelValue: string,
+  modelValue: string
   type?: string
 }>()
 
@@ -38,8 +38,7 @@ const inputType = computed(() => {
 
 const togglePassword = () => {
   showPassword.value = !showPassword.value
-} 
-
+}
 </script>
 
 <style scoped>
@@ -62,4 +61,4 @@ const togglePassword = () => {
 :deep(input) {
   padding-right: 40px !important;
 }
-</style> 
+</style>

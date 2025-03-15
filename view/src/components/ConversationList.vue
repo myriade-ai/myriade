@@ -12,8 +12,8 @@
             date === new Date().toLocaleDateString()
               ? 'Today'
               : date === new Date(Date.now() - 86400000).toLocaleDateString()
-              ? 'Yesterday'
-              : date
+                ? 'Yesterday'
+                : date
           }}
         </div>
         <div

@@ -21,7 +21,7 @@
 
 <script setup lang="ts">
 import { TabGroup, TabList, Tab } from '@headlessui/vue'
-import { computed } from '@vue/runtime-core'
+import { computed } from 'vue'
 
 const emit = defineEmits(['change'])
 

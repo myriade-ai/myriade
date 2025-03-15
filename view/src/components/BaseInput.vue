@@ -69,5 +69,4 @@ const model = computed({
   display: flex;
   align-items: center;
 }
-
 </style>
