@@ -293,7 +293,7 @@ def get_version():
     try:
         # Read version directly from pyproject.toml
         pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
-        
+
         # Simple parsing to extract the version
         with open(pyproject_path, "r") as f:
             for line in f:
@@ -301,7 +301,7 @@ def get_version():
                     # Extract version from the line (format: version = "0.1.0")
                     version = line.strip().split("=")[1].strip().strip('"')
                     return jsonify({"version": version})
-        
+
         # If version not found in the file
         return jsonify({"error": "Version information not available"}), 500
     except Exception as e:
