@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.4.6 (2025-03-15)
+
+### Bug Fixes
+
+- Always consider chart as answer
+  ([`f7030a8`](https://github.com/catalys-intelligence/ada/commit/f7030a8aa96234bcbe4254e724da6bc3320deb62))
+
+### Chores
+
+- Fix pyproject release
+  ([`216b730`](https://github.com/catalys-intelligence/ada/commit/216b7306c3453c8dd309d7e23ca3d8a0e8863cdb))
+
+
 ## v0.4.5 (2025-03-15)
 
 ### Bug Fixes
