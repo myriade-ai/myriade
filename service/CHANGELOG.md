@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.4.5 (2025-03-15)
+
+### Bug Fixes
+
+- Loading status in different conversions
+  ([`4eefa0e`](https://github.com/catalys-intelligence/ada/commit/4eefa0e1d691aeb742823a064d844b1a1d606d24))
+
+
 ## v0.4.4 (2025-03-15)
 
 ### Bug Fixes
