@@ -81,3 +81,8 @@ known-first-party = ["back", "chat", "ai"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
+
+[tool.semantic_release]
+version_variable = [
+    "service/pyproject.toml:project.version"
+]
