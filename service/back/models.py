@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from autochat.model import Image as AutoChatImage
 from autochat.model import Message as AutoChatMessage
+from autochat.model import MessagePart as AutoChatMessagePart
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
@@ -188,7 +189,17 @@ class ConversationMessage(DefaultBase, Base):
         if self.image:
             message.image = AutoChatImage.from_bytes(self.image)
         if self.isAnswer:
-            message.content = "<ANSWER>" + message.content
+            if self.content:
+                message.content = "<ANSWER>" + message.content
+            else:
+                # We don't yet add
+                message.parts = [
+                    AutoChatMessagePart(
+                        type="text",
+                        content="<ANSWER>",
+                    ),
+                    *message.parts,
+                ]
         return message
 
     @classmethod
