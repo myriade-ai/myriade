@@ -24,9 +24,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, watch } from 'vue'
-import { defineProps, defineEmits } from 'vue'
 import { Switch } from '@headlessui/vue'
+import { defineEmits, defineProps, ref, watch } from 'vue'
 
 const props = defineProps({
   modelValue: {

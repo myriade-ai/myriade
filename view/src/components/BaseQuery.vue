@@ -37,7 +37,6 @@
 
 <script setup lang="ts">
 import BaseEditor from '@/components/BaseEditor.vue'
-import BaseInput from '@/components/BaseInput.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import {
   queryText,
@@ -47,7 +46,6 @@ import {
   queryIsModified,
   loading as queryLoading
 } from '../stores/query'
-import { ref } from 'vue'
 
 import { useDatabases } from '../stores/databases'
 import BaseSelector from './BaseSelector.vue'

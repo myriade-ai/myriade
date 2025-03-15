@@ -1,7 +1,6 @@
-import { ref, computed } from 'vue'
-import type { Ref, WritableComputedRef } from 'vue'
 import axios from '@/plugins/axios'
-import { useDatabases } from './databases'
+import type { Ref, WritableComputedRef } from 'vue'
+import { computed, ref } from 'vue'
 
 export interface Project {
   id: number

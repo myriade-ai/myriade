@@ -64,13 +64,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, unref } from 'vue'
-import type { Ref } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
 import axios from '@/plugins/axios'
-import { useRouter } from 'vue-router'
-import { TrashIcon, PencilIcon, XMarkIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
-import { useRoute } from 'vue-router'
+import { CheckCircleIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import type { Ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 // Output the conversations types
 type Conversation = {
   id: number

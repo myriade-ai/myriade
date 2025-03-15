@@ -11,11 +11,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, defineProps, watch } from 'vue'
 import { TabulatorFull as Tabulator } from 'tabulator-tables' //import Tabulator library
 import 'tabulator-tables/dist/css/tabulator_semanticui.min.css'
-import BaseButton from '@/components/BaseButton.vue'
-import BaseNotification from '@/components/BaseNotification.vue'
+import { defineProps, onMounted, ref, watch } from 'vue'
 
 const table = ref(null) // reference to your table element
 const tabulator = ref(null) // variable to hold your table
@@ -61,7 +59,7 @@ onMounted(() => {
     },
     pagination: true,
     paginationSize: 10,
-    paginationCounter: (pageSize, currentRow, currentPage, totalRows, totalPages) => {
+    paginationCounter: (pageSize, currentRow) => {
       return `Showing ${currentRow}-${currentRow + pageSize} of ${props.count} rows`
     }
   })

@@ -17,11 +17,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { defineProps } from 'vue'
-
-interface Props {
-  placeholder?: string
-}
-</script>

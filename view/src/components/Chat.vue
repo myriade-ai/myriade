@@ -187,28 +187,23 @@
 </template>
 
 <script setup lang="ts">
-import MessageDisplay from '@/components/MessageDisplay.vue'
-import BaseSelector from '@/components/BaseSelector.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseEditor from '@/components/BaseEditor.vue'
-import { ref, watch, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import BaseSelector from '@/components/BaseSelector.vue'
+import MessageDisplay from '@/components/MessageDisplay.vue'
 import axios from '@/plugins/axios'
 import { useDatabases } from '@/stores/databases'
 import { useProjects } from '@/stores/projects'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
-import { useRoute } from 'vue-router'
-import { useRouter } from 'vue-router'
-import { useConfigStore } from '@/stores/config'
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import sqlPrettier from 'sql-prettier'
+import { useRoute, useRouter } from 'vue-router'
 // Import sparkles from heroicons
-import { SparklesIcon } from '@heroicons/vue/24/solid'
-import { PaperAirplaneIcon } from '@heroicons/vue/24/solid'
-import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
-import { conversationStatuses } from '@/stores/conversations'
 import { socket } from '@/plugins/socket'
-
-const config = useConfigStore()
+import { conversationStatuses } from '@/stores/conversations'
+import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
+import { PaperAirplaneIcon, SparklesIcon } from '@heroicons/vue/24/solid'
 
 const route = useRoute()
 const router = useRouter()

@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineComponent, computed } from 'vue'
+import { computed } from 'vue'
 import { useDatabases } from '../stores/databases'
 
 const { fetchDatabases, databases } = useDatabases()
