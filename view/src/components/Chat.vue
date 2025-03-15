@@ -193,7 +193,6 @@ import BaseButton from '@/components/BaseButton.vue'
 import BaseEditor from '@/components/BaseEditor.vue'
 import { ref, watch, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import axios from '@/plugins/axios'
-import io from 'socket.io-client'
 import { useDatabases } from '@/stores/databases'
 import { useProjects } from '@/stores/projects'
 
@@ -206,14 +205,13 @@ import sqlPrettier from 'sql-prettier'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
 import { PaperAirplaneIcon } from '@heroicons/vue/24/solid'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
+import { conversationStatuses } from '@/stores/conversations'
+import { socket } from '@/plugins/socket'
 
 const config = useConfigStore()
 
 const route = useRoute()
 const router = useRouter()
-// Environment variable to set the dbt API endpoint.
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL
-const socket = io(SOCKET_URL)
 const inputTextarea = ref(null)
 
 const { fetchProjects, projects } = useProjects()
@@ -254,8 +252,10 @@ const conversationId = computed(() => {
   }
   return route.params.id
 })
-const queryStatus = ref(STATUS.CLEAR)
-const errorMessage = ref('')
+const queryStatus = computed(
+  () => conversationStatuses.value[conversationId.value]?.status ?? 'clear'
+)
+const errorMessage = computed(() => conversationStatuses.value[conversationId.value]?.error ?? '')
 const lastMessage = computed(() => messages.value[messages.value.length - 1])
 const editMode = ref('TEXT')
 
@@ -398,19 +398,11 @@ const handleConversationChange = (message) => {
   if (
     route.params.id === 'new' && // if we are on the new conversation page
     message.conversationId !== 'new' && // if the message is not a new conversation
-    message.conversationId !== conversationId.value // if the message is not the current conversation
+    message.conversationId !== conversationId.value && // if the message is not the current conversation
+    conversationStatuses.value[message.conversationId] === undefined // if the message is not an existing conversations
   ) {
     router.push({ path: `/chat/${message.conversationId}` })
   }
-}
-
-const updateStatus = (status, error) => {
-  if (status === STATUS.ERROR) {
-    errorMessage.value = error
-  } else {
-    errorMessage.value = ''
-  }
-  queryStatus.value = status
 }
 
 onMounted(async () => {
@@ -430,10 +422,6 @@ onMounted(async () => {
   socket.on('response', (response) => {
     handleConversationChange(response)
     receiveMessage(response)
-  })
-
-  socket.on('status', (response) => {
-    updateStatus(response.status, response?.error)
   })
 })
 
