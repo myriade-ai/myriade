@@ -83,6 +83,7 @@ known-first-party = ["back", "chat", "ai"]
 max-complexity = 10
 
 [tool.semantic_release]
-version_variable = [
-    "service/pyproject.toml:project.version"
+version_toml = [
+    "pyproject.toml:project.version",
 ]
+changelog_file = "../CHANGELOG.md"
