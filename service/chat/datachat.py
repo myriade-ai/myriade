@@ -223,7 +223,7 @@ class DatabaseChat:
         chart_options["dataset"] = {
             "source": rows,
         }
-
+        from_response.isAnswer = True
         # We want to stop after rendering the chart
         raise StopLoopException("We want to stop after rendering the chart")
 
