@@ -6,10 +6,9 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import { useMeta } from 'vue-meta'
 import { useRoute } from 'vue-router'
-
 
 useMeta({
   title: 'Ada',

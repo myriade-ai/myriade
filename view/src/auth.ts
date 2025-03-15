@@ -1,10 +1,9 @@
 import { isAuthenticated, fetchUser } from '@/stores/auth'
 
-export const authGuard = async (to, from, next) => { 
+export const authGuard = async (to, from, next) => {
   if (to.meta.requiresGuest) {
     next()
-  }
-  else if (!isAuthenticated.value) {
+  } else if (!isAuthenticated.value) {
     try {
       await fetchUser()
     } catch (error) {

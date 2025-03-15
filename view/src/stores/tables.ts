@@ -8,5 +8,5 @@ export interface Table {
   schema: string
   description: string
   columns: Column[]
-  used: Boolean // information if the table is used in the query
+  used: boolean // information if the table is used in the query
 }

@@ -77,13 +77,13 @@ export const updateQuery = async () => {
   if (queryId.value) {
     await axios.put(`/api/query/${queryId.value}`, {
       query: queryText.value,
-      sql: querySQL.value,
+      sql: querySQL.value
     })
   } else {
     const response = await axios.post('/api/query', {
       query: queryText.value,
       sql: querySQL.value,
-      databaseId: databaseSelectedId.value,
+      databaseId: databaseSelectedId.value
     })
     queryId.value = response.data.id
     router.push({ name: 'Query', params: { id: queryId.value } })
@@ -91,10 +91,6 @@ export const updateQuery = async () => {
   loadQuery(queryId.value as number)
 }
 
-
 export const queryIsModified = computed(() => {
-  return (
-    querySQL.value !== queryRef.value?.sql ||
-    queryText.value !== queryRef.value?.query
-  )
+  return querySQL.value !== queryRef.value?.sql || queryText.value !== queryRef.value?.query
 })

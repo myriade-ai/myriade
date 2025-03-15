@@ -8,4 +8,3 @@ socket.on('status', (payload) => {
   const { conversation_id, status, error } = payload
   conversationStatuses.value[conversation_id] = { status, error }
 })
-

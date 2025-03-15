@@ -38,7 +38,7 @@ export const fetchUser = async () => {
 export const logout = async () => {
   try {
     // First, make a request to the server to clear the cookie
-    await axios.post('/api/logout');
+    await axios.post('/api/logout')
 
     // Then clear the local user state
     user.value = {
@@ -49,9 +49,9 @@ export const logout = async () => {
       imageUrl: null,
       isAdmin: false
     }
-    
+
     window.location.href = '/login'
   } catch (error) {
     console.error('Logout failed:', error)
   }
-} 
+}
