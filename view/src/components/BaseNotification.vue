@@ -74,40 +74,8 @@ const props = defineProps({
   }
 })
 
-const colorClass = (type, intensity) => {
+const colorClass = (type: string, intensity: number | string) => {
   // Only for tailwind...
-  const colorsForTailwind = [
-    'bg-red-50',
-    'bg-red-200',
-    'bg-red-500',
-    'hover:bg-red-100',
-    'bg-blue-50',
-    'bg-blue-200',
-    'bg-blue-500',
-    'hover:bg-blue-100',
-    'bg-green-50',
-    'bg-green-200',
-    'bg-green-500',
-    'hover:bg-green-100',
-    'text-red-400',
-    'text-red-500',
-    'text-red-700',
-    'text-red-800',
-    'focus:ring-offset-red-50',
-    'focus:ring-red-600',
-    'text-blue-400',
-    'text-blue-500',
-    'text-blue-700',
-    'text-blue-800',
-    'focus:ring-offset-blue-50',
-    'focus:ring-blue-600',
-    'text-green-400',
-    'text-green-500',
-    'text-green-700',
-    'text-green-800',
-    'focus:ring-offset-green-50',
-    'focus:ring-green-600'
-  ]
   return `${type}-${props.color}-${intensity}`
 }
 

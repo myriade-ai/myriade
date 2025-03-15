@@ -21,7 +21,7 @@
 import BaseField from '../components/BaseField.vue'
 // Name from props
 import { defineProps, computed, defineEmits } from 'vue'
-import { configure, Field, Form, ErrorMessage, defineRule } from 'vee-validate'
+import { configure, Field, ErrorMessage, defineRule } from 'vee-validate'
 import { localize } from '@vee-validate/i18n'
 import { required } from '@vee-validate/rules'
 

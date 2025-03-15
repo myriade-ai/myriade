@@ -14,5 +14,5 @@ interface Props {
   onClick: () => void
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 </script>
