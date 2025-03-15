@@ -14,7 +14,6 @@ export const queryResults = ref(null)
 export const queryCount = ref(null)
 export const queryError = ref(null)
 export const loading = ref(false)
-export const visualisationParams = ref(null)
 
 export const loadQuery = async (id: number) => {
   queryId.value = id
@@ -24,7 +23,6 @@ export const loadQuery = async (id: number) => {
   query.sql = sqlPrettier.format(query.sql)
   queryRef.value = query
   queryText.value = query.query
-  visualisationParams.value = query.visualisationParams
   await selectDatabaseById(query.databaseId)
 
   if (query.sql) {
@@ -80,14 +78,12 @@ export const updateQuery = async () => {
     await axios.put(`/api/query/${queryId.value}`, {
       query: queryText.value,
       sql: querySQL.value,
-      visualisationParams: visualisationParams.value
     })
   } else {
     const response = await axios.post('/api/query', {
       query: queryText.value,
       sql: querySQL.value,
       databaseId: databaseSelectedId.value,
-      visualisationParams: visualisationParams.value
     })
     queryId.value = response.data.id
     router.push({ name: 'Query', params: { id: queryId.value } })
@@ -95,15 +91,10 @@ export const updateQuery = async () => {
   loadQuery(queryId.value as number)
 }
 
-export const updateVisualisationParams = async (params: any) => {
-  visualisationParams.value = params
-}
 
 export const queryIsModified = computed(() => {
   return (
     querySQL.value !== queryRef.value?.sql ||
-    queryText.value !== queryRef.value?.query ||
-    JSON.stringify(visualisationParams.value) !==
-      JSON.stringify(queryRef.value?.visualisationParams)
+    queryText.value !== queryRef.value?.query
   )
 })

@@ -138,15 +138,6 @@ export default {
     })
   },
   computed: {
-    visualisationParams() {
-      // TO DELETE ?
-      const params = this.message.functionCall?.arguments
-      return {
-        ...params?.params,
-        caption: params?.caption,
-        type: params?.outputType
-      }
-    },
     parsedText() {
       const regex = /```((?:sql|json|error|ya?ml-graph))\s*([\s\S]*?)\s*```/g
       let match

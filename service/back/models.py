@@ -275,8 +275,6 @@ class Query(DefaultBase, Base):
     database = relationship("Database")
     creator = relationship("User")
 
-    visualisationParams = Column(JSONB)
-
 
 @dataclass
 class User(DefaultBase, Base):
