@@ -29,3 +29,4 @@ jobs:
         uses: python-semantic-release/python-semantic-release@v9.21.0
         with:
           github_token: ${{ secrets.PERSONAL_TOKEN }}
+          directory: ./service

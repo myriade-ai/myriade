@@ -2,6 +2,7 @@ import dataclasses
 import json
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import List, Union
 
 from flask import Blueprint, g, jsonify, request
@@ -284,6 +285,28 @@ def get_server_info():
 
     response = requests.get("https://api.ipify.org", timeout=5)
     return jsonify({"ip": response.text.strip()})
+
+
+@api.route("/version", methods=["GET"])
+def get_version():
+    """Get the application version"""
+    try:
+        # Read version directly from pyproject.toml
+        pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+        
+        # Simple parsing to extract the version
+        with open(pyproject_path, "r") as f:
+            for line in f:
+                if line.strip().startswith("version = "):
+                    # Extract version from the line (format: version = "0.1.0")
+                    version = line.strip().split("=")[1].strip().strip('"')
+                    return jsonify({"version": version})
+        
+        # If version not found in the file
+        return jsonify({"error": "Version information not available"}), 500
+    except Exception as e:
+        # Return error if version information is not available
+        return jsonify({"error": f"Version information not available: {str(e)}"}), 500
 
 
 # Get all projects of the user or it's organisation
