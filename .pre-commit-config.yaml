@@ -1,5 +1,20 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.3 # Use the latest release from https://github.com/astral-sh/ruff-pre-commit/releases
+    rev: v0.3.3
     hooks:
       - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.22.0
+    hooks:
+      - id: eslint
+        files: ^view/.*\.(js|ts|vue)$
+        args: [--config view/eslint.config.mjs --fix]
+        additional_dependencies:
+          - eslint@9.22.0
+          - eslint-plugin-vue@10.0.0
+          - typescript-eslint@8.26.1
+          - "@eslint/js@9.22.0"
+          - "eslint-plugin-prettier@5.2.3"

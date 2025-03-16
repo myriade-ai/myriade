@@ -14,5 +14,12 @@ export default defineConfig([
   ...tseslint.configs.recommended,
   ...pluginVue.configs['flat/essential'],
   eslintPluginPrettier,
-  { files: ['**/*.vue'], languageOptions: { parserOptions: { parser: tseslint.parser } } }
+  { files: ['**/*.vue'], languageOptions: { parserOptions: { parser: tseslint.parser } } },
+  {
+    files: ['**/*.{js,mjs,cjs,ts,vue}'],
+    rules: {
+      'vue/multi-word-component-names': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn'
+    }
+  }
 ])

@@ -21,7 +21,7 @@ const tabulator = ref(null) // variable to hold your table
 const props = defineProps({
   data: {
     type: Array,
-    default: [],
+    default: () => [],
     required: true
   },
   count: {

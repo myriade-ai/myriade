@@ -1,10 +1,7 @@
-from functools import wraps
-
-from back.datalake import DatalakeFactory, SizeLimitError
-from back.models import Database, Query
 from flask import Blueprint, g, jsonify, request
+
+from back.models import Query
 from middleware import database_middleware, user_middleware
-from sqlalchemy.exc import SQLAlchemyError
 
 api = Blueprint("ai_api", __name__)
 

@@ -44,9 +44,9 @@
                 leave-active-class="transition-all duration-300 ease-in"
                 leave-from-class="opacity-100 max-h-[1000px]"
                 leave-to-class="opacity-0 max-h-0"
+                v-if="internalMessageGroups[index]"
               >
                 <li
-                  v-if="internalMessageGroups[index]"
                   v-for="message in group.internalMessages"
                   :key="message.id"
                   class="overflow-hidden"
