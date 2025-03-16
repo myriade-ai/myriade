@@ -1,8 +1,8 @@
-import { computed, ref } from 'vue'
 import axios from '@/plugins/axios'
 import sqlPrettier from 'sql-prettier'
-import { useDatabases } from './databases'
+import { computed, ref } from 'vue'
 import router from '../router'
+import { useDatabases } from './databases'
 
 const { selectDatabaseById, databaseSelectedId } = useDatabases()
 
@@ -55,13 +55,10 @@ export const executeQuery = async (
 
 export const runQuery = async () => {
   loading.value = true
-  // @ts-ignore
   return executeQuery(databaseSelectedId.value, querySQL.value)
     .then(({ rows, count }) => {
       queryError.value = null
-      // @ts-ignore
       queryResults.value = rows
-      // @ts-ignore
       queryCount.value = count
       return queryResults.value
     })

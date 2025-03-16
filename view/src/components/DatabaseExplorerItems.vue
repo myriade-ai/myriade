@@ -14,11 +14,13 @@
           </div>
         </div>
       </div>
-      <div v-for="column in table.columns" v-if="props.showColumns">
-        <div class="mt-2 flex justify-between">
-          <div class="sm:flex">
-            <div class="flex items-center text-sm text-gray-500">
-              {{ column.name }}: {{ column.type }}
+      <div v-if="props.showColumns">
+        <div v-for="column in table.columns" :key="column.id">
+          <div class="mt-2 flex justify-between">
+            <div class="sm:flex">
+              <div class="flex items-center text-sm text-gray-500">
+                {{ column.name }}: {{ column.type }}
+              </div>
             </div>
           </div>
         </div>
@@ -28,8 +30,8 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps } from 'vue'
 import type { Table } from '@/stores/tables'
+import { defineProps } from 'vue'
 
 const props = defineProps({
   table: {

@@ -57,15 +57,15 @@
 </template>
 
 <script setup lang="ts">
+import { PlusIcon } from '@heroicons/vue/20/solid'
 import { computed } from 'vue'
 import { useProjects } from '../stores/projects'
-import { PlusIcon } from '@heroicons/vue/20/solid'
 
 const { fetchProjects, projects } = useProjects()
 
 fetchProjects({ refresh: true })
 
 const sortedProject = computed(() => {
-  return projects.value.sort((a, b) => a.id - b.id)
+  return [...projects.value].sort((a, b) => a.id - b.id)
 })
 </script>

@@ -10,22 +10,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { PropType } from 'vue'
+import { computed } from 'vue'
 
-class BaseOption {
+type BaseOption = {
   name: string
 }
 
 const props = defineProps({
   options: {
-    // @ts-ignore
-    type: Array as PropType<(typeof BaseOption)[]>,
+    type: Array as PropType<BaseOption[]>,
     required: true
   },
   modelValue: {
-    // @ts-ignore
-    type: Object as PropType<typeof BaseOption>,
+    type: Object as PropType<BaseOption>,
     required: true
   }
 })

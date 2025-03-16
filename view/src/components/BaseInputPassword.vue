@@ -18,13 +18,13 @@
 </template>
 
 <script setup lang="ts">
-import BaseInput from './BaseInput.vue'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
+import BaseInput from './BaseInput.vue'
 
 const showPassword = ref(false)
 
-const emit = defineEmits(['update:modelValue'])
+defineEmits(['update:modelValue'])
 
 const props = defineProps<{
   modelValue: string

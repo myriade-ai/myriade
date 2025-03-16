@@ -44,6 +44,7 @@ const { fetchDatabases, databases } = useDatabases()
 fetchDatabases({ refresh: true })
 
 const sortedDatabase = computed(() => {
-  return databases.value.sort((a, b) => a.id - b.id)
+  // Create a new array with slice() before sorting to avoid mutating the original array
+  return [...databases.value].sort((a, b) => a.id - b.id)
 })
 </script>
