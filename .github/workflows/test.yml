@@ -35,3 +35,6 @@ jobs:
           OPENAI_API_KEY: fake
           ANTHROPIC_API_KEY: fake
         run: PYTHONPATH=$PYTHONPATH:. uv run pytest
+      - name: Run pre-commit
+        working-directory: ./service
+        run: pre-commit run --all-files
