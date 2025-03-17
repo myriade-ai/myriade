@@ -182,17 +182,6 @@ class SQLDatabase(AbstractDatabase):
                 total_size += row_size
             return rows
 
-    def create_transformation(self, name, query, materialized="table", schema="public"):
-        if materialized == "table":
-            self.engine.execute(
-                text(f"CREATE MATERIALIZED VIEW {schema}.{name} AS {query}")
-            )
-        elif materialized == "view":
-            self.engine.execute(text(f"CREATE VIEW {schema}.{name} AS {query}"))
-        else:
-            raise ValueError("materialized must be 'table' or 'view'")
-        # TODO: Reload metadata
-
 
 class PostgresDatabase(SQLDatabase):
     def __init__(self, uri):
@@ -319,8 +308,3 @@ class DatalakeFactory:
             return SQLDatabase("sqlite:///" + kwargs["filename"])
         else:
             raise ValueError(f"Unknown database type: {dtype}")
-
-
-def cleanup_connections():
-    # TODO: use a context manager to close the connections
-    SnowflakeConnectionPool.close_all()
