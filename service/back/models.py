@@ -5,7 +5,6 @@ from decimal import Decimal
 from autochat.model import Image as AutoChatImage
 from autochat.model import Message as AutoChatMessage
 from autochat.model import MessagePart as AutoChatMessagePart
-from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
     Column,
@@ -270,7 +269,6 @@ class Query(DefaultBase, Base):
     tag = Column(String)
     tables = Column(String)
     wheres = Column(String)
-    embedding = Column(Vector(1536))
 
     database = relationship("Database")
     creator = relationship("User")
