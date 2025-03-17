@@ -1,6 +1,53 @@
 # CHANGELOG
 
 
+## v0.5.0 (2025-03-17)
+
+### Chores
+
+- Add crisp
+  ([`d7f07a6`](https://github.com/catalys-intelligence/ada/commit/d7f07a6f1a04cb9580676173563700edbbb320c0))
+
+- Add front linter
+  ([`a475a1d`](https://github.com/catalys-intelligence/ada/commit/a475a1ddf0022e9c9d1c28c701bdd6e26c48de8d))
+
+- Add strict
+  ([`f6e1888`](https://github.com/catalys-intelligence/ada/commit/f6e1888fd16f51e25eda25b92cfa60326a06dea7))
+
+- Fix test workflow
+  ([`238f298`](https://github.com/catalys-intelligence/ada/commit/238f29831c0550dcda1b3968ee6bc5a03d953960))
+
+- Remove
+  ([`96c7384`](https://github.com/catalys-intelligence/ada/commit/96c7384ded425c879aafea81e485f82b2e061379))
+
+PRO-102
+
+- Remove dead code
+  ([`6325879`](https://github.com/catalys-intelligence/ada/commit/63258791df382a6943d1608dc0e40cbafabc6b56))
+
+- Remove unused column embedding
+  ([`a7041e7`](https://github.com/catalys-intelligence/ada/commit/a7041e7d94bf17b23eb98719adf20958f1352582))
+
+- Remove unused dep
+  ([`0c64706`](https://github.com/catalys-intelligence/ada/commit/0c647060c68bffec4dad1bc09e2076da30adf195))
+
+- Remove unused dep
+  ([`650c0e0`](https://github.com/catalys-intelligence/ada/commit/650c0e012f5763489d84386dab07522098e41471))
+
+- Remove visualisation params
+  ([`1266517`](https://github.com/catalys-intelligence/ada/commit/1266517b0f15f612ef2524b848326b160efddef4))
+
+PRO-103
+
+- Update test workflow
+  ([`c3f3ccf`](https://github.com/catalys-intelligence/ada/commit/c3f3ccfa1849fda33137e6b97f44a2a0fec9f541))
+
+### Features
+
+- Add sentry
+  ([`8fd69a6`](https://github.com/catalys-intelligence/ada/commit/8fd69a6feb4ef63212b893eb27741e77fb96a4ec))
+
+
 ## v0.4.6 (2025-03-15)
 
 ### Bug Fixes
