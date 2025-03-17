@@ -1,3 +1,4 @@
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
@@ -10,7 +11,11 @@ export default defineConfig({
   //     esmExternals: true
   //   }
   // },
-  plugins: [vue()],
+  plugins: [vue(), sentryVitePlugin({
+    org: "catalys-rx",
+    project: "view"
+  })],
+
   server: {
     proxy: {
       '/auth': {
@@ -28,9 +33,14 @@ export default defineConfig({
       }
     }
   },
+
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
+  },
+
+  build: {
+    sourcemap: true
   }
 })

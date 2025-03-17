@@ -2,10 +2,10 @@
   <v-chart class="chart" :option="chartOption" />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import 'echarts'
-import VChart from 'vue-echarts'
 import { computed } from 'vue'
+import VChart from 'vue-echarts'
 
 // Define the prop
 const props = defineProps({
