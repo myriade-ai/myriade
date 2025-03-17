@@ -37,4 +37,4 @@ jobs:
         run: PYTHONPATH=$PYTHONPATH:. uv run pytest
       - name: Run pre-commit
         working-directory: ./service
-        run: pre-commit run --all-files
+        run: uv run pre-commit run --all-files
