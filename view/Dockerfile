@@ -3,6 +3,8 @@ FROM node:lts-alpine AS build-stage
 WORKDIR /app
 COPY package.json yarn.lock ./
 
+ENV NODE_OPTIONS="--max_old_space_size=4096"
+
 RUN yarn install
 COPY . .
 RUN yarn build-only
