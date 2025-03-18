@@ -11,7 +11,21 @@
         <span></span>
         <!-- Empty span to push content to the right -->
         <span class="flex items-center space-x-2 font-normal">
+          <!-- Edit button for user messages -->
+          <span v-if="message.role === 'user'" class="flex items-center space-x-2">
+            <button
+              class="text-blue-500 hover:text-blue-700 flex items-center"
+              @click="editUserMessage"
+              title="Edit message"
+            >
+              <PencilSquareIcon class="h-4 w-4" />
+              <span class="ml-1">edit message</span>
+            </button>
+          </span>
+          
+          <!-- Edit inline button for SQL queries -->
           <span v-if="message.queryId" class="flex items-center space-x-2">
+            <span v-if="message.role === 'user'" class="text-gray-400 mx-2">|</span>
             <button
               class="text-blue-500 hover:text-blue-700 flex items-center"
               @click="editInline"
@@ -31,9 +45,7 @@
               <span class="ml-1">edit</span>
             </a>
           </span>
-          <span v-if="message.queryId && message.role !== 'function'" class="text-gray-400 mx-2"
-            >|</span
-          >
+          <span v-if="(message.queryId || message.role === 'user') && message.role !== 'function'" class="text-gray-400 mx-2">|</span>
           <button
             v-if="message.role !== 'function'"
             class="text-blue-500 hover:text-blue-700 flex items-center"
@@ -122,7 +134,7 @@ export default {
       required: true
     }
   },
-  emits: ['editInlineClick', 'regenerateFromMessage'],
+  emits: ['editInlineClick', 'regenerateFromMessage', 'editUserMessage'],
   data() {
     return {
       sqlResult: [] as Array<{
@@ -133,6 +145,9 @@ export default {
     }
   },
   methods: {
+    editUserMessage() {
+      this.$emit('editUserMessage', this.message.content)
+    },
     editInline() {
       this.$emit('editInlineClick', this.message.functionCall?.arguments?.query)
     },

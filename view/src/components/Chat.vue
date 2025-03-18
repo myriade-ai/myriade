@@ -20,6 +20,7 @@
                 <MessageDisplay
                   :message="message"
                   @editInlineClick="editInline"
+                  @editUserMessage="editUserMessage"
                   @regenerateFromMessage="regenerateFromMessage"
                 />
               </li>
@@ -50,10 +51,10 @@
                   v-for="message in group.internalMessages"
                   :key="message.id"
                   class="overflow-hidden"
-                >
                   <MessageDisplay
                     :message="message"
                     @editInlineClick="editInline"
+                    @editUserMessage="editUserMessage"
                     @regenerateFromMessage="regenerateFromMessage"
                     class="bg-gray-300"
                     style="border: 1px solid rgb(205 205 205)"
@@ -300,6 +301,10 @@ watch(
 const editInline = (query) => {
   inputSQL.value = query
   editMode.value = 'SQL'
+}
+const editUserMessage = (content) => {
+  inputText.value = content
+  editMode.value = 'TEXT'
 }
 
 const sendMessage = async () => {
