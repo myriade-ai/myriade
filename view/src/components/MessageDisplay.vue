@@ -4,27 +4,48 @@
     :class="{ 'bg-gray-300': message.display === false }"
   >
     <!-- if message.display = false, then show as light gray (internal message) -->
-    <p class="font-bold">
+    <div>
       <span class="flex justify-between items-center w-full">
-        {{ message.role }}
-        <span class="flex items-center space-x-2">
-          <span v-if="message.queryId">
-            <button class="text-blue-500" @click="editInline">Edit inline</button>
-            /
-            <a :href="`/query/${message.queryId}`" class="text-blue-500" target="_blank">Edit</a>
-            /
+        <span class="font-bold">{{ message.role }}</span>
+
+        <span></span>
+        <!-- Empty span to push content to the right -->
+        <span class="flex items-center space-x-2 font-normal">
+          <span v-if="message.queryId" class="flex items-center space-x-2">
+            <button
+              class="text-blue-500 hover:text-blue-700 flex items-center"
+              @click="editInline"
+              title="Edit inline"
+            >
+              <PencilSquareIcon class="h-4 w-4" />
+              <span class="ml-1">Edit inline</span>
+            </button>
+            <span class="text-gray-400 mx-2">|</span>
+            <a
+              :href="`/query/${message.queryId}`"
+              class="text-blue-500 hover:text-blue-700 flex items-center"
+              target="_blank"
+              title="Edit in new tab"
+            >
+              <PencilIcon class="h-4 w-4" />
+              <span class="ml-1">Edit</span>
+            </a>
           </span>
+          <span v-if="message.queryId && message.role !== 'function'" class="text-gray-400 mx-2"
+            >|</span
+          >
           <button
             v-if="message.role !== 'function'"
-            class="text-gray-400 hover:text-gray-600"
+            class="text-blue-500 hover:text-blue-700 flex items-center"
             title="Regenerate from this message"
             @click="$emit('regenerateFromMessage', message.id)"
           >
             <ArrowPathIcon class="h-4 w-4" />
+            <span class="ml-1">Regenerate</span>
           </button>
         </span>
       </span>
-    </p>
+    </div>
 
     <template v-for="(part, index) in parsedText">
       <span
@@ -78,7 +99,7 @@ import axios from '@/plugins/axios'
 import BaseEditor from '@/components/BaseEditor.vue'
 import BaseEditorPreview from '@/components/BaseEditorPreview.vue'
 import { marked } from 'marked'
-import { ArrowPathIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, PencilIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 import Echart from '@/components/Echart.vue'
 
 // Get databaseId from store
@@ -91,6 +112,8 @@ export default {
     BaseEditor,
     BaseEditorPreview,
     ArrowPathIcon,
+    PencilIcon,
+    PencilSquareIcon,
     Echart
   },
   props: {
