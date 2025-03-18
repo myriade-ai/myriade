@@ -27,7 +27,6 @@ def run_query():
 @user_middleware
 def create_query():
     database_id = request.json.get("databaseId")
-    visualisationParams = request.json.get("visualisationParams")
     query = request.json.get("query")
     sql = request.json.get("sql")
 
@@ -36,8 +35,6 @@ def create_query():
         query=query,
         sql=sql,
     )
-    if visualisationParams:
-        new_query.visualisationParams = visualisationParams
 
     g.session.add(new_query)
     g.session.commit()
@@ -45,7 +42,6 @@ def create_query():
     response = {
         "id": new_query.id,
         "databaseId": new_query.databaseId,
-        "visualisationParams": new_query.visualisationParams,
         "query": new_query.query,
         "sql": new_query.sql,
     }
@@ -67,20 +63,14 @@ def handle_query_by_id(query_id):
     databaseId = query.databaseId
 
     if request.method == "PUT":
-        updated_visualisationParams = request.json.get("visualisationParams")
-        query.visualisationParams = updated_visualisationParams
         query.query = request.json.get("query")
         query.sql = request.json.get("sql")
         g.session.commit()
 
     response = {
         "databaseId": databaseId,
-        "visualisationParams": query.visualisationParams,
         "query": query.query,
         "sql": query.sql,
     }
-
-    if request.method == "PUT":
-        response["visualisationParams"] = updated_visualisationParams
 
     return jsonify(response)
