@@ -18,7 +18,7 @@
               title="Edit inline"
             >
               <PencilSquareIcon class="h-4 w-4" />
-              <span class="ml-1">Edit inline</span>
+              <span class="ml-1">edit inline</span>
             </button>
             <span class="text-gray-400 mx-2">|</span>
             <a
@@ -28,7 +28,7 @@
               title="Edit in new tab"
             >
               <PencilIcon class="h-4 w-4" />
-              <span class="ml-1">Edit</span>
+              <span class="ml-1">edit</span>
             </a>
           </span>
           <span v-if="message.queryId && message.role !== 'function'" class="text-gray-400 mx-2"
@@ -41,7 +41,7 @@
             @click="$emit('regenerateFromMessage', message.id)"
           >
             <ArrowPathIcon class="h-4 w-4" />
-            <span class="ml-1">Regenerate</span>
+            <span class="ml-1">regenerate</span>
           </button>
         </span>
       </span>
