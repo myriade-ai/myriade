@@ -1,13 +1,13 @@
-import { createWebHistory, createRouter } from 'vue-router'
-import { loadQuery } from './stores/query'
-import Editor from './views/Editor.vue'
-import DatabaseList from './views/DatabaseList.vue'
-import Upload from './views/Upload.vue'
-import Chat from './views/ChatPage.vue'
-import ProjectList from './views/ProjectList.vue'
+import { authGuard } from '@/auth'
 import Login from '@/views/Login.vue'
 import User from '@/views/User.vue'
-import { authGuard } from '@/auth'
+import { createRouter, createWebHistory } from 'vue-router'
+import { loadQuery } from './stores/query'
+import Chat from './views/ChatPage.vue'
+import DatabaseList from './views/DatabaseList.vue'
+import Editor from './views/Editor.vue'
+import ProjectList from './views/ProjectList.vue'
+import Upload from './views/Upload.vue'
 
 function loadView(view: string) {
   return () => import(`./views/${view}.vue`)
@@ -25,7 +25,7 @@ const routes = [
     component: Chat
   },
   {
-    path: '/query',
+    path: '/editor',
     name: 'Editor',
     component: Editor
   },

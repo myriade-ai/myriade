@@ -30,7 +30,7 @@
       :disabled="queryLoading"
     >
       <ArrowPathIcon v-if="queryLoading" class="animate-reverse-spin h-5 w-5 text-white mr-2" />
-      Run Query
+      Run query
     </button>
   </div>
 </template>
