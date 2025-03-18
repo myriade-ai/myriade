@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.5.1 (2025-03-18)
+
+### Bug Fixes
+
+- Remove visualisationParams
+  ([`3fe83bc`](https://github.com/catalys-intelligence/ada/commit/3fe83bcf38576e4753db2223acff0c7e94d5b271))
+
+
 ## v0.5.0 (2025-03-17)
 
 ### Chores
