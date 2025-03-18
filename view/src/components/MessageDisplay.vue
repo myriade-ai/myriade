@@ -28,6 +28,7 @@
               <span class="ml-1">Edit</span>
             </a>
           </span>
+          <span v-if="message.queryId && message.role !== 'function'" class="text-gray-400 mx-2">|</span>
           <button
             v-if="message.role !== 'function'"
             class="text-blue-500 hover:text-blue-700 flex items-center"
