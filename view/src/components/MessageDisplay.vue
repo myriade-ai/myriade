@@ -1,7 +1,6 @@
 <template>
   <div
     class="message-display px-4 py-4 my-2 rounded-lg bg-gray-100"
-    :class="{ 'bg-gray-300': message.display === false }"
   >
     <!-- if message.display = false, then show as light gray (internal message) -->
     <div>
@@ -15,7 +14,7 @@
           <span v-if="message.role === 'user'" class="flex items-center space-x-2">
             <button
               class="text-blue-500 hover:text-blue-700 flex items-center"
-              @click="editUserMessage"
+              @click="toggleEditMode"
               title="Edit message"
             >
               <PencilSquareIcon class="h-4 w-4" />
@@ -59,47 +58,73 @@
       </span>
     </div>
 
-    <template v-for="(part, index) in parsedText">
-      <span
-        v-if="part.type === 'text'"
-        :key="`text-${index}`"
-        v-html="renderMarkdown(part.content)"
-      ></span>
-      <div
-        style="white-space: pre-wrap; background-color: #db282873; padding: 0.6rem"
-        v-if="part.type === 'error'"
-        :key="`error-${index}`"
-      >
-        {{ part.content }}
+    <!-- Edit mode for user messages -->
+    <div v-if="isEditing && message.role === 'user'" class="mt-2 mb-2">
+      <textarea
+        v-model="editedContent"
+        class="w-full border border-gray-300 rounded py-2 px-3"
+        rows="4"
+      ></textarea>
+      <div class="flex justify-end mt-2">
+        <button
+          @click="cancelEdit"
+          class="mr-2 px-3 py-1 text-sm text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+        >
+          Cancel
+        </button>
+        <button
+          @click="saveEdit"
+          class="px-3 py-1 text-sm text-white bg-blue-500 rounded hover:bg-blue-600"
+        >
+          Send
+        </button>
       </div>
-      <BaseEditor
-        v-if="part.type === 'sql'"
-        :modelValue="part.content"
-        :read-only="true"
-        :key="`sql-${index}`"
-      ></BaseEditor>
-      <BaseTable v-if="part.type === 'json'" :data="part.content" :key="`json-${index}`" />
-    </template>
+    </div>
 
-    <div v-if="message.functionCall">
-      <b>> {{ message.functionCall?.name }} </b>
-      <p v-if="message.functionCall?.name === 'memory_search'">
-        Search: "{{ message.functionCall?.arguments?.search }}"
-      </p>
-      <BaseEditor
-        v-else-if="message.functionCall?.name === 'sql_query'"
-        :modelValue="message.functionCall?.arguments?.query"
-        :read-only="true"
-      ></BaseEditor>
-      <BaseEditorPreview
-        v-else-if="message.functionCall?.name === 'submit'"
-        :sqlQuery="message.functionCall?.arguments?.query"
-        :database-id="databaseSelectedId"
-      ></BaseEditorPreview>
-      <div v-else-if="message?.functionCall?.name === 'render_echarts'">
-        <Echart :option="message.functionCall?.arguments?.chart_options" />
+    <!-- Normal display mode -->
+    <div v-else>
+      <template v-for="(part, index) in parsedText">
+        <span
+          v-if="part.type === 'text'"
+          :key="`text-${index}`"
+          v-html="renderMarkdown(part.content)"
+        ></span>
+        <div
+          style="white-space: pre-wrap; background-color: #db282873; padding: 0.6rem"
+          v-if="part.type === 'error'"
+          :key="`error-${index}`"
+        >
+          {{ part.content }}
+        </div>
+        <BaseEditor
+          v-if="part.type === 'sql'"
+          :modelValue="part.content"
+          :read-only="true"
+          :key="`sql-${index}`"
+        ></BaseEditor>
+        <BaseTable v-if="part.type === 'json'" :data="part.content" :key="`json-${index}`" />
+      </template>
+
+      <div v-if="message.functionCall">
+        <b>> {{ message.functionCall?.name }} </b>
+        <p v-if="message.functionCall?.name === 'memory_search'">
+          Search: "{{ message.functionCall?.arguments?.search }}"
+        </p>
+        <BaseEditor
+          v-else-if="message.functionCall?.name === 'sql_query'"
+          :modelValue="message.functionCall?.arguments?.query"
+          :read-only="true"
+        ></BaseEditor>
+        <BaseEditorPreview
+          v-else-if="message.functionCall?.name === 'submit'"
+          :sqlQuery="message.functionCall?.arguments?.query"
+          :database-id="databaseSelectedId"
+        ></BaseEditorPreview>
+        <div v-else-if="message?.functionCall?.name === 'render_echarts'">
+          <Echart :option="message.functionCall?.arguments?.chart_options" />
+        </div>
+        <pre v-else class="arguments">{{ message.functionCall?.arguments }}</pre>
       </div>
-      <pre v-else class="arguments">{{ message.functionCall?.arguments }}</pre>
     </div>
   </div>
 </template>
@@ -113,6 +138,7 @@ import BaseEditorPreview from '@/components/BaseEditorPreview.vue'
 import { marked } from 'marked'
 import { ArrowPathIcon, PencilIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 import Echart from '@/components/Echart.vue'
+import { socket } from '@/plugins/socket'
 
 // Get databaseId from store
 import { useDatabases } from '../stores/databases'
@@ -134,19 +160,30 @@ export default {
       required: true
     }
   },
-  emits: ['editInlineClick', 'regenerateFromMessage', 'editUserMessage'],
+  emits: ['editInlineClick', 'regenerateFromMessage'],
   data() {
     return {
       sqlResult: [] as Array<{
         [key: string]: string | number | boolean | null
       }>,
       sqlCount: 0,
-      databaseSelectedId
+      databaseSelectedId,
+      isEditing: false,
+      editedContent: ''
     }
   },
   methods: {
-    editUserMessage() {
-      this.$emit('editUserMessage', this.message.content)
+    toggleEditMode() {
+      this.isEditing = !this.isEditing
+      this.editedContent = this.message.content
+    },
+    cancelEdit() {
+      this.isEditing = false
+    },
+    saveEdit() {
+      // Emit the edited message to the parent
+      socket.emit('ask', this.editedContent, this.message.conversationId, null, this.message.id)
+      this.isEditing = false
     },
     editInline() {
       this.$emit('editInlineClick', this.message.functionCall?.arguments?.query)
