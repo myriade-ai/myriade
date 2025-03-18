@@ -160,13 +160,13 @@ const isRouteActive = (navPath: string) => {
   return (
     navPath === currentPath.value ||
     (navPath === '/' && currentPath.value.startsWith('/chat')) ||
-    (navPath === '/query' && currentPath.value.startsWith('/query'))
+    (navPath === '/editor' && currentPath.value.startsWith('/editor'))
   )
 }
 
 const navigation = computed(() => [
   { name: 'Chat', href: '/' },
-  { name: 'Query', href: '/query' },
+  { name: 'Editor', href: '/editor' },
   // Only show these items to admins
   ...(user.value?.isAdmin
     ? [
