@@ -4,23 +4,26 @@
     :class="{ 'bg-gray-300': message.display === false }"
   >
     <!-- if message.display = false, then show as light gray (internal message) -->
-    <p class="font-bold">
+    <div>
       <span class="flex justify-between items-center w-full">
-        {{ message.role }}
-        <span class="flex items-center space-x-2">
+        <span class="font-bold">{{ message.role }}</span>
+
+        <span></span>
+        <!-- Empty span to push content to the right -->
+        <span class="flex items-center space-x-2 font-normal">
           <span v-if="message.queryId" class="flex items-center space-x-2">
-            <button 
-              class="text-blue-500 hover:text-blue-700 flex items-center" 
+            <button
+              class="text-blue-500 hover:text-blue-700 flex items-center"
               @click="editInline"
               title="Edit inline"
             >
               <PencilSquareIcon class="h-4 w-4" />
               <span class="ml-1">Edit inline</span>
             </button>
-            <span class="text-gray-400">/</span>
-            <a 
-              :href="`/query/${message.queryId}`" 
-              class="text-blue-500 hover:text-blue-700 flex items-center" 
+            <span class="text-gray-400 mx-2">|</span>
+            <a
+              :href="`/query/${message.queryId}`"
+              class="text-blue-500 hover:text-blue-700 flex items-center"
               target="_blank"
               title="Edit in new tab"
             >
@@ -28,7 +31,9 @@
               <span class="ml-1">Edit</span>
             </a>
           </span>
-          <span v-if="message.queryId && message.role !== 'function'" class="text-gray-400 mx-2">|</span>
+          <span v-if="message.queryId && message.role !== 'function'" class="text-gray-400 mx-2"
+            >|</span
+          >
           <button
             v-if="message.role !== 'function'"
             class="text-blue-500 hover:text-blue-700 flex items-center"
@@ -40,7 +45,7 @@
           </button>
         </span>
       </span>
-    </p>
+    </div>
 
     <template v-for="(part, index) in parsedText">
       <span
