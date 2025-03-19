@@ -21,7 +21,7 @@ services:
       - db
     environment:
       FLASK_APP: app.py
-      FLASK_ENV: development
+      FLASK_ENV: production
       DATABASE_URL: postgresql://human:pass@db:5432/ada
       AUTOCHAT_PROVIDER: anthropic
       OPENAI_API_KEY: ${OPENAI_API_KEY}

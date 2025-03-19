@@ -13,3 +13,5 @@ WORKOS_CLIENT_ID = os.environ.get("WORKOS_CLIENT_ID", "")
 
 # Development mode flag - set to True to use mock authentication
 OFFLINE_MODE = os.environ.get("OFFLINE_MODE", "false").lower() == "true"
+
+ENV = os.environ.get("FLASK_ENV", "development")

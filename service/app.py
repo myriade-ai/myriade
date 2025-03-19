@@ -10,6 +10,7 @@ socketio = SocketIO(cors_allowed_origins="*")
 sentry_sdk.init(
     dsn="https://b030d37fd0ec1da2e17104283f990f1a@o4508993570275328.ingest.de.sentry.io/4508993573814352",
     send_default_pii=True,
+    environment=config.ENV,
 )
 
 

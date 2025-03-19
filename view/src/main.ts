@@ -13,7 +13,8 @@ import router from './router'
 const app = createApp(App)
 Sentry.init({
   app,
-  dsn: 'https://ac53a511c0e049b8b13669b552f3a5c8@o4508993570275328.ingest.de.sentry.io/4508993583644752'
+  dsn: 'https://ac53a511c0e049b8b13669b552f3a5c8@o4508993570275328.ingest.de.sentry.io/4508993583644752',
+  environment: import.meta.env.PROD ? 'production' : 'development'
 })
 
 const pinia = createPinia()
