@@ -6,6 +6,8 @@ on:
       - master
   pull_request:
 
+if: "!contains(github.event.head_commit.message, '[release]')"
+
 jobs:
   ruff:
     runs-on: ubuntu-latest
