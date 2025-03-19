@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.5.5 (2025-03-19)
+
+### Bug Fixes
+
+- Datetime json support PRO-174
+  ([`7bb985c`](https://github.com/catalys-intelligence/ada/commit/7bb985c057f0960c1bc57f56633a601773660881))
+
+
 ## v0.5.4 (2025-03-19)
 
 ### Bug Fixes
