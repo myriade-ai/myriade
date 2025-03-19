@@ -78,13 +78,13 @@
               </div>
             </div>
 
-            <div v-if="queryStatus === STATUS.RUNNING">
+            <div v-if="queryStatus === STATUS.RUNNING || queryStatus === STATUS.PENDING">
               <!-- Add loading icon, centered, displayed only if a query is running -->
               <LoaderIcon /><br />
               <!-- Add stop button, centered, displayed only if a query is running -->
               <button
                 @click="stopQuery"
-                :disabled="queryStatus === 'to_stop'"
+                :disabled="queryStatus === STATUS.TO_STOP"
                 class="w-full bg-gray-500 text-white py-2 px-4 rounded"
                 type="submit"
               >
@@ -183,6 +183,13 @@
         </div>
       </div>
     </div>
+    <!-- Connection status notification -->
+    <div
+      v-if="!isConnected"
+      class="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md shadow-lg z-50"
+    >
+      Socket disconnected<span v-if="reconnecting"> - Trying to reconnect...</span>
+    </div>
   </div>
 </template>
 
@@ -194,14 +201,14 @@ import MessageDisplay from '@/components/MessageDisplay.vue'
 import axios from '@/plugins/axios'
 import { useDatabases } from '@/stores/databases'
 import { useProjects } from '@/stores/projects'
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import sqlPrettier from 'sql-prettier'
 import { useRoute, useRouter } from 'vue-router'
 // Import sparkles from heroicons
-import { socket } from '@/plugins/socket'
-import { conversationStatuses } from '@/stores/conversations'
+import { isConnected, reconnecting, socket } from '@/plugins/socket'
+import { conversationStatuses, setStatusToPending, STATUS } from '@/stores/conversations'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { PaperAirplaneIcon, SparklesIcon } from '@heroicons/vue/24/solid'
 
@@ -231,13 +238,6 @@ const chatContext = computed(() => {
 })
 
 const chatContextSelected = ref(chatContext.value[0])
-
-const STATUS = {
-  RUNNING: 'running',
-  CLEAR: 'clear',
-  TO_STOP: 'to_stop',
-  ERROR: 'error'
-}
 
 const inputText = ref('')
 const inputSQL = ref('')
@@ -304,7 +304,7 @@ const editInline = (query) => {
 
 const sendMessage = async () => {
   // If query is already running, do nothing.
-  if (queryStatus.value === STATUS.RUNNING) {
+  if (queryStatus.value === STATUS.RUNNING || queryStatus.value === STATUS.PENDING) {
     return
   }
   // Post in json format to your back-end API endpoint to get the response.
@@ -314,6 +314,7 @@ const sendMessage = async () => {
   } else {
     // Emit ask question and messages.length to the server.
     socket.emit('ask', inputText.value, conversationId.value, chatContextSelected.value.id)
+    setStatusToPending(conversationId.value)
   }
 
   // After 100ms, clear the input.
@@ -323,6 +324,10 @@ const sendMessage = async () => {
 }
 
 const receiveMessage = async (message) => {
+  // if conversation_id is different than the current conversation, do nothing
+  if (message.conversationId.toString() !== conversationId.value.toString()) {
+    return
+  }
   let existing = messages.value.find((m) => m.id === message.id)
   if (existing) {
     existing.queryId = message.queryId
@@ -400,6 +405,8 @@ const handleConversationChange = (message) => {
     message.conversationId !== conversationId.value && // if the message is not the current conversation
     conversationStatuses.value[message.conversationId] === undefined // if the message is not an existing conversations
   ) {
+    // Clean status of /chat/new when we get the conversationId and we redirect to it
+    conversationStatuses.value[message.conversationId] = { status: STATUS.CLEAR, error: '' }
     router.push({ path: `/chat/${message.conversationId}` })
   }
 }
@@ -422,10 +429,6 @@ onMounted(async () => {
     handleConversationChange(response)
     receiveMessage(response)
   })
-})
-
-onUnmounted(() => {
-  socket.disconnect()
 })
 
 const resizeTextarea = () => {

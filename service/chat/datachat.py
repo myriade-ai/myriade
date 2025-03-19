@@ -7,7 +7,7 @@ from autochat.chat import StopLoopException
 from back.datalake import DatalakeFactory
 from back.models import Conversation, ConversationMessage, Query
 from chat.dbt_utils import DBT
-from chat.lock import StopException
+from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
 from chat.sql_utils import run_sql
 
@@ -82,6 +82,7 @@ class DatabaseChat:
 
     def check_stop_flag(self):
         if self.stop_flags.get(str(self.conversation.id)):
+            del self.stop_flags[str(self.conversation.id)]  # Remove the stop flag
             raise StopException("Query stopped by user")
 
     @property
@@ -228,16 +229,23 @@ class DatabaseChat:
         raise StopLoopException("We want to stop after rendering the chart")
 
     def _run_conversation(self):
-        # Message
-        messages = [m.to_autochat_message() for m in self.conversation.messages]
-        self.chatbot.load_messages(messages)
-        for m in self.chatbot.run_conversation():
-            self.check_stop_flag()
-            message = ConversationMessage.from_autochat_message(m)
-            message.conversationId = self.conversation.id
-            self.session.add(message)
-            self.session.commit()
-            yield message
+        emit_status(self.conversation.id, STATUS.RUNNING)
+        try:
+            messages = [m.to_autochat_message() for m in self.conversation.messages]
+            self.chatbot.load_messages(messages)
+            for m in self.chatbot.run_conversation():
+                self.check_stop_flag()
+                # We re-emit the status in case the user has refreshed the page
+                emit_status(self.conversation.id, STATUS.RUNNING)
+                message = ConversationMessage.from_autochat_message(m)
+                message.conversationId = self.conversation.id
+                self.session.add(message)
+                self.session.commit()
+                yield message
+            emit_status(self.conversation.id, STATUS.CLEAR)
+        except Exception as e:
+            emit_status(self.conversation.id, STATUS.ERROR, e)
+            raise e
 
     def ask(self, question: str):
         if not self.conversation.name:
