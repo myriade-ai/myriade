@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.5.3 (2025-03-19)
+
+### Bug Fixes
+
+- Add missing sentry
+  ([`8ca8012`](https://github.com/catalys-intelligence/ada/commit/8ca8012ec69323d425da79ae26a2fa0d9508bda6))
+
+
 ## v0.5.2 (2025-03-19)
 
 ### Bug Fixes
