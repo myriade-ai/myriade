@@ -208,6 +208,7 @@ import { PaperAirplaneIcon, SparklesIcon } from '@heroicons/vue/24/solid'
 const route = useRoute()
 const router = useRouter()
 const inputTextarea = ref(null)
+const messages = ref([])
 
 const { fetchProjects, projects } = useProjects()
 const { fetchDatabases, databases } = useDatabases()
@@ -240,8 +241,11 @@ const STATUS = {
 
 const inputText = ref('')
 const inputSQL = ref('')
-const messages = ref([])
 const conversationId = computed(() => {
+  // Check if we are on the root path '/' (which doesn't have an id parameter)
+  if (route.path === '/' || route.params.id === undefined) {
+    return 'new' // Use 'new' as the default ID for the root path
+  }
   if (route.params.id === 'new') {
     return null
   }
