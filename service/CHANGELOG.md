@@ -1,6 +1,25 @@
 # CHANGELOG
 
 
+## v0.5.6 (2025-03-19)
+
+### Bug Fixes
+
+- Improve socket and loading icon
+  ([`7e8fe67`](https://github.com/catalys-intelligence/ada/commit/7e8fe67373be59738ccfc689f4f8ab225906c880))
+
+### Chores
+
+- Add .terminal.json
+  ([`00c6238`](https://github.com/catalys-intelligence/ada/commit/00c62383a54841f0da6ad2aa6a4f08055778e571))
+
+- Redirect / to /chat/new
+  ([`a2685fd`](https://github.com/catalys-intelligence/ada/commit/a2685fd41a39be2ea04e88c2a99d6864d6f401e7))
+
+- Remove bad code
+  ([`a8b4b5e`](https://github.com/catalys-intelligence/ada/commit/a8b4b5e4ad1289dda5a43e331c5d1c36714e168b))
+
+
 ## v0.5.5 (2025-03-19)
 
 ### Bug Fixes
