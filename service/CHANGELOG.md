@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.5.4 (2025-03-19)
+
+### Bug Fixes
+
+- Add missing pyyaml
+  ([`d1262b5`](https://github.com/catalys-intelligence/ada/commit/d1262b527a8e025ccc11559eb3379b75a6be4e87))
+
+
 ## v0.5.3 (2025-03-19)
 
 ### Bug Fixes
