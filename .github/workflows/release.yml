@@ -3,13 +3,13 @@ name: Release
 on:
   workflow_run:
     workflows: ["Ruff, Test"]
-    types:
-      - completed
+    types: [completed]
     branches: [master]
 
 jobs:
   release:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/master' }}
+
     runs-on: ubuntu-latest
     concurrency: release
     permissions:
