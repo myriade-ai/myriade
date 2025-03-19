@@ -16,12 +16,11 @@ function loadView(view: string) {
 const routes = [
   {
     path: '/',
-    name: 'Chat',
-    component: Chat
+    redirect: '/chat/new'
   },
   {
     path: '/chat/:id',
-    name: 'ChatById',
+    name: 'Chat',
     component: Chat
   },
   {
