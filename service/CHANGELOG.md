@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.5.2 (2025-03-19)
+
+### Bug Fixes
+
+- Clean code
+  ([`85f63d3`](https://github.com/catalys-intelligence/ada/commit/85f63d33190feca3fd4f4810d841689c648118a5))
+
+
 ## v0.5.1 (2025-03-18)
 
 ### Bug Fixes
