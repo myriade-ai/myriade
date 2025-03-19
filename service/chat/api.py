@@ -6,13 +6,7 @@ from auth.auth import UnauthorizedError, socket_auth
 from back.models import ConversationMessage, Project
 from back.session import Session
 from chat.datachat import DatabaseChat
-from chat.lock import (
-    STATUS,
-    conversation_stop_flags,
-    emit_status,
-    handle_stop_flag,
-    stop_flag_lock,
-)
+from chat.lock import STATUS, conversation_stop_flags, emit_status, stop_flag_lock
 
 api = Blueprint("chat_api", __name__)
 socket_session = None
@@ -23,14 +17,8 @@ def handle_stop(conversation_id):
     print("Received stop signal for conversation_id", conversation_id)
     # Stop the query
     with stop_flag_lock:
-        if conversation_id in conversation_stop_flags:
-            conversation_stop_flags[conversation_id] = True
-            emit_status(conversation_id, STATUS.TO_STOP)
-
-        else:
-            print(
-                f"No active 'ask' process found for conversation_id {conversation_id}"
-            )
+        conversation_stop_flags[conversation_id] = True
+        emit_status(conversation_id, STATUS.TO_STOP)
 
 
 def extract_context(context_id):
@@ -47,7 +35,6 @@ def extract_context(context_id):
 
 
 @socketio.on("ask")
-@handle_stop_flag
 def handle_ask(question, conversation_id=None, context_id=None):
     # Extract database_id and project_id from the context
     database_id, project_id = extract_context(context_id)
@@ -65,7 +52,6 @@ def handle_ask(question, conversation_id=None, context_id=None):
 
 
 @socketio.on("query")
-@handle_stop_flag
 def handle_query(query, conversation_id=None, context_id=None):
     database_id, project_id = extract_context(context_id)
     chat = DatabaseChat(
@@ -110,8 +96,7 @@ def handle_query(query, conversation_id=None, context_id=None):
 
 
 @socketio.on("regenerateFromMessage")
-@handle_stop_flag
-def handle_regenerate_from_message(message_id, conversation_id=None, context_id=None):
+def handle_regenerate_from_message(message_id, conversation_id, context_id=None):
     """
     Regenerate the conversation from a specific message
     Delete all messages after the message_id and regenerate the conversation
