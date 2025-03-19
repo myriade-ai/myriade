@@ -48,52 +48,9 @@ def extract_context(context_id):
 
 @socketio.on("ask")
 @handle_stop_flag
-def handle_ask(question, conversation_id=None, context_id=None, message_id=None):
+def handle_ask(question, conversation_id=None, context_id=None):
     # Extract database_id and project_id from the context
     database_id, project_id = extract_context(context_id)
-
-    # Handle message editing if message_id is provided
-    if message_id:
-        # Get the message to edit
-        message_to_edit = (
-            socket_session.query(ConversationMessage).filter_by(id=message_id).first()
-        )
-        if message_to_edit:
-            # Update message content
-            message_to_edit.content = question
-            socket_session.add(message_to_edit)
-            socket_session.commit()
-            emit("response", message_to_edit.to_dict())
-
-            # Delete all messages after the edited message
-            messages_to_delete = (
-                socket_session.query(ConversationMessage)
-                .filter(
-                    ConversationMessage.id > message_id,
-                    ConversationMessage.conversationId == conversation_id,
-                )
-                .all()
-            )
-            for message in messages_to_delete:
-                emit("delete-message", message.id)
-                socket_session.delete(message)
-            socket_session.commit()
-
-            # Create a new DatabaseChat instance with the conversation_id
-            chat = DatabaseChat(
-                socket_session,
-                database_id,
-                conversation_id,
-                conversation_stop_flags,
-                user_id=session["user"].id,
-                project_id=project_id,
-            )
-
-            # Regenerate the conversation
-            for message in chat._run_conversation():
-                emit("response", message.to_dict())
-            return
-
     # Handle normal questions (not editing)
     iterator = DatabaseChat(
         socket_session,
