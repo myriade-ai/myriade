@@ -6,16 +6,16 @@ on:
       - master
   pull_request:
 
-if: "!contains(github.event.head_commit.message, '[release]')"
-
 jobs:
   ruff:
+    if: ${{ !contains(github.event.head_commit.message, '[release]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/ruff-action@v2
 
   test:
+    if: ${{ !contains(github.event.head_commit.message, '[release]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
