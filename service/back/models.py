@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass
+from datetime import date, datetime
 from decimal import Decimal
 
 from autochat.model import Image as AutoChatImage
@@ -23,10 +24,12 @@ from sqlalchemy.types import JSON, TypeDecorator
 Base = declarative_base()
 
 
-class DecimalEncoder(json.JSONEncoder):
+class JSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
         return super().default(obj)
 
 
@@ -37,7 +40,7 @@ class JSONB(TypeDecorator):
 
     def process_bind_param(self, value, dialect):
         if value is not None:
-            return json.loads(json.dumps(value, cls=DecimalEncoder))
+            return json.loads(json.dumps(value, cls=JSONEncoder))
         return value
 
     def load_dialect_impl(self, dialect):
