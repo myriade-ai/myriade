@@ -88,3 +88,5 @@ version_toml = [
     "pyproject.toml:project.version",
 ]
 changelog_file = "../CHANGELOG.md"
+commit_message = "chore(release): bump version to {version}"
+
