@@ -3,7 +3,7 @@ from flask_socketio import emit
 
 from app import socketio
 from auth.auth import UnauthorizedError, socket_auth
-from back.models import ConversationMessage, Project
+from back.models import Conversation, ConversationMessage, Project
 from back.session import Session
 from chat.datachat import DatabaseChat
 from chat.lock import STATUS, conversation_stop_flags, emit_status, stop_flag_lock
@@ -96,14 +96,27 @@ def handle_query(query, conversation_id=None, context_id=None):
 
 
 @socketio.on("regenerateFromMessage")
-def handle_regenerate_from_message(message_id, conversation_id, context_id=None):
+def handle_regenerate_from_message(conversation_id, message_id, message_content=None):
     """
     Regenerate the conversation from a specific message
     Delete all messages after the message_id and regenerate the conversation
     If the message is from the assistant, delete it
     If the message is from the user, regenerate the conversation from the next message
     """
-    database_id, project_id = extract_context(context_id)
+    conversation = (
+        socket_session.query(Conversation).filter_by(id=conversation_id).first()
+    )
+    # if message_content is not None, it means the user has edited the message
+    if message_content is not None:
+        message = (
+            socket_session.query(ConversationMessage).filter_by(id=message_id).first()
+        )
+        message.content = message_content
+        socket_session.commit()
+        emit("response", message.to_dict())
+
+    database_id = conversation.databaseId
+    project_id = conversation.projectId
     chat = DatabaseChat(
         socket_session,
         database_id,
