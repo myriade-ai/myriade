@@ -15,9 +15,9 @@
 </template>
 
 <script setup lang="ts">
-import BaseQuery from '@/components/BaseQuery.vue'
-import { queryResults, queryError, queryCount } from '../stores/query'
-import BaseAlert from '../components/BaseAlert.vue'
-import BaseTable from '../components/BaseTable.vue'
-import DatabaseExplorer from '../components/DatabaseExplorer.vue'
+import BaseQuery from '@/components/base/BaseQuery.vue'
+import { queryResults, queryError, queryCount } from '@/stores/query'
+import BaseAlert from '@/components/base/BaseAlert.vue'
+import BaseTable from '@/components/base/BaseTable.vue'
+import DatabaseExplorer from '@/components/DatabaseExplorer.vue'
 </script>

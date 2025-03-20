@@ -39,10 +39,10 @@
 
 <script setup lang="ts">
 import { ref, watchEffect, computed } from 'vue'
-import { useDatabases } from '../stores/databases'
-import { querySQL, runQuery } from '../stores/query'
-import DatabaseExplorerItems from './DatabaseExplorerItems.vue'
-import type { Table } from '../stores/tables'
+import { useDatabases } from '@/stores/databases'
+import { querySQL, runQuery } from '@/stores/query'
+import DatabaseExplorerItems from '@/components/DatabaseExplorerItems.vue'
+import type { Table } from '@/stores/tables'
 
 const { databaseSelectedId, fetchDatabaseTables } = useDatabases()
 

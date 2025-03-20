@@ -73,18 +73,18 @@
 </template>
 
 <script setup lang="ts">
-import type { Group, Item } from '@/components/BaseMultiSelect.vue'
-import BaseMultiSelect from '@/components/BaseMultiSelect.vue'
+import type { Group, Item } from '@/components/base/BaseMultiSelect.vue'
+import BaseMultiSelect from '@/components/base/BaseMultiSelect.vue'
 import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
 import { ErrorMessage, Field, Form } from 'vee-validate'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import BaseAlert from '../components/BaseAlert.vue'
-import BaseField from '../components/BaseField.vue'
-import BaseInput from '../components/BaseInput.vue'
-import router from '../router'
-import { useDatabases } from '../stores/databases'
-import { useProjects } from '../stores/projects'
+import BaseAlert from '@/components/base/BaseAlert.vue'
+import BaseField from '@/components/base/BaseField.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
+import router from '@/router'
+import { useDatabases } from '@/stores/databases'
+import { useProjects } from '@/stores/projects'
 
 const { createProject, updateProject, deleteProject, fetchProjectById } = useProjects()
 

@@ -64,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import BaseButton from '@/components/BaseButton.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 import axios from '@/plugins/axios'
 import { CheckCircleIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import type { Ref } from 'vue'

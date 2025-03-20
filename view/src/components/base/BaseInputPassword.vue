@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { computed, ref } from 'vue'
-import BaseInput from './BaseInput.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
 
 const showPassword = ref(false)
 

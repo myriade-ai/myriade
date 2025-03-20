@@ -194,9 +194,9 @@
 </template>
 
 <script setup lang="ts">
-import BaseButton from '@/components/BaseButton.vue'
-import BaseEditor from '@/components/BaseEditor.vue'
-import BaseSelector from '@/components/BaseSelector.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseEditor from '@/components/base/BaseEditor.vue'
+import BaseSelector from '@/components/base/BaseSelector.vue'
 import MessageDisplay from '@/components/MessageDisplay.vue'
 import axios from '@/plugins/axios'
 import { useDatabases } from '@/stores/databases'

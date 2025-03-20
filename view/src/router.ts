@@ -1,13 +1,13 @@
 import { authGuard } from '@/auth'
+import { loadQuery } from '@/stores/query'
+import Chat from '@/views/ChatPage.vue'
+import DatabaseList from '@/views/DatabaseList.vue'
+import Editor from '@/views/Editor.vue'
 import Login from '@/views/Login.vue'
+import ProjectList from '@/views/ProjectList.vue'
+import Upload from '@/views/Upload.vue'
 import User from '@/views/User.vue'
 import { createRouter, createWebHistory } from 'vue-router'
-import { loadQuery } from './stores/query'
-import Chat from './views/ChatPage.vue'
-import DatabaseList from './views/DatabaseList.vue'
-import Editor from './views/Editor.vue'
-import ProjectList from './views/ProjectList.vue'
-import Upload from './views/Upload.vue'
 
 function loadView(view: string) {
   return () => import(`./views/${view}.vue`)

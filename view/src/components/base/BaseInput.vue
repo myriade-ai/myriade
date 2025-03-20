@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import BaseField from '../components/BaseField.vue'
+import BaseField from '@/components/base/BaseField.vue'
 // Name from props
 import { defineProps, computed, defineEmits } from 'vue'
 import { configure, Field, ErrorMessage, defineRule } from 'vee-validate'

@@ -6,9 +6,9 @@
 </template>
 
 <script lang="ts" setup>
-import BaseEditor from './BaseEditor.vue'
-import BaseTable from './BaseTable.vue'
-import { executeQuery } from '../stores/query'
+import BaseEditor from '@/components/base/BaseEditor.vue'
+import BaseTable from '@/components/base/BaseTable.vue'
+import { executeQuery } from '@/stores/query'
 import { defineProps, ref, watch } from 'vue'
 
 const props = defineProps({

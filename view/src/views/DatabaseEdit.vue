@@ -184,14 +184,14 @@
 <script setup lang="ts">
 import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
 import { computed, ref } from 'vue'
-import { useDatabases } from '../stores/databases'
+import { useDatabases } from '@/stores/databases'
 import { useRoute } from 'vue-router'
-import router from '../router'
-import BaseField from '../components/BaseField.vue'
-import BaseInput from '../components/BaseInput.vue'
-import BaseAlert from '../components/BaseAlert.vue'
-import BaseSwitch from '../components/BaseSwitch.vue'
-import BaseInputPassword from '@/components/BaseInputPassword.vue'
+import router from '@/router'
+import BaseField from '@/components/base/BaseField.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
+import BaseAlert from '@/components/base/BaseAlert.vue'
+import BaseSwitch from '@/components/base/BaseSwitch.vue'
+import BaseInputPassword from '@/components/base/BaseInputPassword.vue'
 import { Form } from 'vee-validate'
 
 const route = useRoute()
