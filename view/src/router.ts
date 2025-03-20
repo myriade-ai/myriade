@@ -72,6 +72,12 @@ const routes = [
     path: '/user',
     name: 'User',
     component: User
+  },
+  // 404
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: loadView('NotFound')
   }
 ]
 
