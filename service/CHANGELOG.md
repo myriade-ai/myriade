@@ -1,6 +1,42 @@
 # CHANGELOG
 
 
+## v0.6.0 (2025-03-20)
+
+### Chores
+
+- Add 404 page
+  ([`053ce7b`](https://github.com/catalys-intelligence/ada/commit/053ce7b8e84115d11766776eb7ebd4a8c5fef164))
+
+- Add sentry env
+  ([`2499bfc`](https://github.com/catalys-intelligence/ada/commit/2499bfccb9a7607d62944cea24f247e623bbaa82))
+
+- Avoid release workflow on failed tests
+  ([`fe0e257`](https://github.com/catalys-intelligence/ada/commit/fe0e257cf8b30ec4d5e02d222694611d6809ca5b))
+
+- Fix PRO-180
+  ([`97b33fd`](https://github.com/catalys-intelligence/ada/commit/97b33fda3b8dce46095780393ba4ac4c12cdaf82))
+
+- Fix test
+  ([`90d7680`](https://github.com/catalys-intelligence/ada/commit/90d768087d6d78d97389a8af1466311cda84c886))
+
+- Have AI suggestion in user language PRO-11
+  ([`66bdb0f`](https://github.com/catalys-intelligence/ada/commit/66bdb0fd3dc69cc2efe1f9a85afb22611d6431e2))
+
+- Improve code so release don't trigger tests
+  ([`d0838d5`](https://github.com/catalys-intelligence/ada/commit/d0838d5756e9db0c69dd41b1fede944d343a5049))
+
+- Reload page on version update
+  ([`bbabc56`](https://github.com/catalys-intelligence/ada/commit/bbabc563b42f22f34455cdbac6b6d2e784fd55cf))
+
+### Features
+
+- Edit message
+  ([`39c8423`](https://github.com/catalys-intelligence/ada/commit/39c84237b9bf234d33bf10737fe36b72e75d2c07))
+
+* Add ability to edit and re-run user message
+
+
 ## v0.5.6 (2025-03-19)
 
 ### Bug Fixes
