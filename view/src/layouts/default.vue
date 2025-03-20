@@ -160,7 +160,8 @@ const isRouteActive = (navPath: string) => {
   return (
     navPath === currentPath.value ||
     (navPath === '/' && currentPath.value.startsWith('/chat')) ||
-    (navPath === '/editor' && currentPath.value.startsWith('/editor'))
+    (navPath === '/editor' &&
+      (currentPath.value.startsWith('/editor') || currentPath.value.startsWith('/query')))
   )
 }
 
