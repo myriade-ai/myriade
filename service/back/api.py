@@ -198,6 +198,9 @@ def get_databases():
 @api.route("/contexts/<string:context_id>/questions", methods=["GET"])
 @user_middleware
 def get_questions(context_id):
+    # Get the preferred language from Accept-Language header
+    user_language = request.headers.get("Accept-Language")
+
     # context is "project-{projectId}" or "database-{databaseId}"
     if context_id.startswith("project-"):
         project_id = int(context_id.split("-")[1])
@@ -256,9 +259,13 @@ def get_questions(context_id):
 
     questionAssistant.add_function(questions)
 
-    message = questionAssistant.ask(
+    prompt = (
         "Generate 3 business questions about different topics that the user "
-        + "can ask based on the context (database schema, past conversations, etc)",
+        + "can ask based on the context (database schema, past conversations, etc)"
+        + f"\nDo it in the user preferred language (Accept-Language: {user_language})"
+    )
+    message = questionAssistant.ask(
+        prompt,
         tool_choice={"type": "tool", "name": "questions"},  # anthropic specific
     )
     response_dict = message.function_call["arguments"]
