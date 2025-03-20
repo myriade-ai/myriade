@@ -466,13 +466,13 @@ const applySuggestion = (suggestion: string) => {
   aiSuggestions.value = []
 }
 
-const regenerateFromMessage = async (messageId) => {
-  socket.emit(
-    'regenerateFromMessage',
-    messageId,
-    conversationId.value,
-    chatContextSelected.value.id
-  )
+const regenerateFromMessage = async (messageId, messageContent) => {
+  if (messageContent) {
+    // Update the message content
+    const message = messages.value.find((m) => m.id === messageId)
+    message.content = messageContent
+  }
+  socket.emit('regenerateFromMessage', conversationId.value, messageId, messageContent)
 }
 </script>
 

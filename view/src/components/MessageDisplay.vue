@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="message-display px-4 py-4 my-2 rounded-lg bg-gray-100"
-  >
+  <div class="message-display px-4 py-4 my-2 rounded-lg bg-gray-100">
     <!-- if message.display = false, then show as light gray (internal message) -->
     <div>
       <span class="flex justify-between items-center w-full">
@@ -21,7 +19,7 @@
               <span class="ml-1">edit message</span>
             </button>
           </span>
-          
+
           <!-- Edit inline button for SQL queries -->
           <span v-if="message.queryId" class="flex items-center space-x-2">
             <span v-if="message.role === 'user'" class="text-gray-400 mx-2">|</span>
@@ -44,7 +42,11 @@
               <span class="ml-1">edit</span>
             </a>
           </span>
-          <span v-if="(message.queryId || message.role === 'user') && message.role !== 'function'" class="text-gray-400 mx-2">|</span>
+          <span
+            v-if="(message.queryId || message.role === 'user') && message.role !== 'function'"
+            class="text-gray-400 mx-2"
+            >|</span
+          >
           <button
             v-if="message.role !== 'function'"
             class="text-blue-500 hover:text-blue-700 flex items-center"
@@ -182,8 +184,9 @@ export default {
     },
     saveEdit() {
       // Emit the edited message to the parent
-      socket.emit('ask', this.editedContent, this.message.conversationId, null, this.message.id)
+      this.$emit('regenerateFromMessage', this.message.id, this.editedContent)
       this.isEditing = false
+      this.editedContent = ''
     },
     editInline() {
       this.$emit('editInlineClick', this.message.functionCall?.arguments?.query)
