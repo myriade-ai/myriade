@@ -36,8 +36,9 @@
 </template>
 
 <script setup lang="ts">
-import BaseEditor from '@/components/BaseEditor.vue'
-import BaseButton from '@/components/BaseButton.vue'
+import BaseEditor from '@/components/base/BaseEditor.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseSelector from '@/components/base/BaseSelector.vue'
 import {
   queryText,
   querySQL,
@@ -45,10 +46,9 @@ import {
   updateQuery,
   queryIsModified,
   loading as queryLoading
-} from '../stores/query'
+} from '@/stores/query'
 
-import { useDatabases } from '../stores/databases'
-import BaseSelector from './BaseSelector.vue'
+import { useDatabases } from '@/stores/databases'
 import { ArrowPathIcon } from '@heroicons/vue/24/outline'
 
 const { databaseSelected, databases, fetchDatabases } = useDatabases()

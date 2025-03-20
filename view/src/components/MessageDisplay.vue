@@ -141,14 +141,14 @@ import axios from '@/plugins/axios'
 import { marked } from 'marked'
 
 // Components
-import BaseTable from '@/components/BaseTable.vue'
-import BaseEditor from '@/components/BaseEditor.vue'
-import BaseEditorPreview from '@/components/BaseEditorPreview.vue'
+import BaseTable from '@/components/base/BaseTable.vue'
+import BaseEditor from '@/components/base/BaseEditor.vue'
+import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import Echart from '@/components/Echart.vue'
 import { ArrowPathIcon, PencilIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 
 // Store
-import { useDatabases } from '../stores/databases'
+import { useDatabases } from '@/stores/databases'
 const { databaseSelectedId } = useDatabases()
 
 interface FunctionCall {

@@ -1,8 +1,8 @@
 import axios from '@/plugins/axios'
+import router from '@/router'
+import { useDatabases } from '@/stores/databases'
 import sqlPrettier from 'sql-prettier'
 import { computed, ref } from 'vue'
-import router from '../router'
-import { useDatabases } from './databases'
 
 const { selectDatabaseById, databaseSelectedId } = useDatabases()
 

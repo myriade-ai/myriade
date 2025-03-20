@@ -59,7 +59,7 @@
 <script setup lang="ts">
 import { PlusIcon } from '@heroicons/vue/20/solid'
 import { computed } from 'vue'
-import { useProjects } from '../stores/projects'
+import { useProjects } from '@/stores/projects'
 
 const { fetchProjects, projects } = useProjects()
 

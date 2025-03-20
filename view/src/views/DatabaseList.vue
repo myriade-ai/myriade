@@ -37,7 +37,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useDatabases } from '../stores/databases'
+import { useDatabases } from '@/stores/databases'
 
 const { fetchDatabases, databases } = useDatabases()
 

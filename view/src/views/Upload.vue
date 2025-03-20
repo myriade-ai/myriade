@@ -4,5 +4,5 @@
   </div>
 </template>
 <script setup lang="ts">
-import BaseUpload from '../components/BaseUpload.vue'
+import BaseUpload from '@/components/base/BaseUpload.vue'
 </script>
