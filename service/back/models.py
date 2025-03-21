@@ -157,6 +157,7 @@ class ConversationMessage(DefaultBase, Base):
     isAnswer = Column(Boolean, nullable=False, default=False)
 
     conversation = relationship("Conversation", back_populates="messages")
+    query = relationship("Query", back_populates="conversation_messages")
 
     # format params before creating the object
     def __init__(self, **kwargs):
@@ -275,6 +276,9 @@ class Query(DefaultBase, Base):
 
     database = relationship("Database")
     creator = relationship("User")
+    conversation_messages = relationship(
+        "ConversationMessage", back_populates="query", lazy="joined"
+    )
 
 
 @dataclass

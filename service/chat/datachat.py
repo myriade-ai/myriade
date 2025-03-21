@@ -10,6 +10,7 @@ from chat.dbt_utils import DBT
 from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
 from chat.tools.database import DatabaseTool
+from chat.tools.workspace import WorkspaceTool
 
 AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
 
@@ -120,6 +121,7 @@ class DatabaseChat:
         )
         chatbot.add_function(self.save_to_memory)
         chatbot.add_function(self.submit)
+        chatbot.add_tool(WorkspaceTool(self.session, self.conversation.id), "workspace")
         chatbot.add_function(self.render_echarts)
         if self.dbt:
             chatbot.add_tool(self.dbt, self.conversation.database.name)
