@@ -116,7 +116,7 @@
           Search: "{{ props.message.functionCall?.arguments?.search }}"
         </p>
         <BaseEditor
-          v-else-if="props.message.functionCall?.name === 'sql_query'"
+          v-else-if="props.message.functionCall?.name.endsWith('sql_query')"
           :modelValue="props.message.functionCall?.arguments?.query"
           :read-only="true"
         ></BaseEditor>

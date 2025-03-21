@@ -9,7 +9,7 @@ from back.models import Conversation, ConversationMessage, Query
 from chat.dbt_utils import DBT
 from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
-from chat.sql_utils import run_sql
+from chat.tools.database import DatabaseTool
 
 AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
 
@@ -115,7 +115,9 @@ class DatabaseChat:
             context=self.context,
             messages=messages,
         )
-        chatbot.add_function(self.sql_query)
+        chatbot.add_tool(
+            DatabaseTool(self.session, self.conversation.database), "database"
+        )
         chatbot.add_function(self.save_to_memory)
         chatbot.add_function(self.submit)
         chatbot.add_function(self.render_echarts)
@@ -135,30 +137,6 @@ class DatabaseChat:
 
         chatbot.should_pause_conversation = message_is_answer
         return chatbot
-
-    def sql_query(
-        self, query: str, name: str = "", from_response: Message | None = None
-    ):
-        """
-        Run an SQL query on the database and return the result
-        Args:
-            query: The SQL query string to be executed. Don't forget to escape this if you use double quote.
-            name: The name/title of the query
-        """  # noqa: E501
-        _query = Query(
-            query=name,
-            databaseId=self.conversation.databaseId,
-            sql=query,
-        )
-        self.session.add(_query)
-        self.session.commit()
-
-        if from_response:
-            # We update the message with the query id
-            from_response.query_id = _query.id
-
-        output, _ = run_sql(self.datalake, query)
-        return output
 
     def save_to_memory(self, text: str):
         """
