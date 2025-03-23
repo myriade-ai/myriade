@@ -5,7 +5,6 @@ from decimal import Decimal
 
 from autochat.model import Image as AutoChatImage
 from autochat.model import Message as AutoChatMessage
-from autochat.model import MessagePart as AutoChatMessagePart
 from sqlalchemy import (
     Boolean,
     Column,
@@ -164,6 +163,20 @@ class ConversationMessage(DefaultBase, Base):
         super().__init__(**kwargs)
 
     def to_dict(self):
+        if self.functionCall and self.functionCall["name"] == "answer":
+            self.content = self.functionCall["arguments"]["text"]
+            self.functionCall = None
+
+            if "<DISPLAY:" in self.content:
+                # extract the query id from the text
+                query_id = int(self.content.split("<DISPLAY:")[1].split(">")[0].strip())
+                # get the query from the database
+                query = self.session.query(Query).filter_by(id=query_id).first()
+                # Replace the <DISPLAY:QUERY_ID> tag with the query content
+                self.content = self.content.replace(
+                    f"<DISPLAY:{query_id}>", f"```sql\n{query.sql}\n```"
+                )
+
         # Export to dict, only keys declared in the dataclass
         return {
             "id": self.id,
@@ -191,18 +204,6 @@ class ConversationMessage(DefaultBase, Base):
         )
         if self.image:
             message.image = AutoChatImage.from_bytes(self.image)
-        if self.isAnswer:
-            if self.content:
-                message.content = "<ANSWER>" + message.content
-            else:
-                # We don't yet add
-                message.parts = [
-                    AutoChatMessagePart(
-                        type="text",
-                        content="<ANSWER>",
-                    ),
-                    *message.parts,
-                ]
         return message
 
     @classmethod
@@ -218,10 +219,6 @@ class ConversationMessage(DefaultBase, Base):
         # transfrom image from PIL to binary
         if message.image:
             kwargs["image"] = message.image.to_bytes()
-        # isAnswer: parse message.content depends on <ANSWER> tag
-        if message.content and message.content.startswith("<ANSWER>"):
-            kwargs["isAnswer"] = True
-            kwargs["content"] = message.content.split("<ANSWER>", 1)[1]
 
         # limit to model in the dataclass
         kwargs = {k: v for k, v in kwargs.items() if k in cls.__dataclass_fields__}

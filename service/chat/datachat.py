@@ -1,7 +1,7 @@
 import os
 
 import yaml
-from autochat import Autochat, Message, MessagePart
+from autochat import Autochat, Message
 from autochat.chat import StopLoopException
 
 from back.datalake import DatalakeFactory
@@ -116,12 +116,19 @@ class DatabaseChat:
             context=self.context,
             messages=messages,
         )
+
+        chatbot.simple_response_callback = lambda response: Message(
+            role="user",
+            content="Only message from answer/render_echarts functions are\
+            visible to the user. Please continue the conversation.",
+        )
+
         chatbot.add_tool(
             DatabaseTool(self.session, self.conversation.database), "database"
         )
         chatbot.add_function(self.save_to_memory)
         chatbot.add_function(self.submit)
-        chatbot.add_function(self.submit2)
+        chatbot.add_function(self.answer)
         chatbot.add_tool(WorkspaceTool(self.session, self.conversation.id), "workspace")
         chatbot.add_function(self.render_echarts)
         if self.dbt:
@@ -133,12 +140,6 @@ class DatabaseChat:
         if self.model:
             chatbot.model = self.model
 
-        def message_is_answer(function_call, function_response):
-            if function_call.content:
-                return function_call.content.startswith("<ANSWER>")
-            return False
-
-        chatbot.should_pause_conversation = message_is_answer
         return chatbot
 
     def save_to_memory(self, text: str):
@@ -175,9 +176,10 @@ class DatabaseChat:
 
         # We update the message with the query id
         from_response.query_id = _query.id
+        from_response.isAnswer = True
         raise StopLoopException("We want to stop after submitting")
 
-    def submit2(
+    def answer(
         self,
         text: str,
         from_response: Message,
@@ -187,18 +189,6 @@ class DatabaseChat:
         You can insert a query in the text using the <DISPLAY:QUERY_ID> tag.
         You can only insert one query per message.
         """
-        # TODO: refactor this when ConversationMessage will have parts.
-        # extract the query id from the text
-        query_id = int(text.split("<DISPLAY:")[1].split(">")[0].strip())
-        from_response.query_id = query_id
-        # get the query from the database
-        query = self.session.query(Query).filter_by(id=query_id).first()
-        # Replace the <DISPLAY:QUERY_ID> tag with the query content
-        text = text.replace(f"<DISPLAY:{query_id}>", f"```sql\n{query.sql}\n```")
-        from_response.parts[0] = MessagePart(
-            type="text",
-            content=text,
-        )
         from_response.isAnswer = True
         raise StopLoopException("We want to stop after submitting")
 
