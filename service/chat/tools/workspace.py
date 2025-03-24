@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from back.models import ConversationMessage, Query
+from back.models import Chart, ConversationMessage, Query
 
 
 class WorkspaceTool:
@@ -18,6 +18,21 @@ class WorkspaceTool:
         )
         context = "Queries:\n"
         for query in self.conversation_queries:
-            print(query)
-            context += f"Query {query.id}: {query.sql}\n"
+            context += f"Query {query.id}: {query.query}\n"
+
+        self.conversation_charts = (
+            self.session.query(Chart)
+            .join(ConversationMessage, Chart.conversation_messages)
+            .filter(ConversationMessage.conversationId == self.conversation_id)
+            .all()
+        )
+        context += "Charts:\n"
+        for chart in self.conversation_charts:
+            # TODO: should display the chart image instead of the config?
+            try:
+                title = chart.config["title"]["text"]
+                context += f"Chart {chart.id}: {title}\n"
+            except KeyError:
+                # We don't want to add broken Chart here
+                pass
         return context
