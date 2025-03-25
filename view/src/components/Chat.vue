@@ -188,7 +188,7 @@
       v-if="!isConnected"
       class="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md shadow-lg z-50"
     >
-      Socket disconnected<span v-if="reconnecting"> - Trying to reconnect...</span>
+      Socket disconnected
     </div>
   </div>
 </template>
@@ -207,7 +207,7 @@ import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import sqlPrettier from 'sql-prettier'
 import { useRoute, useRouter } from 'vue-router'
 // Import sparkles from heroicons
-import { isConnected, reconnecting, socket } from '@/plugins/socket'
+import { isConnected, socket } from '@/plugins/socket'
 import { conversationStatuses, setStatusToPending, STATUS } from '@/stores/conversations'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { PaperAirplaneIcon, SparklesIcon } from '@heroicons/vue/24/solid'
