@@ -173,7 +173,7 @@ def on_connect():
 
 
 @socketio.on("disconnect")
-def on_disconnect():
+def on_disconnect(reason):
     # Cleanup: Close or remove any resources you initialized on connect
     if socket_session:
         socket_session.close()
