@@ -1,20 +1,21 @@
 import { io } from 'socket.io-client'
-import { computed } from 'vue'
+import { ref } from 'vue'
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL
 
 // Configure socket with more aggressive reconnection settings
-export const socket = io(SOCKET_URL, {
-  reconnection: true,
-  reconnectionAttempts: Infinity,
-  reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000,
-  timeout: 20000,
-  autoConnect: true, // Ensure auto-connection is enabled
-  transports: ['websocket'], // Try WebSocket first, fallback to polling
-  randomizationFactor: 0.5 // Add some randomization to the reconnection delay
-})
-export const isConnected = computed(() => socket.connected)
+export const socket = io(SOCKET_URL)
+export const isConnected = ref(socket.connected)
+
+// Update the reactive reference when connection status changes
+const updateConnectionStatus = () => {
+  isConnected.value = socket.connected
+}
+
+socket.on('connect_error', updateConnectionStatus)
+socket.on('connect_timeout', updateConnectionStatus)
+socket.on('connect', updateConnectionStatus)
+socket.on('disconnect', updateConnectionStatus)
 
 // Add a ping mechanism to detect connection issues early
 setInterval(() => {
@@ -57,4 +58,8 @@ socket.on('reconnect_error', (error) => {
 
 socket.on('reconnect_failed', () => {
   console.error('Socket reconnection failed')
+})
+
+socket.on('error', (error) => {
+  console.error('Socket error:', error)
 })
