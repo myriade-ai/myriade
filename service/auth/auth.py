@@ -47,6 +47,10 @@ def with_auth(f):
         except UnauthorizedError as e:
             return jsonify({"error": str(e)}), 401
 
+        # Check if user is in the organization
+        if auth_response.organization_id != WORKOS_CLIENT_ID:
+            return jsonify({"error": "User is not in the organization"}), 401
+
         # Set user context
         _set_user_context(auth_response)
 
