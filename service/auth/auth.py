@@ -7,7 +7,12 @@ from workos.types.user_management.session import (
     AuthenticateWithSessionCookieSuccessResponse,
 )
 
-from config import OFFLINE_MODE, WORKOS_API_KEY, WORKOS_CLIENT_ID
+from config import (
+    OFFLINE_MODE,
+    WORKOS_API_KEY,
+    WORKOS_CLIENT_ID,
+    WORKOS_ORGANIZATION_ID,
+)
 
 if OFFLINE_MODE:
     from auth.mock import MockWorkOSClient as WorkOSClient
@@ -47,10 +52,6 @@ def with_auth(f):
         except UnauthorizedError as e:
             return jsonify({"error": str(e)}), 401
 
-        # Check if user is in the organization
-        if auth_response.organization_id != WORKOS_CLIENT_ID:
-            return jsonify({"error": "User is not in the organization"}), 401
-
         # Set user context
         _set_user_context(auth_response)
 
@@ -79,7 +80,9 @@ def _authenticate_session(
         return auth_response, False  # type: ignore
 
     # Try refreshing the session
-    refreshed_auth_response = session.refresh()
+    refreshed_auth_response = session.refresh(
+        organization_id=WORKOS_ORGANIZATION_ID,
+    )
     if not refreshed_auth_response.authenticated:
         raise UnauthorizedError(refreshed_auth_response.reason)  # type: ignore
 

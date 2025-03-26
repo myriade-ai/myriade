@@ -10,6 +10,7 @@ load_dotenv(dotenv_file)
 DATABASE_URL = os.environ["DATABASE_URL"]
 WORKOS_API_KEY = os.environ.get("WORKOS_API_KEY", "")
 WORKOS_CLIENT_ID = os.environ.get("WORKOS_CLIENT_ID", "")
+WORKOS_ORGANIZATION_ID = os.environ.get("WORKOS_ORGANIZATION_ID", "")
 
 # Development mode flag - set to True to use mock authentication
 OFFLINE_MODE = os.environ.get("OFFLINE_MODE", "false").lower() == "true"
