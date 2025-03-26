@@ -55,6 +55,10 @@ def with_auth(f):
         # Set user context
         _set_user_context(auth_response)
 
+        # Check if user is in the organization
+        if auth_response.organization_id != WORKOS_ORGANIZATION_ID:
+            return jsonify({"error": "User is not in the organization"}), 401
+
         # Execute wrapped function
         res = f(*args, **kwargs)
 
