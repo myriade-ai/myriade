@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v0.6.2 (2025-03-26)
+
+### Bug Fixes
+
+- Verify that the user belong to the organisation
+  ([`ddbbdef`](https://github.com/catalys-intelligence/ada/commit/ddbbdef980bc716d4f1542f3fa260986bca44a8b))
+
+### Chores
+
+- Clean setup
+  ([`44ee6ca`](https://github.com/catalys-intelligence/ada/commit/44ee6caaaa5ea85732bbc972015dd8d299e72c95))
+
+- Upgrade socket packages
+  ([`bed53e3`](https://github.com/catalys-intelligence/ada/commit/bed53e3d9cfaa704ecb01d3197922ed45fc930d8))
+
+
 ## v0.6.1 (2025-03-26)
 
 ### Bug Fixes
