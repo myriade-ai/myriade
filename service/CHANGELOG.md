@@ -1,6 +1,25 @@
 # CHANGELOG
 
 
+## v0.6.1 (2025-03-26)
+
+### Bug Fixes
+
+- Socket bugs PRO-190
+  ([`607a62e`](https://github.com/catalys-intelligence/ada/commit/607a62e7e6a4a217a7596d756608f9bcb1142e9e))
+
+### Chores
+
+- Improve socket
+  ([`9e3aabc`](https://github.com/catalys-intelligence/ada/commit/9e3aabc009c7904995b284fe66e502efa8d6c51a))
+
+- Move components & move to abs imports
+  ([`ac2abce`](https://github.com/catalys-intelligence/ada/commit/ac2abcea6870d11e85bd37be0e69524f56233293))
+
+- Switch to 100 composition api
+  ([`b1a6497`](https://github.com/catalys-intelligence/ada/commit/b1a649718021006b3ee80b4a624ad2f37a0433b7))
+
+
 ## v0.6.0 (2025-03-20)
 
 ### Chores
