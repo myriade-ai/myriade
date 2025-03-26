@@ -7,6 +7,7 @@ from PIL import Image
 
 from back.datalake import DatalakeFactory
 from back.models import Chart, ConversationMessage, Database, JSONEncoder, Query
+from chat.tools.chart_types import ChartOptions
 
 
 class EchartsTool:
@@ -20,7 +21,7 @@ class EchartsTool:
 
     def preview_render(
         self,
-        chart_options: dict,  # TODO: add ChartOptions type
+        chart_options: ChartOptions,
         query_id: int,
         from_response: ConversationMessage,
     ):
