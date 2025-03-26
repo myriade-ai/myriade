@@ -69,25 +69,25 @@ print_message "Starting and enabling Docker service..."
 sudo systemctl start docker
 sudo systemctl enable docker
 
-# Run Docker Compose
-print_message "Running Docker Compose..."
-sudo docker compose up -d
-
 # Install Nginx
 print_message "Installing Nginx..."
 sudo apt install -y nginx
 
 # Configure Nginx
 print_message "Configuring Nginx..."
-sudo envsubst '${DOMAIN_NAME}' < /path/to/nginx.conf.template > /etc/nginx/sites-available/default
-sudo ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
+sudo envsubst '${DOMAIN_NAME}' < nginx.conf | sudo tee /etc/nginx/sites-available/default > /dev/null
 
 # Start and enable Nginx service
 print_message "Starting and enabling Nginx service..."
 sudo systemctl start nginx
 sudo systemctl enable nginx
 
+# Run Docker Compose
+print_message "Running Docker Compose..."
+sudo docker compose up -d
+
 # Print success message
 print_message "Docker and Nginx installation completed successfully!"
 print_message "Please log out and log back in for group changes to take effect."
 print_message "You can then run 'docker --version' and 'nginx -v' to verify the installations."
+
