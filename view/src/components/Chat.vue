@@ -260,27 +260,37 @@ const editMode = ref('TEXT')
 
 const fetchMessages = async () => {
   // Replace with your dbt API endpoint to fetch messages.
-  axios.get(`/api/conversations/${conversationId.value}`).then((response) => {
-    const conversation = response.data
-    // pretty parse
-    messages.value = conversation.messages.map((message) => {
-      let query = message?.functionCall?.arguments?.query
-      if (query) {
-        message.functionCall.arguments.query = sqlPrettier.format(query)
+  axios
+    .get(`/api/conversations/${conversationId.value}`)
+    .then((response) => {
+      const conversation = response.data
+      // pretty parse
+      messages.value = conversation.messages.map((message) => {
+        let query = message?.functionCall?.arguments?.query
+        if (query) {
+          message.functionCall.arguments.query = sqlPrettier.format(query)
+        }
+        return message
+      })
+      // Select the context (from response databaseId or projectId)
+      if (conversation.projectId) {
+        chatContextSelected.value = chatContext.value.find(
+          (context) => context.id === `project-${conversation.projectId}`
+        )
+      } else if (conversation.databaseId) {
+        chatContextSelected.value = chatContext.value.find(
+          (context) => context.id === `database-${conversation.databaseId}`
+        )
       }
-      return message
     })
-    // Select the context (from response databaseId or projectId)
-    if (conversation.projectId) {
-      chatContextSelected.value = chatContext.value.find(
-        (context) => context.id === `project-${conversation.projectId}`
-      )
-    } else if (conversation.databaseId) {
-      chatContextSelected.value = chatContext.value.find(
-        (context) => context.id === `database-${conversation.databaseId}`
-      )
-    }
-  })
+    .catch((error) => {
+      console.error('Error fetching messages:', error)
+      conversationStatuses.value[conversationId.value] = {
+        status: STATUS.ERROR,
+        error: 'Error fetching messages'
+      }
+      messages.value = []
+    })
 }
 
 watch(

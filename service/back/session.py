@@ -22,7 +22,7 @@ def json_deserial(d):
     def date_hook(json_dict):
         for key, value in json_dict.items():
             try:
-                json_dict[key] = datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+                json_dict[key] = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
             except Exception:
                 pass
         return json_dict

@@ -73,7 +73,7 @@ def get_conversation(conversation_id):
 
     # TODO: redesign this to use a single query
     conversation_dict = dataclass_to_dict(conversation)
-    conversation_dict["messages"] = dataclass_to_dict(conversation.messages)
+    conversation_dict["messages"] = [m.to_dict() for m in conversation.messages]
     conversation_dict["messages"].sort(key=lambda x: x["id"])
     return jsonify(conversation_dict)
 

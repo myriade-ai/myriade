@@ -146,7 +146,6 @@ def handle_regenerate_from_message(conversation_id, message_id, message_content=
     socket_session.commit()
     # Regenerate the conversation
     for message in chat._run_conversation():
-        print("MESSAGE", message.to_dict())
         emit("response", message.to_dict())
 
 

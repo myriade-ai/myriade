@@ -5,11 +5,14 @@ from autochat import Autochat, Message
 from autochat.chat import StopLoopException
 
 from back.datalake import DatalakeFactory
-from back.models import Conversation, ConversationMessage, Query
+from back.models import Chart, Conversation, ConversationMessage, Query
 from chat.dbt_utils import DBT
 from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
-from chat.sql_utils import run_sql
+from chat.tools.database import DatabaseTool
+from chat.tools.echarts import EchartsTool
+from chat.tools.workspace import WorkspaceTool
+from chat.utils import parse_answer_text
 
 AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
 
@@ -115,10 +118,25 @@ class DatabaseChat:
             context=self.context,
             messages=messages,
         )
-        chatbot.add_function(self.sql_query)
+
+        chatbot.simple_response_callback = lambda response: Message(
+            role="user",
+            content="Only messages from 'answer' function call are\
+            visible to the user. Use it to answer the user.",
+        )
+
+        chatbot.add_tool(
+            DatabaseTool(self.session, self.conversation.database), "database"
+        )
         chatbot.add_function(self.save_to_memory)
         chatbot.add_function(self.submit)
-        chatbot.add_function(self.render_echarts)
+        chatbot.add_function(self.answer)
+        chatbot.add_function(self.ask_user)
+        chatbot.add_tool(WorkspaceTool(self.session, self.conversation.id), "workspace")
+        chatbot.add_tool(
+            EchartsTool(self.session, self.conversation.database),
+            "echarts",
+        )
         if self.dbt:
             chatbot.add_tool(self.dbt, self.conversation.database.name)
         if self.conversation.project:
@@ -128,37 +146,7 @@ class DatabaseChat:
         if self.model:
             chatbot.model = self.model
 
-        def message_is_answer(function_call, function_response):
-            if function_call.content:
-                return function_call.content.startswith("<ANSWER>")
-            return False
-
-        chatbot.should_pause_conversation = message_is_answer
         return chatbot
-
-    def sql_query(
-        self, query: str, name: str = "", from_response: Message | None = None
-    ):
-        """
-        Run an SQL query on the database and return the result
-        Args:
-            query: The SQL query string to be executed. Don't forget to escape this if you use double quote.
-            name: The name/title of the query
-        """  # noqa: E501
-        _query = Query(
-            query=name,
-            databaseId=self.conversation.databaseId,
-            sql=query,
-        )
-        self.session.add(_query)
-        self.session.commit()
-
-        if from_response:
-            # We update the message with the query id
-            from_response.query_id = _query.id
-
-        output, _ = run_sql(self.datalake, query)
-        return output
 
     def save_to_memory(self, text: str):
         """
@@ -194,39 +182,75 @@ class DatabaseChat:
 
         # We update the message with the query id
         from_response.query_id = _query.id
+        from_response.isAnswer = True
         raise StopLoopException("We want to stop after submitting")
-        return
 
-    def render_echarts(
+    def ask_user(self, question: str, from_response: Message):
+        """
+        Ask the user a question. Use it to ask for confirmation, for ambiguous queries,\
+        etc.
+        Use it only when it strictly necessary.
+        Args:
+            question: The question to ask the user
+        """
+        from_response.isAnswer = True  # TODO: is answer is not the correct termilogy
+        raise StopLoopException("We want the user to answer")
+
+    def answer(
         self,
-        chart_options: dict,
-        sql: str,
-        from_response: Message | None = None,
+        text: str,
+        from_response: Message,
     ):
         """
-        Display a chart (using Echarts 4).
-        Provide the chart_options without the "dataset" parameter
-        We will SQL result to fill the dataset.source automatically
-        Don't forget to Map from Data to Charts (series.encode)
-        Don't use specific color in the chart_options unless the user asked for it
-        When creating bar charts with ECharts, make sure to set the correct axis types.
-        For categorical data (like driver names) use 'category' type on the x-axis when displaying bars vertically, or on the y-axis when displaying bars horizontally.
-        For numerical data (like wins or points) use 'value' type on the corresponding axis.
-        Also verify that the encode properties correctly map your data fields to the appropriate axes ('x' for categories, 'y' for values in vertical bar charts; reversed in horizontal bar charts).
-        Args:
-            chart_options: The options of the chart
-            sql: The SQL query to execute
-        """  # noqa: E501
-        # Execute SQL query
-        rows, _ = self.datalake.query(sql)
+        Give the final response from the user demand/query as a text.
+        You can insert a query in the text using the <QUERY:{query_id}> tag.
+        You can insert a chart in the text using the <CHART:{chart_id}> tag.
+        Replace {query_id} and {chart_id} with the actual query id and chart id.
+        You can only insert one query and one chart per message.
+        Show the query only if the user asked for it.
+        Show the chart only if the user asked for it or if that make sense to have it.
+        """
 
-        # Fill the dataset
-        chart_options["dataset"] = {
-            "source": rows,
-        }
+        chunks = parse_answer_text(text)
+        # Check query_id & chart_id
+        for chunk in chunks:
+            if chunk["type"] == "query":
+                # extract the query id from the text
+                query_id = chunk["query_id"]
+                query = (
+                    self.session.query(Query)
+                    .join(ConversationMessage, Query.conversation_messages)
+                    .filter(
+                        Query.id == query_id,
+                        ConversationMessage.conversationId == self.conversation.id,
+                    )
+                    .first()
+                )
+                if not query:
+                    raise ValueError(
+                        f"Query with id {query_id} not found in this conversation"
+                    )
+
+            if chunk["type"] == "chart":
+                # extract the chart id from the text
+                chart_id = chunk["chart_id"]
+                # verify chart exists and belongs to this conversation
+                chart = (
+                    self.session.query(Chart)
+                    .join(ConversationMessage, Chart.conversation_messages)
+                    .filter(
+                        Chart.id == chart_id,
+                        ConversationMessage.conversationId == self.conversation.id,
+                    )
+                    .first()
+                )
+                if not chart:
+                    raise ValueError(
+                        f"Chart with id {chart_id} not found in this conversation"
+                    )
+
         from_response.isAnswer = True
-        # We want to stop after rendering the chart
-        raise StopLoopException("We want to stop after rendering the chart")
+        raise StopLoopException("We want to stop after submitting")
 
     def _run_conversation(self):
         emit_status(self.conversation.id, STATUS.RUNNING)
@@ -245,7 +269,10 @@ class DatabaseChat:
             emit_status(self.conversation.id, STATUS.CLEAR)
         except Exception as e:
             emit_status(self.conversation.id, STATUS.ERROR, e)
-            raise e
+            import traceback
+
+            traceback.print_exc()
+            raise
 
     def ask(self, question: str):
         if not self.conversation.name:

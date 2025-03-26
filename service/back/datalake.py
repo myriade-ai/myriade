@@ -62,7 +62,7 @@ class AbstractDatabase(ABC):
     def _query(self, query):
         pass
 
-    def query_count(self, sql):
+    def _query_count(self, sql):
         count_request = f"SELECT COUNT(*) FROM ({sql.replace(';', '')}) AS foo"
         result = self._query(count_request)
         return result[0]["count"]
@@ -80,7 +80,7 @@ class AbstractDatabase(ABC):
         rows = self._query(sql)
         if sum([sizeof(r) for r in rows]) > MAX_SIZE * 0.9:
             try:
-                count = self.query_count(sql)
+                count = self._query_count(sql)
             except Exception:
                 # TODO: should throw error
                 count = None
@@ -160,7 +160,7 @@ class SQLDatabase(AbstractDatabase):
             # TODO add support for views
         return self.metadata
 
-    def _query(self, query):
+    def _query(self, query) -> list[dict]:
         """
         Run a query against the database
         Limit the result to 2MB
@@ -168,8 +168,8 @@ class SQLDatabase(AbstractDatabase):
         with self.engine.connect() as connection:
             result = connection.execute(text(query))
 
-            rows = []
-            total_size = 0
+            rows: list[dict] = []
+            total_size: int = 0
 
             for row in result:
                 row_dict = dict(row._mapping)

@@ -1,11 +1,12 @@
+import base64
 import json
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
+from io import BytesIO
 
-from autochat.model import Image as AutoChatImage
 from autochat.model import Message as AutoChatMessage
-from autochat.model import MessagePart as AutoChatMessagePart
+from PIL import Image as PILImage
 from sqlalchemy import (
     Boolean,
     Column,
@@ -141,7 +142,9 @@ class ConversationMessage(DefaultBase, Base):
     functionCall: dict
     queryId: int
     functionCallId: str
+    image: bytes
     isAnswer: bool
+    chartId: int
 
     id = Column(Integer, primary_key=True)
     conversationId = Column(Integer, ForeignKey("conversation.id"), nullable=False)
@@ -155,14 +158,50 @@ class ConversationMessage(DefaultBase, Base):
     functionCallId = Column(String, nullable=True)
     image = Column(LargeBinary, nullable=True)
     isAnswer = Column(Boolean, nullable=False, default=False)
+    chartId = Column(Integer, ForeignKey("chart.id"), nullable=True)
 
     conversation = relationship("Conversation", back_populates="messages")
+    query = relationship("Query", back_populates="conversation_messages")
+    chart = relationship("Chart", back_populates="conversation_messages")
 
     # format params before creating the object
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def to_dict(self):
+        from back.session import Session
+
+        session = Session()
+
+        if self.functionCall and self.functionCall["name"] == "answer":
+            self.content = self.functionCall["arguments"]["text"]
+            self.functionCall = None
+
+            if "<QUERY:" in self.content:
+                # extract the query id from the text
+                query_id = int(self.content.split("<QUERY:")[1].split(">")[0].strip())
+                # get the query from the database
+                query = session.query(Query).filter_by(id=query_id).first()
+                # Replace the <QUERY:QUERY_ID> tag with the query content
+                self.content = self.content.replace(
+                    f"<QUERY:{query_id}>", f"```sql\n{query.sql}\n```"
+                )
+
+            if "<CHART:" in self.content:
+                # extract the chart id from the text
+                chart_id = int(self.content.split("<CHART:")[1].split(">")[0].strip())
+                # get the chart from the database
+                chart = session.query(Chart).filter_by(id=chart_id).first()
+                if not chart:
+                    raise ValueError(f"Chart with id {chart_id} not found")
+                # Replace the <CHART:CHART_ID> tag with the chart content
+                chart_config = chart.config
+                chart_config["query_id"] = chart.queryId
+                chart_config_str = json.dumps(chart_config)
+                self.content = self.content.replace(
+                    f"<CHART:{chart_id}>", f"```echarts\n{chart_config_str}\n```"
+                )
+
         # Export to dict, only keys declared in the dataclass
         return {
             "id": self.id,
@@ -172,8 +211,7 @@ class ConversationMessage(DefaultBase, Base):
             "content": self.content,
             "functionCall": self.functionCall,
             "data": self.data,  # TODO: remove
-            # "createdAt": self.createdAt,
-            # "updatedAt": self.updatedAt,
+            "image": base64.b64encode(self.image).decode() if self.image else None,
             "queryId": self.queryId,
             "functionCallId": self.functionCallId,
             "isAnswer": self.isAnswer,
@@ -186,22 +224,9 @@ class ConversationMessage(DefaultBase, Base):
             content=self.content,
             function_call=self.functionCall,
             function_call_id=self.functionCallId,
+            image=PILImage.open(BytesIO(self.image)) if self.image else None,
             # data (only for function call output)
         )
-        if self.image:
-            message.image = AutoChatImage.from_bytes(self.image)
-        if self.isAnswer:
-            if self.content:
-                message.content = "<ANSWER>" + message.content
-            else:
-                # We don't yet add
-                message.parts = [
-                    AutoChatMessagePart(
-                        type="text",
-                        content="<ANSWER>",
-                    ),
-                    *message.parts,
-                ]
         return message
 
     @classmethod
@@ -211,16 +236,11 @@ class ConversationMessage(DefaultBase, Base):
         kwargs["functionCallId"] = message.function_call_id
         kwargs["content"] = message.content
         # TODO: add image, function_result ?
-
         # rewrite id to reqId
         kwargs["reqId"] = kwargs.pop("id", None)
         # transfrom image from PIL to binary
         if message.image:
             kwargs["image"] = message.image.to_bytes()
-        # isAnswer: parse message.content depends on <ANSWER> tag
-        if message.content and message.content.startswith("<ANSWER>"):
-            kwargs["isAnswer"] = True
-            kwargs["content"] = message.content.split("<ANSWER>", 1)[1]
 
         # limit to model in the dataclass
         kwargs = {k: v for k, v in kwargs.items() if k in cls.__dataclass_fields__}
@@ -263,7 +283,9 @@ class Query(DefaultBase, Base):
     __tablename__ = "query"
 
     id = Column(Integer, primary_key=True)
-    query = Column(String, nullable=True)
+    query = Column(
+        String, nullable=True
+    )  # TODO: rename to title (and add description ?)
     databaseId = Column(Integer, ForeignKey("database.id"), nullable=False)
     sql = Column(String)
     result = Column(JSONB)
@@ -275,6 +297,23 @@ class Query(DefaultBase, Base):
 
     database = relationship("Database")
     creator = relationship("User")
+    conversation_messages = relationship(
+        "ConversationMessage", back_populates="query", lazy="joined"
+    )
+    charts = relationship("Chart", back_populates="query")
+
+
+@dataclass
+class Chart(DefaultBase, Base):
+    __tablename__ = "chart"
+
+    id = Column(Integer, primary_key=True)
+    config = Column(JSONB)
+    queryId = Column(Integer, ForeignKey("query.id"))
+    query = relationship("Query", back_populates="charts")
+    conversation_messages = relationship(
+        "ConversationMessage", back_populates="chart", lazy="joined"
+    )
 
 
 @dataclass
