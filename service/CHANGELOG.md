@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.6.3 (2025-03-26)
+
+### Bug Fixes
+
+- Add organization in session refresh
+  ([`e770c54`](https://github.com/catalys-intelligence/ada/commit/e770c548819d6d2a92b61624b04a391bcf68b32e))
+
+
 ## v0.6.2 (2025-03-26)
 
 ### Bug Fixes
