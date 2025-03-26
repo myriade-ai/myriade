@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.6.4 (2025-03-26)
+
+### Bug Fixes
+
+- Remove user outside org
+  ([`ce1f532`](https://github.com/catalys-intelligence/ada/commit/ce1f5329c810b02d3d5399112ccdce366b1ba555))
+
+
 ## v0.6.3 (2025-03-26)
 
 ### Bug Fixes
