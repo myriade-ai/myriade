@@ -1,6 +1,7 @@
 from flask import Blueprint, g, jsonify, request
 
-from back.models import Query
+from back.datalake import DatalakeFactory
+from back.models import Database, Query
 from middleware import database_middleware, user_middleware
 
 api = Blueprint("ai_api", __name__)
@@ -74,3 +75,22 @@ def handle_query_by_id(query_id):
     }
 
     return jsonify(response)
+
+
+@api.route("/query/<int:query_id>/results", methods=["GET"])
+@user_middleware
+def get_query_results_by_id(query_id):
+    query = g.session.query(Query).filter_by(id=query_id).first()
+    if not query:
+        return jsonify({"error": "Query not found"}), 404
+
+    database = g.session.query(Database).filter_by(id=query.databaseId).first()
+    datalake = DatalakeFactory.create(
+        database.engine,
+        **database.details,
+    )
+    rows, count = datalake.query(query.sql)
+    return {
+        "rows": rows,
+        "count": count,
+    }

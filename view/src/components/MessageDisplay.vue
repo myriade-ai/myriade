@@ -108,15 +108,19 @@
           :key="`sql-${index}`"
         ></BaseEditor>
         <BaseTable v-if="part.type === 'json'" :data="part.content" :key="`json-${index}`" />
+        <Echart v-if="part.type === 'echarts'" :option="part.content" :key="`echarts-${index}`" />
       </template>
 
+      <div v-if="props.message.image">
+        <img :src="`data:image/png;base64,${props.message.image}`" />
+      </div>
       <div v-if="props.message.functionCall">
         <b>> {{ props.message.functionCall?.name }} </b>
         <p v-if="props.message.functionCall?.name === 'memory_search'">
           Search: "{{ props.message.functionCall?.arguments?.search }}"
         </p>
         <BaseEditor
-          v-else-if="props.message.functionCall?.name === 'sql_query'"
+          v-else-if="props.message.functionCall?.name.endsWith('sql_query')"
           :modelValue="props.message.functionCall?.arguments?.query"
           :read-only="true"
         ></BaseEditor>
@@ -125,9 +129,6 @@
           :sqlQuery="props.message.functionCall?.arguments?.query"
           :database-id="databaseSelectedId"
         ></BaseEditorPreview>
-        <div v-else-if="props.message?.functionCall?.name === 'render_echarts'">
-          <Echart :option="props.message.functionCall?.arguments?.chart_options" />
-        </div>
         <pre v-else class="arguments">{{ props.message.functionCall?.arguments }}</pre>
       </div>
     </div>
@@ -135,15 +136,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, defineProps, defineEmits } from 'vue'
-import yaml from 'js-yaml'
 import axios from '@/plugins/axios'
+import yaml from 'js-yaml'
 import { marked } from 'marked'
+import { computed, defineEmits, defineProps, onMounted, ref } from 'vue'
 
 // Components
-import BaseTable from '@/components/base/BaseTable.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
+import BaseTable from '@/components/base/BaseTable.vue'
 import Echart from '@/components/Echart.vue'
 import { ArrowPathIcon, PencilIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 
@@ -163,6 +164,7 @@ interface Message {
   queryId?: string
   id?: string
   functionCall?: FunctionCall
+  image?: string // base64 encoded image
 }
 
 const props = defineProps<{
@@ -217,7 +219,7 @@ function renderMarkdown(text: string) {
 }
 
 const parsedText = computed(() => {
-  const regex = /```((?:sql|json|error|ya?ml-graph))\s*([\s\S]*?)\s*```/g
+  const regex = /```((?:sql|json|error|ya?ml-graph|echarts))\s*([\s\S]*?)\s*```/g
   let match
   let lastIndex = 0
   const parts: Array<{ type: string; content: any }> = []
@@ -241,6 +243,8 @@ const parsedText = computed(() => {
       console.log('content', content)
     } else if (type === 'error') {
       content = match[2]
+    } else if (type === 'echarts') {
+      content = JSON.parse(match[2].trim())
     } else {
       throw new Error(`Unknown type ${type}`)
     }

@@ -3,9 +3,12 @@
 </template>
 
 <script setup lang="ts">
+import { fetchQueryResults } from '@/stores/query'
 import 'echarts'
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import VChart from 'vue-echarts'
+
+const rows = ref([])
 
 // Define the prop
 const props = defineProps({
@@ -19,9 +22,16 @@ const props = defineProps({
 const chartOption = computed(() => {
   return {
     ...props.option,
+    dataset: {
+      source: rows.value
+    },
     grid: { containLabel: true },
     tooltip: { extraCssText: 'width:200px; white-space:pre-wrap;' }
   }
+})
+
+onMounted(async () => {
+  rows.value = await fetchQueryResults(props.option.query_id)
 })
 </script>
 

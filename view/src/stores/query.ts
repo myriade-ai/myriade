@@ -15,6 +15,11 @@ export const queryCount = ref(null)
 export const queryError = ref(null)
 export const loading = ref(false)
 
+export const fetchQueryResults = async (id: number) => {
+  const response = await axios.get(`/api/query/${id}/results`)
+  return response.data.rows
+}
+
 export const loadQuery = async (id: number) => {
   queryId.value = id
   const response = await axios.get(`/api/query/${id}`)

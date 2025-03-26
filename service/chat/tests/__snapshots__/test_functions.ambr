@@ -1,10 +1,12 @@
 # serializer version: 1
 # name: test_functions
   list([
-    'sql_query',
+    'DatabaseTool-database__sql_query',
     'save_to_memory',
     'submit',
-    'render_echarts',
+    'answer',
+    'ask_user',
+    'EchartsTool-echarts__preview_render',
     'DBT-test__fetch_model',
     'DBT-test__fetch_model_list',
     'DBT-test__search_models',
@@ -19,7 +21,7 @@
   list([
     dict({
       'description': 'Run an SQL query on the database and return the result',
-      'name': 'sql_query',
+      'name': 'DatabaseTool-database__sql_query',
       'parameters': dict({
         'properties': dict({
           'name': dict({
@@ -91,26 +93,505 @@
       }),
     }),
     dict({
-      'description': 'Display a chart (using Echarts 4). Provide the chart_options without the "dataset" parameter We will SQL result to fill the dataset.source automatically Don\'t forget to Map from Data to Charts (series.encode) Don\'t use specific color in the chart_options unless the user asked for it When creating bar charts with ECharts, make sure to set the correct axis types. For categorical data (like driver names) use \'category\' type on the x-axis when displaying bars vertically, or on the y-axis when displaying bars horizontally. For numerical data (like wins or points) use \'value\' type on the corresponding axis. Also verify that the encode properties correctly map your data fields to the appropriate axes (\'x\' for categories, \'y\' for values in vertical bar charts; reversed in horizontal bar charts).',
-      'name': 'render_echarts',
+      'description': 'Give the final response from the user demand/query as a text. You can insert a query in the text using the <QUERY:{query_id}> tag. You can insert a chart in the text using the <CHART:{chart_id}> tag. Replace {query_id} and {chart_id} with the actual query id and chart id. You can only insert one query and one chart per message. Show the query only if the user asked for it. Show the chart only if the user asked for it or if that make sense to have it.',
+      'name': 'answer',
       'parameters': dict({
         'properties': dict({
-          'chart_options': dict({
-            'description': 'The options of the chart',
-            'title': 'Chart Options',
-            'type': 'object',
-          }),
-          'sql': dict({
-            'description': 'The SQL query to execute',
-            'title': 'Sql',
+          'text': dict({
+            'title': 'Text',
             'type': 'string',
           }),
         }),
         'required': list([
-          'chart_options',
-          'sql',
+          'text',
         ]),
-        'title': 'Input for `render_echarts`',
+        'title': 'Input for `answer`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Ask the user a question. Use it to ask for confirmation, for ambiguous queries,        etc. Use it only when it strictly necessary.',
+      'name': 'ask_user',
+      'parameters': dict({
+        'properties': dict({
+          'question': dict({
+            'description': 'The question to ask the user',
+            'title': 'Question',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'question',
+        ]),
+        'title': 'Input for `ask_user`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Render a chart (using Echarts 4). This is not shown to the user, but this will create a chart object That you can reference in the answer response. --- Provide the chart_options without the "dataset" parameter We will SQL result to fill the dataset.source automatically Don\'t forget to Map from Data to Charts (series.encode) Don\'t use specific color in the chart_options unless the user asked for it When creating bar charts with ECharts, make sure to set the correct axis types. For categorical data (like driver names) use \'category\' type on the x-axis when displaying bars vertically, or on the y-axis when displaying bars horizontally. For numerical data (like wins or points) use \'value\' type on the corresponding axis. Also verify that the encode properties correctly map your data fields to the appropriate axes (\'x\' for categories, \'y\' for values in vertical bar charts; reversed in horizontal bar charts).',
+      'name': 'EchartsTool-echarts__preview_render',
+      'parameters': dict({
+        '$defs': dict({
+          'Axis': dict({
+            'properties': dict({
+              'axisLabel': dict({
+                'anyOf': list([
+                  dict({
+                    '$ref': '#/$defs/AxisLabel',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+              }),
+              'inverse': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'boolean',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Inverse',
+              }),
+              'max': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'integer',
+                  }),
+                  dict({
+                    'type': 'number',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Max',
+              }),
+              'min': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'integer',
+                  }),
+                  dict({
+                    'type': 'number',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Min',
+              }),
+              'name': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Name',
+              }),
+              'type': dict({
+                'enum': list([
+                  'value',
+                  'category',
+                  'time',
+                  'log',
+                ]),
+                'title': 'Type',
+                'type': 'string',
+              }),
+            }),
+            'required': list([
+              'type',
+            ]),
+            'title': 'Axis',
+            'type': 'object',
+          }),
+          'AxisLabel': dict({
+            'properties': dict({
+              'formatter': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Formatter',
+              }),
+              'interval': dict({
+                'default': 0,
+                'title': 'Interval',
+                'type': 'integer',
+              }),
+              'rotate': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'integer',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Rotate',
+              }),
+            }),
+            'title': 'AxisLabel',
+            'type': 'object',
+          }),
+          'ChartOptions': dict({
+            'properties': dict({
+              'dataZoom': dict({
+                'anyOf': list([
+                  dict({
+                    'items': dict({
+                      '$ref': '#/$defs/DataZoom',
+                    }),
+                    'type': 'array',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Datazoom',
+              }),
+              'grid': dict({
+                'anyOf': list([
+                  dict({
+                    '$ref': '#/$defs/GridOptions',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+              }),
+              'series': dict({
+                'items': dict({
+                  '$ref': '#/$defs/Series',
+                }),
+                'title': 'Series',
+                'type': 'array',
+              }),
+              'title': dict({
+                'anyOf': list([
+                  dict({
+                    '$ref': '#/$defs/TitleOptions',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+              }),
+              'tooltip': dict({
+                'anyOf': list([
+                  dict({
+                    '$ref': '#/$defs/Tooltip',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+              }),
+              'xAxis': dict({
+                '$ref': '#/$defs/Axis',
+              }),
+              'yAxis': dict({
+                '$ref': '#/$defs/Axis',
+              }),
+            }),
+            'required': list([
+              'xAxis',
+              'yAxis',
+              'series',
+            ]),
+            'title': 'ChartOptions',
+            'type': 'object',
+          }),
+          'DataZoom': dict({
+            'properties': dict({
+              'end': dict({
+                'default': 100,
+                'title': 'End',
+                'type': 'integer',
+              }),
+              'start': dict({
+                'default': 0,
+                'title': 'Start',
+                'type': 'integer',
+              }),
+              'type': dict({
+                'enum': list([
+                  'inside',
+                  'slider',
+                ]),
+                'title': 'Type',
+                'type': 'string',
+              }),
+            }),
+            'required': list([
+              'type',
+            ]),
+            'title': 'DataZoom',
+            'type': 'object',
+          }),
+          'GridOptions': dict({
+            'properties': dict({
+              'bottom': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'integer',
+                  }),
+                ]),
+                'default': '10%',
+                'title': 'Bottom',
+              }),
+              'containLabel': dict({
+                'default': True,
+                'title': 'Containlabel',
+                'type': 'boolean',
+              }),
+              'left': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'integer',
+                  }),
+                ]),
+                'default': '10%',
+                'title': 'Left',
+              }),
+              'right': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'integer',
+                  }),
+                ]),
+                'default': '10%',
+                'title': 'Right',
+              }),
+              'top': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'integer',
+                  }),
+                ]),
+                'default': '10%',
+                'title': 'Top',
+              }),
+            }),
+            'title': 'GridOptions',
+            'type': 'object',
+          }),
+          'ItemStyle': dict({
+            'properties': dict({
+              'color': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Color',
+              }),
+            }),
+            'title': 'ItemStyle',
+            'type': 'object',
+          }),
+          'Series': dict({
+            'properties': dict({
+              'encode': dict({
+                '$ref': '#/$defs/SeriesEncode',
+              }),
+              'itemStyle': dict({
+                'anyOf': list([
+                  dict({
+                    '$ref': '#/$defs/ItemStyle',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+              }),
+              'label': dict({
+                'anyOf': list([
+                  dict({
+                    '$ref': '#/$defs/SeriesLabel',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+              }),
+              'type': dict({
+                'enum': list([
+                  'bar',
+                  'line',
+                  'pie',
+                  'scatter',
+                ]),
+                'title': 'Type',
+                'type': 'string',
+              }),
+            }),
+            'required': list([
+              'type',
+              'encode',
+            ]),
+            'title': 'Series',
+            'type': 'object',
+          }),
+          'SeriesEncode': dict({
+            'properties': dict({
+              'x': dict({
+                'title': 'X',
+                'type': 'string',
+              }),
+              'y': dict({
+                'title': 'Y',
+                'type': 'string',
+              }),
+            }),
+            'required': list([
+              'x',
+              'y',
+            ]),
+            'title': 'SeriesEncode',
+            'type': 'object',
+          }),
+          'SeriesLabel': dict({
+            'properties': dict({
+              'formatter': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Formatter',
+              }),
+              'position': dict({
+                'default': 'right',
+                'title': 'Position',
+                'type': 'string',
+              }),
+              'show': dict({
+                'default': False,
+                'title': 'Show',
+                'type': 'boolean',
+              }),
+            }),
+            'title': 'SeriesLabel',
+            'type': 'object',
+          }),
+          'TitleOptions': dict({
+            'properties': dict({
+              'left': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'enum': list([
+                      'center',
+                      'left',
+                      'right',
+                    ]),
+                    'type': 'string',
+                  }),
+                ]),
+                'default': 'center',
+                'title': 'Left',
+              }),
+              'text': dict({
+                'title': 'Text',
+                'type': 'string',
+              }),
+            }),
+            'required': list([
+              'text',
+            ]),
+            'title': 'TitleOptions',
+            'type': 'object',
+          }),
+          'Tooltip': dict({
+            'properties': dict({
+              'formatter': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Formatter',
+              }),
+              'trigger': dict({
+                'default': 'item',
+                'enum': list([
+                  'item',
+                  'axis',
+                ]),
+                'title': 'Trigger',
+                'type': 'string',
+              }),
+            }),
+            'title': 'Tooltip',
+            'type': 'object',
+          }),
+        }),
+        'properties': dict({
+          'chart_options': dict({
+            '$ref': '#/$defs/ChartOptions',
+            'description': 'The options of the chart. A dict, not a json dump',
+          }),
+          'query_id': dict({
+            'description': 'The ID of the query to execute',
+            'title': 'Query Id',
+            'type': 'integer',
+          }),
+        }),
+        'required': list([
+          'chart_options',
+          'query_id',
+        ]),
+        'title': 'Input for `preview_render`',
         'type': 'object',
       }),
     }),
@@ -246,6 +727,9 @@
 # name: test_tools
   dict({
     'Notes': 'Notes',
+    'database': 'DatabaseTool',
+    'echarts': 'EchartsTool',
     'test': 'DBT',
+    'workspace': 'WorkspaceTool',
   })
 # ---

@@ -7,6 +7,22 @@ WORKDIR /app
 # Install system dependencies (if any)
 RUN apt-get update && apt-get install -y --no-install-recommends
 
+## == Echarts render ==
+# Install node
+ENV NODE_VERSION=20.19.0
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+ENV NVM_DIR=/root/.nvm
+RUN . "$NVM_DIR/nvm.sh" && nvm install $NODE_VERSION
+RUN . "$NVM_DIR/nvm.sh" && nvm use v$NODE_VERSION
+RUN . "$NVM_DIR/nvm.sh" && nvm alias default v$NODE_VERSION
+ENV PATH="/root/.nvm/versions/node/v$NODE_VERSION/bin/:${PATH}"
+RUN npm install -g yarn
+
+# Install dependencies
+COPY ./chat/tools/echarts-render ./chat/tools/echarts-render
+RUN cd chat/tools/echarts-render && yarn
+## End of Echarts render
+
 # Install uv package installer
 RUN pip install uv
 
@@ -18,6 +34,7 @@ COPY ./pyproject.toml ./uv.lock ./
 
 RUN uv pip compile pyproject.toml > requirements.txt
 RUN uv pip install --system -r requirements.txt
+
 
 # Copy the rest of the application's code
 COPY . .
