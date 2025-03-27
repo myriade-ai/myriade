@@ -64,6 +64,9 @@ def user():
 
 @api.route("/logout", methods=["POST"])
 def logout():
+    if not request.cookies.get("wos_session"):
+        return jsonify({"message": "No session cookie"}), 500
+
     session_cookie = request.cookies["wos_session"]
     session = workos_client.user_management.load_sealed_session(
         sealed_session=session_cookie,
@@ -71,7 +74,7 @@ def logout():
     )
     auth_result = session.authenticate()
     scheme = request.headers.get("X-Forwarded-Proto", request.scheme)
-    redirect_url = scheme + "://" + request.host + "/"
+    redirect_url = scheme + "://" + request.host + "/login"
 
     logout_url = workos_client.user_management.get_logout_url(
         session_id=auth_result.session_id,
