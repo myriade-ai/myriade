@@ -1,3 +1,4 @@
+import { logout } from '@/stores/auth'
 import axios from 'axios'
 
 axios.interceptors.response.use(
@@ -5,7 +6,7 @@ axios.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       console.log('ERROR: Unauthorized', error.response)
-      // logout()
+      logout()
     }
     return Promise.reject(error)
   }
