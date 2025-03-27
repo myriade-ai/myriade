@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.6.9 (2025-03-27)
+
+### Bug Fixes
+
+- Debug auth
+  ([`f919bcc`](https://github.com/catalys-intelligence/ada/commit/f919bcc8819860836118b7941880e3e00cb202bc))
+
+
 ## v0.6.8 (2025-03-27)
 
 ### Bug Fixes
