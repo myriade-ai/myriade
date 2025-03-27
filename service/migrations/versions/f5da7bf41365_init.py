@@ -8,9 +8,9 @@ Create Date: 2023-08-13 13:23:37.050415
 
 from typing import Sequence, Union
 
-import pgvector
 import sqlalchemy as sa
 from alembic import op
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
@@ -105,7 +105,7 @@ def upgrade() -> None:
         sa.Column("tag", sa.String(), nullable=True),
         sa.Column("tables", sa.String(), nullable=True),
         sa.Column("wheres", sa.String(), nullable=True),
-        sa.Column("embedding", pgvector.sqlalchemy.Vector(dim=1536), nullable=True),
+        sa.Column("embedding", Vector(dim=1536), nullable=True),
         sa.Column(
             "visualisationParams",
             postgresql.JSONB(astext_type=sa.Text()),
