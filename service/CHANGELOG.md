@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.6.11 (2025-03-27)
+
+### Bug Fixes
+
+- Migration bug
+  ([`eea8058`](https://github.com/catalys-intelligence/ada/commit/eea8058b4077adf453e50f7543ca841576692d75))
+
+
 ## v0.6.10 (2025-03-27)
 
 ### Bug Fixes
