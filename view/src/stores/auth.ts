@@ -41,6 +41,7 @@ export const logout = async () => {
     const { logout_url } = data
     window.location.href = logout_url
   } catch (error) {
-    console.error('Logout failed:', error)
+    console.error('Logout failed, user is not logged in:', error)
+    window.location.href = '/login'
   }
 }
