@@ -1,7 +1,12 @@
-import { isAuthenticated, fetchUser } from '@/stores/auth'
+import { fetchUser, isAuthenticated } from '@/stores/auth'
 
 export const authGuard = async (to, from, next) => {
-  if (to.meta.requiresGuest) {
+  if (to.path === '/logged') {
+    // Wait for 3 seconds before redirecting
+    // To avoid a bug where the token is not yet valid (iat)
+    await new Promise((resolve) => setTimeout(resolve, 3000))
+    next('/')
+  } else if (to.meta.requiresGuest) {
     next()
   } else if (!isAuthenticated.value) {
     try {

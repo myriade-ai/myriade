@@ -10,7 +10,6 @@ api = Blueprint("auth", __name__)
 @api.route("/auth")
 def auth():
     scheme = request.headers.get("X-Forwarded-Proto", request.scheme)
-    print("auth scheme", scheme)
     redirect_uri = scheme + "://" + request.host + "/auth/callback"
     authorization_url = workos_client.sso.get_authorization_url(
         provider="authkit",
@@ -39,7 +38,7 @@ def callback():
             session={"seal_session": True, "cookie_password": cookie_password_b64},
         )
 
-        response = make_response(redirect("/"))
+        response = make_response(redirect("/logged"))
         response.set_cookie(
             "wos_session",
             auth_response.sealed_session,
@@ -65,7 +64,22 @@ def user():
 
 @api.route("/logout", methods=["POST"])
 def logout():
-    response = make_response(jsonify({"message": "Logged out successfully"}))
+    session_cookie = request.cookies["wos_session"]
+    session = workos_client.user_management.load_sealed_session(
+        sealed_session=session_cookie,
+        cookie_password=cookie_password_b64,
+    )
+    auth_result = session.authenticate()
+    scheme = request.headers.get("X-Forwarded-Proto", request.scheme)
+    redirect_url = scheme + "://" + request.host + "/"
+
+    logout_url = workos_client.user_management.get_logout_url(
+        session_id=auth_result.session_id,
+        return_to=redirect_url,
+    )
+    response = make_response(
+        jsonify({"message": "Logged out successfully", "logout_url": logout_url})
+    )
     response.delete_cookie(
         "wos_session", path="/", domain=None, secure=True, samesite="lax"
     )
