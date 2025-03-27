@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.6.12 (2025-03-27)
+
+### Bug Fixes
+
+- Add organization in log
+  ([`40677ca`](https://github.com/catalys-intelligence/ada/commit/40677ca94af1397639cf1f7bdbe7ab96a4bedcbb))
+
+
 ## v0.6.11 (2025-03-27)
 
 ### Bug Fixes
