@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.6.8 (2025-03-27)
+
+### Bug Fixes
+
+- Try to debug login
+  ([`517cd68`](https://github.com/catalys-intelligence/ada/commit/517cd68810af12522f8f0b6ae10fb2e256959603))
+
+
 ## v0.6.7 (2025-03-27)
 
 ### Bug Fixes
