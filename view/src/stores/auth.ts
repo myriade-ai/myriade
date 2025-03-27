@@ -1,5 +1,5 @@
-import { computed, ref } from 'vue'
 import axios from '@/plugins/axios'
+import { computed, ref } from 'vue'
 
 export const user = ref({
   id: null,
@@ -37,20 +37,9 @@ export const fetchUser = async () => {
 
 export const logout = async () => {
   try {
-    // First, make a request to the server to clear the cookie
-    await axios.post('/api/logout')
-
-    // Then clear the local user state
-    user.value = {
-      id: null,
-      email: null,
-      firstName: null,
-      lastName: null,
-      imageUrl: null,
-      isAdmin: false
-    }
-
-    window.location.href = '/login'
+    const { data } = await axios.post('/api/logout')
+    const { logout_url } = data
+    window.location.href = logout_url
   } catch (error) {
     console.error('Logout failed:', error)
   }
