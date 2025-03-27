@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.6.7 (2025-03-27)
+
+### Bug Fixes
+
+- Redirect correctly to /login
+  ([`84687f1`](https://github.com/catalys-intelligence/ada/commit/84687f183c10dfd833e17bb2ba11cffd6430fc3a))
+
+
 ## v0.6.6 (2025-03-27)
 
 ### Bug Fixes
