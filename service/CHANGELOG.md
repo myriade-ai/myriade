@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.6.10 (2025-03-27)
+
+### Bug Fixes
+
+- Re-add logout on 401
+  ([`52248b5`](https://github.com/catalys-intelligence/ada/commit/52248b52a4385aebbb9fa554998632acacf40c36))
+
+
 ## v0.6.9 (2025-03-27)
 
 ### Bug Fixes
