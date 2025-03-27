@@ -1,6 +1,16 @@
 # CHANGELOG
 
 
+## v0.6.5 (2025-03-27)
+
+### Bug Fixes
+
+- Improve logout/login
+  ([`21d4c89`](https://github.com/catalys-intelligence/ada/commit/21d4c89d0c6c2b76040c403bb2863f4a6236a7f1))
+
+Also remove Crisp
+
+
 ## v0.6.4 (2025-03-26)
 
 ### Bug Fixes
