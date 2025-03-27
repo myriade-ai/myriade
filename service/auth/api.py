@@ -73,6 +73,11 @@ def logout():
         cookie_password=cookie_password_b64,
     )
     auth_result = session.authenticate()
+    if not auth_result.authenticated:
+        return jsonify(
+            {"message": "Failed to authenticate session", "error": auth_result.reason}
+        ), 500
+
     scheme = request.headers.get("X-Forwarded-Proto", request.scheme)
     redirect_url = scheme + "://" + request.host + "/login"
 
