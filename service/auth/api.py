@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 from flask import Blueprint, g, jsonify, make_response, redirect, request
 
 from auth.auth import cookie_password_b64, with_auth, workos_client
+from config import WORKOS_ORGANIZATION_ID
 
 api = Blueprint("auth", __name__)
 
@@ -14,6 +15,7 @@ def auth():
     authorization_url = workos_client.sso.get_authorization_url(
         provider="authkit",
         redirect_uri=redirect_uri,
+        organization_id=WORKOS_ORGANIZATION_ID,
     )
     return jsonify({"authorization_url": authorization_url})
 

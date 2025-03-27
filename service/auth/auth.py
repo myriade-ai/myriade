@@ -62,7 +62,7 @@ def with_auth(f):
                 auth_response.organization_id,
                 WORKOS_ORGANIZATION_ID,
             )
-            # return jsonify({"error": "User is not in the organization"}), 401
+            return jsonify({"error": "User is not in the organization"}), 401
 
         # Execute wrapped function
         res = f(*args, **kwargs)
