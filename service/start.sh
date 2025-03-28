@@ -2,7 +2,7 @@
 
 # Check if environment argument is provided
 if [ -z "$1" ]; then
-    echo "Please specify environment: dev or test"
+    echo "Please specify environment: dev or test or prod"
     echo "Usage: ./start.sh [dev|test|prod]"
     exit 1
 fi
@@ -19,11 +19,16 @@ else
     exit 1
 fi
 
-# Default values
-export FLASK_APP=app.py
-export FLASK_DEBUG=true
-
-# Run migrations and start the Flask server
-# python-dotenv will automatically load the correct .env file based on DOTENV_FILE
+# Run migrations
 alembic upgrade head
-flask run --host=0.0.0.0 --port=4000
+
+# Start the server based on environment
+if [ "$1" = "prod" ]; then
+    # Production mode with Gunicorn
+    gunicorn wsgi:application --bind 0.0.0.0:4000
+else
+    # Development mode with Flask
+    export FLASK_APP=app.py
+    export FLASK_DEBUG=true
+    flask run --host=0.0.0.0 --port=4000
+fi
