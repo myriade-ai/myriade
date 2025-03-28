@@ -11,11 +11,13 @@ import { createMetaManager } from 'vue-meta'
 import Vue3TouchEvents, { type Vue3TouchEventsOptions } from 'vue3-touch-events'
 
 const app = createApp(App)
-Sentry.init({
-  app,
-  dsn: 'https://ac53a511c0e049b8b13669b552f3a5c8@o4508993570275328.ingest.de.sentry.io/4508993583644752',
-  environment: import.meta.env.PROD ? 'production' : 'development'
-})
+if (import.meta.env.PROD) {
+  Sentry.init({
+    app,
+    dsn: 'https://ac53a511c0e049b8b13669b552f3a5c8@o4508993570275328.ingest.de.sentry.io/4508993583644752',
+    environment: 'production'
+  })
+}
 
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedState)
