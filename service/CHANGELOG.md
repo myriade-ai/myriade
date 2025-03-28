@@ -1,6 +1,21 @@
 # CHANGELOG
 
 
+## v0.6.13 (2025-03-28)
+
+### Bug Fixes
+
+- Websocket connection
+  ([`a05daef`](https://github.com/catalys-intelligence/ada/commit/a05daef7c2a7ab4668d4af5382cb82f512b790e5))
+
+by forcing reconnect...
+
+### Chores
+
+- Improve sent message dynamic
+  ([`4998ef0`](https://github.com/catalys-intelligence/ada/commit/4998ef046aead4577359f2d89da1bbc6498dde95))
+
+
 ## v0.6.12 (2025-03-27)
 
 ### Bug Fixes
