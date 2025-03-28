@@ -12,6 +12,10 @@ const updateConnectionStatus = () => {
   isConnected.value = socket.connected
 }
 
+const forceReconnect = () => {
+  console.log('manually reconnecting...')
+  socket.connect()
+}
 socket.on('connect_error', updateConnectionStatus)
 socket.on('connect_timeout', updateConnectionStatus)
 socket.on('connect', updateConnectionStatus)
@@ -21,6 +25,8 @@ socket.on('disconnect', updateConnectionStatus)
 setInterval(() => {
   if (socket.connected) {
     socket.emit('ping')
+  } else if (!socket.io.skipReconnect) {
+    forceReconnect()
   }
 }, 15000)
 
