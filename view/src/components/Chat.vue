@@ -131,8 +131,8 @@
         <div id="input-container">
           <button
             class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-sm hover:bg-gray-50"
-            :style="editMode == 'TEXT' ? 'background-color: #e5e7eb' : ''"
-            @click="editMode = 'TEXT'"
+            :style="editMode == 'text' ? 'background-color: #e5e7eb' : ''"
+            @click="editMode = 'text'"
           >
             Text
           </button>
@@ -144,14 +144,10 @@
             Editor
           </button>
           <div class="w-full flex py-1 relative" v-if="editMode == 'SQL'">
-            <BaseEditor v-model="inputSQL" @run-query="sendMessage" />
-            <button
-              v-if="inputSQL.trim().length > 0"
-              class="absolute right-2 top-1/2 transform -translate-y-1/2"
-              @click="sendMessage"
-            >
-              <PaperAirplaneIcon class="h-6 w-6 text-gray-300 hover:text-white" />
-            </button>
+            <BaseEditor v-model="inputSQL" @run-query="handleSendMessage" />
+            <div v-if="inputSQL.trim().length > 0" class="text-gray-300 hover:text-white">
+              <SendButtonWithStatus :status="sendStatus" @clicked="handleSendMessage" />
+            </div>
           </div>
           <div class="w-full flex py-1 relative" v-else>
             <textarea
@@ -171,13 +167,9 @@
               leave-from-class="opacity-100"
               leave-to-class="opacity-0"
             >
-              <button
-                v-if="inputText.trim().length > 0"
-                class="absolute right-2 top-1/2 transform -translate-y-1/2"
-                @click="sendMessage"
-              >
-                <PaperAirplaneIcon class="h-6 w-6 text-gray-300 hover:text-gray-500" />
-              </button>
+              <div v-if="inputText.trim().length > 0" class="text-gray-300 hover:text-gray-500">
+                <SendButtonWithStatus :status="sendStatus" @clicked="handleSendMessage" />
+              </div>
             </transition>
           </div>
         </div>
@@ -197,6 +189,7 @@
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseSelector from '@/components/base/BaseSelector.vue'
+import SendButtonWithStatus from '@/components/icons/SendButtonWithStatus.vue'
 import MessageDisplay from '@/components/MessageDisplay.vue'
 import axios from '@/plugins/axios'
 import { useDatabases } from '@/stores/databases'
@@ -208,9 +201,9 @@ import sqlPrettier from 'sql-prettier'
 import { useRoute, useRouter } from 'vue-router'
 // Import sparkles from heroicons
 import { isConnected, socket } from '@/plugins/socket'
-import { conversationStatuses, setStatusToPending, STATUS } from '@/stores/conversations'
+import { conversationStatuses, sendMessage, STATUS } from '@/stores/conversations'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
-import { PaperAirplaneIcon, SparklesIcon } from '@heroicons/vue/24/solid'
+import { SparklesIcon } from '@heroicons/vue/24/solid'
 
 const route = useRoute()
 const router = useRouter()
@@ -256,7 +249,19 @@ const queryStatus = computed(
 )
 const errorMessage = computed(() => conversationStatuses.value[conversationId.value]?.error ?? '')
 const lastMessage = computed(() => messages.value[messages.value.length - 1])
-const editMode = ref('TEXT')
+const editMode = ref<'text' | 'SQL'>('text')
+const sendStatus = computed(() => {
+  // if socket is not connected, return error
+  if (!isConnected.value) {
+    return 'error'
+  }
+  // if conversationId is not set, return clear
+  if (!conversationId.value) {
+    return 'clear'
+  }
+  // if conversationId is set, return status
+  return conversationStatuses.value[conversationId.value]?.status ?? 'clear'
+})
 
 const fetchMessages = async () => {
   // Replace with your dbt API endpoint to fetch messages.
@@ -312,25 +317,21 @@ const editInline = (query) => {
   editMode.value = 'SQL'
 }
 
-const sendMessage = async () => {
-  // If query is already running, do nothing.
-  if (queryStatus.value === STATUS.RUNNING || queryStatus.value === STATUS.PENDING) {
-    return
+const handleSendMessage = async () => {
+  try {
+    await sendMessage(
+      editMode.value,
+      inputText.value,
+      conversationId.value,
+      chatContextSelected.value.id
+    )
+    // After 100ms, clear the input.
+    setTimeout(() => {
+      clearInput()
+    }, 100)
+  } catch (error) {
+    console.error('Error sending message:', error)
   }
-  // Post in json format to your back-end API endpoint to get the response.
-  if (editMode.value == 'SQL') {
-    // Emit query and messages.length to the server.
-    socket.emit('query', inputSQL.value, conversationId.value, chatContextSelected.value.id)
-  } else {
-    // Emit ask question and messages.length to the server.
-    socket.emit('ask', inputText.value, conversationId.value, chatContextSelected.value.id)
-    setStatusToPending(conversationId.value)
-  }
-
-  // After 100ms, clear the input.
-  setTimeout(() => {
-    clearInput()
-  }, 100)
 }
 
 const receiveMessage = async (message) => {
@@ -398,7 +399,7 @@ const stopQuery = async () => {
 
 const handleEnter = (event) => {
   if (!event.shiftKey) {
-    sendMessage()
+    handleSendMessage()
   }
 }
 const clearInput = () => {
@@ -471,7 +472,7 @@ const fetchAISuggestions = async () => {
 
 const applySuggestion = (suggestion: string) => {
   inputText.value = suggestion
-  sendMessage()
+  handleSendMessage()
   // Empty the suggestions
   aiSuggestions.value = []
 }

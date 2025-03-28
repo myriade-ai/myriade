@@ -1,5 +1,5 @@
-import { socket } from '@/plugins/socket';
-import { ref } from 'vue';
+import { isConnected, socket } from '@/plugins/socket'
+import { ref } from 'vue'
 
 export const STATUS = {
   PENDING: 'pending', // waiting for server response
@@ -16,8 +16,7 @@ socket.on('status', (payload) => {
   conversationStatuses.value[conversation_id] = { status, error }
 })
 
-
-export const setStatusToPending = (conversationId: string) => {
+export const setStatusToPending = (conversationId?: string) => {
   // Update status to running
   conversationStatuses.value[conversationId] = {
     status: STATUS.PENDING,
@@ -29,4 +28,29 @@ export const setStatusToPending = (conversationId: string) => {
       conversationStatuses.value[conversationId] = { status: STATUS.CLEAR, error: '' }
     }
   }, 5000)
+}
+
+export const sendMessage = async (
+  type: 'text' | 'SQL',
+  message: string,
+  conversationId?: string,
+  contextId?: string
+) => {
+  const conversationStatus = conversationStatuses.value[conversationId]
+  // If conversation is already running, do nothing.
+  if (
+    conversationStatus?.status === STATUS.RUNNING ||
+    conversationStatus?.status === STATUS.PENDING
+  ) {
+    throw new Error('Conversation is already running')
+  }
+  if (!isConnected.value) {
+    throw new Error('Socket connection is lost')
+  }
+  if (type === 'text') {
+    socket.emit('ask', message, conversationId, contextId)
+  } else if (type === 'SQL') {
+    socket.emit('query', message, conversationId, contextId)
+  }
+  setStatusToPending(conversationId)
 }
