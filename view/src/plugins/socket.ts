@@ -20,12 +20,15 @@ socket.on('connect_error', updateConnectionStatus)
 socket.on('connect_timeout', updateConnectionStatus)
 socket.on('connect', updateConnectionStatus)
 socket.on('disconnect', updateConnectionStatus)
+socket.on('reconnect', updateConnectionStatus)
+socket.on('reconnect_error', updateConnectionStatus)
+socket.on('reconnect_failed', updateConnectionStatus)
 
 // Add a ping mechanism to detect connection issues early
 setInterval(() => {
   if (socket.connected) {
     socket.emit('ping')
-  } else if (!socket.io.skipReconnect) {
+  } else if (socket.io.skipReconnect) {
     forceReconnect()
   }
 }, 15000)
