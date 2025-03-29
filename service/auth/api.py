@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 from flask import Blueprint, g, jsonify, make_response, redirect, request
 
 from auth.auth import cookie_password_b64, with_auth, workos_client
-from config import WORKOS_ORGANIZATION_ID
+from config import OFFLINE_MODE, WORKOS_ORGANIZATION_ID
 
 api = Blueprint("auth", __name__)
 
@@ -44,7 +44,7 @@ def callback():
         response.set_cookie(
             "wos_session",
             auth_response.sealed_session,
-            secure=True,
+            secure=True if not OFFLINE_MODE else False,
             httponly=True,
             samesite="lax",
             domain=None,  # This will be set automatically based on the domain

@@ -2,13 +2,15 @@
 
 from flask import g
 
+from config import WORKOS_ORGANIZATION_ID
+
 # Mock user data for development mode
 MOCK_USER_DATA = {
     "id": "admin",
     "email": "admin@localhost",
     "first_name": "Local",
     "last_name": "Dev",
-    "organization_id": "mock",
+    "organization_id": WORKOS_ORGANIZATION_ID,
     "role": "admin",
 }
 
@@ -25,7 +27,7 @@ MOCK_ORGANIZATION_DATA = {
 # Add MockSSOClient class
 class MockSSOClient:
     def get_authorization_url(self, provider, redirect_uri, organization_id):
-        return "http://localhost:4000/callback?code=mock_code"
+        return "/auth/callback?code=mock_code"
 
 
 # Mock WorkOS client for development mode
@@ -59,10 +61,26 @@ class MockOrganization:
             setattr(self, key, value)
 
 
+class MockAuthResponse:
+    def __init__(self, user_data):
+        self.authenticated = True
+        self.user = MockUser(user_data)
+        self.organization_id = user_data.get("organization_id")
+        self.role = user_data.get("role")
+        self.sealed_session = "mock_sealed_session"
+        self.session_id = "mock_session_id"
+
+
 # Mock UserManagement client for development mode
 class MockUserManagementClient:
     def load_sealed_session(self, sealed_session, cookie_password):
         return MockSession()
+
+    def get_logout_url(self, session_id, return_to):
+        return "/logout"
+
+    def authenticate_with_code(self, code, session):
+        return MockAuthResponse(MOCK_USER_DATA)
 
 
 # User-like class for development mode
@@ -78,15 +96,6 @@ class MockSession:
         self.user_data = user_data or MOCK_USER_DATA
 
     def authenticate(self):
-        # Create a mock response object that mimics WorkOS's response
-        class MockAuthResponse:
-            def __init__(self, user_data):
-                self.authenticated = True
-                self.user = MockUser(user_data)
-                self.organization_id = user_data.get("organization_id")
-                self.role = user_data.get("role")
-                self.sealed_session = "mock_sealed_session"
-
         return MockAuthResponse(self.user_data)
 
     def refresh(self):
