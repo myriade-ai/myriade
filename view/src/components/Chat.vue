@@ -203,6 +203,7 @@ import { isConnected, socket } from '@/plugins/socket'
 import { conversationStatuses, sendMessage, STATUS } from '@/stores/conversations'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
+import { useLocalStorage } from '@vueuse/core'
 
 const route = useRoute()
 const router = useRouter()
@@ -229,7 +230,7 @@ const chatContext = computed(() => {
   ]
 })
 
-const chatContextSelected = ref(chatContext.value[0])
+const chatContextSelected = useLocalStorage('chatContextSelected', chatContext.value[0])
 
 const inputText = ref('')
 const inputSQL = ref('')
