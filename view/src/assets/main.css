@@ -3,5 +3,5 @@
 @tailwind utilities;
 
 .h-screen {
-  height: calc(100vh - 4.1rem);
+  height: calc(100dvh - 4.1rem);
 }
