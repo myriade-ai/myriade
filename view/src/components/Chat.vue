@@ -95,7 +95,7 @@
         </div>
       </div>
 
-      <div class="w-full py-2 lg:py-4">
+      <div class="w-full">
         <transition
           enter-active-class="transition-all duration-300 ease-out"
           enter-from-class="opacity-0 transform translate-y-4"
@@ -127,8 +127,7 @@
             </div>
           </div>
         </transition>
-        <br />
-        <div id="input-container">
+        <div id="input-container" class="py-1 lg:py-2">
           <button
             class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-sm hover:bg-gray-50"
             :style="editMode == 'text' ? 'background-color: #e5e7eb' : ''"

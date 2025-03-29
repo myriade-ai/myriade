@@ -16,7 +16,7 @@
               title="Edit message"
             >
               <PencilSquareIcon class="h-4 w-4" />
-              <span class="ml-1">edit message</span>
+              <span class="ml-1 hidden lg:inline">edit message</span>
             </button>
           </span>
 
@@ -29,7 +29,7 @@
               title="Edit inline"
             >
               <PencilSquareIcon class="h-4 w-4" />
-              <span class="ml-1">edit inline</span>
+              <span class="ml-1 hidden lg:inline">edit inline</span>
             </button>
             <span class="text-gray-400 mx-2">|</span>
             <a
@@ -39,7 +39,7 @@
               title="Edit in new tab"
             >
               <PencilIcon class="h-4 w-4" />
-              <span class="ml-1">edit</span>
+              <span class="ml-1 hidden lg:inline">edit</span>
             </a>
           </span>
           <span
@@ -57,7 +57,7 @@
             @click="() => emit('regenerateFromMessage', props.message.id)"
           >
             <ArrowPathIcon class="h-4 w-4" />
-            <span class="ml-1">regenerate</span>
+            <span class="ml-1 hidden lg:inline">regenerate</span>
           </button>
         </span>
       </span>
