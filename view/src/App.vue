@@ -11,12 +11,14 @@ import { useMeta } from 'vue-meta'
 import { useRoute } from 'vue-router'
 
 useMeta({
-  title: 'Ada',
-  description: 'Explore your data with Ada!',
+  title: 'Myriade',
+  description: 'Explore your data with Myriade!',
   htmlAttrs: { lang: 'en' }
 })
 
+const route = useRoute()
+
 const layout = computed<string>(() => {
-  return `layout-${useRoute().meta.layout || 'default'}`
+  return `layout-${route?.meta?.layout || 'default'}`
 })
 </script>
