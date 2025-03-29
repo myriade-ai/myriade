@@ -1,6 +1,40 @@
 # CHANGELOG
 
 
+## v0.7.0 (2025-03-29)
+
+### Bug Fixes
+
+- Display of connection error
+  ([`5ce9b8f`](https://github.com/catalys-intelligence/ada/commit/5ce9b8f6cf222080e6ed4d356616327db3b42eda))
+
+- Horizontal display on mobile
+  ([`21f7939`](https://github.com/catalys-intelligence/ada/commit/21f793948535e8c5aff808d5ef9d2e348236ad3c))
+
+- Keep context in localstorage, update vue,vite,vue-router
+  ([`3c3d08c`](https://github.com/catalys-intelligence/ada/commit/3c3d08cd3c7d45f9bcfcbfea0051c10216145fef))
+
+### Build System
+
+- Add gunicorn
+  ([`31946e7`](https://github.com/catalys-intelligence/ada/commit/31946e7fee85e3eea1b861b737425fd0c518d295))
+
+### Chores
+
+- Add support for local mode
+  ([`9e3d854`](https://github.com/catalys-intelligence/ada/commit/9e3d8547d81c041d774f554c34366af3490282d3))
+
+- Remove sentry for local
+  ([`ed7c92b`](https://github.com/catalys-intelligence/ada/commit/ed7c92b6a501d7f69ab855d0ed8ad073f3258c08))
+
+PRO-219
+
+### Features
+
+- Improve ux for mobile
+  ([`f55b873`](https://github.com/catalys-intelligence/ada/commit/f55b87343b01c658c4389581beeabccc126b3d94))
+
+
 ## v0.6.13 (2025-03-28)
 
 ### Bug Fixes
