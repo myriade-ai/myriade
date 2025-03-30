@@ -4,7 +4,9 @@ import { ref } from 'vue'
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL
 
 // Configure socket with more aggressive reconnection settings
-export const socket = io(SOCKET_URL)
+export const socket = io(SOCKET_URL, {
+  transports: ['polling']
+})
 export const isConnected = ref(socket.connected)
 
 // Update the reactive reference when connection status changes
