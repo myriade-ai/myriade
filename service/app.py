@@ -5,7 +5,12 @@ from flask_socketio import SocketIO
 import config  # noqa: F401
 from back.session import Session
 
-socketio = SocketIO(cors_allowed_origins="*", async_mode="threading")
+socketio = SocketIO(
+    cors_allowed_origins="*",
+    async_mode="threading",
+    # We don't use websockets for now (until we have the need for it)
+    transports=["polling"],
+)
 
 
 if config.ENV != "development":
