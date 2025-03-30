@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.7.1 (2025-03-30)
+
+### Bug Fixes
+
+- Switch to long pooling
+  ([`f67f9b3`](https://github.com/catalys-intelligence/ada/commit/f67f9b3a2019edc4761f743f527f897e5d24861a))
+
+
 ## v0.7.0 (2025-03-29)
 
 ### Bug Fixes
