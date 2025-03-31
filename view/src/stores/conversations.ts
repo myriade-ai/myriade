@@ -1,5 +1,35 @@
+import axios from '@/plugins/axios'
 import { isConnected, socket } from '@/plugins/socket'
+import type { AxiosResponse } from 'axios'
 import { ref } from 'vue'
+
+// CONVERSATIONS
+
+export type Conversation = {
+  id: string
+  name: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export const conversations = ref<Conversation[]>([])
+
+export const fetchConversations = async () => {
+  conversations.value = await axios
+    .get('/api/conversations')
+    // Parse the date string to a number
+    .then((res: AxiosResponse<Conversation[]>) =>
+      res.data.map((conversation: Conversation) => ({
+        ...conversation,
+        updatedAt: new Date(conversation.updatedAt)
+      }))
+    )
+    .then((data: Conversation[]) =>
+      data.sort((a: Conversation, b: Conversation) => b.updatedAt.getTime() - a.updatedAt.getTime())
+    )
+}
+
+// STATUSES
 
 export const STATUS = {
   PENDING: 'pending', // waiting for server response

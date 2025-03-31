@@ -1,8 +1,6 @@
 import App from '@/App.vue'
 import '@/assets/main.css'
 import '@/check_version'
-import LayoutDefault from '@/layouts/default.vue'
-import LayoutEmpty from '@/layouts/empty.vue'
 import router from '@/router'
 import * as Sentry from '@sentry/vue'
 import { createPinia } from 'pinia'
@@ -30,7 +28,5 @@ app.use<Vue3TouchEventsOptions>(Vue3TouchEvents, {
   // any other global options...
 })
 
-app.component('layout-default', LayoutDefault)
-app.component('layout-empty', LayoutEmpty)
 app.use(createMetaManager())
 app.mount('#app')

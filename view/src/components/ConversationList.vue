@@ -66,21 +66,15 @@
 <script setup lang="ts">
 import BaseButton from '@/components/base/BaseButton.vue'
 import axios from '@/plugins/axios'
+import type { Conversation } from '@/stores/conversations'
+import { conversations, fetchConversations } from '@/stores/conversations'
 import { CheckCircleIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
-import type { Ref } from 'vue'
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-// Output the conversations types
-type Conversation = {
-  id: number
-  name: string
-  updatedAt: Date
-}
 
 const router = useRouter()
 const route = useRoute()
 const currentPath = computed(() => route.path)
-const conversations: Ref<Conversation[]> = ref([])
 const editName = ref(false)
 const nameInputs = ref<{ [key: number]: HTMLInputElement }>({})
 
@@ -129,22 +123,9 @@ const groupConversationsByDate = (conversations: Conversation[]) => {
   return groupedConversations
 }
 
-const fetchConversations = async () => {
-  conversations.value = await axios
-    .get('/api/conversations')
-    // Parse the date string to a number
-    .then((res) =>
-      res.data.map((conversation: Conversation) => ({
-        ...conversation,
-        updatedAt: new Date(conversation.updatedAt)
-      }))
-    )
-    .then((data) =>
-      data.sort((a: Conversation, b: Conversation) => b.updatedAt.getTime() - a.updatedAt.getTime())
-    )
-}
-
-await fetchConversations()
+onMounted(async () => {
+  await fetchConversations()
+})
 
 const groupedConversations = computed(() => {
   return groupConversationsByDate(conversations.value)
@@ -161,11 +142,6 @@ const selectConversation = (conversation: Conversation) => {
 const currentConversation = (conversation: Conversation) => {
   return currentPath.value.endsWith('/' + conversation.id.toString())
 }
-
-// On route change, fetch the conversation data
-router.afterEach(async () => {
-  await fetchConversations()
-})
 
 const deleteConversation = async (id: number) => {
   await axios.delete(`/api/conversations/${id}`)
