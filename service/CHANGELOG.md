@@ -1,6 +1,21 @@
 # CHANGELOG
 
 
+## v0.8.0 (2025-03-31)
+
+### Build System
+
+- Add script to update servers
+  ([`20a2fa9`](https://github.com/catalys-intelligence/ada/commit/20a2fa95c299597d5faa84a98fed2727de4ccffa))
+
+PRO-220
+
+### Features
+
+- Add homepage
+  ([`e941027`](https://github.com/catalys-intelligence/ada/commit/e9410275c19e69129aa051295e36f090e0095db2))
+
+
 ## v0.7.1 (2025-03-30)
 
 ### Bug Fixes
