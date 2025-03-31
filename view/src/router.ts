@@ -1,13 +1,5 @@
 import { authGuard } from '@/auth'
 import { loadQuery } from '@/stores/query'
-import Chat from '@/views/ChatPage.vue'
-import DatabaseList from '@/views/DatabaseList.vue'
-import Editor from '@/views/Editor.vue'
-import Homepage from '@/views/Homepage.vue'
-import Login from '@/views/Login.vue'
-import ProjectList from '@/views/ProjectList.vue'
-import Upload from '@/views/Upload.vue'
-import User from '@/views/User.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
 function loadView(view: string) {
@@ -18,7 +10,7 @@ const website_routes = [
   {
     path: '/',
     name: 'Home',
-    component: Homepage,
+    component: loadView('HomePage'),
     meta: { layout: 'empty' }
   }
 ]
@@ -26,27 +18,28 @@ const website_routes = [
 const app_routes = [
   {
     path: '/',
+    name: 'NewChat',
     redirect: '/chat/new'
   },
   {
     path: '/chat/:id',
-    name: 'Chat',
-    component: Chat
+    name: 'ChatPage',
+    component: loadView('ChatPage')
   },
   {
     path: '/editor',
     name: 'Editor',
-    component: Editor
+    component: loadView('Editor')
   },
   {
     path: '/upload',
     name: 'Upload',
-    component: Upload
+    component: loadView('Upload')
   },
   {
     path: '/query/:id',
     name: 'Query',
-    component: Editor,
+    component: loadView('Editor'),
     beforeEnter: async (to) => {
       await loadQuery(to.params.id)
       return true
@@ -55,7 +48,7 @@ const app_routes = [
   {
     path: '/databases',
     name: 'DatabaseList',
-    component: DatabaseList
+    component: loadView('DatabaseList')
   },
   {
     path: '/databases/:id',
@@ -65,7 +58,7 @@ const app_routes = [
   {
     path: '/projects',
     name: 'ProjectList',
-    component: ProjectList
+    component: loadView('ProjectList')
   },
   {
     path: '/projects/:id',
@@ -75,13 +68,13 @@ const app_routes = [
   {
     path: '/login',
     name: 'Login',
-    component: Login,
+    component: loadView('Login'),
     meta: { requiresGuest: true }
   },
   {
     path: '/user',
     name: 'User',
-    component: User
+    component: loadView('User')
   },
   {
     path: '/:pathMatch(.*)*',
