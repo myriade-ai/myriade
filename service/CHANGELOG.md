@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.8.1 (2025-03-31)
+
+### Performance Improvements
+
+- Rework imports
+  ([`51d9fc9`](https://github.com/catalys-intelligence/ada/commit/51d9fc9431e9116e827de51ea853ac0aac267670))
+
+
 ## v0.8.0 (2025-03-31)
 
 ### Build System
