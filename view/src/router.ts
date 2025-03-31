@@ -3,6 +3,7 @@ import { loadQuery } from '@/stores/query'
 import Chat from '@/views/ChatPage.vue'
 import DatabaseList from '@/views/DatabaseList.vue'
 import Editor from '@/views/Editor.vue'
+import Homepage from '@/views/Homepage.vue'
 import Login from '@/views/Login.vue'
 import ProjectList from '@/views/ProjectList.vue'
 import Upload from '@/views/Upload.vue'
@@ -13,7 +14,16 @@ function loadView(view: string) {
   return () => import(`./views/${view}.vue`)
 }
 
-const routes = [
+const website_routes = [
+  {
+    path: '/',
+    name: 'Home',
+    component: Homepage,
+    meta: { layout: 'empty' }
+  }
+]
+
+const app_routes = [
   {
     path: '/',
     redirect: '/chat/new'
@@ -73,19 +83,28 @@ const routes = [
     name: 'User',
     component: User
   },
-  // 404
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: loadView('NotFound')
+    component: loadView('NotFound'),
+    meta: { requiresGuest: true, layout: 'empty' }
   }
 ]
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-})
-
-router.beforeEach(authGuard)
+let router = null
+// If env.APP == 'website', then the routes are homepage
+// If env.APP == 'app', then the routes are the application routes
+if (import.meta.env.VITE_APP === 'website') {
+  router = createRouter({
+    history: createWebHistory(),
+    routes: website_routes
+  })
+} else {
+  router = createRouter({
+    history: createWebHistory(),
+    routes: app_routes
+  })
+  router.beforeEach(authGuard)
+}
 
 export default router
