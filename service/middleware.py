@@ -3,7 +3,6 @@ from functools import wraps
 from flask import g, jsonify, request
 
 from auth.auth import with_auth, workos_client
-from back.datalake import DatalakeFactory
 from back.models import Database, Organisation, User
 
 
@@ -53,14 +52,7 @@ def database_middleware(f):
     def decorated_function(*args, **kwargs):
         database_id = request.json.get("databaseId")
         database = g.session.query(Database).filter_by(id=database_id).first()
-        # Add a datalake object to the request
-        datalake = DatalakeFactory.create(
-            database.engine,
-            **database.details,
-        )
-        datalake.privacy_mode = database.privacy_mode
-        datalake.safe_mode = database.safe_mode
-        g.datalake = datalake
+        g.datalake = database.create_datalake()
         return f(*args, **kwargs)
 
     return decorated_function

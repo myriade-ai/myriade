@@ -42,15 +42,26 @@ const copyToClipboard = () => {
 watch(
   props,
   () => {
-    tabulator.value.setData(props.data)
+    tabulator.value.setData(hideEncryptedFields(props.data))
   },
   { deep: true }
 )
+const hideEncryptedFields = (rows: any[]) => {
+  return rows.map((row) => {
+    const newRow = { ...row }
+    for (const key in newRow) {
+      if (typeof newRow[key] === 'string' && newRow[key].startsWith('encrypted:')) {
+        newRow[key] = '***hidden***'
+      }
+    }
+    return newRow
+  })
+}
 
 onMounted(() => {
   tabulator.value = new Tabulator(table.value, {
     clipboard: true,
-    data: props.data,
+    data: hideEncryptedFields(props.data),
     reactiveData: true,
     autoColumns: true,
     layout: 'fitDataStretch',
