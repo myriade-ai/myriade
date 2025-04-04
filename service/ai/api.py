@@ -1,6 +1,5 @@
 from flask import Blueprint, g, jsonify, request
 
-from back.datalake import DatalakeFactory
 from back.models import Database, Query
 from middleware import database_middleware, user_middleware
 
@@ -85,10 +84,7 @@ def get_query_results_by_id(query_id):
         return jsonify({"error": "Query not found"}), 404
 
     database = g.session.query(Database).filter_by(id=query.databaseId).first()
-    datalake = DatalakeFactory.create(
-        database.engine,
-        **database.details,
-    )
+    datalake = database.create_datalake()
     rows, count = datalake.query(query.sql)
     return {
         "rows": rows,

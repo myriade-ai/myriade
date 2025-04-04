@@ -7,22 +7,26 @@ import sqlalchemy
 from sqlalchemy import text
 
 MAX_SIZE = 2 * 1024 * 1024  # 2MB in bytes
-HIDDEN_TEXT = "*** HIDDEN ***"
 UNSAFE_KEYWORDS = ["DROP", "DELETE", "TRUNCATE", "ALTER", "INSERT", "UPDATE"]
-PRIVACY_KEYWORDS = [  # TODO: use AI to detect sensitive data
-    "name",
-    "first_name",
-    "last_name",
-    "full_name",
-    "first name",
-    "last name",
-    "full name",
-    "address",
-    "email",
-    "phone",
-    "password",
-    "secret",
+PRIVACY_ENCRYPTION_KEY = (
+    b"TluxwB3fV_GWuLkR1_BzGs1Zk90TYAuhNMZP_0q4WyM="  # TODO: Would be better in env var
+)
+PRIVACY_PATTERNS = [  # Using regex patterns to detect sensitive data
+    r"(?i)(first|last|full)?_?names?|fullname",  # Name patterns
+    r"(?i)(email|phone|address|city|state|zip|country)",  # Contact information
+    r"(?i)(password|secret|token|api_?key|api_?secret)",  # Authentication/security
+    r"(?i)card_(number|cvv|expiry|holder)",  # Payment card information
+    r"(?i)ssn",  # Social Security Number
 ]
+
+
+def encrypt_text(text):
+    from cryptography.fernet import Fernet
+
+    if not isinstance(text, str):
+        return text
+    f = Fernet(PRIVACY_ENCRYPTION_KEY)
+    return "encrypted:" + f.encrypt(text.encode()).decode()
 
 
 class SizeLimitError(Exception):
@@ -90,10 +94,18 @@ class AbstractDatabase(ABC):
         if self.privacy_mode:
             # Hide sensitive data from the result
             # 1. Use column names to detect sensitive data
+            columns_to_hide = []
+
+            if rows:
+                columns = rows[0].keys()
+                for column in columns:
+                    if any(re.search(pattern, column) for pattern in PRIVACY_PATTERNS):
+                        columns_to_hide.append(column)
+
             for row in rows:
-                for key in PRIVACY_KEYWORDS:
-                    if key in row:
-                        row[key] = HIDDEN_TEXT
+                for key in columns_to_hide:
+                    row[key] = encrypt_text(row[key])
+
             # 2. Use text patterns to detect sensitive data (regex email, phone, etc.)
             EMAIL_REGEX = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
             PHONE_REGEX = r"""^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$"""
@@ -101,9 +113,9 @@ class AbstractDatabase(ABC):
                 for key, value in row.items():
                     if isinstance(value, str):
                         # Regex email
-                        value = re.sub(EMAIL_REGEX, HIDDEN_TEXT, value)
+                        value = re.sub(EMAIL_REGEX, encrypt_text(value), value)
                         # Regex phone
-                        value = re.sub(PHONE_REGEX, HIDDEN_TEXT, value)
+                        value = re.sub(PHONE_REGEX, encrypt_text(value), value)
                         row[key] = value
 
         return rows, count

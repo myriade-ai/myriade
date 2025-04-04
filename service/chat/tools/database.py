@@ -5,7 +5,6 @@ from autochat.chat import OUTPUT_SIZE_LIMIT
 from autochat.model import Message
 from autochat.utils import limit_data_size
 
-from back.datalake import DatalakeFactory
 from back.models import Database, Query
 
 RESULT_TEMPLATE = """Results {len_sample}/{len_total} rows:
@@ -51,10 +50,7 @@ class DatabaseTool:
     def __init__(self, session, database: Database):
         self.session = session
         self.database = database
-        self.datalake = DatalakeFactory.create(
-            self.database.engine,
-            **self.database.details,
-        )
+        self.datalake = database.create_datalake()
 
     def __repr__(self):
         context = "Tables:\n"

@@ -5,7 +5,6 @@ import subprocess
 from cairosvg import svg2png
 from PIL import Image
 
-from back.datalake import DatalakeFactory
 from back.models import Chart, ConversationMessage, Database, JSONEncoder, Query
 from chat.tools.chart_types import ChartOptions
 
@@ -14,10 +13,7 @@ class EchartsTool:
     def __init__(self, session, database: Database):
         self.session = session
         self.database = database
-        self.datalake = DatalakeFactory.create(
-            self.database.engine,
-            **self.database.details,
-        )
+        self.datalake = self.database.create_datalake()
 
     def preview_render(
         self,

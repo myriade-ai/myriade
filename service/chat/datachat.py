@@ -4,7 +4,6 @@ import yaml
 from autochat import Autochat, Message
 from autochat.chat import StopLoopException
 
-from back.datalake import DatalakeFactory
 from back.models import Chart, Conversation, ConversationMessage, Query
 from chat.dbt_utils import DBT
 from chat.lock import STATUS, StopException, emit_status
@@ -44,10 +43,7 @@ class DatabaseChat:
             )
 
         # Add a datalake object to the request
-        self.datalake = DatalakeFactory.create(
-            self.conversation.database.engine,
-            **self.conversation.database.details,
-        )
+        self.datalake = self.conversation.database.create_datalake()
         if stop_flags is None:
             self.stop_flags = {}
         else:

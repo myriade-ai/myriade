@@ -121,6 +121,17 @@ class Database(DefaultBase, Base):
     def engine(self):
         return self._engine  # .replace("postgres", "postgresql")
 
+    def create_datalake(self):
+        from back.datalake import DatalakeFactory
+
+        datalake = DatalakeFactory.create(
+            self.engine,
+            **self.details,
+        )
+        datalake.privacy_mode = self.privacy_mode
+        datalake.safe_mode = self.safe_mode
+        return datalake
+
 
 class Organisation(DefaultBase, Base):
     __tablename__ = "organisation"
