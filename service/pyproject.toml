@@ -25,6 +25,7 @@ dependencies = [
     "cairosvg>=2.7.1",
     "gunicorn>=23.0.0",
     "eventlet>=0.39.1",
+    "nest-asyncio>=1.6.0",
 ]
 
 [project.optional-dependencies]
