@@ -1,6 +1,17 @@
 # CHANGELOG
 
 
+## v0.8.3 (2025-04-08)
+
+### Bug Fixes
+
+- Add missing nest-asyncio dep
+  ([`fa8e36a`](https://github.com/myriade-intelligence/ada/commit/fa8e36a2e0d0e6587901028c9f0a11e4489d6960))
+
+- Upgrade dep + fix async work
+  ([`670ac2d`](https://github.com/myriade-intelligence/ada/commit/670ac2d2d3207e0077d047872d42c585aad08392))
+
+
 ## v0.8.2 (2025-04-04)
 
 ### Bug Fixes
