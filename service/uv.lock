@@ -3,7 +3,7 @@ requires-python = ">=3.13"
 
 [[package]]
 name = "ada"
-version = "0.8.1"
+version = "0.8.2"
 source = { virtual = "." }
 dependencies = [
     { name = "alembic" },
@@ -13,6 +13,7 @@ dependencies = [
     { name = "flask" },
     { name = "flask-socketio" },
     { name = "gunicorn" },
+    { name = "nest-asyncio" },
     { name = "pgvector" },
     { name = "psycopg2-binary" },
     { name = "python-dotenv" },
@@ -54,6 +55,7 @@ requires-dist = [
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "mysql", marker = "extra == 'all'" },
     { name = "mysqlclient", marker = "extra == 'mysql'", specifier = ">=2.2.1" },
+    { name = "nest-asyncio", specifier = ">=1.6.0" },
     { name = "pgvector", specifier = ">=0.1.8" },
     { name = "psycopg2-binary", specifier = ">=2.9.7" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
@@ -661,6 +663,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/61/68/810093cb579daae426794bbd9d88aa830fae296e85172d18cb0f0e5dd4bc/mysqlclient-2.2.7.tar.gz", hash = "sha256:24ae22b59416d5fcce7e99c9d37548350b4565baac82f95e149cac6ce4163845", size = 91383 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/29/01/e80141f1cd0459e4c9a5dd309dee135bbae41d6c6c121252fdd853001a8a/mysqlclient-2.2.7-cp313-cp313-win_amd64.whl", hash = "sha256:201a6faa301011dd07bca6b651fe5aaa546d7c9a5426835a06c3172e1056a3c5", size = 208000 },
+]
+
+[[package]]
+name = "nest-asyncio"
+version = "1.6.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/83/f8/51569ac65d696c8ecbee95938f89d4abf00f47d58d48f6fbabfe8f0baefe/nest_asyncio-1.6.0.tar.gz", hash = "sha256:6f172d5449aca15afd6c646851f4e31e02c598d553a667e38cafa997cfec55fe", size = 7418 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a0/c4/c2971a3ba4c6103a3d10c4b0f24f461ddc027f0f09763220cf35ca1401b3/nest_asyncio-1.6.0-py3-none-any.whl", hash = "sha256:87af6efd6b5e897c81050477ef65c62e2b2f35d51703cae01aff2905b1852e1c", size = 5195 },
 ]
 
 [[package]]
