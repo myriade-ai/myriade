@@ -1,5 +1,6 @@
 import os
 
+import nest_asyncio
 import yaml
 from autochat import Autochat, Message
 from autochat.chat import StopLoopException
@@ -12,6 +13,9 @@ from chat.tools.database import DatabaseTool
 from chat.tools.echarts import EchartsTool
 from chat.tools.workspace import WorkspaceTool
 from chat.utils import parse_answer_text
+
+# Workaround because of eventlet doesn't support loop in loop ?
+nest_asyncio.apply()
 
 AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
 
