@@ -1,6 +1,24 @@
 # CHANGELOG
 
 
+## v0.8.4 (2025-04-09)
+
+### Bug Fixes
+
+- Refresh page flickering
+  ([`d05f161`](https://github.com/myriade-intelligence/ada/commit/d05f16192c6edbde5a77ceafe87734944b7b633c))
+
+MYR-246
+
+### Build System
+
+- Add proxy in docker compose
+  ([`d5b71d9`](https://github.com/myriade-intelligence/ada/commit/d5b71d95ae45770805580340bbbdcdf1cd1ec0a2))
+
+- Update deploy script
+  ([`e9f7ba9`](https://github.com/myriade-intelligence/ada/commit/e9f7ba9855b64054401693b47ee7ce4f2ddee3ab))
+
+
 ## v0.8.3 (2025-04-08)
 
 ### Bug Fixes
