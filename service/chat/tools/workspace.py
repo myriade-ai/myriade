@@ -14,6 +14,8 @@ class WorkspaceTool:
             self.session.query(Query)
             .join(ConversationMessage, Query.conversation_messages)
             .filter(ConversationMessage.conversationId == self.conversation_id)
+            .filter(Query.rows.isnot(None))
+            .filter(Query.exception.is_(None))
             .all()
         )
         context = "Queries:\n"
