@@ -7,7 +7,7 @@ services:
       POSTGRES_DB: ada
       POSTGRES_USER: human
       POSTGRES_PASSWORD: pass
-    ports:
+    ports: # For debugging purpose, we expose the Postgres port
       - "2345:5432" # To avoid conflicts with other Postgres instances
     networks:
       - ada-network
@@ -17,8 +17,6 @@ services:
     image: benderville/ada-service:latest
     volumes:
       - logs:/var/log/gunicorn
-    ports: # Public port is 4000, but the container is listening on 4000
-      - "4000:4000"
     depends_on:
       - db
     environment:
@@ -37,10 +35,20 @@ services:
   view:
     build: ./view
     image: benderville/ada-view:latest
-    ports:
-      - "8080:80"
     depends_on:
       - service
+    networks:
+      - ada-network
+
+  proxy:
+    image: nginx:alpine
+    volumes:
+      - ./proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro # Mount nginx config read-only
+    ports:
+      - "8080:80" # Expose proxy on host port 8080
+    depends_on:
+      - service
+      - view
     networks:
       - ada-network
 
