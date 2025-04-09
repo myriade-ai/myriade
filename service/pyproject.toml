@@ -1,7 +1,7 @@
 [project]
 name = "Ada"
 description = "Accelerate Data Analysis"
-version = "0.8.4"
+version = "0.8.5"
 authors = [
     {name = "Benjamin Derville", email = "benderville@gmail.com"}
 ]

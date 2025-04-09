@@ -1,6 +1,16 @@
 # CHANGELOG
 
 
+## v0.8.5 (2025-04-09)
+
+### Bug Fixes
+
+- Reset stop flag if the user started a new query
+  ([`8ea6f60`](https://github.com/myriade-intelligence/ada/commit/8ea6f602a2e4f551ee8a22e788cd4593f8b6b9cf))
+
+MYR-242
+
+
 ## v0.8.4 (2025-04-09)
 
 ### Bug Fixes
