@@ -126,8 +126,8 @@
         ></BaseEditor>
         <BaseEditorPreview
           v-else-if="props.message.functionCall?.name === 'submit'"
-          :sqlQuery="props.message.functionCall?.arguments?.query"
-          :database-id="databaseSelectedId"
+          :queryId="props.message.queryId"
+          :databaseId="databaseSelectedId"
         ></BaseEditorPreview>
         <pre v-else class="arguments">{{ props.message.functionCall?.arguments }}</pre>
       </div>

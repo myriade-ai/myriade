@@ -7,7 +7,7 @@ import { computed, ref } from 'vue'
 const { selectDatabaseById, databaseSelectedId } = useDatabases()
 
 export const queryRef = ref(null)
-export const queryText = ref('')
+export const queryTitle = ref('')
 export const queryId = ref<number | null>(null)
 export const querySQL = ref('')
 export const queryResults = ref(null)
@@ -17,7 +17,12 @@ export const loading = ref(false)
 
 export const fetchQueryResults = async (id: number) => {
   const response = await axios.get(`/api/query/${id}/results`)
-  return response.data.rows
+  return response.data
+}
+
+export const fetchQuery = async (id: number) => {
+  const response = await axios.get(`/api/query/${id}`)
+  return response.data
 }
 
 export const loadQuery = async (id: number) => {
@@ -27,7 +32,7 @@ export const loadQuery = async (id: number) => {
   const query = response.data
   query.sql = sqlPrettier.format(query.sql)
   queryRef.value = query
-  queryText.value = query.query
+  queryTitle.value = query.title
   await selectDatabaseById(query.databaseId)
 
   if (query.sql) {
@@ -78,12 +83,12 @@ export const runQuery = async () => {
 export const updateQuery = async () => {
   if (queryId.value) {
     await axios.put(`/api/query/${queryId.value}`, {
-      query: queryText.value,
+      title: queryTitle.value,
       sql: querySQL.value
     })
   } else {
     const response = await axios.post('/api/query', {
-      query: queryText.value,
+      title: queryTitle.value,
       sql: querySQL.value,
       databaseId: databaseSelectedId.value
     })
@@ -94,5 +99,5 @@ export const updateQuery = async () => {
 }
 
 export const queryIsModified = computed(() => {
-  return querySQL.value !== queryRef.value?.sql || queryText.value !== queryRef.value?.query
+  return querySQL.value !== queryRef.value?.sql || queryTitle.value !== queryRef.value?.title
 })

@@ -22,28 +22,23 @@ ERROR_TEMPLATE = """An error occurred while executing the SQL query:
 """
 
 
-def run_sql(connection, sql):
-    try:
-        # Assuming you have a Database instance named 'database'
-        # TODO: switch to logger
-        # print("Executing SQL query: {}".format(sql))
-        rows, count = connection.query(sql)
-    except Exception as e:
-        # If there's an error executing the query, inform the user
-        execution_response = ERROR_TEMPLATE.format(error=str(e))
-        return execution_response, False
-    else:
-        # Take every row until the total size is less than JSON_OUTPUT_SIZE_LIMIT
-        results_limited = limit_data_size(rows, character_limit=JSON_OUTPUT_SIZE_LIMIT)
-        results_dumps = json.dumps(results_limited, default=str)
+def wrap_sql_result(rows, count):
+    # Take every row until the total size is less than JSON_OUTPUT_SIZE_LIMIT
+    results_limited = limit_data_size(rows, character_limit=JSON_OUTPUT_SIZE_LIMIT)
+    results_dumps = json.dumps(results_limited, default=str)
 
-        # Send the result back to the chatbot as the new question
-        execution_response = RESULT_TEMPLATE.format(
-            sample=results_dumps,
-            len_sample=len(results_limited),
-            len_total=count,
-        )
-        return execution_response, True
+    # Send the result back to the chatbot as the new question
+    execution_response = RESULT_TEMPLATE.format(
+        sample=results_dumps,
+        len_sample=len(results_limited),
+        len_total=count,
+    )
+    return execution_response, True
+
+
+def wrap_sql_error(error):
+    execution_response = ERROR_TEMPLATE.format(error=str(error))
+    return execution_response, False
 
 
 class DatabaseTool:
@@ -77,17 +72,17 @@ class DatabaseTool:
     def sql_query(
         self,
         query: str,
-        name: str = "",
+        title: str = "",
         from_response: Message | None = None,
     ):
         """
         Run an SQL query on the database and return the result
         Args:
             query: The SQL query string to be executed. Don't forget to escape this if you use double quote.
-            name: The name/title of the query
+            title: The name/title of the query
         """  # noqa: E501
         _query = Query(
-            query=name,
+            title=title,
             databaseId=self.database.id,
             sql=query,
         )
@@ -98,5 +93,15 @@ class DatabaseTool:
             # We update the message with the query id
             from_response.query_id = _query.id  # type: ignore
 
-        output, _ = run_sql(self.datalake, query)
-        return output
+        try:
+            rows, count = self.datalake.query(query)
+            # We add the result
+            _query.rows = rows
+            _query.count = count
+            result, _ = wrap_sql_result(rows, count)
+        except Exception as e:
+            _query.exception = str(e)
+            result, _ = wrap_sql_error(e)
+
+        self.session.commit()
+        return result

@@ -163,25 +163,18 @@ class DatabaseChat:
     def submit(
         self,
         from_response: Message,
-        query: str,
-        name: str | None = None,
+        queryId: int,
     ):
         """
         Give the final response from the user demand/query
         Args:
-            query: The SQL query string to be executed. Don't forget to escape this if you use double quote.
-            name: The name/title of the query. 'SQL' only for now
+            queryId: The id of the query to execute
         """  # noqa: E501
-        _query = Query(
-            query=name,
-            databaseId=self.conversation.databaseId,
-            sql=query,
-        )
-        self.session.add(_query)
-        self.session.commit()
-
+        query = self.session.query(Query).filter_by(id=queryId).first()
+        if not query:
+            raise ValueError(f"Query with id {queryId} not found")
         # We update the message with the query id
-        from_response.query_id = _query.id
+        from_response.query_id = query.id
         from_response.isAnswer = True
         raise StopLoopException("We want to stop after submitting")
 

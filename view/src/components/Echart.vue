@@ -31,7 +31,8 @@ const chartOption = computed(() => {
 })
 
 onMounted(async () => {
-  rows.value = await fetchQueryResults(props.option.query_id)
+  const results = await fetchQueryResults(props.option.query_id)
+  rows.value = results.rows
 })
 </script>
 

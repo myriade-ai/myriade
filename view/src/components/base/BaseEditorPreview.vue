@@ -8,34 +8,27 @@
 <script lang="ts" setup>
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
-import { executeQuery } from '@/stores/query'
-import { defineProps, ref, watch } from 'vue'
+import { fetchQuery, fetchQueryResults } from '@/stores/query'
+import { defineProps, onMounted, ref } from 'vue'
 
 const props = defineProps({
-  sqlQuery: String,
+  queryId: Number,
   databaseId: Number
 })
 
 const rows = ref([])
 const count = ref(0)
+const sqlQuery = ref('')
 
-const fetchData = async (query) => {
+onMounted(async () => {
   try {
-    const response = await executeQuery(props.databaseId, query) // Assuming databaseId is static for now
-    rows.value = response.rows
-    count.value = response.count
+    const query = await fetchQuery(props.queryId)
+    sqlQuery.value = query.sql
+    const result = await fetchQueryResults(props.queryId)
+    rows.value = result.rows
+    count.value = result.count
   } catch (error) {
     console.error('Error fetching data:', error)
   }
-}
-
-watch(
-  () => props.sqlQuery,
-  (newQuery) => {
-    if (newQuery) {
-      fetchData(newQuery)
-    }
-  },
-  { immediate: true }
-)
+})
 </script>
