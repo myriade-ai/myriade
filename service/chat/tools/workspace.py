@@ -18,7 +18,7 @@ class WorkspaceTool:
         )
         context = "Queries:\n"
         for query in self.conversation_queries:
-            context += f"Query {query.id}: {query.query}\n"
+            context += f"Query {query.id}: {query.title}\n"
 
         self.conversation_charts = (
             self.session.query(Chart)

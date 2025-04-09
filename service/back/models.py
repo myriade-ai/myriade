@@ -294,24 +294,23 @@ class Query(DefaultBase, Base):
     __tablename__ = "query"
 
     id = Column(Integer, primary_key=True)
-    query = Column(
-        String, nullable=True
-    )  # TODO: rename to title (and add description ?)
+    title = Column(String, nullable=True)
     databaseId = Column(Integer, ForeignKey("database.id"), nullable=False)
     sql = Column(String)
-    result = Column(JSONB)
-    comment = Column(String)
-    creatorId = Column(String, ForeignKey("user.id"))
-    tag = Column(String)
-    tables = Column(String)
-    wheres = Column(String)
+    # Optimal type to store large results
+    rows = Column(JSONB)
+    count = Column(Integer)
+    exception = Column(String)
 
     database = relationship("Database")
-    creator = relationship("User")
     conversation_messages = relationship(
         "ConversationMessage", back_populates="query", lazy="joined"
     )
     charts = relationship("Chart", back_populates="query")
+
+    @property
+    def is_cached(self):
+        return self.rows is not None or self.exception is not None
 
 
 @dataclass

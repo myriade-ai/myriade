@@ -17,7 +17,7 @@
     type="text"
     placeholder="Database used for X,Y and Z..."
     class="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-    v-model="queryText"
+    v-model="queryTitle"
   />
 
   <br />
@@ -36,16 +36,16 @@
 </template>
 
 <script setup lang="ts">
-import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
+import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseSelector from '@/components/base/BaseSelector.vue'
 import {
-  queryText,
-  querySQL,
-  runQuery,
-  updateQuery,
   queryIsModified,
-  loading as queryLoading
+  loading as queryLoading,
+  querySQL,
+  queryTitle,
+  runQuery,
+  updateQuery
 } from '@/stores/query'
 
 import { useDatabases } from '@/stores/databases'

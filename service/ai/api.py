@@ -27,12 +27,12 @@ def run_query():
 @user_middleware
 def create_query():
     database_id = request.json.get("databaseId")
-    query = request.json.get("query")
+    title = request.json.get("title")
     sql = request.json.get("sql")
 
     new_query = Query(
         databaseId=database_id,
-        query=query,
+        title=title,
         sql=sql,
     )
 
@@ -42,7 +42,7 @@ def create_query():
     response = {
         "id": new_query.id,
         "databaseId": new_query.databaseId,
-        "query": new_query.query,
+        "title": new_query.title,
         "sql": new_query.sql,
     }
 
@@ -63,13 +63,13 @@ def handle_query_by_id(query_id):
     databaseId = query.databaseId
 
     if request.method == "PUT":
-        query.query = request.json.get("query")
+        query.title = request.json.get("title")
         query.sql = request.json.get("sql")
         g.session.commit()
 
     response = {
         "databaseId": databaseId,
-        "query": query.query,
+        "title": query.title,
         "sql": query.sql,
     }
 
@@ -79,14 +79,22 @@ def handle_query_by_id(query_id):
 @api.route("/query/<int:query_id>/results", methods=["GET"])
 @user_middleware
 def get_query_results_by_id(query_id):
+    """
+    Get the results of a query.
+    Should only be use for conversation
+    """
     query = g.session.query(Query).filter_by(id=query_id).first()
     if not query:
         return jsonify({"error": "Query not found"}), 404
 
-    database = g.session.query(Database).filter_by(id=query.databaseId).first()
-    datalake = database.create_datalake()
-    rows, count = datalake.query(query.sql)
-    return {
-        "rows": rows,
-        "count": count,
-    }
+    if not query.is_cached:
+        # Backward compatibility
+        # We temporarily support fetching results when we don't have them
+        database = g.session.query(Database).filter_by(id=query.databaseId).first()
+        datalake = database.create_datalake()
+        rows, count = datalake.query(query.sql)
+        return jsonify({"rows": rows, "count": count})
+
+    if query.exception:
+        return jsonify({"message": query.exception}), 500
+    return jsonify({"rows": query.rows, "count": query.count})
