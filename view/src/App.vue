@@ -22,6 +22,9 @@ useMeta({
 const route = useRoute()
 const appReady = ref(false)
 
+const defaultLayout = defineAsyncComponent(() => import(`./layouts/default.vue`))
+const emptyLayout = defineAsyncComponent(() => import(`./layouts/empty.vue`))
+
 onMounted(() => {
   // This ensures the app shows nothing until it's fully ready
   requestAnimationFrame(() => {
@@ -29,11 +32,10 @@ onMounted(() => {
   })
 })
 
-const layout = computed<string>(() => {
+const layout = computed(() => {
   if (route.name === undefined) {
     return '' // Empty so we don't have flickering
   }
-  const layoutName = route.meta.layout || 'default'
-  return defineAsyncComponent(() => import(`./layouts/${layoutName}.vue`))
+  return route.meta.layout === 'empty' ? emptyLayout : defaultLayout
 })
 </script>
