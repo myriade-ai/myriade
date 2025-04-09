@@ -36,6 +36,9 @@ def extract_context(context_id):
 
 @socketio.on("ask")
 def handle_ask(question, conversation_id=None, context_id=None):
+    # We reset stop flag if the user sent a new request
+    conversation_stop_flags.pop(conversation_id, None)
+
     # Extract database_id and project_id from the context
     database_id, project_id = extract_context(context_id)
     # Handle normal questions (not editing)
@@ -53,6 +56,9 @@ def handle_ask(question, conversation_id=None, context_id=None):
 
 @socketio.on("query")
 def handle_query(query, conversation_id=None, context_id=None):
+    # We reset stop flag if the user sent a new request
+    conversation_stop_flags.pop(conversation_id, None)
+
     database_id, project_id = extract_context(context_id)
     chat = DatabaseChat(
         socket_session,
@@ -103,6 +109,9 @@ def handle_regenerate_from_message(conversation_id, message_id, message_content=
     If the message is from the assistant, delete it
     If the message is from the user, regenerate the conversation from the next message
     """
+    # We reset stop flag if the user sent a new request
+    conversation_stop_flags.pop(conversation_id, None)
+
     conversation = (
         socket_session.query(Conversation).filter_by(id=conversation_id).first()
     )
