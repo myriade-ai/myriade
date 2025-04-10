@@ -7,7 +7,7 @@
             <div class="flex-shrink-0 flex items-center">
               <a href="/" class="flex items-center">
                 <img src="/logo.svg" class="h-8 w-auto" />
-                <span class="ml-2">Ada</span>
+                <span class="ml-2">Myriade</span>
               </a>
             </div>
             <div class="hidden sm:-my-px sm:ml-6 sm:flex sm:space-x-8">
@@ -139,8 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { user } from '@/stores/auth'
 import {
   Disclosure,
   DisclosureButton,
@@ -150,8 +149,9 @@ import {
   MenuItem,
   MenuItems
 } from '@headlessui/vue'
-import { XMarkIcon, Bars3Icon } from '@heroicons/vue/24/outline'
-import { user } from '@/stores/auth'
+import { Bars3Icon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const currentPath = computed(() => route.path)
