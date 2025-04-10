@@ -25,8 +25,19 @@ for server in "${servers[@]}"; do
 done
 
 for server in "${servers[@]}"; do
+  # Nginx
+  echo "Copying setup/nginx.conf to instance: $server"
+  gcloud compute scp setup/nginx.conf "$server":~/nginx.conf
+  echo "Moving nginx.conf to /etc/nginx/sites-available/default and reloading nginx"
+  gcloud compute ssh "$server" --command="sudo mv nginx.conf /etc/nginx/sites-available/default && sudo service nginx reload"
+
+  # Docker services
   echo "Copying docker-compose.yml to instance: $server"
-  gcloud compute scp ada/docker-compose.yml "$server":~/docker-compose.yml
+  gcloud compute scp docker-compose.yml "$server":~/docker-compose.yml
+
+  echo "Copying proxy/nginx.conf to instance: $server"
+  gcloud compute scp proxy/nginx.conf "$server":~/proxy/nginx.conf
+
   echo "Executing command on instance: $server"
   gcloud compute ssh "$server" --command="$COMMANDS"
 done
