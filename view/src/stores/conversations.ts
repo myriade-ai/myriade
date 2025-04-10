@@ -1,86 +1,276 @@
 import axios from '@/plugins/axios'
 import { isConnected, socket } from '@/plugins/socket'
 import type { AxiosResponse } from 'axios'
-import { ref } from 'vue'
+import { defineStore } from 'pinia'
+import sqlPrettier from 'sql-prettier'
+import { computed, ref } from 'vue'
 
-// CONVERSATIONS
-
-export type Conversation = {
-  id: string
-  name: string
-  createdAt: Date
-  updatedAt: Date
-}
-
-export const conversations = ref<Conversation[]>([])
-
-export const fetchConversations = async () => {
-  conversations.value = await axios
-    .get('/api/conversations')
-    // Parse the date string to a number
-    .then((res: AxiosResponse<Conversation[]>) =>
-      res.data.map((conversation: Conversation) => ({
-        ...conversation,
-        updatedAt: new Date(conversation.updatedAt)
-      }))
-    )
-    .then((data: Conversation[]) =>
-      data.sort((a: Conversation, b: Conversation) => b.updatedAt.getTime() - a.updatedAt.getTime())
-    )
-}
-
-// STATUSES
-
+// Example "Status" constants
 export const STATUS = {
-  PENDING: 'pending', // waiting for server response
+  PENDING: 'pending',
   RUNNING: 'running',
   CLEAR: 'clear',
   TO_STOP: 'to_stop',
   ERROR: 'error'
+} as const
+
+// Define your conversation shape
+export interface ConversationInfo {
+  id: number
+  name: string
+  owner: string
+  databaseId: number
+  projectId: number
+  createdAt: Date
+  updatedAt: Date
 }
 
-export const conversationStatuses = ref<Record<string, { status: string; error: string }>>({})
-
-socket.on('status', (payload) => {
-  const { conversation_id, status, error } = payload
-  conversationStatuses.value[conversation_id] = { status, error }
-})
-
-export const setStatusToPending = (conversationId?: string) => {
-  // Update status to running
-  conversationStatuses.value[conversationId] = {
-    status: STATUS.PENDING,
-    error: ''
+// Define your message shape
+export interface Message {
+  id: number
+  role: 'user' | 'assistant' | 'function' | 'system'
+  content: string
+  isAnswer?: boolean
+  functionCall?: {
+    name: string
+    arguments: any
   }
-  // If the status is still pending after 5s, set to CLEAR
-  setTimeout(() => {
-    if (conversationStatuses.value[conversationId]?.status === STATUS.PENDING) {
-      conversationStatuses.value[conversationId] = { status: STATUS.CLEAR, error: '' }
+}
+
+// A small type for tracking conversation status & errors
+interface ConversationStatus {
+  status: string
+  error: string
+}
+
+export interface Conversation extends ConversationInfo {
+  messages: Message[]
+  // TODO: add conversation status
+}
+
+export const useConversationsStore = defineStore('conversations', () => {
+  // ——————————————————————————————————————————————————
+  // STATE
+  // ——————————————————————————————————————————————————
+  const conversations = ref<Record<number, Conversation>>({})
+  const conversationStatuses = ref<Record<string, ConversationStatus>>({})
+
+  // ——————————————————————————————————————————————————
+  // GETTERS
+  // ——————————————————————————————————————————————————
+  // E.g. Return a conversation by id
+  function getConversationById(id: number) {
+    if (!conversations.value[id]) {
+      return null
     }
-  }, 5000)
-}
+    return {
+      ...conversations.value[id],
+      // We add status and error to the conversation object
+      status: conversationStatuses.value[id]?.status,
+      error: conversationStatuses.value[id]?.error
+    }
+  }
 
-export const sendMessage = async (
-  type: 'text' | 'SQL',
-  message: string,
-  conversationId?: string,
-  contextId?: string
-) => {
-  const conversationStatus = conversationStatuses.value[conversationId]
-  // If conversation is already running, do nothing.
-  if (
-    conversationStatus?.status === STATUS.RUNNING ||
-    conversationStatus?.status === STATUS.PENDING
+  // If you want a sorted conversation list
+  const sortedUserConversations = computed(() => {
+    // TODO: filter by user
+    return [...Object.values(conversations.value)].sort(
+      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+    )
+  })
+
+  // ——————————————————————————————————————————————————
+  // ACTIONS
+  // ——————————————————————————————————————————————————
+
+  // 1) Fetch the full list of conversations
+  async function fetchConversations() {
+    const res: AxiosResponse<ConversationInfo[]> = await axios.get('/api/conversations')
+    const fetchedConversations = res.data.map((conv) => ({
+      ...conv,
+      createdAt: new Date(conv.createdAt),
+      updatedAt: new Date(conv.updatedAt)
+    }))
+    // Update the conversations store but don't overwrite existing field messages
+    fetchedConversations.forEach((conv) => {
+      conversations.value[conv.id] = {
+        ...conv,
+        messages: conversations.value[conv.id]?.messages || []
+      }
+    })
+  }
+
+  // 2) Fetch messages for a single conversation
+  async function fetchMessages(conversationId: number) {
+    console.log('fetchMessages', conversationId)
+    try {
+      const response = await axios.get(`/api/conversations/${conversationId}`)
+      // Update the conversation in the store
+      const newConv: Conversation = {
+        ...response.data,
+        createdAt: new Date(response.data.createdAt),
+        updatedAt: new Date(response.data.updatedAt),
+        messages: response.data.messages
+      }
+      conversations.value[conversationId] = newConv
+    } catch (error: any) {
+      // Mark this conversation as error
+      conversationStatuses.value[conversationId] = {
+        status: STATUS.ERROR,
+        error: 'Error fetching messages'
+      }
+      // Optional: Clear messages if needed
+      const conv = getConversationById(conversationId)
+      if (conv) {
+        conv.messages = []
+      }
+    }
+  }
+
+  // 3) Helper to set conversation status
+  function setConversationStatus(conversationId: string, status: string, error: string = '') {
+    conversationStatuses.value[conversationId] = { status, error }
+  }
+
+  // 4) Helper: set to 'pending' then revert if no response
+  function setStatusToPending(conversationId: string) {
+    setConversationStatus(conversationId, STATUS.PENDING, '')
+    // If still pending after 5s, revert to CLEAR
+    setTimeout(() => {
+      if (conversationStatuses.value[conversationId]?.status === STATUS.PENDING) {
+        setConversationStatus(conversationId, STATUS.CLEAR)
+      }
+    }, 5000)
+  }
+
+  // 5) Send message over Socket.IO
+  async function sendMessage(
+    type: 'text' | 'SQL',
+    messageContent: string,
+    conversationId: string,
+    contextId?: string
   ) {
-    throw new Error('Conversation is already running')
+    const convStatus = conversationStatuses.value[conversationId]
+    // If it’s already running/pending, block
+    if (convStatus && [STATUS.RUNNING, STATUS.PENDING].includes(convStatus.status)) {
+      throw new Error('Conversation is already running')
+    }
+    if (!isConnected.value) {
+      throw new Error('Socket is disconnected')
+    }
+
+    if (type === 'text') {
+      socket.emit('ask', messageContent, conversationId, contextId)
+    } else if (type === 'SQL') {
+      socket.emit('query', messageContent, conversationId, contextId)
+    }
+    setStatusToPending(conversationId)
   }
-  if (!isConnected.value) {
-    throw new Error('Socket connection is lost')
+
+  // 6) Receive an incoming message from the socket
+  function receiveMessage(incomingMsg: any) {
+    const convId = Number(incomingMsg.conversationId)
+    const conversation = getConversationById(convId)
+    if (!conversation) return
+
+    // e.g. prettify any SQL in functionCall.arguments.query
+    if (incomingMsg?.functionCall?.arguments?.query) {
+      incomingMsg.functionCall.arguments.query = sqlPrettier.format(
+        incomingMsg.functionCall.arguments.query
+      )
+    }
+
+    // Check if message already in conversation
+    const existing = conversation.messages.find((m) => m.id === incomingMsg.id)
+    if (existing) {
+      // Update that message
+      existing.content = incomingMsg.content
+      existing.functionCall = incomingMsg.functionCall
+      existing.role = incomingMsg.role
+      // If other fields exist, update them as well
+    } else {
+      conversation.messages.push(incomingMsg)
+    }
+    // Possibly update updatedAt
+    conversation.updatedAt = new Date()
   }
-  if (type === 'text') {
-    socket.emit('ask', message, conversationId, contextId)
-  } else if (type === 'SQL') {
-    socket.emit('query', message, conversationId, contextId)
+
+  function regenerateFromMessage(messageId: number, messageContent?: string) {
+    // Find conversationId from messageId
+    const conversationId: number = Object.keys(conversations.value).find((id) =>
+      conversations.value[id].messages.some((m) => m.id === messageId)
+    )
+    if (!conversationId) {
+      throw new Error('Conversation not found')
+    }
+
+    if (messageContent) {
+      // Update the message content
+      const message = conversations.value[conversationId].messages.find((m) => m.id === messageId)
+      if (message) {
+        message.content = messageContent
+      }
+    } else {
+      // Remove the message (and all following messages) from the conversation
+      conversations.value[conversationId].messages = conversations.value[
+        conversationId
+      ].messages.filter((m) => m.id <= messageId)
+    }
+    socket.emit('regenerateFromMessage', conversationId, messageId, messageContent)
   }
-  setStatusToPending(conversationId)
-}
+
+  async function deleteConversation(id: number) {
+    await axios.delete(`/api/conversations/${id}`)
+    delete conversations.value[id]
+  }
+
+  async function renameConversation(id: number, name: string) {
+    await axios.put(`/api/conversations/${id}`, { name })
+    if (conversations.value[id]) {
+      conversations.value[id].name = name
+      conversations.value[id].updatedAt = new Date()
+    }
+  }
+
+  // ——————————————————————————————————————————————————
+  // SOCKET EVENT HANDLERS
+  // ——————————————————————————————————————————————————
+  socket.on('delete-message', (messageId: string) => {
+    // Remove that message from whichever conversation it belongs to
+    const conversationId: number = Object.keys(conversations.value).find((id) =>
+      conversations.value[id].messages.some((m) => m.id === messageId)
+    )
+    if (conversationId) {
+      conversations.value[conversationId].messages = conversations.value[
+        conversationId
+      ].messages.filter((m) => m.id !== messageId)
+    }
+  })
+
+  socket.on('response', (payload: any) => {
+    receiveMessage(payload)
+  })
+
+  socket.on('status', (payload: any) => {
+    const { conversation_id, status, error } = payload
+    setConversationStatus(conversation_id, status, error)
+  })
+
+  // 8) Return references to everything
+  return {
+    // state
+    conversations,
+    conversationStatuses,
+    // getters
+    sortedUserConversations,
+    getConversationById,
+    // actions conversations
+    fetchConversations,
+    deleteConversation,
+    renameConversation,
+    // actions messages
+    fetchMessages,
+    sendMessage,
+    regenerateFromMessage
+  }
+})
