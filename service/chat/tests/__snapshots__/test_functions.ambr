@@ -24,15 +24,15 @@
       'name': 'DatabaseTool-database__sql_query',
       'parameters': dict({
         'properties': dict({
-          'name': dict({
-            'default': '',
-            'description': 'The name/title of the query',
-            'title': 'Name',
-            'type': 'string',
-          }),
           'query': dict({
             'description': "The SQL query string to be executed. Don't forget to escape this if you use double quote.",
             'title': 'Query',
+            'type': 'string',
+          }),
+          'title': dict({
+            'default': '',
+            'description': 'The name/title of the query',
+            'title': 'Title',
             'type': 'string',
           }),
         }),
@@ -66,27 +66,14 @@
       'name': 'submit',
       'parameters': dict({
         'properties': dict({
-          'name': dict({
-            'anyOf': list([
-              dict({
-                'type': 'string',
-              }),
-              dict({
-                'type': 'null',
-              }),
-            ]),
-            'default': None,
-            'description': "The name/title of the query. 'SQL' only for now",
-            'title': 'Name',
-          }),
-          'query': dict({
-            'description': "The SQL query string to be executed. Don't forget to escape this if you use double quote.",
-            'title': 'Query',
-            'type': 'string',
+          'queryId': dict({
+            'description': 'The id of the query to execute',
+            'title': 'Queryid',
+            'type': 'integer',
           }),
         }),
         'required': list([
-          'query',
+          'queryId',
         ]),
         'title': 'Input for `submit`',
         'type': 'object',
