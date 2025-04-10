@@ -3,10 +3,12 @@
 </template>
 
 <script setup lang="ts">
-import { fetchQueryResults } from '@/stores/query'
+import { useQueryStore } from '@/stores/query'
 import 'echarts'
 import { computed, onMounted, ref } from 'vue'
 import VChart from 'vue-echarts'
+
+const { fetchQueryResults } = useQueryStore()
 
 const rows = ref([])
 

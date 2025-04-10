@@ -54,12 +54,11 @@
 <script setup lang="ts">
 import { CloudArrowUpIcon } from '@heroicons/vue/24/solid'
 
-import { onMounted, onUnmounted, ref } from 'vue'
-import axios from '@/plugins/axios'
-import { useDatabases } from '@/stores/databases'
 import BaseNotification from '@/components/base/BaseNotification.vue'
+import { useDatabasesStore } from '@/stores/databases'
+import { onMounted, onUnmounted, ref } from 'vue'
 
-const { fetchDatabases } = await useDatabases()
+const { fetchDatabases } = useDatabasesStore()
 
 const STATUS = {
   done: 'DONE',

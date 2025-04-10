@@ -38,14 +38,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, computed } from 'vue'
-import { useDatabases } from '@/stores/databases'
-import { querySQL, runQuery } from '@/stores/query'
 import DatabaseExplorerItems from '@/components/DatabaseExplorerItems.vue'
+import { useDatabasesStore } from '@/stores/databases'
+import { useQueryStore } from '@/stores/query'
 import type { Table } from '@/stores/tables'
+import { computed, ref, watchEffect } from 'vue'
 
-const { databaseSelectedId, fetchDatabaseTables } = useDatabases()
-
+const { databaseSelectedId, fetchDatabaseTables } = useDatabasesStore()
+const { querySQL, runQuery } = useQueryStore()
 const tables = ref<Table[]>([])
 const showTableKey = ref<string | null>(null)
 

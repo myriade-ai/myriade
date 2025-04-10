@@ -182,17 +182,17 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
-import { computed, ref } from 'vue'
-import { useDatabases } from '@/stores/databases'
-import { useRoute } from 'vue-router'
-import router from '@/router'
+import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseField from '@/components/base/BaseField.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
-import BaseAlert from '@/components/base/BaseAlert.vue'
-import BaseSwitch from '@/components/base/BaseSwitch.vue'
 import BaseInputPassword from '@/components/base/BaseInputPassword.vue'
+import BaseSwitch from '@/components/base/BaseSwitch.vue'
+import router from '@/router'
+import { useDatabasesStore } from '@/stores/databases'
+import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
 import { Form } from 'vee-validate'
+import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const apiError = ref(null)
@@ -226,7 +226,7 @@ const database = ref({
   dbt_manifest: null
 } as any)
 const { selectDatabaseById, databaseSelected, createDatabase, updateDatabase, deleteDatabase } =
-  useDatabases()
+  useDatabasesStore()
 
 const isNew = computed(() => route.params.id === 'new')
 if (!isNew.value) {

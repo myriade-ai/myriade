@@ -1,6 +1,7 @@
-import { ref, computed } from 'vue'
-import type { Ref, WritableComputedRef } from 'vue'
+// stores/useDatabasesStore.ts
 import axios from '@/plugins/axios'
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
 
 export interface Database {
   id: number
@@ -13,69 +14,86 @@ export interface Database {
   dbt_manifest: any
 }
 
-const databases: Ref<Database[]> = ref([])
-const databaseSelectedId: Ref<number | null> = ref(
-  localStorage.getItem('databaseId') ? parseInt(localStorage.getItem('databaseId') ?? '') : null
-)
+export const useDatabasesStore = defineStore('databases', () => {
+  // --------------------------------------------------------------------------
+  // STATE
+  // --------------------------------------------------------------------------
+  const databases = ref<Database[]>([])
+  const databaseSelectedId = ref<number | null>(
+    localStorage.getItem('databaseId')
+      ? parseInt(localStorage.getItem('databaseId') as string, 10)
+      : null
+  )
 
-const databaseSelected: WritableComputedRef<Database> = computed({
-  get: () => {
+  // --------------------------------------------------------------------------
+  // GETTERS
+  // --------------------------------------------------------------------------
+  const databaseSelected = computed<Database>(() => {
     return databases.value.find((db) => db.id === databaseSelectedId.value) ?? ({} as Database)
-  },
-  set: (newDatabase: Database) => {
+  })
+
+  // --------------------------------------------------------------------------
+  // ACTIONS
+  // --------------------------------------------------------------------------
+  function setDatabaseSelected(newDatabase: Database) {
     databaseSelectedId.value = newDatabase.id
     localStorage.setItem('databaseId', String(newDatabase.id))
   }
-})
 
-const fetchDatabases = async ({ refresh }: { refresh: boolean }) => {
-  if (databases.value.length > 0 && !refresh) return
+  async function fetchDatabases({ refresh }: { refresh: boolean }) {
+    if (databases.value.length > 0 && !refresh) return
 
-  databases.value = await axios.get('/api/databases').then((res) => res.data)
+    console.log('fetching databases')
+    databases.value = await axios.get('/api/databases').then((res) => res.data)
 
-  if (!databases.value.length || databaseSelectedId.value !== null) return
+    // If there's no database selected yet, and we got some from the API:
+    if (databases.value.length > 0 && databaseSelectedId.value === null) {
+      databaseSelectedId.value = databases.value[0].id
+    }
+  }
 
-  databaseSelectedId.value = databases.value[0].id
-}
+  function fetchDatabaseTables(databaseId: number) {
+    return axios.get(`/api/databases/${databaseId}/schema`).then((res) => res.data)
+  }
 
-export const fetchDatabaseTables = (databaseId: number) => {
-  return axios.get(`/api/databases/${databaseId}/schema`).then((res) => res.data)
-}
+  function selectDatabaseById(id: number) {
+    databaseSelectedId.value = id
+    localStorage.setItem('databaseId', String(id))
+  }
 
-const selectDatabaseById = async (id: number) => {
-  databaseSelectedId.value = id
-  localStorage.setItem('databaseId', id.toString())
-}
+  function updateDatabase(id: number, database: Database) {
+    return axios.put(`/api/databases/${id}`, database)
+  }
 
-const updateDatabase = async (id: number, database: Database) => {
-  return axios.put('/api/databases/' + id, database)
-}
+  function createDatabase(database: Database): Promise<Database> {
+    return axios.post('/api/databases', database).then((res) => res.data)
+  }
 
-const createDatabase = async (database: Database): Promise<Database> => {
-  return axios.post('/api/databases', database).then((response) => response.data)
-}
+  function deleteDatabase(id: number) {
+    return axios.delete(`/api/databases/${id}`)
+  }
 
-const deleteDatabase = (id: number) => {
-  return axios.delete('/api/databases/' + id)
-}
+  function getDatabaseById(id: number) {
+    return axios.get('/api/databases/').then((res) => res.data.find((db: Database) => db.id === id))
+  }
 
-const getDatabaseById = (id: number) => {
-  return axios
-    .get('/api/databases/')
-    .then((response) => response.data.find((db: Database) => db.id === id))
-}
-
-export const useDatabases = () => {
+  // Return everything you want available in the store
   return {
-    fetchDatabases,
+    // state
     databases,
-    databaseSelected,
     databaseSelectedId,
-    selectDatabaseById,
+
+    // getters
+    databaseSelected,
+
+    // actions
+    setDatabaseSelected,
+    fetchDatabases,
     fetchDatabaseTables,
+    selectDatabaseById,
     updateDatabase,
     createDatabase,
     deleteDatabase,
     getDatabaseById
   }
-}
+})

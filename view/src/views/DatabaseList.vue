@@ -36,10 +36,10 @@
 </template>
 
 <script setup lang="ts">
+import { useDatabasesStore } from '@/stores/databases'
 import { computed } from 'vue'
-import { useDatabases } from '@/stores/databases'
 
-const { fetchDatabases, databases } = useDatabases()
+const { fetchDatabases, databases } = useDatabasesStore()
 
 fetchDatabases({ refresh: true })
 
