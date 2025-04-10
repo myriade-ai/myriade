@@ -39,19 +39,13 @@
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseSelector from '@/components/base/BaseSelector.vue'
-import {
-  queryIsModified,
-  loading as queryLoading,
-  querySQL,
-  queryTitle,
-  runQuery,
-  updateQuery
-} from '@/stores/query'
-
-import { useDatabases } from '@/stores/databases'
+import { useQueryStore } from '@/stores/query'
+import { useDatabasesStore } from '@/stores/databases'
 import { ArrowPathIcon } from '@heroicons/vue/24/outline'
 
-const { databaseSelected, databases, fetchDatabases } = useDatabases()
+const { queryIsModified, loading as queryLoading, querySQL, queryTitle, runQuery, updateQuery } =
+  useQueryStore()
+const { databaseSelected, databases, fetchDatabases } = useDatabasesStore()
 
 fetchDatabases({ refresh: true })
 </script>

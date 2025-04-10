@@ -73,20 +73,20 @@
 </template>
 
 <script setup lang="ts">
+import BaseAlert from '@/components/base/BaseAlert.vue'
+import BaseField from '@/components/base/BaseField.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
 import type { Group, Item } from '@/components/base/BaseMultiSelect.vue'
 import BaseMultiSelect from '@/components/base/BaseMultiSelect.vue'
+import router from '@/router'
+import { useDatabasesStore } from '@/stores/databases'
+import { useProjectsStore } from '@/stores/projects'
 import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
 import { ErrorMessage, Field, Form } from 'vee-validate'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import BaseAlert from '@/components/base/BaseAlert.vue'
-import BaseField from '@/components/base/BaseField.vue'
-import BaseInput from '@/components/base/BaseInput.vue'
-import router from '@/router'
-import { useDatabases } from '@/stores/databases'
-import { useProjects } from '@/stores/projects'
 
-const { createProject, updateProject, deleteProject, fetchProjectById } = useProjects()
+const { createProject, updateProject, deleteProject, fetchProjectById } = useProjectsStore()
 
 const route = useRoute()
 const apiError = ref(null)
@@ -153,7 +153,7 @@ const clickSave = async () => {
   }
 }
 
-const { databases, fetchDatabaseTables } = useDatabases()
+const { databases, fetchDatabaseTables } = useDatabasesStore()
 const selectedDatabase = computed(() => {
   return databases.value.find((db) => db.id === project.value.databaseId)
 })

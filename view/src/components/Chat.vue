@@ -7,8 +7,9 @@
           <label class="block text-gray-700 text-sm font-bold mb-2" for="database"> Context </label>
           <!-- TODO: have name like 'Everest > Packages' ?? -->
           <BaseSelector
-            :options="chatContexts"
-            v-model="chatContextSelected"
+            :options="contextsStore.contexts"
+            v-model="contextsStore.contextSelected"
+            @update:modelValue="contextsStore.setSelectedContext"
             class="w-full"
             placeholder="Select a database"
             :disabled="conversationId"
@@ -191,8 +192,7 @@ import BaseSelector from '@/components/base/BaseSelector.vue'
 import SendButtonWithStatus from '@/components/icons/SendButtonWithStatus.vue'
 import MessageDisplay from '@/components/MessageDisplay.vue'
 import axios from '@/plugins/axios'
-import { useDatabases } from '@/stores/databases'
-import { useProjects } from '@/stores/projects'
+import { useContextsStore } from '@/stores/contexts'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
@@ -203,35 +203,13 @@ import { isConnected, socket } from '@/plugins/socket'
 import { STATUS, useConversationsStore } from '@/stores/conversations'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
-import { useLocalStorage } from '@vueuse/core'
 
 const route = useRoute()
 const router = useRouter()
 
-/** CONTEXT SELECTION **/
-const { fetchProjects, projects } = useProjects()
-const { fetchDatabases, databases } = useDatabases()
+const contextsStore = useContextsStore()
+contextsStore.initializeContexts()
 
-await fetchProjects({ refresh: true })
-await fetchDatabases({ refresh: true })
-
-const chatContexts = computed(() => {
-  // TODO: move this to the store
-  return [
-    ...projects.value.map((project: any) => ({
-      id: `project-${project.id}`,
-      type: 'project',
-      name: `project > ${project.name}`
-    })),
-    ...databases.value.map((database: any) => ({
-      id: `database-${database.id}`,
-      type: 'database',
-      name: `database > ${database.name}`
-    }))
-  ]
-})
-
-const chatContextSelected = useLocalStorage('chatContextSelected', chatContexts.value[0])
 /** END CONTEXT SELECTION **/
 
 /** CONVERSATION LOGIC **/
@@ -329,7 +307,7 @@ const handleSendMessage = async () => {
       editMode.value,
       inputText.value,
       conversationId.value,
-      chatContextSelected.value.id
+      contextsStore.contextSelected.id
     )
     // After 100ms, clear the input.
     setTimeout(() => {
@@ -387,7 +365,7 @@ watch(
 /** AI SUGGESTIONS **/
 const aiSuggestions = ref([])
 
-watch(chatContextSelected, async () => {
+watch(contextsStore.contextSelected, async () => {
   aiSuggestions.value = []
   if (!conversationId.value) {
     await fetchAISuggestions()
@@ -396,7 +374,9 @@ watch(chatContextSelected, async () => {
 
 const fetchAISuggestions = async () => {
   try {
-    const response = await axios.get(`/api/contexts/${chatContextSelected.value.id}/questions`)
+    const response = await axios.get(
+      `/api/contexts/${contextsStore.contextSelected.value.id}/questions`
+    )
     aiSuggestions.value = response.data
   } catch (error) {
     console.error('Error fetching AI suggestions:', error)
