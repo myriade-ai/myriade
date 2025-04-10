@@ -33,7 +33,7 @@ setInterval(() => {
   } else if (socket.io.skipReconnect) {
     forceReconnect()
   }
-}, 15000)
+}, 5000)
 
 socket.on('pong', () => {
   console.debug('Socket connection alive')
