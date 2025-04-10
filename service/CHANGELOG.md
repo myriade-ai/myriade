@@ -1,6 +1,17 @@
 # CHANGELOG
 
 
+## v0.8.6 (2025-04-10)
+
+### Bug Fixes
+
+- Myr-244
+  ([`93b0603`](https://github.com/myriade-intelligence/ada/commit/93b0603811831028aaa09e8b24f8e83faebb8f3a))
+
+- Update snapshot
+  ([`06415e7`](https://github.com/myriade-intelligence/ada/commit/06415e7e7b6eb47cc7b07f2b2b271a94493fbd08))
+
+
 ## v0.8.5 (2025-04-09)
 
 ### Bug Fixes
