@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.8.7 (2025-04-11)
+
+### Build System
+
+- Improve deployment
+  ([`ed80b8a`](https://github.com/myriade-intelligence/ada/commit/ed80b8a789aa507c0cdb98f09a03a609335fb2cc))
+
+### Performance Improvements
+
+- Lower force reconnect
+  ([`bfecdc0`](https://github.com/myriade-intelligence/ada/commit/bfecdc0ec16b2c066121d305cd4edd810614c572))
+
+
 ## v0.8.6 (2025-04-10)
 
 ### Bug Fixes
