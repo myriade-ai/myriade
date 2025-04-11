@@ -167,10 +167,10 @@ const isRouteActive = (navPath: string) => {
 
 const navigation = computed(() => [
   { name: 'Chat', href: '/' },
-  { name: 'Editor', href: '/editor' },
   // Only show these items to admins
   ...(user.value?.isAdmin
     ? [
+        { name: 'Editor', href: '/editor' },
         { name: 'Databases', href: '/databases' },
         { name: 'Projects', href: '/projects' }
       ]

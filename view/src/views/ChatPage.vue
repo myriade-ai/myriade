@@ -61,6 +61,18 @@
     <div class="w-full h-screen flex justify-center items-center px-2">
       <div class="flex flex-col h-screen w-full">
         <!-- only when swipe right can trigger the callback -->
+        <!-- Dropdown to select the dabase to query -->
+        <label class="block text-gray-700 text-sm font-bold mb-2" for="database"> Context </label>
+        <!-- TODO: have name like 'Everest > Packages' ?? -->
+        <BaseSelector
+          :options="contextsStore.contexts"
+          v-model="contextsStore.contextSelected"
+          @update:modelValue="contextsStore.setSelectedContext"
+          class="w-full"
+          placeholder="Select a database"
+          :disabled="conversationId"
+        />
+        <br />
         <Chat v-touch:swipe.right="onSwipe" />
       </div>
     </div>
@@ -68,15 +80,28 @@
 </template>
 
 <script setup lang="ts">
-import ConversationList from '@/components/ConversationList.vue'
+import BaseSelector from '@/components/base/BaseSelector.vue'
 import Chat from '@/components/Chat.vue'
-import { ref } from 'vue'
+import ConversationList from '@/components/ConversationList.vue'
+import { useContextsStore } from '@/stores/contexts'
 import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue'
 import { XMarkIcon } from '@heroicons/vue/24/solid'
-
+import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 const sidebarOpen = ref(false)
 
 const onSwipe = () => {
   sidebarOpen.value = true
 }
+
+const route = useRoute()
+
+const contextsStore = useContextsStore()
+await contextsStore.initializeContexts()
+const conversationId = computed(() => {
+  if (route.params.id === 'new') {
+    return null
+  }
+  return Number(route.params.id)
+})
 </script>

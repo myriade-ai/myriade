@@ -7,6 +7,7 @@ from io import BytesIO
 
 from autochat.model import Message as AutoChatMessage
 from PIL import Image as PILImage
+from slugify import slugify
 from sqlalchemy import (
     Boolean,
     Column,
@@ -93,6 +94,7 @@ class Database(DefaultBase, Base):
     privacy_mode: bool
     dbt_catalog: dict
     dbt_manifest: dict
+    slug: str
 
     __tablename__ = "database"
 
@@ -131,6 +133,10 @@ class Database(DefaultBase, Base):
         datalake.privacy_mode = self.privacy_mode
         datalake.safe_mode = self.safe_mode
         return datalake
+
+    @property
+    def slug(self) -> str:
+        return f"{self.id}-{slugify(self.name)}"
 
 
 class Organisation(DefaultBase, Base):

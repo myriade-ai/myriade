@@ -9,9 +9,37 @@ function loadView(view: string) {
 const website_routes = [
   {
     path: '/',
+    name: 'MicroPage',
+    component: loadView('MicroPage'),
+    meta: { layout: 'empty' }
+  },
+  {
+    path: '/home',
     name: 'Home',
     component: loadView('HomePage'),
     meta: { layout: 'empty' }
+  },
+  {
+    path: '/openanalytics',
+    name: 'OpenAnalyticsList',
+    component: loadView('OpenAnalyticsList'),
+    meta: { layout: 'empty' }
+  },
+  {
+    path: '/openanalytics/:slug',
+    name: 'OpenAnalytics',
+    component: loadView('OpenAnalytics'),
+    meta: { layout: 'empty' }
+  },
+  {
+    path: '/',
+    name: 'NewChat',
+    redirect: '/chat/new'
+  },
+  {
+    path: '/chat/:id',
+    name: 'ChatPage',
+    component: loadView('ChatPage')
   }
 ]
 

@@ -3,18 +3,6 @@
     <div class="flex flex-col w-full max-w-2xl h-full">
       <div class="flex flex-col flex-grow h-full overflow-y-auto">
         <div class="w-full lg:pt-4">
-          <!-- Dropdown to select the dabase to query -->
-          <label class="block text-gray-700 text-sm font-bold mb-2" for="database"> Context </label>
-          <!-- TODO: have name like 'Everest > Packages' ?? -->
-          <BaseSelector
-            :options="contextsStore.contexts"
-            v-model="contextsStore.contextSelected"
-            @update:modelValue="contextsStore.setSelectedContext"
-            class="w-full"
-            placeholder="Select a database"
-            :disabled="conversationId"
-          />
-          <br />
           <ul class="list-none">
             <template v-for="(group, index) in messageGroups" :key="index">
               <li v-for="message in group.publicMessages" :key="message.id">
@@ -188,38 +176,28 @@
 <script setup lang="ts">
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
-import BaseSelector from '@/components/base/BaseSelector.vue'
 import SendButtonWithStatus from '@/components/icons/SendButtonWithStatus.vue'
 import MessageDisplay from '@/components/MessageDisplay.vue'
-import axios from '@/plugins/axios'
-import { useContextsStore } from '@/stores/contexts'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
-import { useRoute, useRouter } from 'vue-router'
 
 // Import sparkles from heroicons
-import { isConnected, socket } from '@/plugins/socket'
+import axios from '@/plugins/axios'
+import { isConnected } from '@/plugins/socket'
+import { Context } from '@/stores/contexts'
 import { STATUS, useConversationsStore } from '@/stores/conversations'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
 
-const route = useRoute()
-const router = useRouter()
-
-const contextsStore = useContextsStore()
-contextsStore.initializeContexts()
-
-/** END CONTEXT SELECTION **/
+const props = defineProps<{
+  conversationId: number | null
+  context: Context
+}>()
 
 /** CONVERSATION LOGIC **/
 const store = useConversationsStore()
-const conversationId = computed(() => {
-  if (route.params.id === 'new') {
-    return null
-  }
-  return Number(route.params.id)
-})
+
 const queryStatus = computed(() => conversation.value?.status ?? 'clear')
 const errorMessage = computed(() => conversation.value?.error ?? '')
 const lastMessage = computed(() => messages.value[messages.value.length - 1])
@@ -228,17 +206,17 @@ const sendStatus = computed(() => {
   if (!isConnected.value) {
     return 'error'
   }
-  // if conversationId is not set, return clear
-  if (!conversationId.value) {
-    return 'clear'
-  }
+  // // if conversationId is not set, return clear
+  // if (!conversationId.value) {
+  //   return 'clear'
+  // }
   // if conversationId is set, return status
   return conversation.value?.status ?? 'clear'
 })
 
 /** The current conversation object from the store. */
 const conversation = computed(() => {
-  return store.getConversationById(Number(conversationId.value))
+  return store.getConversationById(props.conversationId)
 })
 const messages = computed(() => {
   return conversation.value?.messages ?? []
@@ -303,12 +281,7 @@ const handleEnter = (event: KeyboardEvent) => {
 
 const handleSendMessage = async () => {
   try {
-    await store.sendMessage(
-      editMode.value,
-      inputText.value,
-      conversationId.value,
-      contextsStore.contextSelected.value.id
-    )
+    await store.sendMessage(editMode.value, inputText.value, props.conversationId, props.context)
     // After 100ms, clear the input.
     setTimeout(() => {
       clearInput()
@@ -342,41 +315,39 @@ onMounted(async () => {
   inputTextarea.value.focus()
   inputTextarea.value.select()
 
-  if (!conversationId.value) {
+  if (!props.conversationId) {
     // New conversation
     await fetchAISuggestions()
   } else {
     // Existing conversation
-    store.fetchMessages(conversationId.value)
+    store.fetchMessages(props.conversationId)
   }
 })
 
 // If route changes (user navigates to a different ID)
-watch(
-  () => conversationId.value,
-  (newVal) => {
-    console.log('conversationId changed', newVal)
-    if (newVal !== null) {
-      store.fetchMessages(newVal)
-    }
-  }
-)
+// watch()
+// () => conversationId.value,
+// (newVal) => {
+//   console.log('conversationId changed', newVal)
+//   if (newVal !== null) {
+//     store.fetchMessages(newVal)
+//   }
+// }
 
 /** AI SUGGESTIONS **/
 const aiSuggestions = ref([])
 
-watch(contextsStore.contextSelected, async () => {
+watch(props.context, async () => {
   aiSuggestions.value = []
-  if (!conversationId.value) {
+  if (!props.conversationId) {
     await fetchAISuggestions()
   }
 })
 
 const fetchAISuggestions = async () => {
+  console.log('fetching AI suggestions', props.context)
   try {
-    const response = await axios.get(
-      `/api/contexts/${contextsStore.contextSelected.value.id}/questions`
-    )
+    const response = await axios.get(`/api/contexts/${props.context.id}/questions`)
     aiSuggestions.value = response.data
   } catch (error) {
     console.error('Error fetching AI suggestions:', error)
@@ -393,19 +364,19 @@ const applySuggestion = (suggestion: string) => {
 }
 /** END AI SUGGESTIONS **/
 
-const stopQuery = async () => {
-  socket.emit('stop', conversationId.value)
-}
+// const stopQuery = async () => {
+//   socket.emit('stop', conversationId.value)
+// }
 
-socket.on('response', (response) => {
-  // If we are on the /new page and the response is for a new conversation, redirect to the new conversation
-  if (
-    conversationId.value === null &&
-    !store.getConversationById(Number(response.conversationId))
-  ) {
-    router.push({ path: `/chat/${response.conversationId}` })
-  }
-})
+// socket.on('response', (response) => {
+//   // If we are on the /new page and the response is for a new conversation, redirect to the new conversation
+//   if (
+//     conversationId.value === null &&
+//     !store.getConversationById(Number(response.conversationId))
+//   ) {
+//     router.push({ path: `/chat/${response.conversationId}` })
+//   }
+// })
 </script>
 
 <style scoped>

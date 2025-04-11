@@ -49,14 +49,19 @@ export const useContextsStore = defineStore('contexts', () => {
     const currentSelectionValid = contexts.value.some(
       (context) => context.id === contextSelected.value?.id
     )
-
     if ((!contextSelected.value || !currentSelectionValid) && contexts.value.length > 0) {
+      console.log('set default contextSelected')
       contextSelected.value = contexts.value[0]
     }
   }
 
   // Function to manually set the selected context
   function setSelectedContext(context: Context | null) {
+    contextSelected.value = context
+  }
+
+  function setSelectedContextById(id: string) {
+    const context = contexts.value.find((context) => context.id === id)
     contextSelected.value = context
   }
 
@@ -67,6 +72,7 @@ export const useContextsStore = defineStore('contexts', () => {
     contexts,
     // Actions
     initializeContexts,
-    setSelectedContext
+    setSelectedContext,
+    setSelectedContextById
   }
 })
