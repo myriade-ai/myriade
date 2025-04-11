@@ -149,8 +149,9 @@ import Echart from '@/components/Echart.vue'
 import { ArrowPathIcon, PencilIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 
 // Store
-import { useDatabases } from '@/stores/databases'
-const { databaseSelectedId } = useDatabases()
+import { useDatabasesStore } from '@/stores/databases'
+
+const { databaseSelectedId } = useDatabasesStore()
 
 interface FunctionCall {
   name: string

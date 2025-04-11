@@ -7,8 +7,9 @@
           <label class="block text-gray-700 text-sm font-bold mb-2" for="database"> Context </label>
           <!-- TODO: have name like 'Everest > Packages' ?? -->
           <BaseSelector
-            :options="chatContext"
-            v-model="chatContextSelected"
+            :options="contextsStore.contexts"
+            v-model="contextsStore.contextSelected"
+            @update:modelValue="contextsStore.setSelectedContext"
             class="w-full"
             placeholder="Select a database"
             :disabled="conversationId"
@@ -20,7 +21,7 @@
                 <MessageDisplay
                   :message="message"
                   @editInlineClick="editInline"
-                  @regenerateFromMessage="regenerateFromMessage"
+                  @regenerateFromMessage="store.regenerateFromMessage"
                 />
               </li>
               <li v-if="group.internalMessages.length > 0" class="flex justify-center">
@@ -54,7 +55,7 @@
                   <MessageDisplay
                     :message="message"
                     @editInlineClick="editInline"
-                    @regenerateFromMessage="regenerateFromMessage"
+                    @regenerateFromMessage="store.regenerateFromMessage"
                     class="bg-gray-300"
                     style="border: 1px solid rgb(205 205 205)"
                   />
@@ -72,7 +73,7 @@
                 <p class="text-red-500">{{ errorMessage }}</p>
               </div>
               <div>
-                <BaseButton class="my-4" @click="regenerateFromMessage(lastMessage.id)">
+                <BaseButton class="my-4" @click="store.regenerateFromMessage(lastMessage.id)">
                   Regenerate
                 </BaseButton>
               </div>
@@ -191,65 +192,37 @@ import BaseSelector from '@/components/base/BaseSelector.vue'
 import SendButtonWithStatus from '@/components/icons/SendButtonWithStatus.vue'
 import MessageDisplay from '@/components/MessageDisplay.vue'
 import axios from '@/plugins/axios'
-import { useDatabases } from '@/stores/databases'
-import { useProjects } from '@/stores/projects'
+import { useContextsStore } from '@/stores/contexts'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
-import sqlPrettier from 'sql-prettier'
 import { useRoute, useRouter } from 'vue-router'
+
 // Import sparkles from heroicons
 import { isConnected, socket } from '@/plugins/socket'
-import { conversationStatuses, sendMessage, STATUS } from '@/stores/conversations'
+import { STATUS, useConversationsStore } from '@/stores/conversations'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
-import { useLocalStorage } from '@vueuse/core'
 
 const route = useRoute()
 const router = useRouter()
-const inputTextarea = ref(null)
-const messages = ref([])
 
-const { fetchProjects, projects } = useProjects()
-const { fetchDatabases, databases } = useDatabases()
-await fetchProjects({ refresh: true })
-await fetchDatabases({ refresh: true })
+const contextsStore = useContextsStore()
+contextsStore.initializeContexts()
 
-const chatContext = computed(() => {
-  return [
-    ...projects.value.map((project) => ({
-      id: `project-${project.id}`,
-      type: 'project',
-      name: `project > ${project.name}`
-    })),
-    ...databases.value.map((database) => ({
-      id: `database-${database.id}`,
-      type: 'database',
-      name: `database > ${database.name}`
-    }))
-  ]
-})
+/** END CONTEXT SELECTION **/
 
-const chatContextSelected = useLocalStorage('chatContextSelected', chatContext.value[0])
-
-const inputText = ref('')
-const inputSQL = ref('')
+/** CONVERSATION LOGIC **/
+const store = useConversationsStore()
 const conversationId = computed(() => {
-  // Check if we are on the root path '/' (which doesn't have an id parameter)
-  if (route.path === '/' || route.params.id === undefined) {
-    return 'new' // Use 'new' as the default ID for the root path
-  }
   if (route.params.id === 'new') {
     return null
   }
-  return route.params.id
+  return Number(route.params.id)
 })
-const queryStatus = computed(
-  () => conversationStatuses.value[conversationId.value]?.status ?? 'clear'
-)
-const errorMessage = computed(() => conversationStatuses.value[conversationId.value]?.error ?? '')
+const queryStatus = computed(() => conversation.value?.status ?? 'clear')
+const errorMessage = computed(() => conversation.value?.error ?? '')
 const lastMessage = computed(() => messages.value[messages.value.length - 1])
-const editMode = ref<'text' | 'SQL'>('text')
 const sendStatus = computed(() => {
   // if socket is not connected, return error
   if (!isConnected.value) {
@@ -260,97 +233,19 @@ const sendStatus = computed(() => {
     return 'clear'
   }
   // if conversationId is set, return status
-  return conversationStatuses.value[conversationId.value]?.status ?? 'clear'
+  return conversation.value?.status ?? 'clear'
 })
 
-const fetchMessages = async () => {
-  // Replace with your dbt API endpoint to fetch messages.
-  axios
-    .get(`/api/conversations/${conversationId.value}`)
-    .then((response) => {
-      const conversation = response.data
-      // pretty parse
-      messages.value = conversation.messages.map((message) => {
-        let query = message?.functionCall?.arguments?.query
-        if (query) {
-          message.functionCall.arguments.query = sqlPrettier.format(query)
-        }
-        return message
-      })
-      // Select the context (from response databaseId or projectId)
-      if (conversation.projectId) {
-        chatContextSelected.value = chatContext.value.find(
-          (context) => context.id === `project-${conversation.projectId}`
-        )
-      } else if (conversation.databaseId) {
-        chatContextSelected.value = chatContext.value.find(
-          (context) => context.id === `database-${conversation.databaseId}`
-        )
-      }
-    })
-    .catch((error) => {
-      console.error('Error fetching messages:', error)
-      conversationStatuses.value[conversationId.value] = {
-        status: STATUS.ERROR,
-        error: 'Error fetching messages'
-      }
-      messages.value = []
-    })
-}
+/** The current conversation object from the store. */
+const conversation = computed(() => {
+  return store.getConversationById(Number(conversationId.value))
+})
+const messages = computed(() => {
+  return conversation.value?.messages ?? []
+})
+/** END CONVERSATION LOGIC **/
 
-watch(
-  () => route.params.id,
-  () => {
-    inputText.value = ''
-    if (conversationId.value) {
-      fetchMessages()
-      aiSuggestions.value = []
-    } else {
-      fetchAISuggestions()
-      messages.value = []
-    }
-  }
-)
-
-const editInline = (query) => {
-  inputSQL.value = query
-  editMode.value = 'SQL'
-}
-
-const handleSendMessage = async () => {
-  try {
-    await sendMessage(
-      editMode.value,
-      inputText.value,
-      conversationId.value,
-      chatContextSelected.value.id
-    )
-    // After 100ms, clear the input.
-    setTimeout(() => {
-      clearInput()
-    }, 100)
-  } catch (error) {
-    console.error('Error sending message:', error)
-  }
-}
-
-const receiveMessage = async (message) => {
-  // if conversation_id is different than the current conversation, do nothing
-  if (message.conversationId.toString() !== conversationId.value.toString()) {
-    return
-  }
-  let existing = messages.value.find((m) => m.id === message.id)
-  if (existing) {
-    existing.queryId = message.queryId
-  } else {
-    let query = message?.functionCall?.arguments?.query
-    if (query) {
-      message.functionCall.arguments.query = sqlPrettier.format(query)
-    }
-    messages.value.push(message)
-  }
-}
-
+/** MESSAGE DISPLAY LOGIC **/
 const internalMessageGroups = ref<{ [key: number]: boolean }>({})
 
 const toggleInternalMessages = (index: number) => {
@@ -383,7 +278,7 @@ const messageGroups = computed(() => {
 })
 
 const shouldDisplayMessage = (message, index) => {
-  const prevMessage = index > 0 ? messages.value[index - 1] : null
+  const prevMessage = index > 0 ? messages[index - 1] : null
   const isUser = message.role === 'user'
   const isFunction = message.role === 'function'
   const isFunctionAfterUser = isFunction && prevMessage?.role === 'user'
@@ -392,55 +287,42 @@ const shouldDisplayMessage = (message, index) => {
 
   return isUser || isFunctionAfterUser || isAnwser || isFunctionAfterAnswer
 }
+/** END MESSAGE DISPLAY LOGIC **/
 
-const stopQuery = async () => {
-  socket.emit('stop', conversationId.value)
-}
+/** HANDLE EVENTS **/
+const inputTextarea = ref<HTMLTextAreaElement | null>(null)
+const inputText = ref('')
+const inputSQL = ref('')
+const editMode = ref<'text' | 'SQL'>('text')
 
-const handleEnter = (event) => {
+const handleEnter = (event: KeyboardEvent) => {
   if (!event.shiftKey) {
     handleSendMessage()
   }
 }
+
+const handleSendMessage = async () => {
+  try {
+    await store.sendMessage(
+      editMode.value,
+      editMode.value === 'text' ? inputText.value : inputSQL.value,
+      conversationId.value,
+      contextsStore.contextSelected.id
+    )
+    // After 100ms, clear the input.
+    setTimeout(() => {
+      clearInput()
+    }, 100)
+  } catch (error) {
+    console.error('Error sending message:', error)
+  }
+}
+
 const clearInput = () => {
   inputText.value = ''
   inputSQL.value = ''
   resizeTextarea()
 }
-
-const handleConversationChange = (message) => {
-  // If message has conversationId, it is a new conversation.
-  if (
-    route.params.id === 'new' && // if we are on the new conversation page
-    message.conversationId !== 'new' && // if the message is not a new conversation
-    message.conversationId !== conversationId.value && // if the message is not the current conversation
-    conversationStatuses.value[message.conversationId] === undefined // if the message is not an existing conversations
-  ) {
-    // Clean status of /chat/new when we get the conversationId and we redirect to it
-    conversationStatuses.value[message.conversationId] = { status: STATUS.CLEAR, error: '' }
-    router.push({ path: `/chat/${message.conversationId}` })
-  }
-}
-
-onMounted(async () => {
-  inputTextarea.value.focus()
-  inputTextarea.value.select()
-
-  if (conversationId.value) {
-    await fetchMessages()
-  } else {
-    await fetchAISuggestions()
-  }
-
-  socket.on('delete-message', (id) => {
-    messages.value = messages.value.filter((message) => message.id !== id)
-  })
-
-  socket.on('response', (response) => {
-    handleConversationChange(response)
-    receiveMessage(response)
-  })
-})
 
 const resizeTextarea = () => {
   // Wait for next tick to get the updated DOM.
@@ -450,9 +332,40 @@ const resizeTextarea = () => {
   })
 }
 
+const editInline = (query: string) => {
+  inputSQL.value = query
+  editMode.value = 'SQL'
+}
+/** END HANDLE EVENTS */
+
+onMounted(async () => {
+  inputTextarea.value.focus()
+  inputTextarea.value.select()
+
+  if (!conversationId.value) {
+    // New conversation
+    await fetchAISuggestions()
+  } else {
+    // Existing conversation
+    store.fetchMessages(conversationId.value)
+  }
+})
+
+// If route changes (user navigates to a different ID)
+watch(
+  () => conversationId.value,
+  (newVal) => {
+    console.log('conversationId changed', newVal)
+    if (newVal !== null) {
+      store.fetchMessages(newVal)
+    }
+  }
+)
+
+/** AI SUGGESTIONS **/
 const aiSuggestions = ref([])
 
-watch(chatContextSelected, async () => {
+watch(contextsStore.contextSelected, async () => {
   aiSuggestions.value = []
   if (!conversationId.value) {
     await fetchAISuggestions()
@@ -461,7 +374,9 @@ watch(chatContextSelected, async () => {
 
 const fetchAISuggestions = async () => {
   try {
-    const response = await axios.get(`/api/contexts/${chatContextSelected.value.id}/questions`)
+    const response = await axios.get(
+      `/api/contexts/${contextsStore.contextSelected.value.id}/questions`
+    )
     aiSuggestions.value = response.data
   } catch (error) {
     console.error('Error fetching AI suggestions:', error)
@@ -476,15 +391,21 @@ const applySuggestion = (suggestion: string) => {
   // Empty the suggestions
   aiSuggestions.value = []
 }
+/** END AI SUGGESTIONS **/
 
-const regenerateFromMessage = async (messageId, messageContent) => {
-  if (messageContent) {
-    // Update the message content
-    const message = messages.value.find((m) => m.id === messageId)
-    message.content = messageContent
-  }
-  socket.emit('regenerateFromMessage', conversationId.value, messageId, messageContent)
+const stopQuery = async () => {
+  socket.emit('stop', conversationId.value)
 }
+
+socket.on('response', (response) => {
+  // If we are on the /new page and the response is for a new conversation, redirect to the new conversation
+  if (
+    conversationId.value === null &&
+    !store.getConversationById(Number(response.conversationId))
+  ) {
+    router.push({ path: `/chat/${response.conversationId}` })
+  }
+})
 </script>
 
 <style scoped>

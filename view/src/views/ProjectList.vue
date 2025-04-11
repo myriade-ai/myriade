@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-7xl mx-auto px-4">
     <div class="mt-6 flow-root">
-      <div v-if="sortedProject.length === 0" class="text-center">
+      <div v-if="projectsStore.sortedProjects.length === 0" class="text-center">
         <svg
           class="mx-auto h-12 w-12 text-gray-400"
           fill="none"
@@ -21,7 +21,7 @@
         <p class="mt-1 text-sm text-gray-500">Get started by creating a new project.</p>
       </div>
       <ul role="list" class="divide-y divide-gray-200">
-        <li v-for="project in sortedProject" :key="project.id" class="py-4">
+        <li v-for="project in projectsStore.sortedProjects" :key="project.id" class="py-4">
           <div class="flex items-center space-x-4">
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-medium text-gray-900">
@@ -57,15 +57,10 @@
 </template>
 
 <script setup lang="ts">
+import { useProjectsStore } from '@/stores/projects'
 import { PlusIcon } from '@heroicons/vue/20/solid'
-import { computed } from 'vue'
-import { useProjects } from '@/stores/projects'
 
-const { fetchProjects, projects } = useProjects()
+const projectsStore = useProjectsStore()
 
-fetchProjects({ refresh: true })
-
-const sortedProject = computed(() => {
-  return [...projects.value].sort((a, b) => a.id - b.id)
-})
+projectsStore.fetchProjects({ refresh: true })
 </script>

@@ -53,7 +53,10 @@ def get_conversations():
         )
         .all()
     )
-    return jsonify(conversations)
+    conversations_dict = [
+        dataclass_to_dict(conversation) for conversation in conversations
+    ]
+    return jsonify(conversations_dict)
 
 
 @api.route("/conversations/<int:conversation_id>", methods=["GET", "PUT"])

@@ -83,7 +83,7 @@ def handle_query(query, conversation_id=None, context_id=None):
     emit("response", user_message.to_dict())
     # Run the SQL
     message = user_message.to_autochat_message()
-    content = chat.sql_query(query, from_response=message)
+    content = chat.chatbot.tools["database"].sql_query(query, from_response=message)
     user_message.queryId = message.query_id
     # Update the message with the linked query
     socket_session.add(user_message)
@@ -95,6 +95,7 @@ def handle_query(query, conversation_id=None, context_id=None):
         name="sql_query",
         content=content,
         conversationId=chat.conversation.id,
+        isAnswer=True,
     )
     socket_session.add(message)
     socket_session.commit()

@@ -2,7 +2,7 @@
   <div class="max-w-7xl mx-auto px-4">
     <div class="mt-6 flow-root">
       <ul role="list" class="-my-5 divide-y divide-gray-200">
-        <li v-for="database in sortedDatabase" :key="database.id" class="py-4">
+        <li v-for="database in databasesStore.sortedDatabases" :key="database.id" class="py-4">
           <div class="flex items-center space-x-4">
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-medium text-gray-900">
@@ -36,15 +36,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useDatabases } from '@/stores/databases'
+import { useDatabasesStore } from '@/stores/databases'
 
-const { fetchDatabases, databases } = useDatabases()
+const databasesStore = useDatabasesStore()
 
-fetchDatabases({ refresh: true })
-
-const sortedDatabase = computed(() => {
-  // Create a new array with slice() before sorting to avoid mutating the original array
-  return [...databases.value].sort((a, b) => a.id - b.id)
-})
+databasesStore.fetchDatabases({ refresh: true })
 </script>

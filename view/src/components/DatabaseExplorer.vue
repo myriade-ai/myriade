@@ -38,21 +38,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, computed } from 'vue'
-import { useDatabases } from '@/stores/databases'
-import { querySQL, runQuery } from '@/stores/query'
 import DatabaseExplorerItems from '@/components/DatabaseExplorerItems.vue'
+import { useDatabasesStore } from '@/stores/databases'
+import { useQueryStore } from '@/stores/query'
 import type { Table } from '@/stores/tables'
+import { computed, ref, watchEffect } from 'vue'
 
-const { databaseSelectedId, fetchDatabaseTables } = useDatabases()
-
+const databasesStore = useDatabasesStore()
+const queryStore = useQueryStore()
 const tables = ref<Table[]>([])
 const showTableKey = ref<string | null>(null)
 
 watchEffect(async () => {
-  const selectedDatabaseId = databaseSelectedId.value
+  const selectedDatabaseId = databasesStore.databaseSelectedId
   if (selectedDatabaseId) {
-    tables.value = await fetchDatabaseTables(selectedDatabaseId)
+    tables.value = await databasesStore.fetchDatabaseTables(selectedDatabaseId)
   }
 })
 
@@ -79,7 +79,7 @@ function extractTables(sqlQuery) {
 }
 
 const extractedTables = computed(() => {
-  return extractTables(querySQL.value)
+  return extractTables(queryStore.querySQL.value)
 })
 
 const isTableUsed = (table: Table) => {
@@ -133,8 +133,8 @@ const onClick = (key: string) => {
 }
 
 const onDblClick = (table: Table) => {
-  querySQL.value = `SELECT * FROM "${table.schema}"."${table.name}";`
+  queryStore.querySQL.value = `SELECT * FROM "${table.schema}"."${table.name}";`
   searchTablesInput.value = '' // reset input
-  runQuery()
+  queryStore.runQuery()
 }
 </script>

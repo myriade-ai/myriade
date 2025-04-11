@@ -1,5 +1,5 @@
 import { authGuard } from '@/auth'
-import { loadQuery } from '@/stores/query'
+import { useQueryStore } from '@/stores/query'
 import { createRouter, createWebHistory } from 'vue-router'
 
 function loadView(view: string) {
@@ -41,6 +41,7 @@ const app_routes = [
     name: 'Query',
     component: loadView('Editor'),
     beforeEnter: async (to) => {
+      const { loadQuery } = useQueryStore()
       await loadQuery(to.params.id)
       return true
     }

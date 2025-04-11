@@ -8,8 +8,10 @@
 <script lang="ts" setup>
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
-import { fetchQuery, fetchQueryResults } from '@/stores/query'
+import { useQueryStore } from '@/stores/query'
 import { defineProps, onMounted, ref } from 'vue'
+
+const { fetchQuery, fetchQueryResults } = useQueryStore()
 
 const props = defineProps({
   queryId: Number,

@@ -99,10 +99,10 @@
       <div class="flex flex-col">
         <label class="text-gray-700">Catalog</label>
         <a
-          v-if="databaseSelected.dbt_catalog"
+          v-if="databasesStore.databaseSelected.dbt_catalog"
           :href="
             'data:text/json;charset=utf-8,' +
-            encodeURIComponent(JSON.stringify(databaseSelected.dbt_catalog))
+            encodeURIComponent(JSON.stringify(databasesStore.databaseSelected.dbt_catalog))
           "
           download="catalog.json"
           class="text-blue-600 hover:text-blue-800"
@@ -116,10 +116,10 @@
 
         <label class="text-gray-700 mt-4">Manifest</label>
         <a
-          v-if="databaseSelected.dbt_manifest"
+          v-if="databasesStore.databaseSelected.dbt_manifest"
           :href="
             'data:text/json;charset=utf-8,' +
-            encodeURIComponent(JSON.stringify(databaseSelected.dbt_manifest))
+            encodeURIComponent(JSON.stringify(databasesStore.databaseSelected.dbt_manifest))
           "
           download="manifest.json"
           class="text-blue-600 hover:text-blue-800"
@@ -182,17 +182,17 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
-import { computed, ref } from 'vue'
-import { useDatabases } from '@/stores/databases'
-import { useRoute } from 'vue-router'
-import router from '@/router'
+import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseField from '@/components/base/BaseField.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
-import BaseAlert from '@/components/base/BaseAlert.vue'
-import BaseSwitch from '@/components/base/BaseSwitch.vue'
 import BaseInputPassword from '@/components/base/BaseInputPassword.vue'
+import BaseSwitch from '@/components/base/BaseSwitch.vue'
+import router from '@/router'
+import { useDatabasesStore } from '@/stores/databases'
+import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
 import { Form } from 'vee-validate'
+import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const apiError = ref(null)
@@ -225,23 +225,24 @@ const database = ref({
   dbt_catalog: null,
   dbt_manifest: null
 } as any)
-const { selectDatabaseById, databaseSelected, createDatabase, updateDatabase, deleteDatabase } =
-  useDatabases()
+
+const databasesStore = useDatabasesStore()
+const { selectDatabaseById, createDatabase, updateDatabase, deleteDatabase } = databasesStore
 
 const isNew = computed(() => route.params.id === 'new')
 if (!isNew.value) {
   const databaseId = parseInt(route.params.id as string)
   await selectDatabaseById(databaseId)
   // Copy the databaseSelected to the database
-  database.value.id = databaseSelected.value.id
-  database.value.name = databaseSelected.value.name
-  database.value.engine = databaseSelected.value.engine
-  database.value.details = databaseSelected.value.details
+  database.value.id = databasesStore.databaseSelected.id
+  database.value.name = databasesStore.databaseSelected.name
+  database.value.engine = databasesStore.databaseSelected.engine
+  database.value.details = databasesStore.databaseSelected.details
 
-  database.value.privacy_mode = databaseSelected.value.privacy_mode
-  database.value.safe_mode = databaseSelected.value.safe_mode
-  database.value.dbt_catalog = databaseSelected.value.dbt_catalog
-  database.value.dbt_manifest = databaseSelected.value.dbt_manifest
+  database.value.privacy_mode = databasesStore.databaseSelected.privacy_mode
+  database.value.safe_mode = databasesStore.databaseSelected.safe_mode
+  database.value.dbt_catalog = databasesStore.databaseSelected.dbt_catalog
+  database.value.dbt_manifest = databasesStore.databaseSelected.dbt_manifest
 }
 
 const clickDelete = () => {
