@@ -305,7 +305,7 @@ const handleSendMessage = async () => {
   try {
     await store.sendMessage(
       editMode.value,
-      inputText.value,
+      editMode.value === 'text' ? inputText.value : inputSQL.value,
       conversationId.value,
       contextsStore.contextSelected.id
     )

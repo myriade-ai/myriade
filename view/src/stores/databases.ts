@@ -32,6 +32,10 @@ export const useDatabasesStore = defineStore('databases', () => {
     return databases.value.find((db) => db.id === databaseSelectedId.value) ?? ({} as Database)
   })
 
+  const sortedDatabases = computed(() => {
+    return [...databases.value].sort((a, b) => a.id - b.id)
+  })
+
   // --------------------------------------------------------------------------
   // ACTIONS
   // --------------------------------------------------------------------------
@@ -85,7 +89,7 @@ export const useDatabasesStore = defineStore('databases', () => {
 
     // getters
     databaseSelected,
-
+    sortedDatabases,
     // actions
     setDatabaseSelected,
     fetchDatabases,

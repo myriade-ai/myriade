@@ -2,10 +2,18 @@ import axios from '@/plugins/axios'
 import { defineStore } from 'pinia'
 import { computed, ref, type WritableComputedRef } from 'vue'
 
-export interface Project {
-  id: number
+interface ProjectTable {
+  databaseName: string | null
+  schemaName: string | null
+  tableName: string | null
+}
+
+interface Project {
+  id: number | null
   name: string
   description: string
+  databaseId: number | null
+  tables: ProjectTable[]
 }
 
 export const useProjectsStore = defineStore('projects', () => {
@@ -25,6 +33,10 @@ export const useProjectsStore = defineStore('projects', () => {
       localStorage.setItem('projectId', String(newProject.id))
     }
   }) as WritableComputedRef<Project>
+
+  const sortedProjects = computed(() => {
+    return [...projects.value].sort((a, b) => a.id - b.id)
+  })
 
   // --- actions ---
   async function fetchProjects({ refresh }: { refresh: boolean }) {
@@ -65,9 +77,15 @@ export const useProjectsStore = defineStore('projects', () => {
 
   // Return all reactive properties and methods
   return {
+    // state
     projects,
     projectSelectedId,
+
+    // getters
     projectSelected,
+    sortedProjects,
+
+    // actions
     fetchProjects,
     fetchProjectTables,
     selectProjectById,

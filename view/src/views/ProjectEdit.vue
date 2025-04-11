@@ -34,7 +34,9 @@
           :validate-on-change="true"
         >
           <option value="">Select a database</option>
-          <option v-for="db in databases" :key="db.id" :value="db.id">{{ db.name }}</option>
+          <option v-for="db in databasesStore.databases" :key="db.id" :value="db.id">
+            {{ db.name }}
+          </option>
         </Field>
         <ErrorMessage name="databaseId" class="text-red-500 text-sm mt-1" />
       </base-field>
@@ -80,6 +82,7 @@ import type { Group, Item } from '@/components/base/BaseMultiSelect.vue'
 import BaseMultiSelect from '@/components/base/BaseMultiSelect.vue'
 import router from '@/router'
 import { useDatabasesStore } from '@/stores/databases'
+import type { Project, ProjectTable } from '@/stores/projects'
 import { useProjectsStore } from '@/stores/projects'
 import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
 import { ErrorMessage, Field, Form } from 'vee-validate'
@@ -87,26 +90,14 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 const { createProject, updateProject, deleteProject, fetchProjectById } = useProjectsStore()
+const databasesStore = useDatabasesStore()
+await databasesStore.fetchDatabases({ refresh: false })
 
 const route = useRoute()
 const apiError = ref(null)
 
 const selectedItems = ref<Item[]>([])
 const groups = ref<Group[]>([])
-
-interface ProjectTable {
-  databaseName: string | null
-  schemaName: string | null
-  tableName: string | null
-}
-
-interface Project {
-  id: number | null
-  name: string
-  description: string
-  databaseId: number | null
-  tables: ProjectTable[]
-}
 
 const project = ref({
   id: null,
@@ -153,16 +144,18 @@ const clickSave = async () => {
   }
 }
 
-const { databases, fetchDatabaseTables } = useDatabasesStore()
 const selectedDatabase = computed(() => {
-  return databases.value.find((db) => db.id === project.value.databaseId)
+  if (!databasesStore.databases.value) {
+    return null
+  }
+  return databasesStore.databases.value.find((db) => db.id === project.value.databaseId)
 })
 
 const fetchDatabaseSchema = async () => {
   if (project.value.databaseId) {
     // Fetch schema (fetchDatabaseTables) and tables for the selected database
     // and update the groups and tables state
-    tables.value = await fetchDatabaseTables(project.value.databaseId)
+    tables.value = await databasesStore.fetchDatabaseTables(project.value.databaseId)
     groups.value = transformTablesToGroups(tables.value)
 
     // update selectedItems with project.tables

@@ -7,7 +7,7 @@ import { computed, ref } from 'vue'
 
 export const useQueryStore = defineStore('query', () => {
   // Pull in anything needed from your Databases store
-  const { selectDatabaseById, databaseSelectedId } = useDatabasesStore()
+  const databasesStore = useDatabasesStore()
 
   // Same variable names as requested
   const queryRef = ref<any>(null)
@@ -42,7 +42,7 @@ export const useQueryStore = defineStore('query', () => {
     // Update store values
     queryRef.value = query
     queryTitle.value = query.title
-    await selectDatabaseById(query.databaseId)
+    await databasesStore.selectDatabaseById(query.databaseId)
 
     if (query.sql) {
       querySQL.value = query.sql
@@ -74,7 +74,7 @@ export const useQueryStore = defineStore('query', () => {
   const runQuery = async () => {
     loading.value = true
     try {
-      const { rows, count } = await executeQuery(databaseSelectedId.value, querySQL.value)
+      const { rows, count } = await executeQuery(databasesStore.databaseSelectedId, querySQL.value)
       queryError.value = null
       queryResults.value = rows
       queryCount.value = count
@@ -98,7 +98,7 @@ export const useQueryStore = defineStore('query', () => {
       const response = await axios.post('/api/query', {
         title: queryTitle.value,
         sql: querySQL.value,
-        databaseId: databaseSelectedId.value
+        databaseId: databasesStore.databaseSelectedId
       })
       queryId.value = response.data.id
       router.push({ name: 'Query', params: { id: queryId.value } })
