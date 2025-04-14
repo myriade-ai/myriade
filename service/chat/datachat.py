@@ -1,3 +1,4 @@
+import datetime
 import os
 
 import nest_asyncio
@@ -128,6 +129,8 @@ class DatabaseChat:
         chatbot.add_tool(
             DatabaseTool(self.session, self.conversation.database), "database"
         )
+        chatbot.add_function(self.think)
+        chatbot.add_function(self.get_date)
         chatbot.add_function(self.save_to_memory)
         chatbot.add_function(self.submit)
         chatbot.add_function(self.answer)
@@ -147,6 +150,21 @@ class DatabaseChat:
             chatbot.model = self.model
 
         return chatbot
+
+    def think(self, thought: str) -> None:
+        """
+        Think about a thought. Don't modify or obtain any new information.
+        Args:
+            thought: A thought to think about.
+        """
+
+    def get_date(self) -> str:
+        """
+        Get the current date as a string.
+        Returns:
+            the current date string in YYYY-MM-DD format
+        """
+        return datetime.datetime.now().strftime("%Y-%m-%d")
 
     def save_to_memory(self, text: str):
         """
