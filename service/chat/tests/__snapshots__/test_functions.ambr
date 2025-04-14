@@ -2,6 +2,8 @@
 # name: test_functions
   list([
     'DatabaseTool-database__sql_query',
+    'think',
+    'get_date',
     'save_to_memory',
     'submit',
     'answer',
@@ -40,6 +42,34 @@
           'query',
         ]),
         'title': 'Input for `sql_query`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': "Think about a thought. Don't modify or obtain any new information.",
+      'name': 'think',
+      'parameters': dict({
+        'properties': dict({
+          'thought': dict({
+            'description': 'A thought to think about.',
+            'title': 'Thought',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'thought',
+        ]),
+        'title': 'Input for `think`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Get the current date as a string. Returns: the current date string in YYYY-MM-DD format',
+      'name': 'get_date',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `get_date`',
         'type': 'object',
       }),
     }),
