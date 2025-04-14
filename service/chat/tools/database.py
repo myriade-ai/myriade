@@ -69,12 +69,25 @@ class DatabaseTool:
         context += yaml.dump(tables_preview)
         return context
 
+    def save_to_memory(self, text: str) -> str:
+        """
+        Add text to the AI's memory
+        Args:
+            text: The text to add to the memory
+        """
+        if self.database.memory is None:
+            self.database.memory = text
+        else:
+            self.database.memory += "\n" + text
+        self.session.commit()
+        return "Memory updated."
+
     def sql_query(
         self,
         query: str,
         title: str = "",
         from_response: Message | None = None,
-    ):
+    ) -> str:
         """
         Run an SQL query on the database and return the result
         Args:
