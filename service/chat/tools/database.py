@@ -1,5 +1,3 @@
-import json
-
 import yaml
 from autochat.chat import OUTPUT_SIZE_LIMIT
 from autochat.model import Message
@@ -48,7 +46,6 @@ class DatabaseTool:
         self.datalake = database.create_datalake()
 
     def __repr__(self):
-        context = "Tables:\n"
         tables_preview = []
         for table in self.database.tables_metadata:
             table_preview = {
@@ -66,8 +63,15 @@ class DatabaseTool:
                 table_preview["description"] = description_snippet
             tables_preview.append(table_preview)
 
-        context += yaml.dump(tables_preview)
-        return context
+        context = {
+            "DATABASE": {
+                "name": self.database.name,
+                "engine": self.database.engine,
+            },
+            "TABLES": tables_preview,
+            "MEMORY": self.database.memory,
+        }
+        return yaml.dump(context)
 
     def save_to_memory(self, text: str) -> str:
         """

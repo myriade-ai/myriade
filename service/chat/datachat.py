@@ -91,13 +91,7 @@ class DatabaseChat:
 
     @property
     def context(self):
-        context = {
-            "DATABASE": {
-                "name": self.conversation.database.name,
-                "engine": self.conversation.database.engine,
-            },
-            "MEMORY": self.conversation.database.memory,
-        }
+        context = {}
         if self.conversation.project:
             context["PROJECT"] = {
                 "name": self.conversation.project.name,
