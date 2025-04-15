@@ -12,3 +12,4 @@ service/.env
 service/.env.test
 service/.env.dev
 .env
+*.ipynb
