@@ -1,6 +1,21 @@
 # CHANGELOG
 
 
+## v0.8.8 (2025-04-15)
+
+### Bug Fixes
+
+- Https config
+  ([`b719930`](https://github.com/myriade-intelligence/ada/commit/b71993084876d3375b1bd777e01ffd657c00e486))
+
+### Chores
+
+- Move memory to the database tool ([#37](https://github.com/myriade-intelligence/ada/pull/37),
+  [`4d33a5f`](https://github.com/myriade-intelligence/ada/commit/4d33a5f1f922c5c71ed46f93904efe94c1ba9ffd))
+
+* move memory to the database tool
+
+
 ## v0.8.7 (2025-04-11)
 
 ### Build System
