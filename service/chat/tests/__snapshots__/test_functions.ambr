@@ -1,10 +1,10 @@
 # serializer version: 1
 # name: test_functions
   list([
+    'DatabaseTool-database__save_to_memory',
     'DatabaseTool-database__sql_query',
     'think',
     'get_date',
-    'save_to_memory',
     'submit',
     'answer',
     'ask_user',
@@ -21,6 +21,24 @@
 # ---
 # name: test_functions_schema
   list([
+    dict({
+      'description': "Add text to the AI's memory",
+      'name': 'DatabaseTool-database__save_to_memory',
+      'parameters': dict({
+        'properties': dict({
+          'text': dict({
+            'description': 'The text to add to the memory',
+            'title': 'Text',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'text',
+        ]),
+        'title': 'Input for `save_to_memory`',
+        'type': 'object',
+      }),
+    }),
     dict({
       'description': 'Run an SQL query on the database and return the result',
       'name': 'DatabaseTool-database__sql_query',
@@ -70,24 +88,6 @@
         'properties': dict({
         }),
         'title': 'Input for `get_date`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': "Add a text to the AI's memory",
-      'name': 'save_to_memory',
-      'parameters': dict({
-        'properties': dict({
-          'text': dict({
-            'description': 'The text to add to the memory',
-            'title': 'Text',
-            'type': 'string',
-          }),
-        }),
-        'required': list([
-          'text',
-        ]),
-        'title': 'Input for `save_to_memory`',
         'type': 'object',
       }),
     }),

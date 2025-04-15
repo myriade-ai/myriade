@@ -91,13 +91,7 @@ class DatabaseChat:
 
     @property
     def context(self):
-        context = {
-            "DATABASE": {
-                "name": self.conversation.database.name,
-                "engine": self.conversation.database.engine,
-            },
-            "MEMORY": self.conversation.database.memory,
-        }
+        context = {}
         if self.conversation.project:
             context["PROJECT"] = {
                 "name": self.conversation.project.name,
@@ -131,7 +125,6 @@ class DatabaseChat:
         )
         chatbot.add_function(self.think)
         chatbot.add_function(self.get_date)
-        chatbot.add_function(self.save_to_memory)
         chatbot.add_function(self.submit)
         chatbot.add_function(self.answer)
         chatbot.add_function(self.ask_user)
@@ -165,18 +158,6 @@ class DatabaseChat:
             the current date string in YYYY-MM-DD format
         """
         return datetime.datetime.now().strftime("%Y-%m-%d")
-
-    def save_to_memory(self, text: str):
-        """
-        Add a text to the AI's memory
-        Args:
-            text: The text to add to the memory
-        """
-        if self.conversation.database.memory is None:
-            self.conversation.database.memory = text
-        else:
-            self.conversation.database.memory += "\n" + text
-        self.session.commit()
 
     def submit(
         self,
