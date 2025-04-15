@@ -1,3 +1,5 @@
+import json
+
 import yaml
 from autochat.chat import OUTPUT_SIZE_LIMIT
 from autochat.model import Message
