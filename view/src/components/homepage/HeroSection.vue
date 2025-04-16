@@ -24,17 +24,18 @@
     </div>
 
     <!-- Supporting example buttons -->
+    <!-- Supporting example buttons with fully rounded borders -->
     <div class="max-w-2xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 mb-16">
-      <button class="bg-[rgb(239,236,232)] py-3 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+      <button class="bg-[rgb(239,236,232)] py-3 px-4 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors">
         Sales Analysis
       </button>
-      <button class="bg-[rgb(239,236,232)] py-3 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+      <button class="bg-[rgb(239,236,232)] py-3 px-4 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors">
         Customer Segmentation
       </button>
-      <button class="bg-[rgb(239,236,232)] py-3 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+      <button class="bg-[rgb(239,236,232)] py-3 px-4 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors">
         Trend Forecasting
       </button>
-      <button class="bg-[rgb(239,236,232)] py-3 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+      <button class="bg-[rgb(239,236,232)] py-3 px-4 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors">
         Market Research
       </button>
     </div>
