@@ -3,7 +3,7 @@ from flask import Flask, g
 from flask_socketio import SocketIO
 
 import config  # noqa: F401
-from back.session import Session
+from back.session import SessionLocal
 
 socketio = SocketIO(
     cors_allowed_origins="*",
@@ -37,15 +37,16 @@ def create_app():
     app.register_blueprint(auth_api)
 
     @app.before_request
-    def create_session():
-        g.session = Session()
+    def _open_db_session():
+        g.session = SessionLocal()
 
     @app.teardown_appcontext
-    def close_session(exception=None):
-        if hasattr(g, "session"):
+    def _close_db_session(exception=None):
+        db = g.pop("session", None)
+        if db is not None:
             if exception:
-                g.session.rollback()
-            g.session.close()
+                db.rollback()
+            db.close()
 
     socketio.init_app(app)
 
