@@ -27,13 +27,10 @@ class EchartsTool:
         That you can reference in the answer response.
         ---
         Provide the chart_options without the "dataset" parameter
-        We will SQL result to fill the dataset.source automatically
-        Don't forget to Map from Data to Charts (series.encode)
+        We will fill the dataset.source automatically with the SQL result
+        Don't forget to Map from Data to Charts (series.encode) using the correct names
         Don't use specific color in the chart_options unless the user asked for it
         When creating bar charts with ECharts, make sure to set the correct axis types.
-        For categorical data (like driver names) use 'category' type on the x-axis when displaying bars vertically, or on the y-axis when displaying bars horizontally.
-        For numerical data (like wins or points) use 'value' type on the corresponding axis.
-        Also verify that the encode properties correctly map your data fields to the appropriate axes ('x' for categories, 'y' for values in vertical bar charts; reversed in horizontal bar charts).
         Args:
             chart_options: The options of the chart. A dict, not a json dump
             query_id: The ID of the query to execute
