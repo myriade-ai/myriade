@@ -38,8 +38,10 @@ class SeriesLabel(BaseModel):
 
 
 class SeriesEncode(BaseModel):
-    x: str
-    y: str
+    x: Optional[str] = None
+    y: Optional[str] = None
+    itemName: Optional[str] = None
+    value: Optional[str] = None
 
 
 class ItemStyle(BaseModel):
