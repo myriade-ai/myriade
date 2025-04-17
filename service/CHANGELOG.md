@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v0.8.9 (2025-04-17)
+
+### Bug Fixes
+
+- Improve echart rendering
+  ([`c7ded38`](https://github.com/myriade-intelligence/ada/commit/c7ded385bf67e67cba1e70ff27ac1d311ef915a1))
+
+- Interrupted session
+  ([`9a5bb64`](https://github.com/myriade-intelligence/ada/commit/9a5bb649fb8739ce45560a2ad8d308bf32f6cc4f))
+
+### Chores
+
+- Add *.ipynb
+  ([`1470ea6`](https://github.com/myriade-intelligence/ada/commit/1470ea67c6da100ef4444416fba8fdc363dfd0e9))
+
+
 ## v0.8.8 (2025-04-15)
 
 ### Bug Fixes
