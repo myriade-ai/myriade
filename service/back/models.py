@@ -19,7 +19,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Session, relationship
 from sqlalchemy.types import JSON, TypeDecorator
 
 Base = declarative_base()
@@ -179,11 +179,7 @@ class ConversationMessage(DefaultBase, Base):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def to_dict(self):
-        from back.session import Session
-
-        session = Session()
-
+    def to_dict(self, session: Session):  # TODO: find better naming
         if self.functionCall and self.functionCall["name"] == "answer":
             self.content = self.functionCall["arguments"]["text"]
             self.functionCall = None

@@ -1,8 +1,9 @@
 import json
+from contextlib import contextmanager
 from datetime import date, datetime
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 from config import DATABASE_URL
 
@@ -64,7 +65,29 @@ def teardown_database(_engine):
 engine = create_engine(
     DATABASE_URL, json_serializer=json_serial, json_deserializer=json_deserial
 )
-Session = sessionmaker(bind=engine)
+SessionLocal = scoped_session(
+    sessionmaker(
+        bind=engine,
+        expire_on_commit=False,
+    )
+)
+
+
+@contextmanager
+def db_session():
+    """
+    Context‑manager that yields a fresh Session,
+    commits on success, rolls back on error, and always closes.
+    """
+    s = SessionLocal()
+    try:
+        yield s
+        s.commit()
+    except Exception:
+        s.rollback()
+        raise
+    finally:
+        s.close()
 
 
 if __name__ == "__main__":
