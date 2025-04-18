@@ -365,18 +365,19 @@ watch(
 /** AI SUGGESTIONS **/
 const aiSuggestions = ref([])
 
-watch(contextsStore.contextSelected, async () => {
-  aiSuggestions.value = []
-  if (!conversationId.value) {
-    await fetchAISuggestions()
+watch(
+  () => contextsStore.contextSelected,
+  async () => {
+    aiSuggestions.value = []
+    if (!conversationId.value) {
+      await fetchAISuggestions()
+    }
   }
-})
+)
 
 const fetchAISuggestions = async () => {
   try {
-    const response = await axios.get(
-      `/api/contexts/${contextsStore.contextSelected.value.id}/questions`
-    )
+    const response = await axios.get(`/api/contexts/${contextsStore.contextSelected.id}/questions`)
     aiSuggestions.value = response.data
   } catch (error) {
     console.error('Error fetching AI suggestions:', error)
