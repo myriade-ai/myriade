@@ -55,6 +55,8 @@ def handle_ask(question, conversation_id=None, context_id=None):
             project_id=project_id,
         )
         for message in agent.ask(question):
+            # We need to commit the session to save the message
+            session.commit()
             emit("response", message.to_dict(session))
 
 
@@ -92,8 +94,7 @@ def handle_query(query, conversation_id=None, context_id=None):
         user_message.queryId = message.query_id
         # Update the message with the linked query
         session.add(user_message)
-        session.commit()
-        emit("response", user_message.to_dict(session))
+        session.flush()
 
         # Display the response
         message = ConversationMessage(
@@ -105,6 +106,7 @@ def handle_query(query, conversation_id=None, context_id=None):
         )
         session.add(message)
         session.commit()
+        emit("response", user_message.to_dict(session))
         emit("response", message.to_dict(session))
 
 
@@ -149,19 +151,24 @@ def handle_regenerate_from_message(conversation_id, message_id, message_content=
             )
             .all()
         )
+        deleted_message_ids = []
         for message in messages:
-            emit("delete-message", message.id)
+            deleted_message_ids.append(message.id)
             session.delete(message)
 
         # Also, if the message is from the assistant, delete it
         message = session.query(ConversationMessage).filter_by(id=message_id).first()
         if message.role == "assistant":
-            emit("delete-message", message.id)
+            deleted_message_ids.append(message.id)
             session.delete(message)
 
         session.commit()
+        for message_id in deleted_message_ids:
+            emit("delete-message", message_id)
+
         # Regenerate the conversation
         for message in chat._run_conversation():
+            session.commit()
             emit("response", message.to_dict(session))
 
 

@@ -85,7 +85,7 @@ class DatabaseTool:
             self.database.memory = text
         else:
             self.database.memory += "\n" + text
-        self.session.commit()
+        self.session.flush()
         return "Memory updated."
 
     def sql_query(
@@ -106,7 +106,7 @@ class DatabaseTool:
             sql=query,
         )
         self.session.add(_query)
-        self.session.commit()
+        self.session.flush()
 
         if from_response:
             # We update the message with the query id
@@ -122,5 +122,5 @@ class DatabaseTool:
             _query.exception = str(e)
             result, _ = wrap_sql_error(e)
 
-        self.session.commit()
+        self.session.flush()
         return result

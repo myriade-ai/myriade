@@ -72,7 +72,7 @@ def get_conversation(conversation_id):
     if request.method == "PUT":
         # Update conversation name
         conversation.name = request.json["name"]
-        g.session.commit()
+        g.session.flush()
 
     # TODO: redesign this to use a single query
     conversation_dict = dataclass_to_dict(conversation)
@@ -91,7 +91,7 @@ def delete_conversation(conversation_id):
         conversationId=conversation_id
     ).delete()
     g.session.query(Conversation).filter_by(id=conversation_id).delete()
-    g.session.commit()
+    g.session.flush()
     return jsonify({"success": True})
 
 
@@ -128,7 +128,7 @@ def create_database():
     database.tables_metadata = datalake.load_metadata()
 
     g.session.add(database)
-    g.session.commit()
+    g.session.flush()
 
     return jsonify(database)
 
@@ -139,7 +139,7 @@ def create_database():
 def delete_database(database_id):
     # Delete database
     g.session.query(Database).filter_by(id=database_id).delete()
-    g.session.commit()
+    g.session.flush()
     return jsonify({"success": True})
 
 
@@ -177,7 +177,7 @@ def update_database(database_id):
     database.dbt_catalog = data["dbt_catalog"]
     database.dbt_manifest = data["dbt_manifest"]
 
-    g.session.commit()
+    g.session.flush()
 
     return jsonify(database)
 
@@ -387,7 +387,7 @@ def create_project():
         ]
 
     g.session.add(new_project)
-    g.session.commit()
+    g.session.flush()
     return jsonify(new_project)
 
 
@@ -410,7 +410,7 @@ def update_project(project_id):
         )
         for table in data.get("tables", [])
     ]
-    g.session.commit()
+    g.session.flush()
     return "ok"
 
 
@@ -419,5 +419,5 @@ def update_project(project_id):
 def delete_project(project_id):
     project = g.session.query(Project).filter_by(id=project_id).first()
     g.session.delete(project)
-    g.session.commit()
+    g.session.flush()
     return jsonify({"message": "Project deleted successfully"})

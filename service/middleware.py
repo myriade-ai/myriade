@@ -19,7 +19,7 @@ def user_middleware(f):
                 email=g.user.email,
             )
             g.session.add(user)
-            g.session.commit()
+            g.session.flush()
 
         g.user = user
 
@@ -39,7 +39,7 @@ def user_middleware(f):
                     name=workos_organization.name,
                 )
                 g.session.add(new_organisation)
-                g.session.commit()
+                g.session.flush()
 
             g.organisation = organisation
         return f(*args, **kwargs)
