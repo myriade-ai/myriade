@@ -24,6 +24,7 @@ services:
       FLASK_ENV: production
       DATABASE_URL: postgresql://human:pass@db:5432/ada
       AUTOCHAT_PROVIDER: anthropic
+      HOST: ${HOST}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       WORKOS_API_KEY: ${WORKOS_API_KEY}
