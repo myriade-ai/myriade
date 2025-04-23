@@ -3,16 +3,15 @@ from urllib.parse import urlencode
 from flask import Blueprint, g, jsonify, make_response, redirect, request
 
 from auth.auth import cookie_password_b64, with_auth, workos_client
-from config import OFFLINE_MODE, WORKOS_ORGANIZATION_ID
+from config import ENV, HOST, OFFLINE_MODE, WORKOS_ORGANIZATION_ID
 
 api = Blueprint("auth", __name__)
 
 
 @api.route("/auth")
 def auth():
-    scheme = request.headers.get("X-Forwarded-Proto", request.scheme)
-    host = request.headers.get("X-Forwarded-Host", request.host)
-    redirect_uri = scheme + "://" + host + "/auth/callback"
+    scheme = "https" if ENV == "production" else "http"
+    redirect_uri = scheme + "://" + HOST + "/auth/callback"
     authorization_url = workos_client.sso.get_authorization_url(
         provider="authkit",
         redirect_uri=redirect_uri,
@@ -80,8 +79,8 @@ def logout():
         print("ERROR: Failed to authenticate session", auth_result.reason)
         return jsonify({"message": "Failed to authenticate session"}), 500
 
-    scheme = request.headers.get("X-Forwarded-Proto", request.scheme)
-    redirect_url = scheme + "://" + request.host + "/login"
+    scheme = "https" if ENV == "production" else "http"
+    redirect_url = scheme + "://" + HOST + "/login"
 
     logout_url = workos_client.user_management.get_logout_url(
         session_id=auth_result.session_id,
