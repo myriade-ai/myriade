@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.8.15 (2025-04-23)
+
+### Bug Fixes
+
+- Database explorer
+  ([`c7e59de`](https://github.com/myriade-intelligence/ada/commit/c7e59de85545c3d1c37b7ddd919c7ad8d7f8fe7f))
+
+
 ## v0.8.14 (2025-04-23)
 
 ### Bug Fixes
