@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.8.11 (2025-04-23)
+
+### Bug Fixes
+
+- Redirection
+  ([`5fbcdfd`](https://github.com/myriade-intelligence/ada/commit/5fbcdfd9910404a0fbc44dd3bae60a9bdc6cda36))
+
+### Chores
+
+- Change script
+  ([`c29d1d4`](https://github.com/myriade-intelligence/ada/commit/c29d1d4963ce36b75a3f77412cc636557fc2de9f))
+
+
 ## v0.8.10 (2025-04-23)
 
 ### Bug Fixes
