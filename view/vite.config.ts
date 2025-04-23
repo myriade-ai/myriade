@@ -1,8 +1,8 @@
-import { sentryVitePlugin } from "@sentry/vite-plugin";
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { defineConfig } from 'vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -11,10 +11,14 @@ export default defineConfig({
   //     esmExternals: true
   //   }
   // },
-  plugins: [vue(), sentryVitePlugin({
-    org: "catalys-rx",
-    project: "view"
-  })],
+  plugins: [
+    vue(),
+    sentryVitePlugin({
+      org: 'myriade-ai',
+      project: 'view',
+      authToken: process.env.SENTRY_AUTH_TOKEN
+    })
+  ],
 
   server: {
     proxy: {

@@ -50,3 +50,5 @@ jobs:
           tags: |
             benderville/ada-view:latest
             benderville/ada-view:${{ steps.get_version.outputs.version }}
+          secrets: |
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
