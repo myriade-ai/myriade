@@ -81,7 +81,7 @@ class DatabaseChat:
             projectId=project_id,
         )
         self.session.add(conversation)
-        self.session.commit()
+        self.session.flush()
         return conversation
 
     def check_stop_flag(self):
@@ -256,7 +256,7 @@ class DatabaseChat:
                 message = ConversationMessage.from_autochat_message(m)
                 message.conversationId = self.conversation.id
                 self.session.add(message)
-                self.session.commit()
+                self.session.flush()
                 yield message
             emit_status(self.conversation.id, STATUS.CLEAR)
         except Exception as e:
@@ -277,7 +277,7 @@ class DatabaseChat:
             conversationId=self.conversation.id,
         )
         self.session.add(message)
-        self.session.commit()
+        self.session.flush()
         yield message
 
         yield from self._run_conversation()

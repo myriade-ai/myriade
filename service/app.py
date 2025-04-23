@@ -42,13 +42,24 @@ def create_app():
     def _open_db_session():
         g.session = SessionLocal()
 
-    @app.teardown_appcontext
-    def _close_db_session(exception=None):
-        db = g.pop("session", None)
-        if db is not None:
-            if exception:
-                db.rollback()
-            db.close()
+    @app.after_request
+    def _commit_or_rollback(response):
+        try:
+            # Commit only if *our* code did not raise – i.e. status < 400
+            if response.status_code < 400:
+                g.session.commit()
+            else:
+                g.session.rollback()
+        finally:
+            g.session.close()
+        return response
+
+    @app.teardown_request
+    def _teardown_request(exception):
+        # Handles unhandled exceptions (500 stacktrace, etc.)
+        if exception is not None:
+            g.session.rollback()
+            g.session.close()
 
     socketio.init_app(app)
 

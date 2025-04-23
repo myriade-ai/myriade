@@ -12,7 +12,7 @@ class NoteService:
     def update(self, title: str, content: str):
         self.note.title = title
         self.note.content = content
-        self.session.commit()
+        self.session.flush()
 
 
 class Notes:
@@ -24,7 +24,7 @@ class Notes:
     def create_note(self, title: str, content: str):
         note = Note(projectId=self.project.id, title=title, content=content)
         self.session.add(note)
-        self.session.commit()
+        self.session.flush()
         return "Created note with id " + str(note.id)
 
     def list_notes(self):
@@ -38,7 +38,7 @@ class Notes:
         )
         if note:
             self.session.delete(note)
-            self.session.commit()
+            self.session.flush()
 
     def open_note(self, id: int):
         note = NoteService(session=self.session, id=id)

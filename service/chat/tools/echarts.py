@@ -48,7 +48,7 @@ class EchartsTool:
         self.session.add(chart)
         self.session.flush()
         from_response.chartId = chart.id
-        self.session.commit()
+        self.session.flush()
 
         query = self.session.query(Query).filter(Query.id == query_id).first()
         rows, _ = self.datalake.query(query.sql)
