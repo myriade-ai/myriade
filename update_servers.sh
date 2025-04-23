@@ -28,6 +28,12 @@ for server in "${servers[@]}"; do
   # Nginx
   echo "Copying setup/nginx.conf to instance: $server"
   gcloud compute scp setup/nginx.conf "$server":~/nginx.conf
+  # Replace DOMAIN_NAME in nginx.conf with "$server}.myriade.ai"
+  gcloud compute ssh "$server" --command="sed -i 's/{DOMAIN_NAME}/${server}.myriade.ai/g' nginx.conf"
+  # Restart nginx
+  gcloud compute ssh "$server" --command="sudo service nginx restart"
+  
+
   echo "Moving nginx.conf to /etc/nginx/sites-available/default and reloading nginx"
   gcloud compute ssh "$server" --command="sudo mv nginx.conf /etc/nginx/sites-available/default && sudo service nginx reload"
 
