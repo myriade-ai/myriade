@@ -1,6 +1,7 @@
 import sentry_sdk
 from flask import Flask, g
 from flask_socketio import SocketIO
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 import config  # noqa: F401
 from back.session import SessionLocal
@@ -23,7 +24,8 @@ if config.ENV != "development":
 
 def create_app():
     app = Flask(__name__)
-
+    # trust 1 proxy in front of you for proto *and* host
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     app.json.sort_keys = False
 
     from ai.api import api as ai_api

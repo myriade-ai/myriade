@@ -11,7 +11,8 @@ api = Blueprint("auth", __name__)
 @api.route("/auth")
 def auth():
     scheme = request.headers.get("X-Forwarded-Proto", request.scheme)
-    redirect_uri = scheme + "://" + request.host + "/auth/callback"
+    host = request.headers.get("X-Forwarded-Host", request.host)
+    redirect_uri = scheme + "://" + host + "/auth/callback"
     authorization_url = workos_client.sso.get_authorization_url(
         provider="authkit",
         redirect_uri=redirect_uri,
