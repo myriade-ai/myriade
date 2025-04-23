@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v0.8.12 (2025-04-23)
+
+### Bug Fixes
+
+- Support uuid
+  ([`78b5244`](https://github.com/myriade-intelligence/ada/commit/78b5244783791c2b8c8455b25ee15eb8e1010272))
+
+- Try to fix redirection
+  ([`a42b228`](https://github.com/myriade-intelligence/ada/commit/a42b228fe0a7b1a04eb95551b3f14f68a5aa4cda))
+
+### Chores
+
+- Change script
+  ([`c74ba98`](https://github.com/myriade-intelligence/ada/commit/c74ba980ea27b45f77dbdc78c0e9cdbed2b8d726))
+
+
 ## v0.8.11 (2025-04-23)
 
 ### Bug Fixes
