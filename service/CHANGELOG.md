@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.8.14 (2025-04-23)
+
+### Bug Fixes
+
+- Improve commit & flush
+  ([`0d1dd3a`](https://github.com/myriade-intelligence/ada/commit/0d1dd3a50321ddad90e5b275cc8ac4899ad8327f))
+
+
 ## v0.8.13 (2025-04-23)
 
 ### Bug Fixes
