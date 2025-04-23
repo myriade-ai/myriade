@@ -79,7 +79,7 @@ function extractTables(sqlQuery) {
 }
 
 const extractedTables = computed(() => {
-  return extractTables(queryStore.querySQL.value)
+  return extractTables(queryStore.querySQL)
 })
 
 const isTableUsed = (table: Table) => {
@@ -133,7 +133,7 @@ const onClick = (key: string) => {
 }
 
 const onDblClick = (table: Table) => {
-  queryStore.querySQL.value = `SELECT * FROM "${table.schema}"."${table.name}";`
+  queryStore.querySQL = `SELECT * FROM "${table.schema}"."${table.name}";`
   searchTablesInput.value = '' // reset input
   queryStore.runQuery()
 }
