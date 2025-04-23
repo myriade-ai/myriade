@@ -17,7 +17,7 @@
   "dependencies": {
     "@headlessui/vue": "^0.0.0-insiders.a08be96",
     "@heroicons/vue": "^2.0.16",
-    "@sentry/vite-plugin": "^3.2.2",
+    "@sentry/vite-plugin": "^3.3.1",
     "@sentry/vue": "^9.5.0",
     "@tailwindcss/forms": "^0.5.3",
     "@vee-validate/i18n": "^4.8.3",

@@ -10,7 +10,7 @@ COPY . .
 RUN yarn build-only
 
 # Stage 2: Serve the app with Nginx
-FROM nginx:stable-alpine as production-stage
+FROM nginx:stable-alpine AS production-stage
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
 # Proxy api requests to the Flask app
