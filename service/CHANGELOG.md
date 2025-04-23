@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.8.13 (2025-04-23)
+
+### Bug Fixes
+
+- Switch to host var instead of http header
+  ([`1405a45`](https://github.com/myriade-intelligence/ada/commit/1405a45e84a8a2bbbf930f0f14a03d2da39f0096))
+
+
 ## v0.8.12 (2025-04-23)
 
 ### Bug Fixes
