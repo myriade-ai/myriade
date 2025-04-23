@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v0.8.10 (2025-04-23)
+
+### Bug Fixes
+
+- Ai suggestions..
+  ([`de49cfb`](https://github.com/myriade-intelligence/ada/commit/de49cfb2f9ad8e27fa7d90b99cd2aba0f91111cf))
+
+- Source maps
+  ([`ebe7184`](https://github.com/myriade-intelligence/ada/commit/ebe718478a4d10d851ad2f1d889d84553f73dd48))
+
+### Chores
+
+- Add session replay
+  ([`01d64e4`](https://github.com/myriade-intelligence/ada/commit/01d64e4a72ad4a83b13c26fb1e9b912854e327e8))
+
+
 ## v0.8.9 (2025-04-17)
 
 ### Bug Fixes
