@@ -5,7 +5,8 @@ from abc import ABC, abstractmethod, abstractproperty
 import sqlalchemy
 from sqlalchemy import text
 
-from back.privacy import crypt_sensitive_data
+from back.privacy import crypt_rows
+from back.rewrite_sql import rewrite_sql
 
 MAX_SIZE = 2 * 1024 * 1024  # 2MB in bytes
 UNSAFE_KEYWORDS = ["DROP", "DELETE", "TRUNCATE", "ALTER", "INSERT", "UPDATE"]
@@ -64,6 +65,33 @@ class AbstractDatabase(ABC):
                         f"Query contains forbidden keyword {keyword}"
                     )
 
+        # If privacy mode is enabled, attempt to rewrite the SQL so that the
+        # encryption happens in-database rather than post-processing.
+        if self.privacy_mode and self.tables_metadata:
+            privacy_rules: list[dict] = []
+            for tmeta in self.tables_metadata:
+                table_name = tmeta.get("name")
+                if not table_name:
+                    continue
+                for cmeta in tmeta.get("columns", []):
+                    priv = cmeta.get("privacy", {})
+                    setting = (
+                        priv.get("llm") or priv.get("users") or priv.get("default")
+                    )
+                    if setting and setting not in ("Visible", "Default"):
+                        # Mark for in-sql encryption
+                        privacy_rules.append(
+                            {
+                                "table": table_name,
+                                "column": cmeta["name"],
+                                "encryption_key": "Encrypted",
+                            }
+                        )
+            # Rewrite the query only if we have rules to apply
+            if privacy_rules:
+                sql = rewrite_sql(sql, privacy_rules)
+                print("rewritten sql", sql)
+
         rows = self._query(sql)
         if sum([sizeof(r) for r in rows]) > MAX_SIZE * 0.9:
             try:
@@ -74,22 +102,11 @@ class AbstractDatabase(ABC):
         else:
             count = len(rows)
 
-        if self.privacy_mode and rows:
-            columns_privacy: dict[str, str] = {}
-            if self.tables_metadata:
-                # Build mapping column -> privacy setting (llm group preferred)
-                for tmeta in self.tables_metadata:
-                    for cmeta in tmeta.get("columns", []):
-                        priv = cmeta.get("privacy", {})
-                        setting = (
-                            priv.get("llm") or priv.get("users") or priv.get("default")
-                        )
-                        if setting and setting not in ("Visible", "Default"):
-                            columns_privacy[cmeta["name"]] = setting
-
-            rows = crypt_sensitive_data(
-                rows, columns_privacy if columns_privacy else None
-            )
+        # Legacy fallback: if privacy mode but we didn't rewrite (e.g., no
+        # metadata available) we still apply the old crypt_sensitive_data
+        # if self.privacy_mode and not self.tables_metadata and rows:
+        #     rows = crypt_sensitive_data(rows)
+        rows = crypt_rows(rows)
 
         return rows, count
 

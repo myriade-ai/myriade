@@ -94,20 +94,40 @@ def encrypt_text_batch(texts: List[str], encryption_key: str) -> List[str]:
     return result
 
 
+def crypt_rows(rows: List[dict]) -> List[dict]:
+    """
+    Columns to encrypt will be marked with a special prefix ("ENCRYPT:")
+    We need to extract them and encrypt them in batch
+    """
+    if not rows:
+        return rows
+
+    # Extract columns to encrypt
+    encrypt_columns = []
+    for row in rows:
+        for key, value in row.items():
+            if isinstance(value, str) and value.startswith("ENCRYPT:"):
+                encrypt_columns.append(key)
+
+    # Encrypt columns in batch
+    encrypted_rows = []
+    for row in rows:
+        encrypted_row = {}
+        for key, value in row.items():
+            if key in encrypt_columns:
+                encrypted_row[key] = encrypt_text_batch([value], "ENCRYPT")
+            else:
+                encrypted_row[key] = value
+        encrypted_rows.append(encrypted_row)
+
+    return encrypted_rows
+
+
 def crypt_sensitive_data(
     rows: List[dict], columns_privacy: Dict[str, str] | None = None
 ) -> List[dict]:
     if not rows:
         return rows
-
-    """
-    TODO: we match actually with the column name, not the table.column name
-    This is because the result of the query is a flat list of values
-    We need to hijack the query so that
-    SELECT * FROM users
-    becomes
-    SELECT * FROM (SELECT id, encrypt(name) as name FROM users) as users
-    """
 
     # If columns_privacy mapping is not provided, build it with regex fallback
     if columns_privacy is None:
