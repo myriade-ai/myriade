@@ -23,7 +23,9 @@ ERROR_TEMPLATE = """An error occurred while executing the SQL query:
 
 
 def wrap_sql_result(rows, count):
-    # Take every row until the total size is less than JSON_OUTPUT_SIZE_LIMIT
+    # We start by limiting the number of rows to 20.
+    rows = rows[:20]
+    # Then we take every row until the total size is less than JSON_OUTPUT_SIZE_LIMIT
     results_limited = limit_data_size(rows, character_limit=JSON_OUTPUT_SIZE_LIMIT)
     results_dumps = json.dumps(results_limited, default=str)
 
