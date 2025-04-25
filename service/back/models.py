@@ -412,6 +412,19 @@ class Note(DefaultBase, Base):
     project = relationship("Project", back_populates="notes")
 
 
+@dataclass
+class SensitiveDataMapping(Base):
+    __tablename__ = "sensitive_data_mapping"
+
+    hash: str
+    generated_id: str
+    createdAt: datetime
+
+    hash = Column(String(64), primary_key=True)  # SHA-256 hash hex digest is 64 chars
+    generated_id = Column(String, nullable=False, unique=True)
+    createdAt = Column(DateTime, nullable=False, server_default=func.now())
+
+
 if __name__ == "__main__":
     from session import DATABASE_URL
     from sqlalchemy import create_engine
