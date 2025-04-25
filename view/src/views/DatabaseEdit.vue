@@ -133,6 +133,9 @@
       </div>
     </div>
 
+    <BaseSwitch v-model="database.privacy_mode" class="mt-5">
+      <span class="text-gray-700">Privacy protection</span>
+    </BaseSwitch>
     <BaseSwitch v-model="database.safe_mode" class="mt-1">
       <span class="text-gray-700">Safe mode (read-only)</span>
     </BaseSwitch>
@@ -217,6 +220,7 @@ const database = ref({
     password: '',
     database: ''
   },
+  privacy_mode: true,
   safe_mode: true,
   dbt_catalog: null,
   dbt_manifest: null
@@ -235,6 +239,7 @@ if (!isNew.value) {
   database.value.engine = databasesStore.databaseSelected.engine
   database.value.details = databasesStore.databaseSelected.details
 
+  database.value.privacy_mode = databasesStore.databaseSelected.privacy_mode
   database.value.safe_mode = databasesStore.databaseSelected.safe_mode
   database.value.dbt_catalog = databasesStore.databaseSelected.dbt_catalog
   database.value.dbt_manifest = databasesStore.databaseSelected.dbt_manifest

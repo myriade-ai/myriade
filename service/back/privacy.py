@@ -30,7 +30,7 @@ def get_or_create_sensitive_ids_batch(hashes: List[str]) -> Dict[str, str]:
         # Get existing mappings in a single query
         existing_mappings = (
             db.query(SensitiveDataMapping)
-            .filter(SensitiveDataMapping.hash.in_(hashes))
+            .filter(SensitiveDataMapping.hash.in_(hashes))  # type: ignore[attr-defined]
             .all()
         )
 
@@ -94,22 +94,62 @@ def encrypt_text_batch(texts: List[str], encryption_key: str) -> List[str]:
     return result
 
 
-def crypt_sensitive_data(rows: List[dict]) -> List[dict]:
-    # 1. DETECT SENSITIVE COLUMNS, using regex patterns for column names
-    column_names = rows[0].keys()
-    columns_privacy = {}
-    for column_name in column_names:
-        for key, pattern in PRIVACY_PATTERNS.items():
-            if re.search(pattern, column_name):
-                columns_privacy[column_name] = key
-                break
+def crypt_sensitive_data(
+    rows: List[dict], columns_privacy: Dict[str, str] | None = None
+) -> List[dict]:
+    if not rows:
+        return rows
+
+    """
+    TODO: we match actually with the column name, not the table.column name
+    This is because the result of the query is a flat list of values
+    We need to hijack the query so that
+    SELECT * FROM users
+    becomes
+    SELECT * FROM (SELECT id, encrypt(name) as name FROM users) as users
+    """
+
+    # If columns_privacy mapping is not provided, build it with regex fallback
+    if columns_privacy is None:
+        columns_privacy = {}
+        column_names = rows[0].keys()
+        for column_name in column_names:
+            for key, pattern in PRIVACY_PATTERNS.items():
+                if re.search(pattern, column_name):
+                    columns_privacy[column_name] = key
+                    break
+
+    # No columns to process
+    if not columns_privacy:
+        return rows
 
     # 2. BATCH PROCESS SENSITIVE DATA
     for column_name, encryption_key in columns_privacy.items():
         # Collect all values for this column
-        values = [row[column_name] for row in rows]
-        # Encrypt them in batch
-        encrypted_values = encrypt_text_batch(values, encryption_key)
+        try:
+            values = [row[column_name] for row in rows]
+        except Exception:
+            # NOTE: This can happen if encrypted/masked columns \
+            # are not present in the query result
+            continue
+        # Encrypt them in batch depending on mode
+        if encryption_key == "Masked":
+            encrypted_values = []
+            for v in values:
+                if isinstance(v, str):
+                    # keep first and last char, replace middle with *
+                    if len(v) <= 2:
+                        encrypted_values.append("*" * len(v))
+                    else:
+                        encrypted_values.append(v[0] + "*" * (len(v) - 2) + v[-1])
+                else:
+                    encrypted_values.append(v)
+        elif encryption_key == "Redacted":
+            encrypted_values = ["*REDACTED*" for _ in values]
+        elif encryption_key == "Encrypted":
+            encrypted_values = encrypt_text_batch(values, encryption_key)
+        else:
+            raise ValueError(f"Unknown encryption key: {encryption_key}")
         # Update the rows with encrypted values
         for row, encrypted_value in zip(rows, encrypted_values):
             row[column_name] = encrypted_value

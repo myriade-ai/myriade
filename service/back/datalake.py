@@ -31,6 +31,7 @@ def sizeof(obj):
 class AbstractDatabase(ABC):
     safe_mode = False
     privacy_mode = False  # Remove name / address / email / phone number / password
+    tables_metadata: list[dict] | None = None  # populated by Database.create_datalake()
 
     @abstractmethod
     def __init__(self):
@@ -74,7 +75,21 @@ class AbstractDatabase(ABC):
             count = len(rows)
 
         if self.privacy_mode and rows:
-            rows = crypt_sensitive_data(rows)
+            columns_privacy: dict[str, str] = {}
+            if self.tables_metadata:
+                # Build mapping column -> privacy setting (llm group preferred)
+                for tmeta in self.tables_metadata:
+                    for cmeta in tmeta.get("columns", []):
+                        priv = cmeta.get("privacy", {})
+                        setting = (
+                            priv.get("llm") or priv.get("users") or priv.get("default")
+                        )
+                        if setting and setting not in ("Visible", "Default"):
+                            columns_privacy[cmeta["name"]] = setting
+
+            rows = crypt_sensitive_data(
+                rows, columns_privacy if columns_privacy else None
+            )
 
         return rows, count
 

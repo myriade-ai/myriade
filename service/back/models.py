@@ -133,6 +133,8 @@ class Database(DefaultBase, Base):
         )
         datalake.privacy_mode = self.privacy_mode
         datalake.safe_mode = self.safe_mode
+        # Pass tables metadata for privacy handling
+        datalake.tables_metadata = self.tables_metadata
         return datalake
 
 
