@@ -3,7 +3,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import List, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import or_
@@ -125,7 +125,11 @@ def create_database():
         dbt_manifest=data["dbt_manifest"],
     )
 
-    database.tables_metadata = datalake.load_metadata()
+    updated_tables_metadata = datalake.load_metadata()
+    # Merge with none (fresh create); adds empty privacy maps
+    database.tables_metadata = cast(
+        Any, _merge_tables_metadata(None, updated_tables_metadata)
+    )  # type: ignore[attr-defined]
 
     g.session.add(database)
     g.session.flush()
@@ -169,7 +173,10 @@ def update_database(database_id):
         except Exception as e:
             return jsonify({"message": str(e)}), 400
 
-    database.tables_metadata = datalake.load_metadata()
+    new_meta = datalake.load_metadata()
+    database.tables_metadata = cast(
+        Any, _merge_tables_metadata(database.tables_metadata, new_meta)
+    )  # type: ignore[attr-defined]
     database._engine = data["engine"]
     database.details = data["details"]
     database.privacy_mode = data["privacy_mode"]
@@ -421,3 +428,68 @@ def delete_project(project_id):
     g.session.delete(project)
     g.session.flush()
     return jsonify({"message": "Project deleted successfully"})
+
+
+@api.route("/databases/<int:database_id>/privacy", methods=["PUT"])
+@user_middleware
+def update_database_privacy(database_id):
+    """Update privacy configuration (tables_metadata) for a database."""
+    database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access (owner or organisation match)
+    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+        return jsonify({"error": "Access denied"}), 403
+
+    payload = request.get_json()
+    if not isinstance(payload, list):
+        return jsonify({"error": "Invalid payload"}), 400
+
+    # Persist the whole tables_metadata JSON (list of tables with columns + privacy)
+    database.tables_metadata = payload
+    g.session.flush()
+
+    return jsonify({"success": True})
+
+
+# Helper to merge existing privacy settings with freshly fetched metadata
+
+
+def _merge_tables_metadata(
+    existing: Optional[List[Dict[str, Any]]], new: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """Return `new` tables list enriched with privacy maps from `existing`.
+
+    If a table/column already has a privacy map in `existing`, keep it.
+    Tables not present in the datalake anymore are discarded.
+    """
+
+    existing_lookup = {}
+    if existing:
+        for t in existing:
+            existing_lookup[(t.get("schema"), t["name"])] = t
+
+    merged: List[Dict[str, Any]] = []
+    for t in new:
+        key = (t.get("schema"), t["name"])
+        previous = existing_lookup.get(key)
+        # Build columns preserving privacy if available
+        merged_columns: List[Dict[str, Any]] = []
+        for col in t["columns"]:
+            # find same column in previous
+            prev_col_priv = {}
+            if previous:
+                for pc in previous.get("columns", []):
+                    if pc["name"] == col["name"]:
+                        prev_col_priv = pc.get("privacy", {})
+                        break
+            merged_columns.append(
+                {
+                    **col,
+                    "privacy": prev_col_priv.copy(),
+                }
+            )
+        merged.append({**t, "columns": merged_columns})
+
+    return merged

@@ -172,6 +172,7 @@ const navigation = computed(() => [
   ...(user.value?.isAdmin
     ? [
         { name: 'Databases', href: '/databases' },
+        { name: 'Privacy', href: '/privacy' },
         { name: 'Projects', href: '/projects' }
       ]
     : [])
