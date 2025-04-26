@@ -92,7 +92,7 @@ def get_query_results_by_id(query_id):
         # We temporarily support fetching results when we don't have them
         database = g.session.query(Database).filter_by(id=query.databaseId).first()
         datalake = database.create_datalake()
-        rows, count = datalake.query(query.sql)
+        rows, count = datalake.query(query.sql, role="users")
         return jsonify({"rows": rows, "count": count})
 
     if query.exception:

@@ -31,7 +31,6 @@ def sizeof(obj):
 
 class AbstractDatabase(ABC):
     safe_mode = False
-    privacy_mode = False  # Remove name / address / email / phone number / password
     tables_metadata: list[dict] | None = None  # populated by Database.create_datalake()
 
     @abstractmethod
@@ -67,7 +66,7 @@ class AbstractDatabase(ABC):
 
         # If privacy mode is enabled, attempt to rewrite the SQL so that the
         # encryption happens in-database rather than post-processing.
-        if self.privacy_mode and self.tables_metadata:
+        if self.tables_metadata:
             privacy_rules: list[dict] = []
             for tmeta in self.tables_metadata:
                 table_name = tmeta.get("name")
@@ -82,7 +81,7 @@ class AbstractDatabase(ABC):
                             {
                                 "table": table_name,
                                 "column": cmeta["name"],
-                                "encryption_key": "Encrypted",
+                                "encryption_key": "Encrypted",  # NOTE: not used ?
                             }
                         )
             # Rewrite the query only if we have rules to apply
@@ -99,7 +98,7 @@ class AbstractDatabase(ABC):
         else:
             count = len(rows)
 
-        if self.privacy_mode and self.tables_metadata and rows:
+        if self.tables_metadata and rows:
             rows = encrypt_rows(rows)
 
         return rows, count
@@ -226,7 +225,7 @@ class SnowflakeDatabase(AbstractDatabase):
     def load_metadata(self):
         query = "SHOW TABLES IN DATABASE {}".format(self.connection.database)
         tables, _ = self.query(query)
-        for table in tables[:30]:
+        for table in tables[:30]:  # TODO: remove this limit
             schema = table["schema_name"]
             table_name = table["name"]
 

@@ -34,6 +34,15 @@ def normalize(sql: str) -> str:
             id="simple_groupby",
         ),
         pytest.param(
+            # Simple query
+            "SELECT name, COUNT(*) AS count FROM users ORDER BY count",
+            [
+                {"table": "users", "column": "name", "encryption_key": "Encrypted"},
+            ],
+            "SELECT name, COUNT(*) AS count FROM (SELECT 'ENCRYPT:' || name AS name FROM users) AS users ORDER BY count",  # noqa
+            id="simple_groupby",
+        ),
+        pytest.param(
             # Let all columns be passed through
             "SELECT * FROM users",
             [
@@ -71,6 +80,15 @@ def normalize(sql: str) -> str:
             "SELECT product.name, email FROM (SELECT id, 'ENCRYPT:' || email AS email FROM users) AS users JOIN (SELECT user_id, 'ENCRYPT:' || name AS name FROM product) AS product ON users.id = product.user_id",  # noqa
             id="handle_joins",
         ),
+        pytest.param(
+            # Skip if no relevant privacy rules
+            "SELECT name, COUNT(*) AS count FROM users ORDER BY count",
+            [
+                {"table": "products", "column": "name", "encryption_key": "Encrypted"},
+            ],
+            "SELECT name, COUNT(*) AS count FROM users ORDER BY count",
+            id="no_privacy_rules_relevant",
+        ),
     ],
 )
 def test_rewrite_sql_basic(sql, columns_privacy, expected_sql):
@@ -80,5 +98,5 @@ def test_rewrite_sql_basic(sql, columns_privacy, expected_sql):
 
 def test_rewrite_sql_no_privacy():
     sql = "SELECT name, email FROM users"
-    new_sql = rewrite_sql(sql, {})
+    new_sql = rewrite_sql(sql, [])
     assert normalize(new_sql) == normalize(sql)

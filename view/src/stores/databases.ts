@@ -8,7 +8,6 @@ export interface Database {
   name: string
   engine: string
   details: any
-  privacy_mode: boolean
   safe_mode: boolean
   dbt_catalog: any
   dbt_manifest: any

@@ -121,7 +121,6 @@ def create_database():
         details=data["details"],
         organisationId=g.organisation.id,
         ownerId=g.user.id,
-        privacy_mode=data["privacy_mode"],
         safe_mode=data["safe_mode"],
         dbt_catalog=data["dbt_catalog"],
         dbt_manifest=data["dbt_manifest"],
@@ -185,7 +184,6 @@ def update_database(database_id):
     )
     database._engine = data["engine"]
     database.details = data["details"]
-    database.privacy_mode = data["privacy_mode"]
     database.safe_mode = data["safe_mode"]
     database.dbt_catalog = data["dbt_catalog"]
     database.dbt_manifest = data["dbt_manifest"]

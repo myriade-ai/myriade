@@ -13,7 +13,7 @@
     </div>
 
     <!-- User Group Selector -->
-    <div class="flex items-center space-x-3">
+    <!-- <div class="flex items-center space-x-3">
       <label class="font-medium text-gray-700" for="userGroup">User group</label>
       <select
         id="userGroup"
@@ -22,7 +22,7 @@
       >
         <option v-for="g in userGroups" :key="g.key" :value="g.key">{{ g.name }}</option>
       </select>
-    </div>
+    </div> -->
 
     <!-- Tables & Columns -->
     <div class="space-y-4">
@@ -93,7 +93,7 @@
                         col.privacy[selectedGroup] &&
                         col.privacy[selectedGroup] !== 'Default' &&
                         col.privacy[selectedGroup] !== 'Visible'
-                          ? 'bg-red-50'
+                          ? 'bg-blue-100'
                           : 'text-gray-700',
                         !isTextType(col.type) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''
                       ]"
@@ -171,7 +171,7 @@ interface UserGroup {
 const props = defineProps<{ databaseId: number }>()
 
 const userGroups = ref<UserGroup[]>([
-  { key: 'users', name: 'Users' },
+  // { key: 'users', name: 'Users' },
   { key: 'llm', name: 'LLM / AI Provider' }
 ])
 
@@ -182,26 +182,26 @@ const privacyOptions: PrivacyOptionDef[] = [
     description:
       'No explicit privacy rule set. The value will inherit the default behaviour (Visible).'
   },
-  {
+  /* {
     key: 'Visible',
     label: 'Visible',
     description: 'Value is shown as-is. (e.g. benjamin.dupont@example.com)'
-  },
+  }, */
   {
     key: 'Encrypted',
     label: 'Encrypted',
     description: 'Value is replaced by an encrypted ID (e.g. EMAIL_1234).'
-  },
-  {
+  }
+  /* {
     key: 'Masked',
     label: 'Masked',
     description: 'Value is partially hidden (e.g. b********t@example.com).'
-  },
-  {
+  }, */
+  /* {
     key: 'Redacted',
     label: 'Redacted',
     description: 'Value is removed entirely and replaced with *REDACTED*.'
-  }
+  } */
 ]
 
 // Holds fetched tables / columns and original copy to check changes

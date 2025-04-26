@@ -2,8 +2,16 @@
   <div class="p-6 space-y-6 max-w-5xl mx-auto">
     <!-- Page header -->
     <div>
-      <h1 class="text-2xl font-semibold">Privacy Settings</h1>
-      <p class="text-sm text-gray-600">Configure column-level privacy for your databases.</p>
+      <h1 class="text-2xl font-semibold">Zero Knowledge Protection</h1>
+      <p class="text-sm text-gray-600 mt-2">
+        Zero Knowledge Protection is an advanced anonymization layer that ensures sensitive
+        information is securely masked before any interaction with external AI models or services.
+        <br />
+        By applying robust anonymization techniques, it guarantees that no private or identifiable
+        data is ever exposed, transmitted, or stored outside your trusted environment.<br />
+        Enhance your data privacy and compliance, with full confidence that your default security
+        standards remain uncompromised.
+      </p>
     </div>
 
     <!-- Database selector -->
@@ -24,7 +32,9 @@
 
     <!-- Privacy configuration component -->
     <PrivacyConfiguration v-if="selectedDbId" :database-id="Number(selectedDbId)" />
-    <div v-else class="text-sm text-gray-500">Please select a database to configure privacy.</div>
+    <div v-else class="text-sm text-gray-500">
+      Please select a database to configure zero knowledge protection.
+    </div>
   </div>
 </template>
 

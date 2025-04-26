@@ -76,7 +76,7 @@ def rewrite_sql(sql: str, columns_privacy: List[Dict[str, str]]) -> str:
 
             # Build a deterministic table ordering (using their *clean* name) – this is
             # computed once and cached via closure the first time the function executes.
-            nonlocal table_sequence  # defined just below the `build_subquery` function
+            nonlocal table_sequence, outer_aliases  # defined later
 
             passthrough_candidates: set[str] = referenced_qualified.get(
                 alias_clean, set()
@@ -103,25 +103,32 @@ def rewrite_sql(sql: str, columns_privacy: List[Dict[str, str]]) -> str:
                         passthrough_candidates.add(col)
 
             passthrough = [
-                col for col in passthrough_candidates if col not in encrypt_cols
+                col
+                for col in passthrough_candidates
+                if col not in encrypt_cols and col not in outer_aliases
             ]
 
         # -------- encrypted overrides
         overrides = [f"'ENCRYPT:'||{c} AS {c}" for c in encrypt_cols]
 
-        # Remove any duplicate that would shadow an override
-        passthrough = [c for c in passthrough if _clean(c) not in encrypt_cols]
-
         select_list = passthrough + overrides
         inner_sql = f"SELECT {', '.join(select_list)} FROM {table_node.sql()}"
         return sqlglot.parse_one(f"({inner_sql}) AS {alias_sql}")
 
-    # ------------------------------------------------------------- collect table sequence for unqualified resolution # noqa
+    # ----------------------------- gather helper metadata -----------------------------
+    # Outer SELECT aliases (e.g., "COUNT(*) AS count") should not be propagated down
+    # to inner sub-queries because they do not exist in the base tables.
+    outer_aliases: set[str] = set()
+    for expr in root.args.get("expressions", []):
+        if isinstance(expr, exp.Alias) and expr.alias:
+            outer_aliases.add(_clean(expr.alias))
+
+    # ---------------------------------- collect table sequence for unqualified resolution # noqa
     table_sequence: list[str] = []
     for _tbl in root.find_all(exp.Table):
         table_sequence.append(_clean(_tbl.this))
 
-    # ------------------------------------------------------------- mutate tree
+    # ---------------------------------- mutate tree
     for tbl in list(root.find_all(exp.Table)):
         sub = build_subquery(tbl)
         if sub is not None:
