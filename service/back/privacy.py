@@ -1,6 +1,5 @@
 import hashlib
 import random
-import re
 import string
 from typing import Dict, List
 
@@ -94,84 +93,32 @@ def encrypt_text_batch(texts: List[str], encryption_key: str) -> List[str]:
     return result
 
 
-def crypt_rows(rows: List[dict]) -> List[dict]:
+def encrypt_rows(rows: List[dict]) -> List[dict]:
     """
-    Columns to encrypt will be marked with a special prefix ("ENCRYPT:")
-    We need to extract them and encrypt them in batch
+    Some columns will have values to encrypt.
+    Values to encrypt will have a special prefix ("ENCRYPT:").
+    We need to extract them and encrypt them in batch.
     """
     if not rows:
         return rows
 
-    # Extract columns to encrypt
-    encrypt_columns = []
-    for row in rows:
-        for key, value in row.items():
+    # Transpose rows to get a list of values for each column
+    transposed_rows = list(zip(*rows))
+
+    # Extract values to encrypt
+    values_to_encrypt = []
+    for column in transposed_rows:
+        for value in column:
             if isinstance(value, str) and value.startswith("ENCRYPT:"):
-                encrypt_columns.append(key)
+                values_to_encrypt.append(value.replace("ENCRYPT:", ""))
 
-    # Encrypt columns in batch
-    encrypted_rows = []
-    for row in rows:
-        encrypted_row = {}
-        for key, value in row.items():
-            if key in encrypt_columns:
-                encrypted_row[key] = encrypt_text_batch([value], "ENCRYPT")
-            else:
-                encrypted_row[key] = value
-        encrypted_rows.append(encrypted_row)
+    # Encrypt values in batch
+    encrypted_values = encrypt_text_batch(values_to_encrypt, "ENCRYPT")
 
-    return encrypted_rows
-
-
-def crypt_sensitive_data(
-    rows: List[dict], columns_privacy: Dict[str, str] | None = None
-) -> List[dict]:
-    if not rows:
-        return rows
-
-    # If columns_privacy mapping is not provided, build it with regex fallback
-    if columns_privacy is None:
-        columns_privacy = {}
-        column_names = rows[0].keys()
-        for column_name in column_names:
-            for key, pattern in PRIVACY_PATTERNS.items():
-                if re.search(pattern, column_name):
-                    columns_privacy[column_name] = key
-                    break
-
-    # No columns to process
-    if not columns_privacy:
-        return rows
-
-    # 2. BATCH PROCESS SENSITIVE DATA
-    for column_name, encryption_key in columns_privacy.items():
-        # Collect all values for this column
-        try:
-            values = [row[column_name] for row in rows]
-        except Exception:
-            # NOTE: This can happen if encrypted/masked columns \
-            # are not present in the query result
-            continue
-        # Encrypt them in batch depending on mode
-        if encryption_key == "Masked":
-            encrypted_values = []
-            for v in values:
-                if isinstance(v, str):
-                    # keep first and last char, replace middle with *
-                    if len(v) <= 2:
-                        encrypted_values.append("*" * len(v))
-                    else:
-                        encrypted_values.append(v[0] + "*" * (len(v) - 2) + v[-1])
-                else:
-                    encrypted_values.append(v)
-        elif encryption_key == "Redacted":
-            encrypted_values = ["*REDACTED*" for _ in values]
-        elif encryption_key == "Encrypted":
-            encrypted_values = encrypt_text_batch(values, encryption_key)
-        else:
-            raise ValueError(f"Unknown encryption key: {encryption_key}")
-        # Update the rows with encrypted values
-        for row, encrypted_value in zip(rows, encrypted_values):
-            row[column_name] = encrypted_value
+    # Replace encrypted values in rows
+    for i, column in enumerate(transposed_rows):
+        for j, value in enumerate(column):
+            if isinstance(value, str) and value.startswith("ENCRYPT:"):
+                rows[j][i] = encrypted_values[j]
 
     return rows

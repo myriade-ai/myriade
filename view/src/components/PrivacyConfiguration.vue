@@ -87,13 +87,15 @@
                   <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
                     <select
                       v-model="col.privacy[selectedGroup]"
+                      :disabled="!isTextType(col.type)"
                       class="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                       :class="[
                         col.privacy[selectedGroup] &&
                         col.privacy[selectedGroup] !== 'Default' &&
                         col.privacy[selectedGroup] !== 'Visible'
                           ? 'bg-red-50'
-                          : 'text-gray-700'
+                          : 'text-gray-700',
+                        !isTextType(col.type) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''
                       ]"
                     >
                       <option v-for="opt in privacyOptions" :key="String(opt.key)" :value="opt.key">
@@ -152,6 +154,7 @@ interface Column {
 
 interface Table {
   name: string
+  schema: string
   type: string
   description: string
   columns: Column[]
@@ -269,6 +272,11 @@ const hasUnsavedChanges = computed(() => {
 
 // Selected group state
 const selectedGroup = ref(userGroups.value[0].key)
+
+// -----------------------------------------------------------------------
+// Utility to check if a column type is text-based
+// -----------------------------------------------------------------------
+const isTextType = (type: string) => /^(text|varchar)/i.test(type)
 
 // -----------------------------------------------------------------------
 // Methods

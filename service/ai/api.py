@@ -17,7 +17,7 @@ def run_query():
     sql_query = request.json.get("query")
 
     try:
-        rows, count = g.datalake.query(sql_query)
+        rows, count = g.datalake.query(sql_query, role="users")
         return jsonify({"rows": rows, "count": count})
     except Exception as e:
         return jsonify({"message": str(e)}), 500

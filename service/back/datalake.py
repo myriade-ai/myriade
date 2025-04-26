@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod, abstractproperty
 import sqlalchemy
 from sqlalchemy import text
 
-from back.privacy import crypt_rows
+from back.privacy import encrypt_rows
 from back.rewrite_sql import rewrite_sql
 
 MAX_SIZE = 2 * 1024 * 1024  # 2MB in bytes
@@ -55,7 +55,7 @@ class AbstractDatabase(ABC):
         result = self._query(count_request)
         return result[0]["count"]
 
-    def query(self, sql):
+    def query(self, sql, role="llm"):
         if self.safe_mode:
             # Forbid DROP, DELETE, TRUNCATE, etc. queries
             # If keyword is in query, raise ValueError
@@ -75,9 +75,7 @@ class AbstractDatabase(ABC):
                     continue
                 for cmeta in tmeta.get("columns", []):
                     priv = cmeta.get("privacy", {})
-                    setting = (
-                        priv.get("llm") or priv.get("users") or priv.get("default")
-                    )
+                    setting = priv.get(role)
                     if setting and setting not in ("Visible", "Default"):
                         # Mark for in-sql encryption
                         privacy_rules.append(
@@ -90,7 +88,6 @@ class AbstractDatabase(ABC):
             # Rewrite the query only if we have rules to apply
             if privacy_rules:
                 sql = rewrite_sql(sql, privacy_rules)
-                print("rewritten sql", sql)
 
         rows = self._query(sql)
         if sum([sizeof(r) for r in rows]) > MAX_SIZE * 0.9:
@@ -102,11 +99,8 @@ class AbstractDatabase(ABC):
         else:
             count = len(rows)
 
-        # Legacy fallback: if privacy mode but we didn't rewrite (e.g., no
-        # metadata available) we still apply the old crypt_sensitive_data
-        # if self.privacy_mode and not self.tables_metadata and rows:
-        #     rows = crypt_sensitive_data(rows)
-        rows = crypt_rows(rows)
+        if self.privacy_mode and self.tables_metadata and rows:
+            rows = encrypt_rows(rows)
 
         return rows, count
 

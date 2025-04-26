@@ -115,7 +115,7 @@ class DatabaseTool:
             from_response.query_id = _query.id  # type: ignore
 
         try:
-            rows, count = self.datalake.query(query)
+            rows, count = self.datalake.query(query, role="llm")
             # We add the result
             _query.rows = rows
             _query.count = count
