@@ -55,7 +55,7 @@ def get_or_create_sensitive_ids_batch(hashes: List[str]) -> Dict[str, str]:
 
 
 # Update the encrypt_text function to use batching
-def encrypt_text_batch(texts: List[str], encryption_key: str) -> List[str]:
+def encrypt_text_batch(texts: List[str]) -> List[str]:
     """
     Batch process multiple texts at once
     """
@@ -88,7 +88,7 @@ def encrypt_text_batch(texts: List[str], encryption_key: str) -> List[str]:
         hasher.update(text.encode("utf-8"))
         text_hash = hasher.hexdigest()
         generated_id = hash_to_id[text_hash]
-        result.append(f"[{encryption_key}_{generated_id}]")
+        result.append(generated_id)
 
     return result
 
@@ -102,23 +102,21 @@ def encrypt_rows(rows: List[dict]) -> List[dict]:
     if not rows:
         return rows
 
-    # Transpose rows to get a list of values for each column
-    transposed_rows = list(zip(*rows))
-
-    # Extract values to encrypt
-    values_to_encrypt = []
-    for column in transposed_rows:
-        for value in column:
+    # Gather raw values and their positions
+    raw_values = []
+    positions = []
+    for i, row in enumerate(rows):
+        for key, value in row.items():
             if isinstance(value, str) and value.startswith("ENCRYPT:"):
-                values_to_encrypt.append(value.replace("ENCRYPT:", ""))
+                raw = value[len("ENCRYPT:") :]
+                raw_values.append(raw)
+                positions.append((i, key))
 
     # Encrypt values in batch
-    encrypted_values = encrypt_text_batch(values_to_encrypt, "ENCRYPT")
+    encrypted_values = encrypt_text_batch(raw_values)
 
-    # Replace encrypted values in rows
-    for i, column in enumerate(transposed_rows):
-        for j, value in enumerate(column):
-            if isinstance(value, str) and value.startswith("ENCRYPT:"):
-                rows[j][i] = encrypted_values[j]
+    # Assign encrypted values back to rows
+    for (i, key), encrypted in zip(positions, encrypted_values):
+        rows[i][key] = f"ENCRYPTED:{encrypted}"
 
     return rows

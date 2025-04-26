@@ -15,51 +15,61 @@ def normalize(sql: str) -> str:
 @pytest.mark.parametrize(
     "sql,columns_privacy,expected_sql",
     [
-        (
+        pytest.param(
             # Simple query
             "SELECT name, email FROM users",
             [
                 {"table": "users", "column": "email", "encryption_key": "Encrypted"},
             ],
             "SELECT name, email FROM (SELECT name, 'ENCRYPT:' || email AS email FROM users) AS users",  # noqa
+            id="simple_query_encrypted",
         ),
-        (
-            # Simple query with Masked encryption
-            "SELECT name, email FROM users",
+        pytest.param(
+            # Simple query
+            "SELECT name, COUNT(*) FROM users",
             [
-                {"table": "users", "column": "email", "encryption_key": "Masked"},
+                {"table": "users", "column": "name", "encryption_key": "Encrypted"},
             ],
-            "SELECT name, email FROM (SELECT name, 'Masked:' || email AS email FROM users) AS users",  # noqa
+            "SELECT name, COUNT(*) FROM (SELECT 'ENCRYPT:' || name AS name FROM users) AS users",  # noqa
+            id="simple_groupby",
         ),
-        (  # Let all columns be passed through
+        pytest.param(
+            # Let all columns be passed through
             "SELECT * FROM users",
             [
                 {"table": "users", "column": "email", "encryption_key": "Encrypted"},
             ],
             "SELECT * FROM (SELECT *, 'ENCRYPT:' || email AS email FROM users) AS users",  # noqa
+            id="all_columns_passed_through",
         ),
-        (  # Handle "schema"."table" notation
+        pytest.param(
+            # Handle "schema"."table" notation
             'SELECT name, email FROM "public"."users"',
             [
                 {"table": "users", "column": "email", "encryption_key": "Encrypted"},
             ],
             'SELECT name, email FROM (SELECT name, \'ENCRYPT:\' || email AS email FROM "public"."users") AS users',  # noqa
+            id="schema_table_notation",
         ),
-        (  # Don't encrypt columns that are about another table
+        pytest.param(
+            # Don't encrypt columns that are about another table
             "SELECT name, email FROM users",
             [
                 {"table": "product", "column": "name", "encryption_key": "Encrypted"},
                 {"table": "users", "column": "email", "encryption_key": "Encrypted"},
             ],
             "SELECT name, email FROM (SELECT name, 'ENCRYPT:' || email AS email FROM users) AS users",  # noqa
+            id="ignore_other_table_columns",
         ),
-        (  # Handle JOINs
+        pytest.param(
+            # Handle JOINs
             "SELECT product.name, email FROM users JOIN product ON users.id = product.user_id",  # noqa
             [
                 {"table": "product", "column": "name", "encryption_key": "Encrypted"},
                 {"table": "users", "column": "email", "encryption_key": "Encrypted"},
             ],
             "SELECT product.name, email FROM (SELECT id, 'ENCRYPT:' || email AS email FROM users) AS users JOIN (SELECT user_id, 'ENCRYPT:' || name AS name FROM product) AS product ON users.id = product.user_id",  # noqa
+            id="handle_joins",
         ),
     ],
 )
