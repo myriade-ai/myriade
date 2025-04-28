@@ -23,7 +23,9 @@ ERROR_TEMPLATE = """An error occurred while executing the SQL query:
 
 
 def wrap_sql_result(rows, count):
-    # Take every row until the total size is less than JSON_OUTPUT_SIZE_LIMIT
+    # We start by limiting the number of rows to 20.
+    rows = rows[:20]
+    # Then we take every row until the total size is less than JSON_OUTPUT_SIZE_LIMIT
     results_limited = limit_data_size(rows, character_limit=JSON_OUTPUT_SIZE_LIMIT)
     results_dumps = json.dumps(results_limited, default=str)
 
@@ -113,7 +115,7 @@ class DatabaseTool:
             from_response.query_id = _query.id  # type: ignore
 
         try:
-            rows, count = self.datalake.query(query)
+            rows, count = self.datalake.query(query, role="llm")
             # We add the result
             _query.rows = rows
             _query.count = count

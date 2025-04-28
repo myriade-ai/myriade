@@ -1,9 +1,10 @@
 import dataclasses
 import json
 import os
+import re
 from datetime import datetime
 from pathlib import Path
-from typing import List, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import or_
@@ -16,6 +17,7 @@ from back.models import (
     Project,
     ProjectTables,
 )
+from back.privacy import PRIVACY_PATTERNS
 from middleware import admin_required, user_middleware
 
 api = Blueprint("back_api", __name__)
@@ -119,13 +121,17 @@ def create_database():
         details=data["details"],
         organisationId=g.organisation.id,
         ownerId=g.user.id,
-        privacy_mode=data["privacy_mode"],
         safe_mode=data["safe_mode"],
         dbt_catalog=data["dbt_catalog"],
         dbt_manifest=data["dbt_manifest"],
     )
 
-    database.tables_metadata = datalake.load_metadata()
+    updated_tables_metadata = datalake.load_metadata()
+    # Merge with none (fresh create); adds empty privacy maps, then auto privacy scan
+    merged_metadata = cast(Any, _merge_tables_metadata(None, updated_tables_metadata))  # type: ignore[attr-defined]
+    database.tables_metadata = cast(  # type: ignore[attr-defined]
+        Any, _apply_privacy_patterns_to_metadata(merged_metadata)
+    )
 
     g.session.add(database)
     g.session.flush()
@@ -169,14 +175,21 @@ def update_database(database_id):
         except Exception as e:
             return jsonify({"message": str(e)}), 400
 
-    database.tables_metadata = datalake.load_metadata()
+    new_meta = datalake.load_metadata()
+    merged_metadata = cast(
+        Any, _merge_tables_metadata(database.tables_metadata, new_meta)
+    )  # type: ignore[attr-defined]
+    database.tables_metadata = cast(  # type: ignore[attr-defined]
+        Any, _apply_privacy_patterns_to_metadata(merged_metadata)
+    )
     database._engine = data["engine"]
     database.details = data["details"]
-    database.privacy_mode = data["privacy_mode"]
     database.safe_mode = data["safe_mode"]
     database.dbt_catalog = data["dbt_catalog"]
     database.dbt_manifest = data["dbt_manifest"]
 
+    # Persist the updated metadata (re-assign to mark field as modified)
+    database.tables_metadata = database.tables_metadata  # type: ignore[attr-defined]
     g.session.flush()
 
     return jsonify(database)
@@ -421,3 +434,140 @@ def delete_project(project_id):
     g.session.delete(project)
     g.session.flush()
     return jsonify({"message": "Project deleted successfully"})
+
+
+@api.route("/databases/<int:database_id>/privacy", methods=["PUT"])
+@user_middleware
+def update_database_privacy(database_id):
+    """Update privacy configuration (tables_metadata) for a database."""
+    database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access (owner or organisation match)
+    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+        return jsonify({"error": "Access denied"}), 403
+
+    payload = request.get_json()
+    if not isinstance(payload, list):
+        return jsonify({"error": "Invalid payload"}), 400
+
+    # Persist the whole tables_metadata JSON (list of tables with columns + privacy)
+    database.tables_metadata = payload
+    g.session.flush()
+
+    return jsonify({"success": True})
+
+
+@api.route("/databases/<int:database_id>/privacy/auto", methods=["POST"])
+@user_middleware
+def auto_update_database_privacy(database_id):
+    """Auto-detect sensitive columns based on PRIVACY_PATTERNS and update privacy maps.
+
+    For every column whose name matches one of the regexes defined in
+    PRIVACY_PATTERNS and that currently has *no* specific LLM privacy setting
+    (or is marked as Visible/Default), set the LLM provider privacy to
+    "Encrypted". The updated `tables_metadata` JSON structure is then
+    persisted back to the database row.
+    """
+
+    database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access (owner or organisation match)
+    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+        return jsonify({"error": "Access denied"}), 403
+
+    if not database.tables_metadata:
+        return jsonify({"error": "No metadata found for this database"}), 400
+
+    # Apply the same logic used at creation/update time
+    _apply_privacy_patterns_to_metadata(database.tables_metadata)
+
+    # Persist the updated metadata (re-assign to mark field as modified)
+    database.tables_metadata = database.tables_metadata  # type: ignore[attr-defined]
+    g.session.flush()
+
+    return jsonify({"success": True, "tables_metadata": database.tables_metadata})
+
+
+# Helper to merge existing privacy settings with freshly fetched metadata
+
+
+def _merge_tables_metadata(
+    existing: Optional[List[Dict[str, Any]]], new: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """Return `new` tables list enriched with privacy maps from `existing`.
+
+    If a table/column already has a privacy map in `existing`, keep it.
+    Tables not present in the datalake anymore are discarded.
+    """
+
+    existing_lookup = {}
+    if existing:
+        for t in existing:
+            existing_lookup[(t.get("schema"), t["name"])] = t
+
+    merged: List[Dict[str, Any]] = []
+    for t in new:
+        key = (t.get("schema"), t["name"])
+        previous = existing_lookup.get(key)
+        # Build columns preserving privacy if available
+        merged_columns: List[Dict[str, Any]] = []
+        for col in t["columns"]:
+            # find same column in previous
+            prev_col_priv = {}
+            if previous:
+                for pc in previous.get("columns", []):
+                    if pc["name"] == col["name"]:
+                        prev_col_priv = pc.get("privacy", {})
+                        break
+            merged_columns.append(
+                {
+                    **col,
+                    "privacy": prev_col_priv.copy(),
+                }
+            )
+        merged.append({**t, "columns": merged_columns})
+
+    return merged
+
+
+def _apply_privacy_patterns_to_metadata(
+    metadata: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Return the *same* list of tables with LLM privacy updated using PRIVACY_PATTERNS.
+
+    For every column whose name matches one of the regexes in ``PRIVACY_PATTERNS`` and
+    whose current LLM privacy is *not* one of ("Masked", "Redacted", "Encrypted"), we
+    set it to ``Encrypted``.
+
+    The function mutates the provided ``metadata`` list in place and also returns it
+    for convenience so callers can do::
+
+        database.tables_metadata = _apply_privacy_patterns_to_metadata(metadata)
+    """
+
+    for table in metadata:
+        for column in table.get("columns", []):
+            col_name: str = column.get("name", "")
+            privacy_map: Dict[str, str] = column.get("privacy", {}) or {}
+
+            llm_setting = privacy_map.get("llm")
+            # Skip if already protected
+            if llm_setting in {"Masked", "Redacted", "Encrypted"}:
+                continue
+
+            for pattern in PRIVACY_PATTERNS.values():
+                try:
+                    if re.search(pattern, col_name):
+                        privacy_map["llm"] = "Encrypted"
+                        column["privacy"] = privacy_map
+                        # No need to test further patterns for this column
+                        break
+                except re.error:
+                    # Malformed regex should never happen, but ignore if it does
+                    continue
+
+    return metadata

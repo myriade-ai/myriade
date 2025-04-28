@@ -1,32 +1,15 @@
 import json
-import re
 import sys
 from abc import ABC, abstractmethod, abstractproperty
 
 import sqlalchemy
 from sqlalchemy import text
 
+from back.privacy import encrypt_rows
+from back.rewrite_sql import rewrite_sql
+
 MAX_SIZE = 2 * 1024 * 1024  # 2MB in bytes
 UNSAFE_KEYWORDS = ["DROP", "DELETE", "TRUNCATE", "ALTER", "INSERT", "UPDATE"]
-PRIVACY_ENCRYPTION_KEY = (
-    b"TluxwB3fV_GWuLkR1_BzGs1Zk90TYAuhNMZP_0q4WyM="  # TODO: Would be better in env var
-)
-PRIVACY_PATTERNS = [  # Using regex patterns to detect sensitive data
-    r"(?i)(first|last|full)?_?names?|fullname",  # Name patterns
-    r"(?i)(email|phone|address|city|state|zip|country)",  # Contact information
-    r"(?i)(password|secret|token|api_?key|api_?secret)",  # Authentication/security
-    r"(?i)card_(number|cvv|expiry|holder)",  # Payment card information
-    r"(?i)ssn",  # Social Security Number
-]
-
-
-def encrypt_text(text):
-    from cryptography.fernet import Fernet
-
-    if not isinstance(text, str):
-        return text
-    f = Fernet(PRIVACY_ENCRYPTION_KEY)
-    return "encrypted:" + f.encrypt(text.encode()).decode()
 
 
 class SizeLimitError(Exception):
@@ -48,7 +31,7 @@ def sizeof(obj):
 
 class AbstractDatabase(ABC):
     safe_mode = False
-    privacy_mode = False  # Remove name / address / email / phone number / password
+    tables_metadata: list[dict] | None = None  # populated by Database.create_datalake()
 
     @abstractmethod
     def __init__(self):
@@ -71,7 +54,7 @@ class AbstractDatabase(ABC):
         result = self._query(count_request)
         return result[0]["count"]
 
-    def query(self, sql):
+    def query(self, sql, role="llm"):
         if self.safe_mode:
             # Forbid DROP, DELETE, TRUNCATE, etc. queries
             # If keyword is in query, raise ValueError
@@ -80,6 +63,30 @@ class AbstractDatabase(ABC):
                     raise UnsafeQueryError(
                         f"Query contains forbidden keyword {keyword}"
                     )
+
+        # If privacy mode is enabled, attempt to rewrite the SQL so that the
+        # encryption happens in-database rather than post-processing.
+        if self.tables_metadata:
+            privacy_rules: list[dict] = []
+            for tmeta in self.tables_metadata:
+                table_name = tmeta.get("name")
+                if not table_name:
+                    continue
+                for cmeta in tmeta.get("columns", []):
+                    priv = cmeta.get("privacy", {})
+                    setting = priv.get(role)
+                    if setting and setting not in ("Visible", "Default"):
+                        # Mark for in-sql encryption
+                        privacy_rules.append(
+                            {
+                                "table": table_name,
+                                "column": cmeta["name"],
+                                "encryption_key": "Encrypted",  # NOTE: not used ?
+                            }
+                        )
+            # Rewrite the query only if we have rules to apply
+            if privacy_rules:
+                sql = rewrite_sql(sql, privacy_rules)
 
         rows = self._query(sql)
         if sum([sizeof(r) for r in rows]) > MAX_SIZE * 0.9:
@@ -91,32 +98,8 @@ class AbstractDatabase(ABC):
         else:
             count = len(rows)
 
-        if self.privacy_mode:
-            # Hide sensitive data from the result
-            # 1. Use column names to detect sensitive data
-            columns_to_hide = []
-
-            if rows:
-                columns = rows[0].keys()
-                for column in columns:
-                    if any(re.search(pattern, column) for pattern in PRIVACY_PATTERNS):
-                        columns_to_hide.append(column)
-
-            for row in rows:
-                for key in columns_to_hide:
-                    row[key] = encrypt_text(row[key])
-
-            # 2. Use text patterns to detect sensitive data (regex email, phone, etc.)
-            EMAIL_REGEX = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
-            PHONE_REGEX = r"""^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$"""
-            for row in rows:
-                for key, value in row.items():
-                    if isinstance(value, str):
-                        # Regex email
-                        value = re.sub(EMAIL_REGEX, encrypt_text(value), value)
-                        # Regex phone
-                        value = re.sub(PHONE_REGEX, encrypt_text(value), value)
-                        row[key] = value
+        if self.tables_metadata and rows:
+            rows = encrypt_rows(rows)
 
         return rows, count
 
@@ -242,7 +225,7 @@ class SnowflakeDatabase(AbstractDatabase):
     def load_metadata(self):
         query = "SHOW TABLES IN DATABASE {}".format(self.connection.database)
         tables, _ = self.query(query)
-        for table in tables[:30]:
+        for table in tables[:30]:  # TODO: remove this limit
             schema = table["schema_name"]
             table_name = table["name"]
 
