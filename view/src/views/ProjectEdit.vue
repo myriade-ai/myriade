@@ -145,10 +145,10 @@ const clickSave = async () => {
 }
 
 const selectedDatabase = computed(() => {
-  if (!databasesStore.databases.value) {
+  if (!databasesStore.databases) {
     return null
   }
-  return databasesStore.databases.value.find((db) => db.id === project.value.databaseId)
+  return databasesStore.databases.find((db) => db.id === project.value.databaseId)
 })
 
 const fetchDatabaseSchema = async () => {

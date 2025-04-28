@@ -26,6 +26,7 @@ dependencies = [
     "gunicorn>=23.0.0",
     "eventlet>=0.39.1",
     "nest-asyncio>=1.6.0",
+    "sqlglot>=26.16.2",
 ]
 
 [project.optional-dependencies]

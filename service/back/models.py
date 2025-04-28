@@ -93,7 +93,6 @@ class Database(DefaultBase, Base):
     ownerId: str
     public: bool
     safe_mode: bool
-    privacy_mode: bool
     dbt_catalog: dict
     dbt_manifest: dict
 
@@ -117,7 +116,6 @@ class Database(DefaultBase, Base):
     owner = relationship("User")
 
     safe_mode = Column(Boolean, nullable=False, default=True, server_default="true")
-    privacy_mode = Column(Boolean, nullable=False, default=True, server_default="true")
 
     # Hotfix for engine, "postgres" should be "postgresql"
     @property
@@ -131,8 +129,9 @@ class Database(DefaultBase, Base):
             self.engine,
             **self.details,
         )
-        datalake.privacy_mode = self.privacy_mode
         datalake.safe_mode = self.safe_mode
+        # Pass tables metadata for privacy handling
+        datalake.tables_metadata = self.tables_metadata
         return datalake
 
 
@@ -410,6 +409,19 @@ class Note(DefaultBase, Base):
     projectId = Column(Integer, ForeignKey("project.id"))
 
     project = relationship("Project", back_populates="notes")
+
+
+@dataclass
+class SensitiveDataMapping(Base):
+    __tablename__ = "sensitive_data_mapping"
+
+    hash: str
+    generated_id: str
+    createdAt: datetime
+
+    hash = Column(String(64), primary_key=True)  # SHA-256 hash hex digest is 64 chars
+    generated_id = Column(String, nullable=False, unique=True)
+    createdAt = Column(DateTime, nullable=False, server_default=func.now())
 
 
 if __name__ == "__main__":

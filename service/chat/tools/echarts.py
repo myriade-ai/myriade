@@ -51,7 +51,7 @@ class EchartsTool:
         self.session.flush()
 
         query = self.session.query(Query).filter(Query.id == query_id).first()
-        rows, _ = self.datalake.query(query.sql)
+        rows, _ = self.datalake.query(query.sql, role="llm")
         chart_options = chart_options.copy()
         chart_options["dataset"] = {
             "source": rows,

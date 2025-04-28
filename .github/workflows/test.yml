@@ -36,6 +36,7 @@ jobs:
         env:
           OPENAI_API_KEY: fake
           ANTHROPIC_API_KEY: fake
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
         run: PYTHONPATH=$PYTHONPATH:. uv run pytest
       - name: Run pre-commit
         working-directory: ./service
