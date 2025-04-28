@@ -1,6 +1,18 @@
 # CHANGELOG
 
 
+## v0.9.0 (2025-04-28)
+
+### Features
+
+- Add zero knowledge protection ([#42](https://github.com/myriade-intelligence/ada/pull/42),
+  [`0aae2c2`](https://github.com/myriade-intelligence/ada/commit/0aae2c23e76a7dce90143868fd8724a4d16cce13))
+
+* feat: limit the number of rows to 20 * feat: map sensitive value to id {encryption_key_id} *
+  chore: add privacy configuration interface * feat: add roles, limit config to text * feat: sql
+  rewrite on-the-fly
+
+
 ## v0.8.15 (2025-04-23)
 
 ### Bug Fixes
