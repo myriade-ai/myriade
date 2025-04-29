@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.9.1 (2025-04-29)
+
+### Bug Fixes
+
+- Bugs
+  ([`3e4c1a4`](https://github.com/myriade-intelligence/ada/commit/3e4c1a4e6429af68228757729740a044c0d8a770))
+
+
 ## v0.9.0 (2025-04-28)
 
 ### Features
