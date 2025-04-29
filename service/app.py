@@ -57,7 +57,7 @@ def create_app():
     @app.teardown_request
     def _teardown_request(exception):
         # Handles unhandled exceptions (500 stacktrace, etc.)
-        if exception is not None:
+        if exception is not None and hasattr(g, "session"):
             g.session.rollback()
             g.session.close()
 

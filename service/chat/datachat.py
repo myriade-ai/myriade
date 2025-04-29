@@ -91,18 +91,19 @@ class DatabaseChat:
 
     @property
     def context(self):
-        context = {}
         if self.conversation.project:
-            context["PROJECT"] = {
-                "name": self.conversation.project.name,
-                "description": self.conversation.project.description,
-                "tables": [
-                    {"schema": table.schemaName, "table": table.tableName}
-                    for table in self.conversation.project.tables
-                ],
+            context = {
+                "project": {
+                    "name": self.conversation.project.name,
+                    "description": self.conversation.project.description,
+                    "tables": [
+                        {"schema": table.schemaName, "table": table.tableName}
+                        for table in self.conversation.project.tables
+                    ],
+                },
             }
-
-        return yaml.dump(context)
+            return yaml.dump(context)
+        return None
 
     @property
     def chatbot(self):
@@ -274,7 +275,7 @@ class DatabaseChat:
         message = ConversationMessage(
             role="user",
             content=question,
-            conversationId=self.conversation.id,
+            conversation=self.conversation,
         )
         self.session.add(message)
         self.session.flush()
