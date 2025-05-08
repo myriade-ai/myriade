@@ -18,7 +18,7 @@
       <select
         id="userGroup"
         v-model="selectedGroup"
-        class="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+        class="border-gray-300 rounded-md shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
       >
         <option v-for="g in userGroups" :key="g.key" :value="g.key">{{ g.name }}</option>
       </select>
@@ -88,7 +88,7 @@
                     <select
                       v-model="col.privacy[selectedGroup]"
                       :disabled="!isTextType(col.type)"
-                      class="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                      class="border-gray-300 rounded-md shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                       :class="[
                         col.privacy[selectedGroup] &&
                         col.privacy[selectedGroup] !== 'Default' &&
@@ -117,7 +117,7 @@
         @click="saveConfig"
         :disabled="!hasUnsavedChanges"
         :class="[
-          'px-4 py-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-offset-2',
+          'px-4 py-2 rounded-md text-sm focus:outline-hidden focus:ring-2 focus:ring-offset-2',
           hasUnsavedChanges
             ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
             : 'bg-gray-300 text-gray-500 cursor-not-allowed'

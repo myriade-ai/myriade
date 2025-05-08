@@ -1,7 +1,7 @@
 <template>
   <select
     v-model="value"
-    class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+    class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
   >
     <option v-for="(option, ind) in options" :key="ind" :value="option">
       {{ option.public ? '(public) ' : '' }}{{ option.name }}

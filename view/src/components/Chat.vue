@@ -1,7 +1,7 @@
 <template>
   <div class="w-full h-screen flex justify-center items-center">
     <div class="flex flex-col w-full max-w-2xl h-full">
-      <div class="flex flex-col flex-grow h-full overflow-y-auto">
+      <div class="flex flex-col grow h-full overflow-y-auto">
         <div class="w-full lg:pt-4">
           <!-- Dropdown to select the dabase to query -->
           <label class="block text-gray-700 text-sm font-bold mb-2" for="database"> Context </label>
@@ -86,7 +86,7 @@
               <button
                 @click="stopQuery"
                 :disabled="queryStatus === STATUS.TO_STOP"
-                class="w-full bg-gray-500 text-white py-2 px-4 rounded"
+                class="w-full bg-gray-500 text-white py-2 px-4 rounded-sm"
                 type="submit"
               >
                 Stop
@@ -119,7 +119,7 @@
                 class="flex items-center space-x-2"
               >
                 <button
-                  class="rounded-md bg-white px-3.5 py-2 text-sm font-semibold text-blue-900 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50 text-left"
+                  class="rounded-md bg-white px-3.5 py-2 text-sm font-semibold text-blue-900 shadow-xs ring-1 ring-inset ring-blue-300 hover:bg-blue-50 text-left"
                   @click="applySuggestion(suggestion)"
                 >
                   {{ suggestion }}
@@ -130,14 +130,14 @@
         </transition>
         <div id="input-container" class="py-1 lg:py-2">
           <button
-            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-sm hover:bg-gray-50"
+            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-xs hover:bg-gray-50"
             :style="editMode == 'text' ? 'background-color: #e5e7eb' : ''"
             @click="editMode = 'text'"
           >
             Text
           </button>
           <button
-            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 mx-0.5 text-sm font-medium leading-5 text-gray-700 shadow-sm hover:bg-gray-50"
+            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 mx-0.5 text-sm font-medium leading-5 text-gray-700 shadow-xs hover:bg-gray-50"
             :style="editMode == 'SQL' ? 'background-color: #e5e7eb' : ''"
             @click="editMode = 'SQL'"
           >
@@ -154,7 +154,7 @@
               @input="resizeTextarea"
               @keydown.enter="handleEnter"
               ref="inputTextarea"
-              class="flex-grow py-2 px-3 pr-10 rounded border border-gray-300"
+              class="grow py-2 px-3 pr-10 rounded-sm border border-gray-300"
               rows="1"
               placeholder="Type your message"
               v-model="inputText"

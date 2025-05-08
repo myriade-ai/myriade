@@ -1,6 +1,6 @@
 <template>
   <v-ace-editor
-    class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+    class="shadow-xs focus:ring-blue-500 focus:border-blue-500 block w-full text-lg border-gray-300 rounded-md"
     v-model:value="inputText"
     lang="sql"
     mode="sql"
@@ -8,17 +8,18 @@
     :min-lines="isReadOnly ? 2 : 5"
     :max-lines="20"
     @keydown.enter.meta.exact="runQuery"
-    :options="{ readOnly: isReadOnly, showPrintMargin: false }"
+    :options="{ readOnly: isReadOnly, showPrintMargin: false, fontSize: 14 }"
     placeholder="SELECT * FROM ..."
   />
 </template>
 
 <script setup lang="ts">
-import { defineComponent, computed } from 'vue'
 import type { WritableComputedRef } from 'vue'
+import { computed, defineComponent } from 'vue'
 import { VAceEditor } from 'vue3-ace-editor'
-import 'brace/theme/monokai'
+// Import after vue3-ace-editor
 import 'brace/mode/sql'
+import 'brace/theme/monokai'
 
 defineComponent({ VAceEditor })
 
