@@ -3,7 +3,7 @@
     <Combobox v-model="selected" multiple immediate>
       <div class="relative mt-1">
         <div
-          class="relative w-full cursor-default overflow-hidden rounded-md bg-white text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 focus-visible:ring-offset-2 focus-visible:ring-offset-teal-300 sm:text-sm"
+          class="relative w-full cursor-default overflow-hidden rounded-md bg-white text-left focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 focus-visible:ring-offset-2 focus-visible:ring-offset-teal-300 sm:text-sm"
         >
           <ComboboxInput
             class="w-full border-gray-300 rounded-md py-2 pl-3 pr-10 text-sm text-gray-900 focus:ring-0"
@@ -15,7 +15,7 @@
           </ComboboxButton>
         </div>
         <ComboboxOptions
-          class="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
+          class="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-hidden sm:text-sm"
         >
           <div
             v-if="filteredGroups.length === 0 && query !== ''"
@@ -34,7 +34,7 @@
                 type="checkbox"
                 :checked="isGroupSelected(group)"
                 @change="toggleGroup(group)"
-                class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-4"
+                class="h-4 w-4 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-4"
               />
             </div>
             <div class="mt-1">
@@ -61,7 +61,7 @@
                       :checked="isSelected(item)"
                       :disabled="isGroupSelected(group)"
                       :class="[
-                        'absolute right-0 h-4 w-4 rounded border-gray-300 focus:ring-indigo-500',
+                        'absolute right-0 h-4 w-4 rounded-sm border-gray-300 focus:ring-indigo-500',
                         isGroupSelected(group) ? 'text-gray-600' : 'text-indigo-600'
                       ]"
                     />

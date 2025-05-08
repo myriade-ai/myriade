@@ -67,19 +67,19 @@
     <div v-if="isEditing && props.message.role === 'user'" class="mt-2 mb-2">
       <textarea
         v-model="editedContent"
-        class="w-full border border-gray-300 rounded py-2 px-3"
+        class="w-full border border-gray-300 rounded-sm py-2 px-3"
         rows="4"
       ></textarea>
       <div class="flex justify-end mt-2">
         <button
           @click="cancelEdit"
-          class="mr-2 px-3 py-1 text-sm text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+          class="mr-2 px-3 py-1 text-sm text-gray-700 bg-gray-200 rounded-sm hover:bg-gray-300"
         >
           Cancel
         </button>
         <button
           @click="saveEdit"
-          class="px-3 py-1 text-sm text-white bg-blue-500 rounded hover:bg-blue-600"
+          class="px-3 py-1 text-sm text-white bg-blue-500 rounded-sm hover:bg-blue-600"
         >
           Send
         </button>

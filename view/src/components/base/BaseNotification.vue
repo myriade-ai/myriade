@@ -1,10 +1,10 @@
 <template>
   <div class="mt-1 rounded-md p-4" :class="colorClass('bg', 50)">
     <div class="flex">
-      <div class="flex-shrink-0">
+      <div class="shrink-0">
         <iconComponent class="h-5 w-5" :class="colorClass('text', 400)" aria-hidden="true" />
       </div>
-      <div class="flex-grow ml-3">
+      <div class="grow ml-3">
         <p class="text-sm font-medium" :class="colorClass('text', 800)">
           {{ title }}
         </p>
@@ -31,13 +31,13 @@
           <button
             @click="handleClose"
             type="button"
-            class="inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2"
+            class="inline-flex rounded-md p-1.5 focus:outline-hidden focus:ring-2 focus:ring-offset-2"
             :class="[
               colorClass('bg', 50),
               colorClass('text', 500),
               colorClass('hover:bg', 100),
               colorClass('focus:ring-offset', 50),
-              colorClass('focus:ring', 600)
+              colorClass('focus:ring-3', 600)
             ]"
           >
             <span class="sr-only">Dismiss</span>

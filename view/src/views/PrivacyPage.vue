@@ -21,7 +21,7 @@
         id="db-select"
         v-model="selectedDbId"
         @change="onDatabaseChange"
-        class="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+        class="border-gray-300 rounded-md shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
       >
         <option disabled value="">Select a database</option>
         <option v-for="db in databases" :key="db.id" :value="db.id">

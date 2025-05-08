@@ -12,17 +12,17 @@
           :class="currentConversation(conversation) ? 'bg-gray-300' : ''"
           @click="selectConversation(conversation)"
         >
-          <div class="truncate flex-grow">
+          <div class="truncate grow">
             <span v-if="!editName">{{ conversation.name || 'Unnamed...' }}</span>
             <input
               v-else
               :ref="setNameInputRef(conversation.id)"
               v-model="conversation.name"
-              class="bg-transparent border-none focus:outline-none focus:ring-0"
+              class="bg-transparent border-none focus:outline-hidden focus:ring-0"
               placeholder="Unnamed..."
             />
           </div>
-          <div class="flex-shrink-0 flex items-center">
+          <div class="shrink-0 flex items-center">
             <!-- Example: Show edit/trash icons if it's the active conversation, etc. -->
             <button
               @click.stop="editConversationName(conversation.id)"

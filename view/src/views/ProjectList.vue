@@ -34,7 +34,7 @@
             <div>
               <router-link
                 :to="'/projects/' + project.id"
-                class="inline-flex items-center rounded-full border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-sm hover:bg-gray-50"
+                class="inline-flex items-center rounded-full border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-xs hover:bg-gray-50"
               >
                 Edit
               </router-link>
@@ -47,7 +47,7 @@
       <router-link
         to="/projects/new"
         href="#"
-        class="flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+        class="flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-xs hover:bg-gray-50"
       >
         <PlusIcon class="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
         New Project

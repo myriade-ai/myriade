@@ -4,7 +4,7 @@
       <div class="px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
           <div class="flex text-xl font-bold">
-            <div class="flex-shrink-0 flex items-center">
+            <div class="shrink-0 flex items-center">
               <a href="/" class="flex items-center">
                 <img src="/logo.svg" class="h-8 w-auto" />
                 <span class="ml-2">Myriade</span>
@@ -34,7 +34,7 @@
             <Menu as="div" class="ml-3 relative">
               <div>
                 <MenuButton
-                  class="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  class="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <span class="sr-only">Open user menu</span>
                   <img class="h-8 w-8 rounded-full" :src="user?.pictureUrl" alt="" />
@@ -49,7 +49,7 @@
                 leave-to-class="transform opacity-0 scale-95"
               >
                 <MenuItems
-                  class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
+                  class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-hidden"
                 >
                   <MenuItem
                     v-for="item in userNavigation"
@@ -73,7 +73,7 @@
           <div class="-mr-2 flex items-center sm:hidden">
             <!-- Mobile menu button -->
             <DisclosureButton
-              class="bg-white inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              class="bg-white inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <span class="sr-only">Open main menu</span>
               <Bars3Icon v-if="!open" class="block h-6 w-6" aria-hidden="true" />
@@ -103,7 +103,7 @@
         </div>
         <div class="pt-4 pb-3 border-t border-gray-200">
           <div class="flex items-center px-4">
-            <div class="flex-shrink-0">
+            <div class="shrink-0">
               <img class="h-10 w-10 rounded-full" :src="user?.pictureUrl" alt="" />
             </div>
             <div class="ml-3">

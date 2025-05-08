@@ -6,7 +6,7 @@
         :type="props.type"
         v-model="model"
         :placeholder="props.placeholder"
-        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+        class="w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
         :rules="props.rules"
       />
       <div class="input-slot-container">
