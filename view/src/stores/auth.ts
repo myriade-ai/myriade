@@ -28,7 +28,7 @@ export const fetchUser = async () => {
     user.value.email = response.data.email
     user.value.firstName = response.data.first_name
     user.value.lastName = response.data.last_name
-    user.value.imageUrl = response.data.image_url
+    user.value.profilePictureUrl = response.data.profile_picture_url
     user.value.isAdmin = response.data.role === 'admin'
   } catch (error) {
     console.error('Failed to fetch user:', error)

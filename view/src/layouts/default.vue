@@ -27,17 +27,24 @@
               </router-link>
             </div>
           </div>
-          <!-- Profile is hidden for now -->
-          <!-- <div class="hidden sm:ml-6 sm:flex sm:items-center"> -->
-          <div class="hidden">
+          <div class="hidden sm:ml-6 sm:flex sm:items-center">
             <!-- Profile dropdown -->
-            <Menu as="div" class="ml-3 relative">
+            <Menu as="div" class="ml-3 relative z-1000">
               <div>
                 <MenuButton
                   class="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <span class="sr-only">Open user menu</span>
-                  <img class="h-8 w-8 rounded-full" :src="user?.pictureUrl" alt="" />
+                  <template v-if="user?.profilePictureUrl">
+                    <img class="h-8 w-8 rounded-full" :src="user.profilePictureUrl" alt="" />
+                  </template>
+                  <template v-else>
+                    <div
+                      class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium"
+                    >
+                      {{ userInitials }}
+                    </div>
+                  </template>
                 </MenuButton>
               </div>
               <transition
@@ -49,7 +56,7 @@
                 leave-to-class="transform opacity-0 scale-95"
               >
                 <MenuItems
-                  class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-hidden"
+                  class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-gray-200 ring-opacity-100 focus:outline-hidden"
                 >
                   <MenuItem
                     v-for="item in userNavigation"
@@ -73,7 +80,7 @@
           <div class="-mr-2 flex items-center sm:hidden">
             <!-- Mobile menu button -->
             <DisclosureButton
-              class="bg-white inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              class="bg-white inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-hidden focus:ring-2 focus:ring-offset-1 focus:ring-blue-500"
             >
               <span class="sr-only">Open main menu</span>
               <Bars3Icon v-if="!open" class="block h-6 w-6" aria-hidden="true" />
@@ -104,7 +111,16 @@
         <div class="pt-4 pb-3 border-t border-gray-200">
           <div class="flex items-center px-4">
             <div class="shrink-0">
-              <img class="h-10 w-10 rounded-full" :src="user?.pictureUrl" alt="" />
+              <template v-if="user?.profilePictureUrl">
+                <img class="h-10 w-10 rounded-full" :src="user.profilePictureUrl" alt="" />
+              </template>
+              <template v-else>
+                <div
+                  class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium"
+                >
+                  {{ userInitials }}
+                </div>
+              </template>
             </div>
             <div class="ml-3">
               <div class="text-base font-medium text-gray-800">
@@ -119,9 +135,14 @@
             <DisclosureButton
               v-for="item in userNavigation"
               :key="item.name"
-              as="button"
-              :click="item.click"
-              class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+              @click="item.click"
+              as="a"
+              :class="[
+                item.href == currentPath
+                  ? 'bg-blue-50 border-blue-500 text-blue-700'
+                  : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800',
+                'block pl-3 pr-4 py-2 border-l-4 text-base font-medium'
+              ]"
             >
               {{ item.name }}
             </DisclosureButton>
@@ -151,10 +172,16 @@ import {
 } from '@headlessui/vue'
 import { Bars3Icon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
 const currentPath = computed(() => route.path)
+
+const userInitials = computed(() => {
+  if (!user.value?.firstName || !user.value?.lastName) return '??'
+  return `${user.value.firstName[0]}${user.value.lastName[0]}`.toUpperCase()
+})
 
 const isRouteActive = (navPath: string) => {
   return (
@@ -167,13 +194,28 @@ const isRouteActive = (navPath: string) => {
 
 const navigation = computed(() => [
   { name: 'Chat', href: '/' },
-  { name: 'Editor', href: '/editor' },
+  { name: 'Editor', href: '/editor' }
+])
+
+const userNavigation = computed(() => [
   // Only show these items to admins
   ...(user.value?.isAdmin
     ? [
-        { name: 'Databases', href: '/databases' },
-        { name: 'Zk Protection', href: '/privacy' },
-        { name: 'Projects', href: '/projects' }
+        {
+          name: 'Databases',
+          href: '/databases',
+          click: () => router.push('/databases')
+        },
+        {
+          name: 'Zk Protection',
+          href: '/privacy',
+          click: () => router.push('/privacy')
+        },
+        {
+          name: 'Projects',
+          href: '/projects',
+          click: () => router.push('/projects')
+        }
       ]
     : [])
 ])
