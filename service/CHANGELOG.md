@@ -1,6 +1,24 @@
 # CHANGELOG
 
 
+## v0.10.0 (2025-05-13)
+
+### Chores
+
+- Switch to Tailwind CSS v4.0
+  ([`6f5d0e4`](https://github.com/myriade-intelligence/ada/commit/6f5d0e4d69952b1038b738c893ba3c78ce89fa10))
+
+### Code Style
+
+- Improve header
+  ([`3db32e0`](https://github.com/myriade-intelligence/ada/commit/3db32e0656ef5e858868a564ff9f5637c600018e))
+
+### Features
+
+- Authorise platform without specific organization
+  ([`40c9352`](https://github.com/myriade-intelligence/ada/commit/40c9352fdfdbdc467cccaa0b356533c340609011))
+
+
 ## v0.9.1 (2025-04-29)
 
 ### Bug Fixes
