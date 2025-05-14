@@ -113,6 +113,7 @@ class DatabaseChat:
             provider=AUTOCHAT_PROVIDER,
             context=self.context,
             messages=messages,
+            use_tools_only=True,
         )
 
         chatbot.simple_response_callback = lambda response: Message(
@@ -147,7 +148,7 @@ class DatabaseChat:
 
     def think(self, thought: str) -> None:
         """
-        Think about a thought. Don't modify or obtain any new information.
+        Think about the task at hand. It helps to reflect or decompose the situation.
         Args:
             thought: A thought to think about.
         """
