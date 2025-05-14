@@ -25,11 +25,30 @@ for server in "${servers[@]}"; do
 done
 
 for server in "${servers[@]}"; do
+  # Check if the server is new (don't have the nginx.conf file or docker installed)
+  if [ ! -f "$server/nginx.conf" ] || ! sudo docker ps > /dev/null 2>&1; then
+    echo "Server $server is new, installing docker and nginx"
+    # Move setup/nginx.conf to nginx.conf
+    gcloud compute scp setup/nginx.conf "$server":~/nginx.conf
+    # Move setup/install.sh to install.sh
+    gcloud compute scp setup/install.sh "$server":~/install.sh
+    # Run install.sh
+    gcloud compute ssh "$server" --command="sudo bash ~/install.sh $server.myriade.ai"
+    continue
+  fi
+
   # Nginx
   echo "Copying setup/nginx.conf to instance: $server"
   gcloud compute scp setup/nginx.conf "$server":~/nginx.conf
-  echo "Replacing DOMAIN_NAME in nginx.conf with $server.myriade.ai"
-  gcloud compute ssh "$server" --command="sed -i 's/\${DOMAIN_NAME}/${server}.myriade.ai/g' nginx.conf"
+  
+  # If server is website, replace with app.myriade.ai
+  if [ "$server" == "website" ]; then
+    echo "Replacing DOMAIN_NAME in nginx.conf with app.myriade.ai"
+    gcloud compute ssh "$server" --command="sed -i 's/\${DOMAIN_NAME}/app.myriade.ai/g' nginx.conf"
+  else
+    echo "Replacing DOMAIN_NAME in nginx.conf with $server.myriade.ai"
+    gcloud compute ssh "$server" --command="sed -i 's/\${DOMAIN_NAME}/${server}.myriade.ai/g' nginx.conf"
+  fi
   echo "Moving nginx.conf to /etc/nginx/sites-available/default and reloading nginx"
   gcloud compute ssh "$server" --command="sudo mv nginx.conf /etc/nginx/sites-available/default && sudo service nginx reload"
 
@@ -50,4 +69,3 @@ for server in "${servers[@]}"; do
   echo "Executing command on instance: $server"
   gcloud compute ssh "$server" --command="$COMMANDS"
 done
-
