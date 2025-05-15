@@ -76,7 +76,7 @@ const app_routes = [
     path: '/login',
     name: 'Login',
     component: loadView('Login'),
-    meta: { requiresGuest: true }
+    meta: { requiresGuest: true, layout: 'empty' }
   },
   {
     path: '/user',
