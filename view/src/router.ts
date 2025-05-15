@@ -1,4 +1,5 @@
 import { authGuard } from '@/auth'
+import Control from '@/components/Control.vue'
 import { useQueryStore } from '@/stores/query'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -81,6 +82,12 @@ const app_routes = [
     path: '/user',
     name: 'User',
     component: loadView('User')
+  },
+  {
+    path: '/control',
+    name: 'Control',
+    component: Control,
+    meta: { requiresAuth: true }
   },
   {
     path: '/:pathMatch(.*)*',

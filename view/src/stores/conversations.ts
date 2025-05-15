@@ -1,9 +1,10 @@
 import axios from '@/plugins/axios'
 import { isConnected, socket } from '@/plugins/socket'
+import { useContextsStore } from '@/stores/contexts'
 import type { AxiosResponse } from 'axios'
 import { defineStore } from 'pinia'
 import sqlPrettier from 'sql-prettier'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 // Example "Status" constants
 export const STATUS = {
@@ -55,6 +56,18 @@ export const useConversationsStore = defineStore('conversations', () => {
   const conversations = ref<Record<number, Conversation>>({})
   const conversationStatuses = ref<Record<string, ConversationStatus>>({})
 
+  // Watch for context changes and fetch conversations
+  const contextsStore = useContextsStore()
+  watch(
+    () => contextsStore.contextSelected,
+    (newContext) => {
+      if (newContext && newContext.id) {
+        fetchConversations(newContext.id)
+      }
+    },
+    { immediate: true, deep: true }
+  )
+
   // ——————————————————————————————————————————————————
   // GETTERS
   // ——————————————————————————————————————————————————
@@ -84,8 +97,10 @@ export const useConversationsStore = defineStore('conversations', () => {
   // ——————————————————————————————————————————————————
 
   // 1) Fetch the full list of conversations
-  async function fetchConversations() {
-    const res: AxiosResponse<ConversationInfo[]> = await axios.get('/api/conversations')
+  async function fetchConversations(contextId: string) {
+    const res: AxiosResponse<ConversationInfo[]> = await axios.get('/api/conversations', {
+      params: { contextId }
+    })
     const fetchedConversations = res.data.map((conv) => ({
       ...conv,
       createdAt: new Date(conv.createdAt),
@@ -96,6 +111,12 @@ export const useConversationsStore = defineStore('conversations', () => {
       conversations.value[conv.id] = {
         ...conv,
         messages: conversations.value[conv.id]?.messages || []
+      }
+    })
+    // Remove conversations that are not in the fetched list
+    Object.keys(conversations.value).forEach((id) => {
+      if (!fetchedConversations.some((conv) => conv.id === Number(id))) {
+        delete conversations.value[Number(id)]
       }
     })
   }
@@ -147,11 +168,11 @@ export const useConversationsStore = defineStore('conversations', () => {
   async function sendMessage(
     type: 'text' | 'SQL',
     messageContent: string,
-    conversationId: string,
-    contextId?: string
+    conversationId?: string | null,
+    contextId?: string | null
   ) {
     const convStatus = conversationStatuses.value[conversationId]
-    // If it’s already running/pending, block
+    // If it's already running/pending, block
     if (convStatus && [STATUS.RUNNING, STATUS.PENDING].includes(convStatus.status)) {
       throw new Error('Conversation is already running')
     }

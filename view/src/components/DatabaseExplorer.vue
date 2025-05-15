@@ -42,23 +42,27 @@ import DatabaseExplorerItems from '@/components/DatabaseExplorerItems.vue'
 import { useDatabasesStore } from '@/stores/databases'
 import { useQueryStore } from '@/stores/query'
 import type { Table } from '@/stores/tables'
+import { useSelectedDatabaseFromContext } from '@/useSelectedDatabaseFromContext'
 import { computed, ref, watchEffect } from 'vue'
 
 const databasesStore = useDatabasesStore()
 const queryStore = useQueryStore()
 const tables = ref<Table[]>([])
 const showTableKey = ref<string | null>(null)
+const { selectedDatabase } = useSelectedDatabaseFromContext()
 
 watchEffect(async () => {
-  const selectedDatabaseId = databasesStore.databaseSelectedId
-  if (selectedDatabaseId) {
-    tables.value = await databasesStore.fetchDatabaseTables(selectedDatabaseId)
+  const db = selectedDatabase.value
+  if (db) {
+    tables.value = await databasesStore.fetchDatabaseTables(db.id)
+  } else {
+    tables.value = []
   }
 })
 
 const searchTablesInput = ref('')
 
-function extractTables(sqlQuery) {
+function extractTables(sqlQuery: string) {
   // Regular expression to match table names following FROM, JOIN, and UPDATE keywords
   // This regex is basic and might need adjustments to cover all SQL syntax variations
   const regex = /\b(FROM|JOIN|UPDATE|INTO)\s+("?\w+"?\."?\w+"?|"\w+"|\w+)/gi
@@ -69,8 +73,10 @@ function extractTables(sqlQuery) {
   // Use a loop to find matches and push the table name to the tables array
   while ((match = regex.exec(sqlQuery)) !== null) {
     // This ensures the match was not empty or undefined
+    // Note: replaceAll requires ES2021 or later
     if (match[2]) {
-      extables.push(match[2].replaceAll('"', ''))
+      // Use split/join as a fallback for replaceAll
+      extables.push(match[2].split('"').join(''))
     }
   }
 
@@ -135,6 +141,6 @@ const onClick = (key: string) => {
 const onDblClick = (table: Table) => {
   queryStore.querySQL = `SELECT * FROM "${table.schema}"."${table.name}";`
   searchTablesInput.value = '' // reset input
-  queryStore.runQuery()
+  queryStore.runQuery(selectedDatabase.value?.id)
 }
 </script>

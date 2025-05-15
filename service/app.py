@@ -1,10 +1,9 @@
+import config  # noqa: F401, I001
 import sentry_sdk
+from back.session import SessionLocal
 from flask import Flask, g
 from flask_socketio import SocketIO
 from werkzeug.middleware.proxy_fix import ProxyFix
-
-import config  # noqa: F401
-from back.session import SessionLocal
 
 socketio = SocketIO(
     cors_allowed_origins="*",

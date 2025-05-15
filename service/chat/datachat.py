@@ -135,6 +135,11 @@ class DatabaseChat:
             EchartsTool(self.session, self.conversation.database),
             "echarts",
         )
+        from chat.tools.quality import SemanticCatalog
+
+        semantic_catalog = SemanticCatalog(self.session, self.conversation.id)
+
+        chatbot.add_tool(semantic_catalog)
         if self.dbt:
             chatbot.add_tool(self.dbt, self.conversation.database.name)
         if self.conversation.project:
