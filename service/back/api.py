@@ -18,6 +18,7 @@ from back.models import (
     ProjectTables,
 )
 from back.privacy import PRIVACY_PATTERNS
+from chat.tools.quality import BusinessEntity
 from middleware import admin_required, user_middleware
 
 api = Blueprint("back_api", __name__)
@@ -47,14 +48,17 @@ def dataclass_to_dict(obj: Union[object, List[object]]) -> Union[dict, List[dict
 @api.route("/conversations", methods=["GET"])
 @user_middleware
 def get_conversations():
-    # Filter conversations based on ownerId (userId) OR organisationId
-    conversations = (
-        g.session.query(Conversation)
-        .filter(
-            Conversation.ownerId == g.user.id,
-        )
-        .all()
+    context_id = request.args.get("contextId")
+    query = g.session.query(Conversation).filter(
+        Conversation.ownerId == g.user.id,
     )
+    if context_id and context_id.startswith("database-"):
+        db_id = int(context_id.split("-")[1])
+        query = query.filter(Conversation.databaseId == db_id)
+    if context_id and context_id.startswith("project-"):
+        project_id = int(context_id.split("-")[1])
+        query = query.filter(Conversation.projectId == project_id)
+    conversations = query.all()
     conversations_dict = [
         dataclass_to_dict(conversation) for conversation in conversations
     ]
@@ -571,3 +575,23 @@ def _apply_privacy_patterns_to_metadata(
                     continue
 
     return metadata
+
+
+@api.route("/business-entities", methods=["GET"])
+@user_middleware
+def get_business_entities():
+    context_id = request.args.get("contextId")
+    query = g.session.query(BusinessEntity)
+
+    if context_id and context_id.startswith("database-"):
+        try:
+            database_id_str = context_id.split("-", 1)[1]
+            database_id = int(database_id_str)
+            query = query.filter(BusinessEntity.database_id == database_id)
+        except (IndexError, ValueError):
+            # Handle cases where contextId is "database-" or "database-invalid"
+            # You might want to return a 400 error or log this
+            pass  # Or return jsonify({"error": "Invalid database contextId"}), 400
+
+    business_entities = query.all()
+    return jsonify([dataclass_to_dict(entity) for entity in business_entities])

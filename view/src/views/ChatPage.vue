@@ -43,7 +43,7 @@
               </TransitionChild>
               <!-- Sidebar component, swap this element with another sidebar if you like -->
               <div class="grow">
-                <ConversationList class="h-full" />
+                <ConversationList class="h-screen" />
               </div>
             </DialogPanel>
           </TransitionChild>
@@ -58,8 +58,8 @@
         <ConversationList class="h-screen" />
       </div>
     </div>
-    <div class="w-full h-screen flex justify-center items-center px-2">
-      <div class="flex flex-col h-screen w-full">
+    <div class="w-full h-full flex justify-center px-2">
+      <div class="flex flex-col h-full w-full justify-end">
         <!-- only when swipe right can trigger the callback -->
         <Chat v-touch:swipe.right="onSwipe" />
       </div>
@@ -68,11 +68,11 @@
 </template>
 
 <script setup lang="ts">
-import ConversationList from '@/components/ConversationList.vue'
 import Chat from '@/components/Chat.vue'
-import { ref } from 'vue'
+import ConversationList from '@/components/ConversationList.vue'
 import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue'
 import { XMarkIcon } from '@heroicons/vue/24/solid'
+import { ref } from 'vue'
 
 const sidebarOpen = ref(false)
 

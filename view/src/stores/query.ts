@@ -2,6 +2,7 @@ import axios from '@/plugins/axios'
 import router from '@/router'
 import { useDatabasesStore } from '@/stores/databases'
 import { defineStore } from 'pinia'
+// @ts-expect-error: No types for sql-prettier
 import sqlPrettier from 'sql-prettier'
 import { computed, ref } from 'vue'
 
@@ -49,14 +50,15 @@ export const useQueryStore = defineStore('query', () => {
     }
 
     if (querySQL.value) {
-      runQuery()
+      runQuery(query.databaseId)
     }
   }
 
   const executeQuery = async (
-    databaseId: number,
+    databaseId: number | null,
     sql: string
   ): Promise<{ rows: any[]; count: number }> => {
+    if (!databaseId) throw new Error('No database selected')
     try {
       const response = await axios.post('/api/query/_run', {
         query: sql,
@@ -71,10 +73,10 @@ export const useQueryStore = defineStore('query', () => {
     }
   }
 
-  const runQuery = async () => {
+  const runQuery = async (databaseId: number | null) => {
     loading.value = true
     try {
-      const { rows, count } = await executeQuery(databasesStore.databaseSelectedId, querySQL.value)
+      const { rows, count } = await executeQuery(databaseId, querySQL.value)
       queryError.value = null
       queryResults.value = rows
       queryCount.value = count
@@ -86,7 +88,8 @@ export const useQueryStore = defineStore('query', () => {
     }
   }
 
-  const updateQuery = async () => {
+  const updateQuery = async (databaseId: number | null) => {
+    if (!databaseId) throw new Error('No database selected')
     if (queryId.value) {
       // Update existing query
       await axios.put(`/api/query/${queryId.value}`, {
@@ -98,7 +101,7 @@ export const useQueryStore = defineStore('query', () => {
       const response = await axios.post('/api/query', {
         title: queryTitle.value,
         sql: querySQL.value,
-        databaseId: databasesStore.databaseSelectedId
+        databaseId: databaseId
       })
       queryId.value = response.data.id
       router.push({ name: 'Query', params: { id: queryId.value } })

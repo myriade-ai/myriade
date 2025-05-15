@@ -1,18 +1,11 @@
 <template>
   <BaseButton
     class="float-right mt-1 ml-1 disabled:bg-gray-300"
-    @click="queryStore.updateQuery"
+    @click="queryStore.updateQuery(selectedDatabase?.id)"
     :disabled="!queryStore.queryIsModified || !queryStore.querySQL"
   >
     Save query</BaseButton
   >
-  <BaseSelector
-    class="float-right ml-auto"
-    style="width: 200px"
-    :options="databasesStore.databases"
-    :modelValue="databasesStore.databaseSelected"
-    @update:modelValue="databasesStore.setDatabaseSelected"
-  ></BaseSelector>
 
   <input
     type="text"
@@ -22,19 +15,20 @@
   />
 
   <br />
-  <BaseEditor v-model="queryStore.querySQL" @run-query="queryStore.runQuery"></BaseEditor>
-
-  <div class="mt-2 flex justify-end">
+  <div class="relative">
+    <BaseEditor
+      v-model="queryStore.querySQL"
+      @run-query="() => queryStore.runQuery(selectedDatabase?.id)"
+    />
     <button
-      class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-xs text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-900 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      @click="queryStore.runQuery()"
+      class="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center disabled:bg-blue-900"
+      @click="queryStore.runQuery(selectedDatabase?.id)"
       :disabled="queryStore.loading"
+      aria-label="Run query"
+      type="button"
     >
-      <ArrowPathIcon
-        v-if="queryStore.loading"
-        class="animate-reverse-spin h-5 w-5 text-white mr-2"
-      />
-      Run query
+      <ArrowPathIcon v-if="queryStore.loading" class="animate-reverse-spin h-6 w-6 text-white" />
+      <PlayIcon v-else class="h-6 w-6" />
     </button>
   </div>
 </template>
@@ -42,13 +36,16 @@
 <script setup lang="ts">
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
-import BaseSelector from '@/components/base/BaseSelector.vue'
 import { useDatabasesStore } from '@/stores/databases'
 import { useQueryStore } from '@/stores/query'
+import { useSelectedDatabaseFromContext } from '@/useSelectedDatabaseFromContext'
 import { ArrowPathIcon } from '@heroicons/vue/24/outline'
+import { PlayIcon } from '@heroicons/vue/24/solid'
 
 const queryStore = useQueryStore()
 const databasesStore = useDatabasesStore()
+
+const { selectedDatabase } = useSelectedDatabaseFromContext()
 
 databasesStore.fetchDatabases({ refresh: true })
 </script>

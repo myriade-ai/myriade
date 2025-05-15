@@ -1,20 +1,8 @@
 <template>
-  <div class="w-full h-screen flex justify-center items-center">
-    <div class="flex flex-col w-full max-w-2xl h-full">
+  <div class="w-full h-screen flex justify-center">
+    <div class="flex flex-col w-full max-w-2xl">
       <div class="flex flex-col grow h-full overflow-y-auto">
         <div class="w-full lg:pt-4">
-          <!-- Dropdown to select the dabase to query -->
-          <label class="block text-gray-700 text-sm font-bold mb-2" for="database"> Context </label>
-          <!-- TODO: have name like 'Everest > Packages' ?? -->
-          <BaseSelector
-            :options="contextsStore.contexts"
-            v-model="contextsStore.contextSelected"
-            @update:modelValue="contextsStore.setSelectedContext"
-            class="w-full"
-            placeholder="Select a database"
-            :disabled="conversationId"
-          />
-          <br />
           <ul class="list-none">
             <template v-for="(group, index) in messageGroups" :key="index">
               <li v-for="message in group.publicMessages" :key="message.id">
@@ -65,7 +53,7 @@
           </ul>
         </div>
 
-        <div class="w-full py-4">
+        <div id="chat-status" class="w-full py-4">
           <div class="w-full flex justify-center">
             <!-- Display error message if queryStatus is error -->
             <div v-if="queryStatus === 'error'" class="flex flex-col items-center">
@@ -96,7 +84,7 @@
         </div>
       </div>
 
-      <div class="w-full">
+      <div id="chat-input" class="w-full">
         <transition
           enter-active-class="transition-all duration-300 ease-out"
           enter-from-class="opacity-0 transform translate-y-4"
@@ -175,6 +163,7 @@
         </div>
       </div>
     </div>
+
     <!-- Connection status notification -->
     <div
       v-if="!isConnected"
@@ -188,7 +177,6 @@
 <script setup lang="ts">
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
-import BaseSelector from '@/components/base/BaseSelector.vue'
 import SendButtonWithStatus from '@/components/icons/SendButtonWithStatus.vue'
 import MessageDisplay from '@/components/MessageDisplay.vue'
 import axios from '@/plugins/axios'
@@ -208,9 +196,6 @@ const route = useRoute()
 const router = useRouter()
 
 const contextsStore = useContextsStore()
-contextsStore.initializeContexts()
-
-/** END CONTEXT SELECTION **/
 
 /** CONVERSATION LOGIC **/
 const store = useConversationsStore()

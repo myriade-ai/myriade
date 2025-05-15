@@ -1,9 +1,7 @@
 import base64
 import json
-import uuid
 from dataclasses import dataclass
-from datetime import date, datetime
-from decimal import Decimal
+from datetime import datetime
 from io import BytesIO
 
 from autochat.model import Message as AutoChatMessage
@@ -18,39 +16,13 @@ from sqlalchemy import (
     String,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship
-from sqlalchemy.types import JSON, TypeDecorator
 
-Base = declarative_base()
+from back.utils import JSONB, Base
 
-
-class JSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Decimal):
-            return float(obj)
-        if isinstance(obj, (datetime, date)):
-            return obj.isoformat()
-        if isinstance(obj, uuid.UUID):
-            return str(obj)
-        return super().default(obj)
-
-
-class JSONB(TypeDecorator):
-    """Custom type that uses JSONB for PostgreSQL and JSON for other databases."""
-
-    impl = JSON
-
-    def process_bind_param(self, value, dialect):
-        if value is not None:
-            return json.loads(json.dumps(value, cls=JSONEncoder))
-        return value
-
-    def load_dialect_impl(self, dialect):
-        if dialect.name == "postgresql":
-            return dialect.type_descriptor(PG_JSONB())
-        return dialect.type_descriptor(JSON())
+# This is imported to include the BusinessEntity class in the models.
+# TODO: find a better way to do this
+from chat.tools.quality import BusinessEntity  # noqa: F401
 
 
 def format_to_camel_case(**kwargs):
