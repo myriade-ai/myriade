@@ -71,7 +71,9 @@ class SemanticCatalog:
         entity.quality_score = quality_score
         entity.report = report
         entity.review_date = datetime.now()
+        entity.database_id = self.database_id
         entity.review_conversation_id = self.conversation_id
+        self.session.flush()
 
     def delete_entity(self, entity_name: str) -> bool:
         """Deletes an entity from the catalog.
@@ -119,7 +121,7 @@ class SemanticCatalog:
             message_id=self.conversation_id,
         )
         self.session.add(issue)
-        self.session.commit()
+        self.session.flush()
 
     def update_issue(
         self,
@@ -146,4 +148,4 @@ class SemanticCatalog:
         issue.title = title
         issue.description = description
         issue.priority = priority
-        self.session.commit()
+        self.session.flush()
