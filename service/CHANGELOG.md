@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.11.3 (2025-05-16)
+
+### Bug Fixes
+
+- Session refresh
+  ([`549564c`](https://github.com/myriade-intelligence/ada/commit/549564c797bbb88998355c27a3862ffc245231e3))
+
+
 ## v0.11.2 (2025-05-16)
 
 ### Bug Fixes
