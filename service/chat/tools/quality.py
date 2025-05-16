@@ -37,8 +37,13 @@ class SemanticCatalog:
         if self.session.query(BusinessEntity).filter_by(name=entity_name).first():
             raise ValueError(f"Entity '{entity_name}' already exists.")
 
-        new_entity = BusinessEntity(name=entity_name)
+        new_entity = BusinessEntity(
+            name=entity_name,
+            database_id=self.database_id,
+            review_conversation_id=self.conversation_id,
+        )
         self.session.add(new_entity)
+        self.session.flush()
 
     def update_entity(
         self,
@@ -71,7 +76,6 @@ class SemanticCatalog:
         entity.quality_score = quality_score
         entity.report = report
         entity.review_date = datetime.now()
-        entity.database_id = self.database_id
         entity.review_conversation_id = self.conversation_id
         self.session.flush()
 
