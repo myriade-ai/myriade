@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.11.1 (2025-05-16)
+
+### Bug Fixes
+
+- Entity creation
+  ([`68108d0`](https://github.com/myriade-intelligence/ada/commit/68108d05489ac08e5cc693c0fc1b63aa845a4a6a))
+
+
 ## v0.11.0 (2025-05-16)
 
 ### Bug Fixes
