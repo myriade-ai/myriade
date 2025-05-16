@@ -1,6 +1,27 @@
 # CHANGELOG
 
 
+## v0.11.0 (2025-05-16)
+
+### Bug Fixes
+
+- Login
+  ([`5543353`](https://github.com/myriade-intelligence/ada/commit/55433533c71149601076344887168438d4c4bc93))
+
+### Chores
+
+- Optimize thought
+  ([`de0d03f`](https://github.com/myriade-intelligence/ada/commit/de0d03fc7823efad57c0eeb936037e6e0811abe3))
+
+### Features
+
+- Add quality
+  ([`2517c9a`](https://github.com/myriade-intelligence/ada/commit/2517c9ae8ead4b76d05d60222bae56a552b5e4f4))
+
+- Big update (control, rework context...)
+  ([`becf512`](https://github.com/myriade-intelligence/ada/commit/becf512773e6d946f161cff4b9602ca1229af3d2))
+
+
 ## v0.10.0 (2025-05-13)
 
 ### Chores
