@@ -91,10 +91,8 @@ def _authenticate_session(
     if auth_response.authenticated:
         return auth_response, False  # type: ignore
 
-    # Try refreshing the session
-    refreshed_auth_response = session.refresh(
-        organization_id=WORKOS_ORGANIZATION_ID,
-    )
+    refreshed_auth_response = session.refresh()
+
     if not refreshed_auth_response.authenticated:
         raise UnauthorizedError(refreshed_auth_response.reason)  # type: ignore
 
