@@ -25,17 +25,19 @@ for server in "${servers[@]}"; do
 done
 
 for server in "${servers[@]}"; do
-  # Check if the server is new (don't have the nginx.conf file or docker installed)
-  if [ ! -f "$server/nginx.conf" ] || ! sudo docker ps > /dev/null 2>&1; then
-    echo "Server $server is new, installing docker and nginx"
-    # Move setup/nginx.conf to nginx.conf
-    gcloud compute scp setup/nginx.conf "$server":~/nginx.conf
-    # Move setup/install.sh to install.sh
-    gcloud compute scp setup/install.sh "$server":~/install.sh
-    # Run install.sh
-    gcloud compute ssh "$server" --command="sudo bash ~/install.sh $server.myriade.ai"
-    continue
-  fi
+
+  # # Check if the server is new (don't have the nginx.conf file or docker installed)
+  # TODO: fix this code so the check are done on the server... (and not on the local machine)
+  # if [ ! -f "$server/nginx.conf" ] || ! sudo docker ps > /dev/null 2>&1; then
+  #   echo "Server $server is new, installing docker and nginx"
+  #   # Move setup/nginx.conf to nginx.conf
+  #   gcloud compute scp setup/nginx.conf "$server":~/nginx.conf
+  #   # Move setup/install.sh to install.sh
+  #   gcloud compute scp setup/install.sh "$server":~/install.sh
+  #   # Run install.sh
+  #   gcloud compute ssh "$server" --command="sudo bash ~/install.sh $server.myriade.ai"
+  #   continue
+  # fi
 
   # Nginx
   echo "Copying setup/nginx.conf to instance: $server"
