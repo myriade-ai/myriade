@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.12.0 (2025-05-16)
+
+### Chores
+
+- Comment bugged code
+  ([`834dfdf`](https://github.com/myriade-intelligence/ada/commit/834dfdfa5e2418ab6b5a5c436fea1e40080fb9df))
+
+### Features
+
+- Clean message
+  ([`6ca315f`](https://github.com/myriade-intelligence/ada/commit/6ca315fb391a2c728820ae0dcc749f6fc80aced5))
+
+
 ## v0.11.3 (2025-05-16)
 
 ### Bug Fixes
