@@ -241,8 +241,8 @@ const messageGroups = computed(() => {
   const groups = []
   let currentGroup = { publicMessages: [], internalMessages: [] }
 
-  messages.value.forEach((message, index) => {
-    const isPublic = shouldDisplayMessage(message, index)
+  messages.value.filter(shouldDisplayMessage).forEach((message, index) => {
+    const isPublic = isPublicMessage(message, index)
 
     if (isPublic) {
       if (currentGroup.internalMessages.length > 0 || currentGroup.publicMessages.length > 0) {
@@ -263,6 +263,12 @@ const messageGroups = computed(() => {
 })
 
 const shouldDisplayMessage = (message, index) => {
+  const isEmptyFunctionResponse =
+    message.role === 'function' && message.content === '' && message.image === null
+  return !isEmptyFunctionResponse
+}
+
+const isPublicMessage = (message, index) => {
   const prevMessage = index > 0 ? messages[index - 1] : null
   const isUser = message.role === 'user'
   const isFunction = message.role === 'function'
