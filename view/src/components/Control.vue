@@ -134,11 +134,11 @@
             </div>
 
             <!-- Recommendations Preview -->
-            <div v-if="entity.recommendations && entity.recommendations.length > 0" class="mt-3">
-              <h4 class="text-sm font-medium text-gray-700 mb-2">Top Recommendations</h4>
+            <div v-if="entity.issues && entity.issues.length > 0" class="mt-3">
+              <h4 class="text-sm font-medium text-gray-700 mb-2">Top Issues</h4>
               <ul class="text-sm text-gray-600 space-y-1">
                 <li
-                  v-for="(rec, index) in entity.recommendations.slice(0, 2)"
+                  v-for="(rec, index) in entity.issues.slice(0, 2)"
                   :key="index"
                   class="flex items-start"
                 >
@@ -155,10 +155,10 @@
                       d="M9 5l7 7-7 7"
                     />
                   </svg>
-                  <span>{{ rec }}</span>
+                  <span>{{ rec.title }}</span>
                 </li>
-                <li v-if="entity.recommendations.length > 2" class="text-indigo-600 text-sm">
-                  +{{ entity.recommendations.length - 2 }} more recommendations
+                <li v-if="entity.issues.length > 2" class="text-indigo-600 text-sm">
+                  +{{ entity.issues.length - 2 }} more issues
                 </li>
               </ul>
             </div>
@@ -172,11 +172,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useBusinessEntitiesStore, type BusinessEntity } from '../stores/businessEntities'
 import { useContextsStore } from '../stores/contexts'
 import { useConversationsStore } from '../stores/conversations'
+import { useQualityStore, type BusinessEntity } from '../stores/quality'
 
-const store = useBusinessEntitiesStore()
+const store = useQualityStore()
 const conversationsStore = useConversationsStore()
 const contextsStore = useContextsStore()
 const router = useRouter()
@@ -184,7 +184,7 @@ const searchQuery = ref('')
 const selectedEntity = ref<BusinessEntity | null>(null)
 
 const filteredEntities = computed(() => {
-  return store.entities.filter((entity) =>
+  return store.entities.filter((entity: BusinessEntity) =>
     entity.name.toLowerCase().includes(searchQuery.value.toLowerCase())
   )
 })

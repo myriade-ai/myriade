@@ -58,6 +58,11 @@ const app_routes = [
     component: loadView('DatabaseEdit')
   },
   {
+    path: '/issues',
+    name: 'IssuesPage',
+    component: loadView('Issues')
+  },
+  {
     path: '/privacy',
     name: 'PrivacyPage',
     component: loadView('PrivacyPage')

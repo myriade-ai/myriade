@@ -3,8 +3,8 @@ import random
 import string
 from typing import Dict, List
 
-from back.models import SensitiveDataMapping
 from back.session import db_session
+from models import SensitiveDataMapping
 
 PRIVACY_PATTERNS = {  # Using regex patterns to detect sensitive data
     "NAME": r"(?i)(first|last|full)?_?names?|fullname",  # Name patterns

@@ -5,7 +5,7 @@ from autochat.chat import OUTPUT_SIZE_LIMIT
 from autochat.model import Message
 from autochat.utils import limit_data_size
 
-from back.models import Database, Query
+from models import Database, Query
 
 RESULT_TEMPLATE = """Results {len_sample}/{len_total} rows:
 ```json

@@ -32,7 +32,7 @@ def json_deserial(d):
 
 
 def setup_database(refresh=False):
-    from back.models import Base
+    from models import Base
 
     # Create engine and metadata
     _engine = create_engine(DATABASE_URL)
@@ -53,7 +53,7 @@ def setup_database(refresh=False):
 
 
 def teardown_database(_engine):
-    from back.models import Base
+    from models import Base
 
     # Drop all tables
     Base.metadata.drop_all(_engine)

@@ -9,6 +9,11 @@
     'answer',
     'ask_user',
     'EchartsTool-echarts__preview_render',
+    'SemanticCatalog-semantic_catalog__create_entity',
+    'SemanticCatalog-semantic_catalog__create_issue',
+    'SemanticCatalog-semantic_catalog__delete_entity',
+    'SemanticCatalog-semantic_catalog__update_entity',
+    'SemanticCatalog-semantic_catalog__update_issue',
     'DBT-test__fetch_model',
     'DBT-test__fetch_model_list',
     'DBT-test__search_models',
@@ -64,7 +69,7 @@
       }),
     }),
     dict({
-      'description': "Think about a thought. Don't modify or obtain any new information.",
+      'description': 'Think about the task at hand. It helps to reflect or decompose the situation.',
       'name': 'think',
       'parameters': dict({
         'properties': dict({
@@ -649,6 +654,153 @@
       }),
     }),
     dict({
+      'description': 'Creates a new entity in the catalog.',
+      'name': 'SemanticCatalog-semantic_catalog__create_entity',
+      'parameters': dict({
+        'properties': dict({
+          'entity_name': dict({
+            'description': 'The name of the entity to create.',
+            'title': 'Entity Name',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'entity_name',
+        ]),
+        'title': 'Input for `create_entity`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Creates a new issue for an entity.',
+      'name': 'SemanticCatalog-semantic_catalog__create_issue',
+      'parameters': dict({
+        'properties': dict({
+          'business_entity_id': dict({
+            'description': 'The id of the entity to create the issue for.',
+            'title': 'Business Entity Id',
+            'type': 'integer',
+          }),
+          'description': dict({
+            'description': "The description of the issue.                You can use markdown.                Give context / table(s) & column(s) / example(s) to help user visualize the issue.                Use the syntax <QUERY:QUERY_ID> to insert a link to a query if that helps.                Explain the severity of the issue if it's high, critical or blocker.",
+            'title': 'Description',
+            'type': 'string',
+          }),
+          'priority': dict({
+            'description': 'The priority of the issue ("LOW", "MEDIUM", "HIGH", "CRITICAL", "BLOCKER").',
+            'title': 'Priority',
+            'type': 'string',
+          }),
+          'title': dict({
+            'description': 'The title of the issue. Tell it as a recommendation.',
+            'title': 'Title',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'title',
+          'description',
+          'priority',
+          'business_entity_id',
+        ]),
+        'title': 'Input for `create_issue`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Deletes an entity from the catalog.',
+      'name': 'SemanticCatalog-semantic_catalog__delete_entity',
+      'parameters': dict({
+        'properties': dict({
+          'entity_name': dict({
+            'description': 'The name of the entity to delete.',
+            'title': 'Entity Name',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'entity_name',
+        ]),
+        'title': 'Input for `delete_entity`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Updates the quality of an existing entity.',
+      'name': 'SemanticCatalog-semantic_catalog__update_entity',
+      'parameters': dict({
+        'properties': dict({
+          'completeness': dict({
+            'title': 'Completeness',
+            'type': 'integer',
+          }),
+          'entity_name': dict({
+            'description': 'The name of the entity to update.',
+            'title': 'Entity Name',
+            'type': 'string',
+          }),
+          'quality_score': dict({
+            'title': 'Quality Score',
+            'type': 'integer',
+          }),
+          'report': dict({
+            'title': 'Report',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'entity_name',
+          'completeness',
+          'quality_score',
+          'report',
+        ]),
+        'title': 'Input for `update_entity`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Updates an existing issue.',
+      'name': 'SemanticCatalog-semantic_catalog__update_issue',
+      'parameters': dict({
+        'properties': dict({
+          'description': dict({
+            'description': 'The description of the issue.',
+            'title': 'Description',
+            'type': 'string',
+          }),
+          'issue_id': dict({
+            'description': 'The id of the issue to update.',
+            'title': 'Issue Id',
+            'type': 'string',
+          }),
+          'priority': dict({
+            'description': 'The priority of the issue ("LOW", "MEDIUM", "HIGH", "CRITICAL", "BLOCKER").',
+            'title': 'Priority',
+            'type': 'string',
+          }),
+          'status': dict({
+            'description': 'The status of the issue ("OPEN", "IN_PROGRESS", "DONE").',
+            'title': 'Status',
+            'type': 'string',
+          }),
+          'title': dict({
+            'description': 'The title of the issue.',
+            'title': 'Title',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'issue_id',
+          'status',
+          'title',
+          'description',
+          'priority',
+        ]),
+        'title': 'Input for `update_issue`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': 'Fetch all model details from the DBT catalog.',
       'name': 'DBT-test__fetch_model',
       'parameters': dict({
@@ -782,6 +934,7 @@
     'Notes': 'Notes',
     'database': 'DatabaseTool',
     'echarts': 'EchartsTool',
+    'semantic_catalog': 'SemanticCatalog',
     'test': 'DBT',
     'workspace': 'WorkspaceTool',
   })
