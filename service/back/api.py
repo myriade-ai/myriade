@@ -10,16 +10,10 @@ from flask import Blueprint, g, jsonify, request
 from sqlalchemy import or_
 
 from back.datalake import ConnectionError, DatalakeFactory
-from back.models import (
-    Conversation,
-    ConversationMessage,
-    Database,
-    Project,
-    ProjectTables,
-)
 from back.privacy import PRIVACY_PATTERNS
-from chat.tools.quality import BusinessEntity
 from middleware import admin_required, user_middleware
+from models import Conversation, ConversationMessage, Database, Project, ProjectTables
+from models.quality import BusinessEntity, Issue
 
 api = Blueprint("back_api", __name__)
 
@@ -594,4 +588,22 @@ def get_business_entities():
             pass  # Or return jsonify({"error": "Invalid database contextId"}), 400
 
     business_entities = query.all()
-    return jsonify([dataclass_to_dict(entity) for entity in business_entities])
+    return jsonify(business_entities)
+
+
+@api.route("/issues", methods=["GET"])
+@user_middleware
+def get_issues():
+    query = g.session.query(Issue)
+    context_id = request.args.get("contextId")
+
+    if context_id and context_id.startswith("database-"):
+        try:
+            database_id_str = context_id.split("-", 1)[1]
+            database_id = int(database_id_str)
+            query = query.filter(Issue.database_id == database_id)
+        except (IndexError, ValueError):
+            pass  # Or return jsonify({"error": "Invalid database contextId"}), 400
+
+    issues = query.all()
+    return jsonify(issues)

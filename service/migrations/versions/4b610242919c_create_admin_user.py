@@ -11,7 +11,7 @@ from typing import Sequence, Union
 from alembic import op
 from sqlalchemy import column, insert, table
 
-from back.models import User
+from models import User
 
 # revision identifiers, used by Alembic.
 revision: str = "4b610242919c"

@@ -18,11 +18,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session, relationship
 
-from back.utils import JSONB, Base
+from back.utils import JSONB, Base, DefaultBase
 
-# This is imported to include the BusinessEntity class in the models.
-# TODO: find a better way to do this
-from chat.tools.quality import BusinessEntity  # noqa: F401
+from .quality import BusinessEntity  # noqa: F401
 
 
 def format_to_camel_case(**kwargs):
@@ -45,13 +43,6 @@ def format_to_snake_case(**kwargs):
 
     kwargs = {snake_case(k): v for k, v in kwargs.items()}
     return kwargs
-
-
-class DefaultBase:
-    createdAt = Column(DateTime, nullable=False, server_default=func.now())
-    updatedAt = Column(
-        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
-    )
 
 
 @dataclass
@@ -88,6 +79,8 @@ class Database(DefaultBase, Base):
     owner = relationship("User")
 
     safe_mode = Column(Boolean, nullable=False, default=True, server_default="true")
+
+    issues = relationship("Issue", back_populates="database")
 
     # Hotfix for engine, "postgres" should be "postgresql"
     @property
@@ -148,6 +141,7 @@ class ConversationMessage(DefaultBase, Base):
     conversation = relationship("Conversation", back_populates="messages")
     query = relationship("Query", back_populates="conversation_messages")
     chart = relationship("Chart", back_populates="conversation_messages")
+    issues = relationship("Issue", back_populates="from_message")
 
     # format params before creating the object
     def __init__(self, **kwargs):

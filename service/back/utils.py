@@ -3,6 +3,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
+from sqlalchemy import Column, DateTime, func
 from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import JSON, TypeDecorator
@@ -35,3 +36,10 @@ class JSONB(TypeDecorator):
         if dialect.name == "postgresql":
             return dialect.type_descriptor(PG_JSONB())
         return dialect.type_descriptor(JSON())
+
+
+class DefaultBase:
+    createdAt = Column(DateTime, nullable=False, server_default=func.now())
+    updatedAt = Column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )

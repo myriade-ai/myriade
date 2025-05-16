@@ -4,8 +4,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from back.models import Base, Database, Project, User
 from chat.datachat import DatabaseChat
+from models import Base, Database, Project, User
 
 
 @pytest.fixture

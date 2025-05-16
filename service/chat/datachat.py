@@ -6,7 +6,6 @@ import yaml
 from autochat import Autochat, Message
 from autochat.chat import StopLoopException
 
-from back.models import Chart, Conversation, ConversationMessage, Query
 from chat.dbt_utils import DBT
 from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
@@ -14,6 +13,7 @@ from chat.tools.database import DatabaseTool
 from chat.tools.echarts import EchartsTool
 from chat.tools.workspace import WorkspaceTool
 from chat.utils import parse_answer_text
+from models import Chart, Conversation, ConversationMessage, Query
 
 # Workaround because of eventlet doesn't support loop in loop ?
 nest_asyncio.apply()
@@ -137,9 +137,11 @@ class DatabaseChat:
         )
         from chat.tools.quality import SemanticCatalog
 
-        semantic_catalog = SemanticCatalog(self.session, self.conversation.id)
+        semantic_catalog = SemanticCatalog(
+            self.session, self.conversation.id, self.conversation.database.id
+        )
 
-        chatbot.add_tool(semantic_catalog)
+        chatbot.add_tool(semantic_catalog, "semantic_catalog")
         if self.dbt:
             chatbot.add_tool(self.dbt, self.conversation.database.name)
         if self.conversation.project:

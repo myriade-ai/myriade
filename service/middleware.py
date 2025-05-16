@@ -3,7 +3,7 @@ from functools import wraps
 from flask import g, jsonify, request
 
 from auth.auth import with_auth, workos_client
-from back.models import Database, Organisation, User
+from models import Database, Organisation, User
 
 
 def user_middleware(f):

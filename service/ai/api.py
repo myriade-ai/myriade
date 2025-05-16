@@ -1,7 +1,7 @@
 from flask import Blueprint, g, jsonify, request
 
-from back.models import Database, Query
 from middleware import database_middleware, user_middleware
+from models import Database, Query
 
 api = Blueprint("ai_api", __name__)
 

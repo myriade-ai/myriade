@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from back.models import Chart, ConversationMessage, Query
+from models import Chart, ConversationMessage, Query
 
 
 class WorkspaceTool:

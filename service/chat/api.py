@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 
 from app import socketio
 from auth.auth import UnauthorizedError, socket_auth
-from back.models import Conversation, ConversationMessage, Project
 from back.session import db_session
 from chat.datachat import DatabaseChat
 from chat.lock import STATUS, conversation_stop_flags, emit_status, stop_flag_lock
+from models import Conversation, ConversationMessage, Project
 
 api = Blueprint("chat_api", __name__)
 
