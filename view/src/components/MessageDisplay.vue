@@ -119,6 +119,12 @@
         <p v-if="props.message.functionCall?.name === 'memory_search'">
           Search: "{{ props.message.functionCall?.arguments?.search }}"
         </p>
+        <p v-if="props.message.functionCall?.name === 'think'">
+          {{ props.message.functionCall?.arguments?.thought }}
+        </p>
+        <p v-if="props.message.functionCall?.name === 'ask_user'">
+          {{ props.message.functionCall?.arguments?.question }}
+        </p>
         <BaseEditor
           v-else-if="props.message.functionCall?.name.endsWith('sql_query')"
           :modelValue="props.message.functionCall?.arguments?.query"
