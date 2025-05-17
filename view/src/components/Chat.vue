@@ -1,5 +1,8 @@
 <template>
-  <div class="w-full h-screen flex justify-center px-2 lg:px-0 overflow-y-auto">
+  <div
+    ref="scrollContainer"
+    class="w-full h-screen flex justify-center px-2 lg:px-0 overflow-y-auto"
+  >
     <div class="flex flex-col w-full max-w-2xl h-full">
       <div class="flex flex-col flex-1">
         <div class="w-full lg:pt-4 pb-4">
@@ -300,9 +303,10 @@ const handleSendMessage = async () => {
       conversationId.value,
       contextsStore.contextSelected.id
     )
-    // After 100ms, clear the input.
+    // After 100ms, clear the input and scroll to bottom.
     setTimeout(() => {
       clearInput()
+      scrollToBottom()
     }, 100)
   } catch (error) {
     console.error('Error sending message:', error)
@@ -340,6 +344,8 @@ onMounted(async () => {
     // Existing conversation
     store.fetchMessages(conversationId.value)
   }
+
+  scrollToBottom()
 })
 
 // If route changes (user navigates to a different ID)
@@ -398,6 +404,17 @@ socket.on('response', (response) => {
     router.push({ path: `/chat/${response.conversationId}` })
   }
 })
+
+// Reference to the scroll container to allow scrolling to bottom
+const scrollContainer = ref<HTMLDivElement | null>(null)
+
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (scrollContainer.value) {
+      scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight
+    }
+  })
+}
 </script>
 
 <style scoped>
