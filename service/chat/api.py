@@ -135,13 +135,7 @@ def handle_regenerate_from_message(conversation_id, message_id, message_content=
 
         database_id = conversation.databaseId
         project_id = conversation.projectId
-        chat = DatabaseChat(
-            session,
-            database_id,
-            conversation_id,
-            conversation_stop_flags,
-            project_id=project_id,
-        )
+
         # Clear all messages after the message_id, from the conversation
         messages = (
             session.query(ConversationMessage)
@@ -167,6 +161,13 @@ def handle_regenerate_from_message(conversation_id, message_id, message_content=
             emit("delete-message", message_id)
 
         # Regenerate the conversation
+        chat = DatabaseChat(
+            session,
+            database_id,
+            conversation_id,
+            conversation_stop_flags,
+            project_id=project_id,
+        )
         for message in chat._run_conversation():
             session.commit()
             emit("response", message.to_dict(session))
