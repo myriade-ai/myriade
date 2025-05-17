@@ -33,6 +33,11 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentcolor);
   }
+  /* Custom scrollbar styles */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #c8c8c8 transparent;
+  }
 }
 
 .h-screen {

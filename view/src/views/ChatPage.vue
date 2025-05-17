@@ -58,7 +58,7 @@
         <ConversationList class="h-screen" />
       </div>
     </div>
-    <div class="w-full h-full flex justify-center px-2">
+    <div class="w-full h-full flex justify-center">
       <div class="flex flex-col h-full w-full justify-end">
         <!-- only when swipe right can trigger the callback -->
         <Chat v-touch:swipe.right="onSwipe" />
