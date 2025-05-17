@@ -14,7 +14,7 @@ api = Blueprint("chat_api", __name__)
 
 
 @socketio.on("stop")
-def handle_stop(conversation_id):
+def handle_stop(conversation_id: int):
     print("Received stop signal for conversation_id", conversation_id)
     # Stop the query
     with stop_flag_lock:

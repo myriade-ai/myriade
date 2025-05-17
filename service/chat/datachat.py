@@ -85,8 +85,8 @@ class DatabaseChat:
         return conversation
 
     def check_stop_flag(self):
-        if self.stop_flags.get(str(self.conversation.id)):
-            del self.stop_flags[str(self.conversation.id)]  # Remove the stop flag
+        if self.stop_flags.get(self.conversation.id):
+            del self.stop_flags[self.conversation.id]  # Remove the stop flag
             raise StopException("Query stopped by user")
 
     @property
@@ -267,6 +267,8 @@ class DatabaseChat:
                 self.session.add(message)
                 self.session.flush()
                 yield message
+            emit_status(self.conversation.id, STATUS.CLEAR)
+        except StopException:
             emit_status(self.conversation.id, STATUS.CLEAR)
         except Exception as e:
             emit_status(self.conversation.id, STATUS.ERROR, e)
