@@ -36,6 +36,70 @@
       </div>
     </div>
 
+    <!-- Filters -->
+    <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+      <!-- Entity Filter -->
+      <div>
+        <label for="entity-filter" class="block text-sm font-medium text-gray-700 mb-1"
+          >Entity</label
+        >
+        <select
+          id="entity-filter"
+          v-model="selectedEntity"
+          class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
+        >
+          <option value="">All Entities</option>
+          <option v-for="entity in store.entities" :key="entity.id" :value="entity.id">
+            {{ entity.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div>
+        <label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1"
+          >Status</label
+        >
+        <select
+          id="status-filter"
+          v-model="selectedStatus"
+          class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
+        >
+          <option value="">All Statuses</option>
+          <option value="OPEN">Open</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="RESOLVED">Resolved</option>
+          <option value="CLOSED">Closed</option>
+        </select>
+      </div>
+
+      <!-- Scope Filter -->
+      <div>
+        <label for="scope-filter" class="block text-sm font-medium text-gray-700 mb-1">Scope</label>
+        <select
+          id="scope-filter"
+          v-model="selectedScope"
+          class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
+        >
+          <option value="">All Scopes</option>
+          <option value="DATA">Data</option>
+          <option value="BUSINESS">Business</option>
+          <option value="BOTH">Both</option>
+          <option value="UNKNOWN">Unknown</option>
+        </select>
+      </div>
+
+      <!-- Clear Filters Button -->
+      <div>
+        <button
+          @click="clearFilters"
+          class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Clear Filters
+        </button>
+      </div>
+    </div>
+
     <!-- Loading State -->
     <div v-if="store.loadingIssues" class="flex justify-center items-center py-10">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -112,7 +176,7 @@
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-3">
                 <div
-                  :class="getPriorityBadgeClass(issue.priority)"
+                  :class="getPriorityBadgeClass(issue.severity)"
                   class="w-5 h-5 rounded-full flex-shrink-0"
                 ></div>
                 <h3 class="text-base font-medium text-gray-900 line-clamp-1">{{ issue.title }}</h3>
@@ -142,6 +206,12 @@
               >
                 {{ issue.status }}
               </span>
+              <span
+                class="bg-blue-100 text-blue-800 text-xs font-medium ml-2 px-2.5 py-1 rounded"
+                v-if="issue.scope"
+              >
+                {{ issue.scope }}
+              </span>
             </div>
           </div>
 
@@ -149,7 +219,7 @@
           <div class="hidden sm:flex sm:justify-between sm:items-center">
             <div class="flex items-center space-x-3">
               <div
-                :class="getPriorityBadgeClass(issue.priority)"
+                :class="getPriorityBadgeClass(issue.severity)"
                 class="w-5 h-5 rounded-full flex-shrink-0"
               ></div>
               <h3 class="text-lg font-medium text-gray-900">{{ issue.title }}</h3>
@@ -165,6 +235,13 @@
                 class="text-xs font-medium mr-4 px-2.5 py-1 rounded"
               >
                 {{ issue.status }}
+              </span>
+              <!-- Scope Badge -->
+              <span
+                v-if="issue.scope"
+                class="bg-purple-100 text-purple-800 text-xs font-medium mr-4 px-2.5 py-1 rounded"
+              >
+                {{ issue.scope }}
               </span>
               <!-- Expand/Collapse Icon -->
               <svg
@@ -219,14 +296,14 @@
               <div class="grid grid-cols-2 gap-3">
                 <div class="bg-gray-50 p-3 rounded-md">
                   <p class="text-xs uppercase tracking-wide font-medium text-gray-500 mb-1">
-                    Priority
+                    Severity
                   </p>
                   <p class="text-sm text-gray-800 flex items-center">
                     <span
-                      :class="getPriorityDotClass(issue.priority)"
+                      :class="getPriorityDotClass(issue.severity)"
                       class="inline-block w-3 h-3 rounded-full mr-1.5"
                     ></span>
-                    {{ issue.priority }}
+                    {{ issue.severity }}
                   </p>
                 </div>
 
@@ -246,6 +323,13 @@
                     Associated Entity
                   </p>
                   <p class="text-sm text-gray-800">{{ getEntityName(issue.business_entity_id) }}</p>
+                </div>
+
+                <div class="bg-gray-50 p-3 rounded-md">
+                  <p class="text-xs uppercase tracking-wide font-medium text-gray-500 mb-1">
+                    Scope
+                  </p>
+                  <p class="text-sm text-gray-800">{{ issue.scope }}</p>
                 </div>
 
                 <div class="bg-gray-50 p-3 rounded-md">
@@ -270,14 +354,14 @@
               <div class="space-y-4 lg:col-span-1">
                 <div class="bg-gray-50 p-3 rounded-md">
                   <p class="text-xs uppercase tracking-wide font-medium text-gray-500 mb-1">
-                    Priority
+                    Severity
                   </p>
                   <p class="text-sm text-gray-800 flex items-center">
                     <span
-                      :class="getPriorityDotClass(issue.priority)"
+                      :class="getPriorityDotClass(issue.severity)"
                       class="inline-block w-3 h-3 rounded-full mr-1.5"
                     ></span>
-                    {{ issue.priority }}
+                    {{ issue.severity }}
                   </p>
                 </div>
 
@@ -295,6 +379,13 @@
                     Associated Entity
                   </p>
                   <p class="text-sm text-gray-800">{{ getEntityName(issue.business_entity_id) }}</p>
+                </div>
+
+                <div class="bg-gray-50 p-3 rounded-md">
+                  <p class="text-xs uppercase tracking-wide font-medium text-gray-500 mb-1">
+                    Scope
+                  </p>
+                  <p class="text-sm text-gray-800">{{ issue.scope }}</p>
                 </div>
 
                 <div class="bg-gray-50 p-3 rounded-md">
@@ -360,19 +451,20 @@
 
                 <div>
                   <label
-                    for="mobile-edit-priority"
+                    for="mobile-edit-severity"
                     class="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Priority
+                    Severity
                   </label>
                   <select
-                    id="mobile-edit-priority"
-                    v-model="formState.priority"
+                    id="mobile-edit-severity"
+                    v-model="formState.severity"
                     class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
                   >
                     <option value="HIGH">High</option>
                     <option value="MEDIUM">Medium</option>
                     <option value="LOW">Low</option>
+                    <option value="CRITICAL">Critical</option>
                   </select>
                 </div>
 
@@ -394,6 +486,25 @@
                     <option value="CLOSED">Closed</option>
                   </select>
                 </div>
+
+                <div>
+                  <label
+                    for="mobile-edit-scope"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Scope
+                  </label>
+                  <select
+                    id="mobile-edit-scope"
+                    v-model="formState.scope"
+                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                  >
+                    <option value="DATA">Data</option>
+                    <option value="BUSINESS">Business</option>
+                    <option value="BOTH">Both</option>
+                    <option value="UNKNOWN">Unknown</option>
+                  </select>
+                </div>
               </div>
 
               <!-- Desktop layout: two columns -->
@@ -401,17 +512,18 @@
                 <!-- Left column: Form fields -->
                 <div class="space-y-4 lg:col-span-1">
                   <div>
-                    <label for="edit-priority" class="block text-sm font-medium text-gray-700 mb-1">
-                      Priority
+                    <label for="edit-severity" class="block text-sm font-medium text-gray-700 mb-1">
+                      Severity
                     </label>
                     <select
-                      id="edit-priority"
-                      v-model="formState.priority"
+                      id="edit-severity"
+                      v-model="formState.severity"
                       class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
                     >
                       <option value="HIGH">High</option>
                       <option value="MEDIUM">Medium</option>
                       <option value="LOW">Low</option>
+                      <option value="CRITICAL">Critical</option>
                     </select>
                   </div>
 
@@ -428,6 +540,22 @@
                       <option value="IN_PROGRESS">In Progress</option>
                       <option value="RESOLVED">Resolved</option>
                       <option value="CLOSED">Closed</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label for="edit-scope" class="block text-sm font-medium text-gray-700 mb-1">
+                      Scope
+                    </label>
+                    <select
+                      id="edit-scope"
+                      v-model="formState.scope"
+                      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                    >
+                      <option value="DATA">Data</option>
+                      <option value="BUSINESS">Business</option>
+                      <option value="BOTH">Both</option>
+                      <option value="UNKNOWN">Unknown</option>
                     </select>
                   </div>
                 </div>
@@ -551,6 +679,9 @@ const store = useQualityStore()
 
 // Search and filter state
 const searchQuery = ref('')
+const selectedEntity = ref<number | string>('') // Can be number (ID) or empty string for all
+const selectedStatus = ref<string>('')
+const selectedScope = ref<string>('')
 
 // State for expanded row and its mode ('view' or 'edit')
 const expandedIssue = ref<{ id: string; mode: 'view' | 'edit' } | null>(null)
@@ -561,7 +692,9 @@ const saving = ref(false)
 // Notification state
 const notification = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 
-const priorityOrder: Record<string, number> = {
+// Rename priorityOrder to severityOrder and use issue.severity
+const severityOrder: Record<string, number> = {
+  CRITICAL: 0,
   HIGH: 1,
   MEDIUM: 2,
   LOW: 3
@@ -569,18 +702,38 @@ const priorityOrder: Record<string, number> = {
 
 const sortedIssues = computed(() => {
   return [...store.issues].sort((a, b) => {
-    const priorityA = a.priority?.toUpperCase() || ''
-    const priorityB = b.priority?.toUpperCase() || ''
-    return (priorityOrder[priorityA] || 99) - (priorityOrder[priorityB] || 99)
+    const severityA = a.severity?.toUpperCase() || ''
+    const severityB = b.severity?.toUpperCase() || ''
+    return (severityOrder[severityA] || 99) - (severityOrder[severityB] || 99)
   })
 })
 
 const filteredIssues = computed(() => {
-  if (!searchQuery.value.trim()) return sortedIssues.value
+  let issuesToFilter = [...sortedIssues.value]
+
+  // Apply entity filter
+  if (selectedEntity.value) {
+    issuesToFilter = issuesToFilter.filter(
+      (issue) => issue.business_entity_id === selectedEntity.value
+    )
+  }
+
+  // Apply status filter
+  if (selectedStatus.value) {
+    issuesToFilter = issuesToFilter.filter((issue) => issue.status === selectedStatus.value)
+  }
+
+  // Apply scope filter
+  if (selectedScope.value) {
+    issuesToFilter = issuesToFilter.filter((issue) => issue.scope === selectedScope.value)
+  }
+
+  // Apply search query
+  if (!searchQuery.value.trim()) return issuesToFilter
 
   const query = searchQuery.value.toLowerCase().trim()
 
-  return sortedIssues.value.filter((issue) => {
+  return issuesToFilter.filter((issue) => {
     // Search in title
     if (issue.title.toLowerCase().includes(query)) return true
 
@@ -590,8 +743,11 @@ const filteredIssues = computed(() => {
     // Search in status
     if (issue.status.toLowerCase().includes(query)) return true
 
-    // Search in priority
-    if (issue.priority.toLowerCase().includes(query)) return true
+    // Search in severity
+    if (issue.severity && issue.severity.toLowerCase().includes(query)) return true
+
+    // Search in scope
+    if (issue.scope && issue.scope.toLowerCase().includes(query)) return true
 
     // Search in entity name
     const entityName = getEntityName(issue.business_entity_id).toLowerCase()
@@ -671,16 +827,18 @@ const saveIssueChanges = async () => {
 // Helper functions for styling based on priority and status
 const getPriorityBadgeClass = (priority: string) => {
   const p = priority?.toUpperCase() || ''
+  if (p === 'CRITICAL') return 'bg-pink-600' // Added CRITICAL
   if (p === 'HIGH') return 'bg-red-500'
   if (p === 'MEDIUM') return 'bg-amber-400'
-  return 'bg-green-500'
+  return 'bg-green-500' // LOW or other
 }
 
 const getPriorityDotClass = (priority: string) => {
   const p = priority?.toUpperCase() || ''
+  if (p === 'CRITICAL') return 'bg-pink-600' // Added CRITICAL
   if (p === 'HIGH') return 'bg-red-500'
   if (p === 'MEDIUM') return 'bg-amber-400'
-  return 'bg-green-500'
+  return 'bg-green-500' // LOW or other
 }
 
 const getStatusBadgeClass = (status: string) => {
@@ -699,6 +857,13 @@ const getStatusTextClass = (status: string) => {
   if (s === 'RESOLVED') return 'text-green-700'
   if (s === 'CLOSED' || s === 'DONE') return 'text-gray-700'
   return 'text-gray-700'
+}
+
+const clearFilters = () => {
+  searchQuery.value = ''
+  selectedEntity.value = ''
+  selectedStatus.value = ''
+  selectedScope.value = ''
 }
 
 onMounted(() => {

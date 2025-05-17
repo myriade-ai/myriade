@@ -7,7 +7,8 @@ export interface Issue {
   id: string
   title: string
   description: string
-  priority: string
+  severity: string
+  scope: string
   status: string
   database_id: number
   message_id: number
@@ -17,6 +18,8 @@ export interface Issue {
 export interface BusinessEntity {
   id: number
   name: string
+  definition?: string
+  table_ref?: string
   completeness: number | null
   quality_score: number | null
   review_date: string | null

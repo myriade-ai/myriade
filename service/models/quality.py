@@ -16,22 +16,28 @@ class Status(StrEnum):
     DONE = "DONE"
 
 
-class Priority(StrEnum):  # 5 levels
+class Severity(StrEnum):  # 5 levels
+    # INFO = "INFO"
     LOW = "LOW"
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
     CRITICAL = "CRITICAL"
-    BLOCKER = "BLOCKER"
 
     @property
     def level(self) -> int:
         return {
-            Priority.LOW: 1,
-            Priority.MEDIUM: 2,
-            Priority.HIGH: 3,
-            Priority.CRITICAL: 4,
-            Priority.BLOCKER: 5,
+            Severity.LOW: 1,
+            Severity.MEDIUM: 2,
+            Severity.HIGH: 3,
+            Severity.CRITICAL: 4,
         }[self]
+
+
+class IssueScope(StrEnum):
+    DATA = "DATA"  # fix in pipeline / warehouse
+    BUSINESS = "BUSINESS"  # fix in operations / process
+    BOTH = "BOTH"  # needs data patch + process change
+    UNKNOWN = "UNKNOWN"  # triage not done yet
 
 
 @dataclass
@@ -49,7 +55,8 @@ class Issue(Base, DefaultBase):
     )
     title: Mapped[str] = mapped_column(String(256), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
-    priority: Mapped[Priority] = mapped_column(Enum(Priority), nullable=True)
+    scope: Mapped[IssueScope] = mapped_column(Enum(IssueScope), nullable=True)
+    severity: Mapped[Severity] = mapped_column(Enum(Severity), nullable=True)
     status: Mapped[Status] = mapped_column(Enum(Status), default=Status.OPEN)
     database_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("database.id"), nullable=True
@@ -76,6 +83,7 @@ class BusinessEntity(Base, DefaultBase):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    definition: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # Quality metrics
     completeness: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     quality_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -90,3 +98,4 @@ class BusinessEntity(Base, DefaultBase):
     issues: Mapped[List["Issue"]] = relationship(
         "Issue", back_populates="business_entity"
     )
+    table_ref: Mapped[Optional[str]] = mapped_column(String, nullable=True)

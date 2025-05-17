@@ -72,6 +72,16 @@
             <span v-else class="text-sm text-gray-400">Not scanned</span>
           </div>
 
+          <!-- Definition and Table Ref -->
+          <div v-if="entity.definition || entity.table_ref" class="mb-3 text-sm text-gray-600">
+            <p v-if="entity.definition" :title="entity.definition">
+              <strong>Definition:</strong> {{ entity.definition }}
+            </p>
+            <p v-if="entity.table_ref" class="truncate" :title="entity.table_ref">
+              <strong>Table:</strong> {{ entity.table_ref }}
+            </p>
+          </div>
+
           <!-- Unscanned State -->
           <div v-if="!entity.completeness && !entity.quality_score" class="text-center py-4">
             <svg
