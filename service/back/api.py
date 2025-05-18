@@ -14,7 +14,10 @@ from back.datalake import ConnectionError, DatalakeFactory
 from back.privacy import PRIVACY_PATTERNS
 from chat.api import extract_context
 from middleware import admin_required, user_middleware
-from models import Conversation, ConversationMessage, Database, Project, ProjectTables, Query, Chart
+from models import (
+    Conversation, ConversationMessage, Database, Project, ProjectTables, 
+    Query, Chart
+)
 from models.quality import BusinessEntity, Issue
 
 api = Blueprint("back_api", __name__)
