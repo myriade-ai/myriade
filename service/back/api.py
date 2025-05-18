@@ -490,13 +490,13 @@ def toggle_chart_favorite(chart_id):
 def get_workspace_items():
     """Get all favorited queries and charts for the workspace"""
     queries = g.session.query(Query).filter(
-        Query.is_favorite == True,
+        Query.is_favorite,
         Query.rows.isnot(None),
         Query.exception.is_(None)
     ).all()
     
     charts = g.session.query(Chart).filter(
-        Chart.is_favorite == True
+        Chart.is_favorite
     ).all()
     
     return jsonify({
