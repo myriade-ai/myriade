@@ -227,7 +227,7 @@ const { selectDatabaseById, createDatabase, updateDatabase, deleteDatabase } = d
 
 const isNew = computed(() => route.params.id === 'new')
 if (!isNew.value) {
-  const databaseId = parseInt(route.params.id as string)
+  const databaseId = route.params.id as string
   await selectDatabaseById(databaseId)
   // Copy the databaseSelected to the database
   database.value.id = databasesStore.databaseSelected.id
@@ -240,10 +240,9 @@ if (!isNew.value) {
   database.value.dbt_manifest = databasesStore.databaseSelected.dbt_manifest
 }
 
-const clickDelete = () => {
-  if (deleteDatabase(database.value.id)) {
-    router.push({ name: 'DatabaseList' })
-  }
+const clickDelete = async () => {
+  await deleteDatabase(database.value.id)
+  router.push({ name: 'DatabaseList' })
 }
 
 // Redirect to /databases

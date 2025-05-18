@@ -31,7 +31,7 @@
     </div>
 
     <!-- Privacy configuration component -->
-    <PrivacyConfiguration v-if="selectedDbId" :database-id="Number(selectedDbId)" />
+    <PrivacyConfiguration v-if="selectedDbId" :database-id="selectedDbId" />
     <div v-else class="text-sm text-gray-500">
       Please select a database to configure zero knowledge protection.
     </div>

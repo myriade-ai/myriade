@@ -206,7 +206,7 @@ const conversationId = computed(() => {
   if (route.params.id === 'new') {
     return null
   }
-  return Number(route.params.id)
+  return route.params.id
 })
 const queryStatus = computed(() => conversation.value?.status ?? 'clear')
 const errorMessage = computed(() => conversation.value?.error ?? '')
@@ -226,7 +226,7 @@ const sendStatus = computed(() => {
 
 /** The current conversation object from the store. */
 const conversation = computed(() => {
-  return store.getConversationById(Number(conversationId.value))
+  return store.getConversationById(conversationId.value)
 })
 const messages = computed(() => {
   return conversation.value?.messages ?? []
@@ -397,10 +397,7 @@ const stopQuery = async () => {
 
 socket.on('response', (response) => {
   // If we are on the /new page and the response is for a new conversation, redirect to the new conversation
-  if (
-    conversationId.value === null &&
-    !store.getConversationById(Number(response.conversationId))
-  ) {
+  if (conversationId.value === null && !store.getConversationById(response.conversationId)) {
     router.push({ path: `/chat/${response.conversationId}` })
   }
 })

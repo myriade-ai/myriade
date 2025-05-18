@@ -171,7 +171,7 @@ class DatabaseChat:
     def submit(
         self,
         from_response: Message,
-        queryId: int,
+        queryId: str,
     ):
         """
         Give the final response from the user demand/query

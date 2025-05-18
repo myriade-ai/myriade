@@ -14,8 +14,8 @@ import { defineProps, onMounted, ref } from 'vue'
 const { fetchQuery, fetchQueryResults } = useQueryStore()
 
 const props = defineProps({
-  queryId: Number,
-  databaseId: Number
+  queryId: String,
+  databaseId: String
 })
 
 const rows = ref([])

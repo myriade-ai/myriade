@@ -49,7 +49,7 @@ def create_query():
     return jsonify(response)
 
 
-@api.route("/query/<int:query_id>", methods=["GET", "PUT"])
+@api.route("/query/<query_id>", methods=["GET", "PUT"])
 @user_middleware
 def handle_query_by_id(query_id):
     """
@@ -76,7 +76,7 @@ def handle_query_by_id(query_id):
     return jsonify(response)
 
 
-@api.route("/query/<int:query_id>/results", methods=["GET"])
+@api.route("/query/<query_id>/results", methods=["GET"])
 @user_middleware
 def get_query_results_by_id(query_id):
     """

@@ -757,7 +757,7 @@ const filteredIssues = computed(() => {
   })
 })
 
-const getEntityName = (entityId: number | undefined | null): string => {
+const getEntityName = (entityId: string | undefined | null): string => {
   if (entityId === undefined || entityId === null) return 'N/A'
   const entity = store.entities.find((e) => e.id === entityId)
   return entity ? entity.name : `ID: ${entityId}`

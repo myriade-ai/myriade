@@ -5,12 +5,14 @@ import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, cast
+from uuid import UUID
 
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import or_
 
 from back.datalake import ConnectionError, DatalakeFactory
 from back.privacy import PRIVACY_PATTERNS
+from chat.api import extract_context
 from middleware import admin_required, user_middleware
 from models import Conversation, ConversationMessage, Database, Project, ProjectTables
 from models.quality import BusinessEntity, Issue
@@ -30,6 +32,8 @@ def dataclass_to_dict(obj: Union[object, List[object]]) -> Union[dict, List[dict
             value = getattr(obj, field.name)
             if isinstance(value, datetime):
                 data[field.name] = value.isoformat()
+            elif isinstance(value, UUID):
+                data[field.name] = str(value)
             elif dataclasses.is_dataclass(value) or isinstance(value, list):
                 data[field.name] = dataclass_to_dict(value)
             else:
@@ -46,12 +50,14 @@ def get_conversations():
     query = g.session.query(Conversation).filter(
         Conversation.ownerId == g.user.id,
     )
-    if context_id and context_id.startswith("database-"):
-        db_id = int(context_id.split("-")[1])
-        query = query.filter(Conversation.databaseId == db_id)
-    if context_id and context_id.startswith("project-"):
-        project_id = int(context_id.split("-")[1])
-        query = query.filter(Conversation.projectId == project_id)
+    if context_id:
+        database_id, project_id = extract_context(g.session, context_id)
+        query = query.filter(
+            or_(
+                Conversation.databaseId == database_id,
+                Conversation.projectId == project_id,
+            )
+        )
     conversations = query.all()
     conversations_dict = [
         dataclass_to_dict(conversation) for conversation in conversations
@@ -59,7 +65,7 @@ def get_conversations():
     return jsonify(conversations_dict)
 
 
-@api.route("/conversations/<int:conversation_id>", methods=["GET", "PUT"])
+@api.route("/conversations/<conversation_id>", methods=["GET", "PUT"])
 @user_middleware
 def get_conversation(conversation_id):
     conversation = (
@@ -79,11 +85,11 @@ def get_conversation(conversation_id):
     conversation_dict["messages"] = [
         m.to_dict(g.session) for m in conversation.messages
     ]
-    conversation_dict["messages"].sort(key=lambda x: x["id"])
+    conversation_dict["messages"].sort(key=lambda x: x["createdAt"])
     return jsonify(conversation_dict)
 
 
-@api.route("/conversations/<int:conversation_id>", methods=["DELETE"])
+@api.route("/conversations/<conversation_id>", methods=["DELETE"])
 @user_middleware
 def delete_conversation(conversation_id):
     # Delete conversation and all related messages
@@ -137,7 +143,7 @@ def create_database():
     return jsonify(database)
 
 
-@api.route("/databases/<int:database_id>", methods=["DELETE"])
+@api.route("/databases/<database_id>", methods=["DELETE"])
 @user_middleware
 @admin_required
 def delete_database(database_id):
@@ -147,7 +153,7 @@ def delete_database(database_id):
     return jsonify({"success": True})
 
 
-@api.route("/databases/<int:database_id>", methods=["PUT"])
+@api.route("/databases/<database_id>", methods=["PUT"])
 @user_middleware
 def update_database(database_id):
     data = request.get_json()
@@ -218,20 +224,16 @@ def get_questions(context_id):
     user_language = request.headers.get("Accept-Language")
 
     # context is "project-{projectId}" or "database-{databaseId}"
-    if context_id.startswith("project-"):
-        project_id = int(context_id.split("-")[1])
-        project = g.session.query(Project).filter_by(id=project_id).first()
-        database = g.session.query(Database).filter_by(id=project.databaseId).first()
-    elif context_id.startswith(
-        "database-"
-    ):  # Note: will be removed once we have context / project
-        database_id = int(context_id.split("-")[1])
-        database = g.session.query(Database).filter_by(id=database_id).first()
+    database_id, project_id = extract_context(g.session, context_id)
+    database = g.session.query(Database).filter_by(id=database_id).first()
 
     # If project, filter database.tables_metadata with project.tables
     tables_metadata = database.tables_metadata
 
-    if context_id.startswith("project-"):
+    if project_id:
+        project = g.session.query(Project).filter_by(id=project_id).first()
+        if not project:
+            raise ValueError(f"Project with id {project_id} not found")
         tables_metadata = [
             # if any (name match tableName and schema match schemaName)
             # in project.tables
@@ -289,7 +291,7 @@ def get_questions(context_id):
     return jsonify(response_values)
 
 
-@api.route("/databases/<int:database_id>/schema", methods=["GET"])
+@api.route("/databases/<database_id>/schema", methods=["GET"])
 @user_middleware
 def get_schema(database_id):
     # Filter databases based on user ID and specific database ID
@@ -353,7 +355,7 @@ def get_projects():
 
 
 # Get specific project
-@api.route("/projects/<int:project_id>", methods=["GET"])
+@api.route("/projects/<project_id>", methods=["GET"])
 @user_middleware
 def get_project(project_id):
     project = (
@@ -402,7 +404,7 @@ def create_project():
     return jsonify(new_project)
 
 
-@api.route("/projects/<int:project_id>", methods=["PUT"])
+@api.route("/projects/<project_id>", methods=["PUT"])
 @user_middleware
 def update_project(project_id):
     data = request.get_json()
@@ -425,7 +427,7 @@ def update_project(project_id):
     return "ok"
 
 
-@api.route("/projects/<int:project_id>", methods=["DELETE"])
+@api.route("/projects/<project_id>", methods=["DELETE"])
 @user_middleware
 def delete_project(project_id):
     project = g.session.query(Project).filter_by(id=project_id).first()
@@ -434,7 +436,7 @@ def delete_project(project_id):
     return jsonify({"message": "Project deleted successfully"})
 
 
-@api.route("/databases/<int:database_id>/privacy", methods=["PUT"])
+@api.route("/databases/<database_id>/privacy", methods=["PUT"])
 @user_middleware
 def update_database_privacy(database_id):
     """Update privacy configuration (tables_metadata) for a database."""
@@ -457,7 +459,7 @@ def update_database_privacy(database_id):
     return jsonify({"success": True})
 
 
-@api.route("/databases/<int:database_id>/privacy/auto", methods=["POST"])
+@api.route("/databases/<database_id>/privacy/auto", methods=["POST"])
 @user_middleware
 def auto_update_database_privacy(database_id):
     """Auto-detect sensitive columns based on PRIVACY_PATTERNS and update privacy maps.
@@ -577,15 +579,11 @@ def get_business_entities():
     context_id = request.args.get("contextId")
     query = g.session.query(BusinessEntity)
 
-    if context_id and context_id.startswith("database-"):
-        try:
-            database_id_str = context_id.split("-", 1)[1]
-            database_id = int(database_id_str)
-            query = query.filter(BusinessEntity.database_id == database_id)
-        except (IndexError, ValueError):
-            # Handle cases where contextId is "database-" or "database-invalid"
-            # You might want to return a 400 error or log this
-            pass  # Or return jsonify({"error": "Invalid database contextId"}), 400
+    database_id, project_id = extract_context(g.session, context_id)
+    if project_id:
+        query = query.filter(BusinessEntity.project_id == project_id)
+    else:
+        query = query.filter(BusinessEntity.database_id == database_id)
 
     business_entities = query.all()
     return jsonify(business_entities)
@@ -597,13 +595,8 @@ def get_issues():
     query = g.session.query(Issue)
     context_id = request.args.get("contextId")
 
-    if context_id and context_id.startswith("database-"):
-        try:
-            database_id_str = context_id.split("-", 1)[1]
-            database_id = int(database_id_str)
-            query = query.filter(Issue.database_id == database_id)
-        except (IndexError, ValueError):
-            pass  # Or return jsonify({"error": "Invalid database contextId"}), 400
+    database_id, _ = extract_context(g.session, context_id)
+    query = query.filter(Issue.database_id == database_id)
 
     issues = query.all()
     return jsonify(issues)

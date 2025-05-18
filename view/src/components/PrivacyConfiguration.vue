@@ -168,7 +168,7 @@ interface UserGroup {
 // -----------------------------------------------------------------------
 // Reactive data (fetched from database schema API)
 // -----------------------------------------------------------------------
-const props = defineProps<{ databaseId: number }>()
+const props = defineProps<{ databaseId: string }>()
 
 const userGroups = ref<UserGroup[]>([
   // { key: 'users', name: 'Users' },

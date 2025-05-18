@@ -1,5 +1,6 @@
 import base64
 import json
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from io import BytesIO
@@ -16,7 +17,9 @@ from sqlalchemy import (
     String,
     func,
 )
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Session, relationship
+from sqlalchemy.sql import text
 
 from back.utils import JSONB, Base, DefaultBase
 
@@ -47,7 +50,8 @@ def format_to_snake_case(**kwargs):
 
 @dataclass
 class Database(DefaultBase, Base):
-    id: int
+    id: uuid.UUID
+    createdAt: datetime
     name: str
     description: str
     engine: str
@@ -61,7 +65,11 @@ class Database(DefaultBase, Base):
 
     __tablename__ = "database"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid_v7()"),
+    )
     name = Column(String, nullable=False)
     description = Column(String)
     _engine = Column(String, nullable=False, name="engine")
@@ -111,32 +119,38 @@ class Organisation(DefaultBase, Base):
 class ConversationMessage(DefaultBase, Base):
     __tablename__ = "conversation_message"
 
-    id: int
-    conversationId: int
+    id: uuid.UUID
+    conversationId: uuid.UUID
     name: str
     role: str
     content: str
     data: dict
     functionCall: dict
-    queryId: int
+    queryId: uuid.UUID
     functionCallId: str
     image: bytes
     isAnswer: bool
-    chartId: int
+    chartId: uuid.UUID
 
-    id = Column(Integer, primary_key=True)
-    conversationId = Column(Integer, ForeignKey("conversation.id"), nullable=False)
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid_v7()"),
+    )
+    conversationId = Column(
+        UUID(as_uuid=True), ForeignKey("conversation.id"), nullable=False
+    )
     role = Column(String, nullable=False)
     name = Column(String)
     content = Column(String, nullable=True)
     functionCall = Column(JSONB)
     data = Column(JSONB)
-    queryId = Column(Integer, ForeignKey("query.id"), nullable=True)
+    queryId = Column(UUID(as_uuid=True), ForeignKey("query.id"), nullable=True)
     reqId = Column(String, nullable=True)
     functionCallId = Column(String, nullable=True)
     image = Column(LargeBinary, nullable=True)
     isAnswer = Column(Boolean, nullable=False, default=False)
-    chartId = Column(Integer, ForeignKey("chart.id"), nullable=True)
+    chartId = Column(UUID(as_uuid=True), ForeignKey("chart.id"), nullable=True)
 
     conversation = relationship("Conversation", back_populates="messages")
     query = relationship("Query", back_populates="conversation_messages")
@@ -154,7 +168,7 @@ class ConversationMessage(DefaultBase, Base):
 
             if "<QUERY:" in self.content:
                 # extract the query id from the text
-                query_id = int(self.content.split("<QUERY:")[1].split(">")[0].strip())
+                query_id = self.content.split("<QUERY:")[1].split(">")[0].strip()
                 # get the query from the database
                 query = session.query(Query).filter_by(id=query_id).first()
                 # Replace the <QUERY:QUERY_ID> tag with the query content
@@ -164,14 +178,14 @@ class ConversationMessage(DefaultBase, Base):
 
             if "<CHART:" in self.content:
                 # extract the chart id from the text
-                chart_id = int(self.content.split("<CHART:")[1].split(">")[0].strip())
+                chart_id = self.content.split("<CHART:")[1].split(">")[0].strip()
                 # get the chart from the database
                 chart = session.query(Chart).filter_by(id=chart_id).first()
                 if not chart:
                     raise ValueError(f"Chart with id {chart_id} not found")
                 # Replace the <CHART:CHART_ID> tag with the chart content
                 chart_config = chart.config
-                chart_config["query_id"] = chart.queryId
+                chart_config["query_id"] = str(chart.queryId)
                 chart_config_str = json.dumps(chart_config)
                 self.content = self.content.replace(
                     f"<CHART:{chart_id}>", f"```echarts\n{chart_config_str}\n```"
@@ -179,15 +193,16 @@ class ConversationMessage(DefaultBase, Base):
 
         # Export to dict, only keys declared in the dataclass
         return {
-            "id": self.id,
-            "conversationId": self.conversationId,
+            "id": str(self.id),  # uuid.UUID
+            "createdAt": self.createdAt.isoformat(),
+            "conversationId": str(self.conversationId),  # uuid.UUID
             "role": self.role,
             "name": self.name,
             "content": self.content,
             "functionCall": self.functionCall,
             "data": self.data,  # TODO: remove
             "image": base64.b64encode(self.image).decode() if self.image else None,
-            "queryId": self.queryId,
+            "queryId": str(self.queryId) if self.queryId else None,  # uuid.UUID
             "functionCallId": self.functionCallId,
             "isAnswer": self.isAnswer,
         }
@@ -226,20 +241,24 @@ class ConversationMessage(DefaultBase, Base):
 class Conversation(DefaultBase, Base):
     __tablename__ = "conversation"
 
-    id: int
+    id: uuid.UUID
     name: str
     ownerId: str
-    databaseId: int
-    projectId: int
+    databaseId: uuid.UUID
+    projectId: uuid.UUID
     createdAt: str
     updatedAt: str
     # messages: List[ConversationMessage] = field(default_factory=list)
 
-    id = Column(Integer, primary_key=True)
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid_v7()"),
+    )
     name = Column(String)
     ownerId = Column(String, ForeignKey("user.id"))
-    projectId = Column(Integer, ForeignKey("project.id"))
-    databaseId = Column(Integer, ForeignKey("database.id"), nullable=False)
+    projectId = Column(UUID(as_uuid=True), ForeignKey("project.id"))
+    databaseId = Column(UUID(as_uuid=True), ForeignKey("database.id"), nullable=False)
 
     owner = relationship("User")
     database = relationship("Database")
@@ -248,7 +267,7 @@ class Conversation(DefaultBase, Base):
         back_populates="conversation",
         lazy="joined",
         # Order by id
-        order_by="ConversationMessage.id",
+        order_by="ConversationMessage.createdAt",
     )
     project = relationship("Project")
 
@@ -257,9 +276,22 @@ class Conversation(DefaultBase, Base):
 class Query(DefaultBase, Base):
     __tablename__ = "query"
 
-    id = Column(Integer, primary_key=True)
+    id: uuid.UUID
+    title: str
+    databaseId: uuid.UUID
+    sql = Column(String)
+    # Optimal type to store large results
+    rows = Column(JSONB)
+    count = Column(Integer)
+    exception = Column(String)
+
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid_v7()"),
+    )
     title = Column(String, nullable=True)
-    databaseId = Column(Integer, ForeignKey("database.id"), nullable=False)
+    databaseId = Column(UUID(as_uuid=True), ForeignKey("database.id"), nullable=False)
     sql = Column(String)
     # Optimal type to store large results
     rows = Column(JSONB)
@@ -281,9 +313,21 @@ class Query(DefaultBase, Base):
 class Chart(DefaultBase, Base):
     __tablename__ = "chart"
 
-    id = Column(Integer, primary_key=True)
+    id: uuid.UUID
     config = Column(JSONB)
-    queryId = Column(Integer, ForeignKey("query.id"))
+    queryId: uuid.UUID
+    query = relationship("Query", back_populates="charts")
+    conversation_messages = relationship(
+        "ConversationMessage", back_populates="chart", lazy="joined"
+    )
+
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid_v7()"),
+    )
+    config = Column(JSONB)
+    queryId = Column(UUID(as_uuid=True), ForeignKey("query.id"))
     query = relationship("Query", back_populates="charts")
     conversation_messages = relationship(
         "ConversationMessage", back_populates="chart", lazy="joined"
@@ -315,9 +359,15 @@ class ProjectTables(DefaultBase, Base):
     databaseName: str
     schemaName: str
     tableName: str
+    id: uuid.UUID
+    projectId: uuid.UUID
 
-    id = Column(Integer, primary_key=True)
-    projectId = Column(Integer, ForeignKey("project.id"), nullable=False)
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid_v7()"),
+    )
+    projectId = Column(UUID(as_uuid=True), ForeignKey("project.id"), nullable=False)
     databaseName = Column(String)
     schemaName = Column(String)
     tableName = Column(String)
@@ -329,22 +379,26 @@ class ProjectTables(DefaultBase, Base):
 class Project(DefaultBase, Base):
     __tablename__ = "project"
 
-    id: int
+    id: uuid.UUID
     name: str
     description: str
     creatorId: str  # warning, it's a string
     organisationId: str
-    databaseId: int  # temporary
+    databaseId: uuid.UUID
     # TODO: change
     # tables: [ProjectTables]
     # tables: List[ConversationMessage] = field(default_factory=list)
 
-    id = Column(Integer, primary_key=True)  # TODO: transform to uuid
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid_v7()"),
+    )  # TODO: transform to uuid
     name = Column(String, nullable=False)
     description = Column(String, nullable=False)
     creatorId = Column(String, ForeignKey("user.id"), nullable=False)
     organisationId = Column(String, ForeignKey("organisation.id"))
-    databaseId = Column(Integer, ForeignKey("database.id"), nullable=False)
+    databaseId = Column(UUID(as_uuid=True), ForeignKey("database.id"), nullable=False)
 
     creator = relationship("User")
     organisation = relationship("Organisation")
@@ -364,15 +418,19 @@ class Project(DefaultBase, Base):
 class Note(DefaultBase, Base):
     __tablename__ = "note"
 
-    id: int
+    id: uuid.UUID
     title: str
     content: str
-    projectId: int
+    projectId: uuid.UUID
 
-    id = Column(Integer, primary_key=True)
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid_v7()"),
+    )
     title = Column(String)
     content = Column(String)
-    projectId = Column(Integer, ForeignKey("project.id"))
+    projectId = Column(UUID(as_uuid=True), ForeignKey("project.id"))
 
     project = relationship("Project", back_populates="notes")
 

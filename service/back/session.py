@@ -1,4 +1,5 @@
 import json
+import uuid
 from contextlib import contextmanager
 from datetime import date, datetime
 
@@ -14,6 +15,8 @@ def json_serial(d):
 
         if isinstance(obj, (datetime, date)):
             return obj.isoformat()
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
         raise TypeError("Type %s not serializable" % type(obj))
 
     return json.dumps(d, default=_default)
@@ -91,4 +94,4 @@ def db_session():
 
 
 if __name__ == "__main__":
-    setup_database(DATABASE_URL)
+    setup_database()

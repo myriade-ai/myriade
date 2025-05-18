@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from flask import Blueprint
 from flask import session as flask_session
 from flask_socketio import emit
@@ -14,7 +16,7 @@ api = Blueprint("chat_api", __name__)
 
 
 @socketio.on("stop")
-def handle_stop(conversation_id: int):
+def handle_stop(conversation_id: str):
     print("Received stop signal for conversation_id", conversation_id)
     # Stop the query
     with stop_flag_lock:
@@ -22,23 +24,28 @@ def handle_stop(conversation_id: int):
         emit_status(conversation_id, STATUS.TO_STOP)
 
 
-def extract_context(session: Session, context_id) -> tuple[int, int]:
+def extract_context(session: Session, context_id: str) -> tuple[UUID, UUID | None]:
     """
     Extract the databaseId from the context_id
     context is "project-{projectId}" or "database-{databaseId}"
     """
     if context_id.startswith("project-"):
-        project_id = int(context_id.split("-")[1])
+        project_id = context_id.removeprefix("project-")
         project = session.query(Project).filter_by(id=project_id).first()
-        return project.databaseId, project_id
+        if not project:
+            raise ValueError(f"Project with id {project_id} not found")
+        return project.databaseId, project.id
     elif context_id.startswith("database-"):
-        return int(context_id.split("-")[1]), None
+        database_id = context_id.removeprefix("database-")
+        return UUID(database_id), None
     else:
         raise ValueError(f"Invalid context_id: {context_id}")
 
 
 @socketio.on("ask")
-def handle_ask(question, conversation_id=None, context_id=None):
+def handle_ask(
+    question, conversation_id: str | None = None, context_id: str | None = None
+):
     # We reset stop flag if the user sent a new request
     conversation_stop_flags.pop(conversation_id, None)
 
@@ -137,10 +144,13 @@ def handle_regenerate_from_message(conversation_id, message_id, message_content=
         project_id = conversation.projectId
 
         # Clear all messages after the message_id, from the conversation
+        selected_message = (
+            session.query(ConversationMessage).filter_by(id=message_id).first()
+        )
         messages = (
             session.query(ConversationMessage)
             .filter(
-                ConversationMessage.id > message_id,
+                ConversationMessage.createdAt > selected_message.createdAt,
                 ConversationMessage.conversationId == conversation_id,
             )
             .all()
@@ -158,7 +168,7 @@ def handle_regenerate_from_message(conversation_id, message_id, message_content=
 
         session.commit()
         for message_id in deleted_message_ids:
-            emit("delete-message", message_id)
+            emit("delete-message", str(message_id))
 
         # Regenerate the conversation
         chat = DatabaseChat(
