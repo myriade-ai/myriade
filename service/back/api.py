@@ -15,8 +15,13 @@ from back.privacy import PRIVACY_PATTERNS
 from chat.api import extract_context
 from middleware import admin_required, user_middleware
 from models import (
-    Conversation, ConversationMessage, Database, Project, ProjectTables, 
-    Query, Chart
+    Chart,
+    Conversation,
+    ConversationMessage,
+    Database,
+    Project,
+    ProjectTables,
+    Query,
 )
 from models.quality import BusinessEntity, Issue
 
