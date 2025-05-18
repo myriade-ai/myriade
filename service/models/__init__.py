@@ -301,6 +301,7 @@ class Query(DefaultBase, Base):
     rows = Column(JSONB)
     count = Column(Integer)
     exception = Column(String)
+    is_favorite = Column(Boolean, nullable=False, default=False)
 
     database = relationship("Database")
     conversation_messages = relationship(
@@ -320,10 +321,7 @@ class Chart(DefaultBase, Base):
     id: uuid.UUID
     config = Column(JSONB)
     queryId: uuid.UUID
-    query = relationship("Query", back_populates="charts")
-    conversation_messages = relationship(
-        "ConversationMessage", back_populates="chart", lazy="joined"
-    )
+    is_favorite = Column(Boolean, nullable=False, default=False)
 
     id = Column(
         UUID(as_uuid=True),

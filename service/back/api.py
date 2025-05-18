@@ -14,7 +14,7 @@ from back.datalake import ConnectionError, DatalakeFactory
 from back.privacy import PRIVACY_PATTERNS
 from chat.api import extract_context
 from middleware import admin_required, user_middleware
-from models import Conversation, ConversationMessage, Database, Project, ProjectTables
+from models import Conversation, ConversationMessage, Database, Project, ProjectTables, Query, Chart
 from models.quality import BusinessEntity, Issue
 
 api = Blueprint("back_api", __name__)
@@ -458,6 +458,51 @@ def update_database_privacy(database_id):
 
     return jsonify({"success": True})
 
+
+@api.route("/query/<query_id>/favorite", methods=["POST"])
+@user_middleware
+def toggle_query_favorite(query_id):
+    """Toggle favorite status for a query"""
+    data = request.get_json()
+    query = g.session.query(Query).filter(Query.id == query_id).first()
+    if not query:
+        return jsonify({"error": "Query not found"}), 404
+    
+    query.is_favorite = data.get("is_favorite", not query.is_favorite)
+    g.session.flush()
+    return jsonify({"success": True})
+
+@api.route("/chart/<chart_id>/favorite", methods=["POST"])
+@user_middleware
+def toggle_chart_favorite(chart_id):
+    """Toggle favorite status for a chart"""
+    data = request.get_json()
+    chart = g.session.query(Chart).filter(Chart.id == chart_id).first()
+    if not chart:
+        return jsonify({"error": "Chart not found"}), 404
+    
+    chart.is_favorite = data.get("is_favorite", not chart.is_favorite)
+    g.session.flush()
+    return jsonify({"success": True})
+
+@api.route("/workspace", methods=["GET"])
+@user_middleware
+def get_workspace_items():
+    """Get all favorited queries and charts for the workspace"""
+    queries = g.session.query(Query).filter(
+        Query.is_favorite == True,
+        Query.rows.isnot(None),
+        Query.exception.is_(None)
+    ).all()
+    
+    charts = g.session.query(Chart).filter(
+        Chart.is_favorite == True
+    ).all()
+    
+    return jsonify({
+        "queries": queries,
+        "charts": charts
+    })
 
 @api.route("/databases/<database_id>/privacy/auto", methods=["POST"])
 @user_middleware

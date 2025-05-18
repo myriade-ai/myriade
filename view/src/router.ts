@@ -48,6 +48,11 @@ const app_routes = [
     }
   },
   {
+    path: '/workspace',
+    name: 'Workspace',
+    component: loadView('Workspace')
+  },
+  {
     path: '/databases',
     name: 'DatabaseList',
     component: loadView('DatabaseList')

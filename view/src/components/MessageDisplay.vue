@@ -59,6 +59,17 @@
             <ArrowPathIcon class="h-4 w-4" />
             <span class="ml-1 hidden lg:inline">regenerate</span>
           </button>
+          <span v-if="props.message.queryId || props.message.chartId" class="text-gray-400 mx-2">|</span>
+          <button
+            v-if="props.message.queryId || props.message.chartId"
+            class="text-blue-500 hover:text-blue-700 flex items-center"
+            title="Save to workspace"
+            @click="toggleFavorite"
+          >
+            <StarIconSolid v-if="isFavorite" class="h-4 w-4 text-yellow-500" />
+            <StarIcon v-else class="h-4 w-4" />
+            <span class="ml-1 hidden lg:inline">{{ isFavorite ? 'saved' : 'save' }}</span>
+          </button>
         </span>
       </span>
     </div>
@@ -152,7 +163,8 @@ import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
 import Echart from '@/components/Echart.vue'
-import { ArrowPathIcon, PencilIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, PencilIcon, PencilSquareIcon, StarIcon } from '@heroicons/vue/24/outline'
+import { StarIcon as StarIconSolid } from '@heroicons/vue/24/solid'
 
 // Store
 import { useDatabasesStore } from '@/stores/databases'
@@ -169,6 +181,7 @@ interface Message {
   display: boolean
   role: string
   queryId?: string
+  chartId?: string
   id?: string
   functionCall?: FunctionCall
   image?: string // base64 encoded image
@@ -185,6 +198,43 @@ const sqlResult = ref<Array<Record<string, string | number | boolean | null>>>([
 const sqlCount = ref(0)
 const isEditing = ref(false)
 const editedContent = ref('')
+const isFavorite = ref(false)
+
+// Check if the query or chart is favorited
+onMounted(async () => {
+  if (props.message.queryId) {
+    try {
+      const response = await axios.get(`/api/query/${props.message.queryId}`)
+      isFavorite.value = response.data.is_favorite
+    } catch (error) {
+      console.error('Error checking favorite status:', error)
+    }
+  } else if (props.message.chartId) {
+    try {
+      const response = await axios.get(`/api/chart/${props.message.chartId}`)
+      isFavorite.value = response.data.is_favorite
+    } catch (error) {
+      console.error('Error checking favorite status:', error)
+    }
+  }
+})
+
+const toggleFavorite = async () => {
+  try {
+    if (props.message.queryId) {
+      await axios.post(`/api/query/${props.message.queryId}/favorite`, {
+        is_favorite: !isFavorite.value
+      })
+    } else if (props.message.chartId) {
+      await axios.post(`/api/chart/${props.message.chartId}/favorite`, {
+        is_favorite: !isFavorite.value
+      })
+    }
+    isFavorite.value = !isFavorite.value
+  } catch (error) {
+    console.error('Error toggling favorite status:', error)
+  }
+}
 
 const toggleEditMode = () => {
   isEditing.value = !isEditing.value
