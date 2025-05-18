@@ -9,17 +9,17 @@ interface ProjectTable {
 }
 
 interface Project {
-  id: number | null
+  id: string | null
   name: string
   description: string
-  databaseId: number | null
+  databaseId: string | null
   tables: ProjectTable[]
 }
 
 export const useProjectsStore = defineStore('projects', () => {
   // --- state ---
   const projects = ref<Project[]>([])
-  const projectSelectedId = ref<number | null>(
+  const projectSelectedId = ref<string | null>(
     localStorage.getItem('projectId') ? parseInt(localStorage.getItem('projectId') ?? '') : null
   )
 
@@ -44,16 +44,16 @@ export const useProjectsStore = defineStore('projects', () => {
     projects.value = await axios.get('/api/projects').then((res) => res.data)
   }
 
-  function fetchProjectTables(projectId: number) {
+  function fetchProjectTables(projectId: string) {
     return axios.get(`/api/projects/${projectId}/schema`).then((res) => res.data)
   }
 
-  async function selectProjectById(id: number) {
+  async function selectProjectById(id: string) {
     projectSelectedId.value = id
     localStorage.setItem('projectId', id.toString())
   }
 
-  async function updateProject(id: number, project: Project) {
+  async function updateProject(id: string, project: Project) {
     return axios.put(`/api/projects/${id}`, project)
   }
 
@@ -61,17 +61,17 @@ export const useProjectsStore = defineStore('projects', () => {
     return axios.post('/api/projects', project).then((response) => response.data)
   }
 
-  function deleteProject(id: number) {
+  function deleteProject(id: string) {
     return axios.delete(`/api/projects/${id}`)
   }
 
-  function getProjectById(id: number) {
+  function getProjectById(id: string) {
     return axios
       .get('/api/projects')
       .then((response) => response.data.find((db: Project) => db.id === id))
   }
 
-  function fetchProjectById(projectId: number) {
+  function fetchProjectById(projectId: string) {
     return axios.get(`/api/projects/${projectId}`).then((res) => res.data)
   }
 

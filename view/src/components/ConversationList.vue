@@ -97,7 +97,7 @@ function selectConversation(conversation: ConversationInfo) {
   router.push({ path: `/chat/${conversation.id}` })
 }
 function currentConversation(conversation: ConversationInfo) {
-  return Number(route.params.id) === conversation.id
+  return route.params.id === conversation.id
 }
 
 // Example: rename logic

@@ -17,18 +17,18 @@ export const STATUS = {
 
 // Define your conversation shape
 export interface ConversationInfo {
-  id: number
+  id: string
   name: string
   owner: string
-  databaseId: number
-  projectId: number
+  databaseId: string
+  projectId: string
   createdAt: Date
   updatedAt: Date
 }
 
 // Define your message shape
 export interface Message {
-  id: number
+  id: string
   role: 'user' | 'assistant' | 'function' | 'system'
   content: string
   isAnswer?: boolean
@@ -72,7 +72,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   // GETTERS
   // ——————————————————————————————————————————————————
   // E.g. Return a conversation by id
-  function getConversationById(id: number) {
+  function getConversationById(id: string) {
     if (!conversations.value[id]) {
       return null
     }
@@ -115,14 +115,14 @@ export const useConversationsStore = defineStore('conversations', () => {
     })
     // Remove conversations that are not in the fetched list
     Object.keys(conversations.value).forEach((id) => {
-      if (!fetchedConversations.some((conv) => conv.id === Number(id))) {
-        delete conversations.value[Number(id)]
+      if (!fetchedConversations.some((conv) => conv.id === id)) {
+        delete conversations.value[id]
       }
     })
   }
 
   // 2) Fetch messages for a single conversation
-  async function fetchMessages(conversationId: number) {
+  async function fetchMessages(conversationId: string) {
     console.log('fetchMessages', conversationId)
     try {
       const response = await axios.get(`/api/conversations/${conversationId}`)
@@ -190,7 +190,7 @@ export const useConversationsStore = defineStore('conversations', () => {
 
   // 6) Receive an incoming message from the socket
   function receiveMessage(incomingMsg: any) {
-    const convId = Number(incomingMsg.conversationId)
+    const convId = incomingMsg.conversationId
     const conversation = getConversationById(convId)
     if (!conversation) return
 
@@ -216,9 +216,9 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversation.updatedAt = new Date()
   }
 
-  function regenerateFromMessage(messageId: number, messageContent?: string) {
+  function regenerateFromMessage(messageId: string, messageContent?: string) {
     // Find conversationId from messageId
-    const conversationId: number = Object.keys(conversations.value).find((id) =>
+    const conversationId: string = Object.keys(conversations.value).find((id) =>
       conversations.value[id].messages.some((m) => m.id === messageId)
     )
     if (!conversationId) {
@@ -240,12 +240,12 @@ export const useConversationsStore = defineStore('conversations', () => {
     socket.emit('regenerateFromMessage', conversationId, messageId, messageContent)
   }
 
-  async function deleteConversation(id: number) {
+  async function deleteConversation(id: string) {
     await axios.delete(`/api/conversations/${id}`)
     delete conversations.value[id]
   }
 
-  async function renameConversation(id: number, name: string) {
+  async function renameConversation(id: string, name: string) {
     await axios.put(`/api/conversations/${id}`, { name })
     if (conversations.value[id]) {
       conversations.value[id].name = name
@@ -258,7 +258,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   // ——————————————————————————————————————————————————
   socket.on('delete-message', (messageId: string) => {
     // Remove that message from whichever conversation it belongs to
-    const conversationId: number = Object.keys(conversations.value).find((id) =>
+    const conversationId: string = Object.keys(conversations.value).find((id) =>
       conversations.value[id].messages.some((m) => m.id === messageId)
     )
     if (conversationId) {

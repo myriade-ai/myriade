@@ -11,7 +11,7 @@ from models.quality import BusinessEntity, Issue, IssueScope, Severity, Status
 class SemanticCatalog:
     """A catalog of semantic entities with their quality metrics."""
 
-    def __init__(self, session: Session, conversation_id: int, database_id: int):
+    def __init__(self, session: Session, conversation_id: str, database_id: str):
         self.session = session
         self.conversation_id = conversation_id
         self.database_id = database_id
@@ -152,7 +152,7 @@ class SemanticCatalog:
         description: str,
         severity: str,
         scope: str,
-        business_entity_id: int,
+        business_entity_id: str,
     ):
         """Creates a new issue for an entity.
         Args:

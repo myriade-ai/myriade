@@ -10,13 +10,13 @@ export interface Issue {
   severity: string
   scope: string
   status: string
-  database_id: number
-  message_id: number
-  business_entity_id: number
+  database_id: string
+  message_id: string
+  business_entity_id: string
 }
 
 export interface BusinessEntity {
-  id: number
+  id: string
   name: string
   definition?: string
   table_ref?: string
@@ -24,7 +24,7 @@ export interface BusinessEntity {
   quality_score: number | null
   review_date: string | null
   report: any
-  review_conversation_id: number | null
+  review_conversation_id: string | null
   issues: Issue[] | null
 }
 

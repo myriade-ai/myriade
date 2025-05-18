@@ -4,7 +4,8 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 export interface Database {
-  id: number
+  id: string
+  createdAt: Date
   name: string
   engine: string
   details: any
@@ -18,10 +19,8 @@ export const useDatabasesStore = defineStore('databases', () => {
   // STATE
   // --------------------------------------------------------------------------
   const databases = ref<Database[]>([])
-  const databaseSelectedId = ref<number | null>(
-    localStorage.getItem('databaseId')
-      ? parseInt(localStorage.getItem('databaseId') as string, 10)
-      : null
+  const databaseSelectedId = ref<string | null>(
+    localStorage.getItem('databaseId') ? (localStorage.getItem('databaseId') as string) : null
   )
 
   // --------------------------------------------------------------------------
@@ -32,7 +31,7 @@ export const useDatabasesStore = defineStore('databases', () => {
   })
 
   const sortedDatabases = computed(() => {
-    return [...databases.value].sort((a, b) => a.id - b.id)
+    return [...databases.value].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
   })
 
   // --------------------------------------------------------------------------
@@ -46,8 +45,12 @@ export const useDatabasesStore = defineStore('databases', () => {
   async function fetchDatabases({ refresh }: { refresh: boolean }) {
     if (databases.value.length > 0 && !refresh) return
 
-    console.log('fetching databases')
-    databases.value = await axios.get('/api/databases').then((res) => res.data)
+    databases.value = await axios.get('/api/databases').then((res) => {
+      return res.data.map((db: Database) => ({
+        ...db,
+        createdAt: new Date(db.createdAt)
+      }))
+    })
 
     // If there's no database selected yet, and we got some from the API:
     if (databases.value.length > 0 && databaseSelectedId.value === null) {
@@ -55,16 +58,16 @@ export const useDatabasesStore = defineStore('databases', () => {
     }
   }
 
-  function fetchDatabaseTables(databaseId: number) {
+  function fetchDatabaseTables(databaseId: string) {
     return axios.get(`/api/databases/${databaseId}/schema`).then((res) => res.data)
   }
 
-  function selectDatabaseById(id: number) {
+  function selectDatabaseById(id: string) {
     databaseSelectedId.value = id
     localStorage.setItem('databaseId', String(id))
   }
 
-  function updateDatabase(id: number, database: Database) {
+  function updateDatabase(id: string, database: Database) {
     return axios.put(`/api/databases/${id}`, database)
   }
 
@@ -72,11 +75,13 @@ export const useDatabasesStore = defineStore('databases', () => {
     return axios.post('/api/databases', database).then((res) => res.data)
   }
 
-  function deleteDatabase(id: number) {
-    return axios.delete(`/api/databases/${id}`)
+  function deleteDatabase(id: string): Promise<void> {
+    return axios.delete(`/api/databases/${id}`).then(() => {
+      databases.value = databases.value.filter((db) => db.id !== id)
+    })
   }
 
-  function getDatabaseById(id: number) {
+  function getDatabaseById(id: string) {
     return axios.get('/api/databases/').then((res) => res.data.find((db: Database) => db.id === id))
   }
 

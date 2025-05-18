@@ -13,7 +13,7 @@ export const useQueryStore = defineStore('query', () => {
   // Same variable names as requested
   const queryRef = ref<any>(null)
   const queryTitle = ref('')
-  const queryId = ref<number | null>(null)
+  const queryId = ref<string | null>(null)
   const querySQL = ref('')
   const queryResults = ref<any[] | null>(null)
   const queryCount = ref<number | null>(null)
@@ -22,17 +22,17 @@ export const useQueryStore = defineStore('query', () => {
 
   // Same methods, now inside Pinia store
 
-  const fetchQueryResults = async (id: number) => {
+  const fetchQueryResults = async (id: string) => {
     const response = await axios.get(`/api/query/${id}/results`)
     return response.data
   }
 
-  const fetchQuery = async (id: number) => {
+  const fetchQuery = async (id: string) => {
     const response = await axios.get(`/api/query/${id}`)
     return response.data
   }
 
-  const loadQuery = async (id: number) => {
+  const loadQuery = async (id: string) => {
     queryId.value = id
     const response = await axios.get(`/api/query/${id}`)
     const query = response.data
@@ -55,7 +55,7 @@ export const useQueryStore = defineStore('query', () => {
   }
 
   const executeQuery = async (
-    databaseId: number | null,
+    databaseId: string | null,
     sql: string
   ): Promise<{ rows: any[]; count: number }> => {
     if (!databaseId) throw new Error('No database selected')
@@ -73,7 +73,7 @@ export const useQueryStore = defineStore('query', () => {
     }
   }
 
-  const runQuery = async (databaseId: number | null) => {
+  const runQuery = async (databaseId: string | null) => {
     loading.value = true
     try {
       const { rows, count } = await executeQuery(databaseId, querySQL.value)
@@ -88,7 +88,7 @@ export const useQueryStore = defineStore('query', () => {
     }
   }
 
-  const updateQuery = async (databaseId: number | null) => {
+  const updateQuery = async (databaseId: string | null) => {
     if (!databaseId) throw new Error('No database selected')
     if (queryId.value) {
       // Update existing query
@@ -107,7 +107,7 @@ export const useQueryStore = defineStore('query', () => {
       router.push({ name: 'Query', params: { id: queryId.value } })
     }
     // Reload after create or update
-    loadQuery(queryId.value as number)
+    loadQuery(queryId.value as string)
   }
 
   const queryIsModified = computed(() => {

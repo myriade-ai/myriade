@@ -9,7 +9,7 @@ export function useSelectedDatabaseFromContext() {
   const selectedDatabase = computed<Database | null>(() => {
     const context = contextsStore.contextSelected
     if (context && context.type === 'database') {
-      const dbId = Number(context.id.replace('database-', ''))
+      const dbId = context.id.replace('database-', '')
       return databasesStore.databases.find((db: Database) => db.id === dbId) || null
     }
     return null
