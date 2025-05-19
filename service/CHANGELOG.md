@@ -1,6 +1,21 @@
 # CHANGELOG
 
 
+## v0.13.1 (2025-05-19)
+
+### Bug Fixes
+
+- Fix projects for uuid, switch model to mapped syntax
+  ([`b25ce0e`](https://github.com/myriade-intelligence/ada/commit/b25ce0e37ff52cc082661c25f626f24c237f1471))
+
+### Chores
+
+- Remove direct way to create db
+  ([`0f3418f`](https://github.com/myriade-intelligence/ada/commit/0f3418f89dbb4263e3aa80ae9c39a48f76126f1d))
+
+We use sqlalchemy
+
+
 ## v0.13.0 (2025-05-19)
 
 ### Bug Fixes
