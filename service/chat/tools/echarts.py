@@ -5,8 +5,8 @@ import subprocess
 from cairosvg import svg2png
 from PIL import Image
 
-from back.utils import JSONEncoder
 from chat.tools.chart_types import ChartOptions
+from db import JSONEncoder
 from models import Chart, ConversationMessage, Database, Query
 
 

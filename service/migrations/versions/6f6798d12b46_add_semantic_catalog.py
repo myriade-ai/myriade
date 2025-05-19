@@ -11,7 +11,7 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-from back.utils import JSONB
+from db import JSONB
 
 # revision identifiers, used by Alembic.
 revision: str = "6f6798d12b46"

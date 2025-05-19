@@ -21,7 +21,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Session, relationship
 from sqlalchemy.sql import text
 
-from back.utils import JSONB, Base, DefaultBase
+from db import JSONB, Base, DefaultBase
 
 from .quality import BusinessEntity  # noqa: F401
 
@@ -68,7 +68,8 @@ class Database(DefaultBase, Base):
     id = Column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid_v7()"),
+        server_default=text("gen_random_uuid_v7()"),  # for postgres
+        default=uuid.uuid4,  # for sqlite
     )
     name = Column(String, nullable=False)
     description = Column(String)
@@ -136,6 +137,7 @@ class ConversationMessage(DefaultBase, Base):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),
+        default=uuid.uuid4,  # for sqlite
     )
     conversationId = Column(
         UUID(as_uuid=True), ForeignKey("conversation.id"), nullable=False
@@ -254,6 +256,7 @@ class Conversation(DefaultBase, Base):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),
+        default=uuid.uuid4,  # for sqlite
     )
     name = Column(String)
     ownerId = Column(String, ForeignKey("user.id"))
@@ -289,6 +292,7 @@ class Query(DefaultBase, Base):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),
+        default=uuid.uuid4,  # for sqlite
     )
     title = Column(String, nullable=True)
     databaseId = Column(UUID(as_uuid=True), ForeignKey("database.id"), nullable=False)
@@ -325,6 +329,7 @@ class Chart(DefaultBase, Base):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),
+        default=uuid.uuid4,  # for sqlite
     )
     config = Column(JSONB)
     queryId = Column(UUID(as_uuid=True), ForeignKey("query.id"))
@@ -393,6 +398,7 @@ class Project(DefaultBase, Base):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),
+        default=uuid.uuid4,  # for sqlite
     )  # TODO: transform to uuid
     name = Column(String, nullable=False)
     description = Column(String, nullable=False)
@@ -427,6 +433,7 @@ class Note(DefaultBase, Base):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),
+        default=uuid.uuid4,  # for sqlite
     )
     title = Column(String)
     content = Column(String)
