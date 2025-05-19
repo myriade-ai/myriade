@@ -1,11 +1,8 @@
-import dataclasses
 import json
 import os
 import re
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, cast
-from uuid import UUID
+from typing import Any, Dict, List, Optional, cast
 
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import or_
@@ -20,27 +17,6 @@ from models.quality import BusinessEntity, Issue
 api = Blueprint("back_api", __name__)
 
 AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
-
-
-def dataclass_to_dict(obj: Union[object, List[object]]) -> Union[dict, List[dict]]:
-    if isinstance(obj, list):
-        return [dataclass_to_dict(item) for item in obj]
-
-    if dataclasses.is_dataclass(obj):
-        data = {}
-        for field in dataclasses.fields(obj):
-            value = getattr(obj, field.name)
-            if isinstance(value, datetime):
-                data[field.name] = value.isoformat()
-            elif isinstance(value, UUID):
-                data[field.name] = str(value)
-            elif dataclasses.is_dataclass(value) or isinstance(value, list):
-                data[field.name] = dataclass_to_dict(value)
-            else:
-                data[field.name] = value
-        return data
-
-    return obj
 
 
 @api.route("/conversations", methods=["GET"])
@@ -59,9 +35,7 @@ def get_conversations():
             )
         )
     conversations = query.all()
-    conversations_dict = [
-        dataclass_to_dict(conversation) for conversation in conversations
-    ]
+    conversations_dict = [conversation.to_dict() for conversation in conversations]
     return jsonify(conversations_dict)
 
 
@@ -81,7 +55,7 @@ def get_conversation(conversation_id):
         g.session.flush()
 
     # TODO: redesign this to use a single query
-    conversation_dict = dataclass_to_dict(conversation)
+    conversation_dict = conversation.to_dict()
     conversation_dict["messages"] = [
         m.to_dict(g.session) for m in conversation.messages
     ]
@@ -121,7 +95,7 @@ def create_database():
     database = Database(
         name=data["name"],
         description=data["description"],
-        _engine=data["engine"],
+        engine=data["engine"],
         details=data["details"],
         organisationId=g.organisation.id,
         ownerId=g.user.id,
@@ -186,7 +160,7 @@ def update_database(database_id):
     database.tables_metadata = cast(  # type: ignore[attr-defined]
         Any, _apply_privacy_patterns_to_metadata(merged_metadata)
     )
-    database._engine = data["engine"]
+    database.engine = data["engine"]
     database.details = data["details"]
     database.safe_mode = data["safe_mode"]
     database.dbt_catalog = data["dbt_catalog"]
@@ -202,7 +176,7 @@ def update_database(database_id):
 @api.route("/databases", methods=["GET"])
 @user_middleware
 def get_databases():
-    databases = (
+    databases_query = (
         g.session.query(Database)
         .filter(
             or_(
@@ -214,7 +188,9 @@ def get_databases():
         )
         .all()
     )
-    return jsonify(databases)
+    # Convert each Database object to its dictionary representation
+    databases_list = [db.to_dict() for db in databases_query]
+    return jsonify(databases_list)
 
 
 @api.route("/contexts/<string:context_id>/questions", methods=["GET"])
@@ -350,8 +326,8 @@ def get_projects():
         )
         .all()
     )
-
-    return jsonify(projects)
+    projects_dict = [project.to_dict() for project in projects]
+    return jsonify(projects_dict)
 
 
 # Get specific project
@@ -369,8 +345,8 @@ def get_project(project_id):
     if project.creatorId != g.user.id and project.organisationId != g.organization_id:
         return jsonify({"error": "Access denied"}), 403
 
-    project_dict = dataclass_to_dict(project)
-    project_dict["tables"] = dataclass_to_dict(project.tables)
+    project_dict = project.to_dict()
+    project_dict["tables"] = [table.to_dict() for table in project.tables]
     return jsonify(project_dict)
 
 

@@ -38,31 +38,31 @@ def setup_database(refresh=False):
     from models import Base
 
     # Create engine and metadata
-    _engine = create_engine(DATABASE_URL)
+    engine = create_engine(DATABASE_URL)
 
     if refresh:
         # Drop all tables
-        Base.metadata.drop_all(_engine)
+        Base.metadata.drop_all(engine)
 
     # Create all tables
-    Base.metadata.create_all(_engine)
+    Base.metadata.create_all(engine)
 
     # Create vector extension if it doesn't exist
-    with _engine.connect() as conn:
+    with engine.connect() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
 
     # Return the engine
-    return _engine
+    return engine
 
 
-def teardown_database(_engine):
+def teardown_database(engine):
     from models import Base
 
     # Drop all tables
-    Base.metadata.drop_all(_engine)
+    Base.metadata.drop_all(engine)
 
     # Dispose the engine
-    _engine.dispose()
+    engine.dispose()
 
 
 engine = create_engine(
