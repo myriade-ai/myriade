@@ -12,6 +12,7 @@
     'SemanticCatalog-semantic_catalog__create_entity',
     'SemanticCatalog-semantic_catalog__create_issue',
     'SemanticCatalog-semantic_catalog__delete_entity',
+    'SemanticCatalog-semantic_catalog__read_issue',
     'SemanticCatalog-semantic_catalog__update_entity',
     'SemanticCatalog-semantic_catalog__update_issue',
     'DBT-test__fetch_model',
@@ -104,7 +105,7 @@
           'queryId': dict({
             'description': 'The id of the query to execute',
             'title': 'Queryid',
-            'type': 'integer',
+            'type': 'string',
           }),
         }),
         'required': list([
@@ -658,6 +659,11 @@
       'name': 'SemanticCatalog-semantic_catalog__create_entity',
       'parameters': dict({
         'properties': dict({
+          'definition': dict({
+            'description': 'The definition of the entity.',
+            'title': 'Definition',
+            'type': 'string',
+          }),
           'entity_name': dict({
             'description': 'The name of the entity to create.',
             'title': 'Entity Name',
@@ -666,6 +672,7 @@
         }),
         'required': list([
           'entity_name',
+          'definition',
         ]),
         'title': 'Input for `create_entity`',
         'type': 'object',
@@ -679,16 +686,21 @@
           'business_entity_id': dict({
             'description': 'The id of the entity to create the issue for.',
             'title': 'Business Entity Id',
-            'type': 'integer',
+            'type': 'string',
           }),
           'description': dict({
             'description': "The description of the issue.                You can use markdown.                Give context / table(s) & column(s) / example(s) to help user visualize the issue.                Use the syntax <QUERY:QUERY_ID> to insert a link to a query if that helps.                Explain the severity of the issue if it's high, critical or blocker.",
             'title': 'Description',
             'type': 'string',
           }),
-          'priority': dict({
-            'description': 'The priority of the issue ("LOW", "MEDIUM", "HIGH", "CRITICAL", "BLOCKER").',
-            'title': 'Priority',
+          'scope': dict({
+            'description': 'The scope of the issue ("DATA", "BUSINESS", "BOTH", "UNKNOWN"). Data is for pipeline / warehouse, that can be fixed by data engineers with DBT. Business is for operations / process that impact the business.',
+            'title': 'Scope',
+            'type': 'string',
+          }),
+          'severity': dict({
+            'description': 'The severity of the issue ("LOW", "MEDIUM", "HIGH", "CRITICAL").',
+            'title': 'Severity',
             'type': 'string',
           }),
           'title': dict({
@@ -700,7 +712,8 @@
         'required': list([
           'title',
           'description',
-          'priority',
+          'severity',
+          'scope',
           'business_entity_id',
         ]),
         'title': 'Input for `create_issue`',
@@ -726,13 +739,36 @@
       }),
     }),
     dict({
+      'description': 'Fetch an issue by id',
+      'name': 'SemanticCatalog-semantic_catalog__read_issue',
+      'parameters': dict({
+        'properties': dict({
+          'issue_id': dict({
+            'title': 'Issue Id',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'issue_id',
+        ]),
+        'title': 'Input for `read_issue`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': 'Updates the quality of an existing entity.',
       'name': 'SemanticCatalog-semantic_catalog__update_entity',
       'parameters': dict({
         'properties': dict({
           'completeness': dict({
+            'description': 'The completeness of the entity.',
             'title': 'Completeness',
             'type': 'integer',
+          }),
+          'definition': dict({
+            'description': 'The definition of the entity.',
+            'title': 'Definition',
+            'type': 'string',
           }),
           'entity_name': dict({
             'description': 'The name of the entity to update.',
@@ -740,19 +776,28 @@
             'type': 'string',
           }),
           'quality_score': dict({
+            'description': 'The quality score of the entity.',
             'title': 'Quality Score',
             'type': 'integer',
           }),
           'report': dict({
+            'description': 'The quality report of the entity.',
             'title': 'Report',
+            'type': 'string',
+          }),
+          'table_ref': dict({
+            'description': 'The table reference of the entity (e.g. "table_name").',
+            'title': 'Table Ref',
             'type': 'string',
           }),
         }),
         'required': list([
           'entity_name',
+          'definition',
           'completeness',
           'quality_score',
           'report',
+          'table_ref',
         ]),
         'title': 'Input for `update_entity`',
         'type': 'object',
@@ -773,9 +818,14 @@
             'title': 'Issue Id',
             'type': 'string',
           }),
-          'priority': dict({
-            'description': 'The priority of the issue ("LOW", "MEDIUM", "HIGH", "CRITICAL", "BLOCKER").',
-            'title': 'Priority',
+          'scope': dict({
+            'description': 'The scope of the issue ("DATA", "BUSINESS", "BOTH", "UNKNOWN"). Data is for pipeline / warehouse, that can be fixed by data engineers with DBT. Business is for operations / process that impact the business.',
+            'title': 'Scope',
+            'type': 'string',
+          }),
+          'severity': dict({
+            'description': 'The severity of the issue ("LOW", "MEDIUM", "HIGH", "CRITICAL").',
+            'title': 'Severity',
             'type': 'string',
           }),
           'status': dict({
@@ -794,7 +844,8 @@
           'status',
           'title',
           'description',
-          'priority',
+          'scope',
+          'severity',
         ]),
         'title': 'Input for `update_issue`',
         'type': 'object',

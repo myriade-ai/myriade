@@ -3,18 +3,12 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Column, DateTime, create_engine, func
+from sqlalchemy import Column, DateTime, func
 from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import JSON, TypeDecorator
 
-from back.session import DATABASE_URL  # TODO: remove this
-
 Base = declarative_base()
-
-
-engine = create_engine(DATABASE_URL)
-Base.metadata.create_all(engine)
 
 
 # TODO: move this ?
