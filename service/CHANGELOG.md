@@ -1,6 +1,36 @@
 # CHANGELOG
 
 
+## v0.13.0 (2025-05-19)
+
+### Bug Fixes
+
+- Regenerate
+  ([`3216b8c`](https://github.com/myriade-intelligence/ada/commit/3216b8c7294f594fdf3135ae83965a98e3b6146e))
+
+- Scrolling
+  ([`72f0a8a`](https://github.com/myriade-intelligence/ada/commit/72f0a8a247d1fada8746db900303282cb3ee1017))
+
+- Stop conversation
+  ([`bf7040e`](https://github.com/myriade-intelligence/ada/commit/bf7040e29c62f52670fecbd6b789f6b49a8e3426))
+
+### Chores
+
+- Fix test
+  ([`07853ee`](https://github.com/myriade-intelligence/ada/commit/07853eeaef35273ad3d30715b1c44cae2a6b3e56))
+
+### Features
+
+- Add scope, severity
+  ([`2bbe3fe`](https://github.com/myriade-intelligence/ada/commit/2bbe3fe8f6cc146f9884c4d20af039275d148809))
+
+- Scrolldown on message send
+  ([`f52967c`](https://github.com/myriade-intelligence/ada/commit/f52967ca2a5745bcde19139a71434ac61afa336e))
+
+- Switch to uuid
+  ([`4cc8060`](https://github.com/myriade-intelligence/ada/commit/4cc8060b8b2372200f548fbfe2a598b0bcefa0c1))
+
+
 ## v0.12.0 (2025-05-16)
 
 ### Chores
