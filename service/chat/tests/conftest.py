@@ -52,7 +52,7 @@ def database(session):
     """Create a test database"""
     database = Database(
         name="test",
-        _engine="sqlite",
+        engine="sqlite",
         details={"filename": ":memory:"},
         memory="test memory",
         dbt_manifest={"sources": {}, "nodes": {}},

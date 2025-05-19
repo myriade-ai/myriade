@@ -4,27 +4,21 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from io import BytesIO
+from typing import Any, Dict, List, Optional
 
 from autochat.model import Message as AutoChatMessage
 from PIL import Image as PILImage
-from sqlalchemy import (
-    Boolean,
-    CheckConstraint,
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    LargeBinary,
-    String,
-    func,
-)
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, LargeBinary, String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 from sqlalchemy.sql import text
 
-from db import JSONB, Base, DefaultBase
+from db import JSONB, Base, DefaultBase, SerializerMixin
 
-from .quality import BusinessEntity  # noqa: F401
+from .quality import (
+    BusinessEntity,  # noqa: F401
+    Issue,  # Import Issue
+)
 
 
 def format_to_camel_case(**kwargs):
@@ -50,52 +44,38 @@ def format_to_snake_case(**kwargs):
 
 
 @dataclass
-class Database(DefaultBase, Base):
-    id: uuid.UUID
-    createdAt: datetime
-    name: str
-    description: str
-    engine: str
-    details: dict
-    organisationId: str
-    ownerId: str
-    public: bool
-    safe_mode: bool
-    dbt_catalog: dict
-    dbt_manifest: dict
-
+class Database(SerializerMixin, DefaultBase, Base):
     __tablename__ = "database"
 
-    id = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),  # for postgres
         default=uuid.uuid4,  # for sqlite
     )
-    name = Column(String, nullable=False)
-    description = Column(String)
-    _engine = Column(String, nullable=False, name="engine")
-    details = Column(JSONB, nullable=False)
-    organisationId = Column(String, ForeignKey("organisation.id"))
-    ownerId = Column(String, ForeignKey("user.id"))
-    public = Column(Boolean, nullable=False, default=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String)
+    engine: Mapped[str] = mapped_column(String, nullable=False, name="engine")
+    details: Mapped[Dict[Any, Any]] = mapped_column(JSONB, nullable=False)
+    organisationId: Mapped[Optional[str]] = mapped_column(
+        String, ForeignKey("organisation.id")
+    )
+    ownerId: Mapped[Optional[str]] = mapped_column(String, ForeignKey("user.id"))
+    public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Information save by the ai
-    memory = Column(String)
-    tables_metadata = Column(JSONB)
-    dbt_catalog = Column(JSONB)
-    dbt_manifest = Column(JSONB)
+    memory: Mapped[Optional[str]] = mapped_column(String)
+    tables_metadata: Mapped[Optional[List[Dict[Any, Any]]]] = mapped_column(JSONB)
+    dbt_catalog: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
+    dbt_manifest: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
 
-    organisation = relationship("Organisation")
-    owner = relationship("User")
+    # organisation: Mapped[Optional["Organisation"]] = relationship()
+    # owner: Mapped[Optional["User"]] = relationship()
 
-    safe_mode = Column(Boolean, nullable=False, default=True, server_default="true")
+    safe_mode: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
 
-    issues = relationship("Issue", back_populates="database")
-
-    # Hotfix for engine, "postgres" should be "postgresql"
-    @property
-    def engine(self):
-        return self._engine  # .replace("postgres", "postgresql")
+    issues: Mapped[List[Issue]] = relationship(back_populates="database")
 
     def create_datalake(self):
         from back.datalake import DatalakeFactory
@@ -113,73 +93,77 @@ class Database(DefaultBase, Base):
 class Organisation(DefaultBase, Base):
     __tablename__ = "organisation"
 
-    id = Column(String, primary_key=True)
-    name = Column(String, nullable=False)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+
+    projects: Mapped[List["Project"]] = relationship(
+        "Project",
+        back_populates="organisation",
+        lazy="joined",
+        cascade="all, delete-orphan",
+        # order_by="Project.createdAt",
+    )
 
 
 @dataclass
 class ConversationMessage(DefaultBase, Base):
     __tablename__ = "conversation_message"
 
-    id: uuid.UUID
-    conversationId: uuid.UUID
-    name: str
-    role: str
-    content: str
-    data: dict
-    functionCall: dict
-    queryId: uuid.UUID
-    functionCallId: str
-    image: bytes
-    isAnswer: bool
-    chartId: uuid.UUID
-
-    id = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),
         default=uuid.uuid4,  # for sqlite
     )
-    conversationId = Column(
+    conversationId: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("conversation.id"), nullable=False
     )
-    role = Column(String, nullable=False)
-    name = Column(String)
-    content = Column(String, nullable=True)
-    functionCall = Column(JSONB)
-    data = Column(JSONB)
-    queryId = Column(UUID(as_uuid=True), ForeignKey("query.id"), nullable=True)
-    reqId = Column(String, nullable=True)
-    functionCallId = Column(String, nullable=True)
-    image = Column(LargeBinary, nullable=True)
-    isAnswer = Column(Boolean, nullable=False, default=False)
-    chartId = Column(UUID(as_uuid=True), ForeignKey("chart.id"), nullable=True)
+    role: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[Optional[str]] = mapped_column(String)
+    content: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    functionCall: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
+    data: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
+    queryId: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("query.id"), nullable=True
+    )
+    reqId: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    functionCallId: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    image: Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True)
+    isAnswer: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    chartId: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("chart.id"), nullable=True
+    )
 
-    conversation = relationship("Conversation", back_populates="messages")
-    query = relationship("Query", back_populates="conversation_messages")
-    chart = relationship("Chart", back_populates="conversation_messages")
-    issues = relationship("Issue", back_populates="from_message")
+    conversation: Mapped["Conversation"] = relationship(back_populates="messages")
+    query: Mapped[Optional["Query"]] = relationship(
+        back_populates="conversation_messages"
+    )
+    chart: Mapped[Optional["Chart"]] = relationship(
+        back_populates="conversation_messages"
+    )
+    issues: Mapped[List[Issue]] = relationship(back_populates="from_message")
 
     # format params before creating the object
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def to_dict(self, session: Session):  # TODO: find better naming
-        if self.functionCall and self.functionCall["name"] == "answer":
+        if self.functionCall and self.functionCall.get("name") == "answer":
             self.content = self.functionCall["arguments"]["text"]
             self.functionCall = None
 
-            if "<QUERY:" in self.content:
+            if self.content and "<QUERY:" in self.content:
                 # extract the query id from the text
                 query_id = self.content.split("<QUERY:")[1].split(">")[0].strip()
                 # get the query from the database
                 query = session.query(Query).filter_by(id=query_id).first()
                 # Replace the <QUERY:QUERY_ID> tag with the query content
-                self.content = self.content.replace(
-                    f"<QUERY:{query_id}>", f"```sql\n{query.sql}\n```"
-                )
+                if query and query.sql:
+                    self.content = self.content.replace(
+                        f"<QUERY:{query_id}>", f"```sql\\n{query.sql}\\n```"
+                    )
 
-            if "<CHART:" in self.content:
+            if self.content and "<CHART:" in self.content:
                 # extract the chart id from the text
                 chart_id = self.content.split("<CHART:")[1].split(">")[0].strip()
                 # get the chart from the database
@@ -187,12 +171,15 @@ class ConversationMessage(DefaultBase, Base):
                 if not chart:
                     raise ValueError(f"Chart with id {chart_id} not found")
                 # Replace the <CHART:CHART_ID> tag with the chart content
-                chart_config = chart.config
-                chart_config["query_id"] = str(chart.queryId)
-                chart_config_str = json.dumps(chart_config)
-                self.content = self.content.replace(
-                    f"<CHART:{chart_id}>", f"```echarts\n{chart_config_str}\n```"
-                )
+                if chart.config:  # Check if chart.config is not None
+                    chart_config = dict(
+                        chart.config
+                    )  # Make a copy to avoid modifying the original
+                    chart_config["query_id"] = str(chart.queryId)
+                    chart_config_str = json.dumps(chart_config)
+                    self.content = self.content.replace(
+                        f"<CHART:{chart_id}>", f"```echarts\\n{chart_config_str}\\n```"
+                    )
 
         # Export to dict, only keys declared in the dataclass
         return {
@@ -212,7 +199,7 @@ class ConversationMessage(DefaultBase, Base):
 
     def to_autochat_message(self) -> AutoChatMessage:
         message = AutoChatMessage(
-            role=self.role,
+            role=self.role,  # type: ignore[assignment]
             name=self.name,
             content=self.content,
             function_call=self.functionCall,
@@ -233,7 +220,9 @@ class ConversationMessage(DefaultBase, Base):
         kwargs["reqId"] = kwargs.pop("id", None)
         # transfrom image from PIL to binary
         if message.image:
-            kwargs["image"] = message.image.to_bytes()
+            img_byte_arr = BytesIO()
+            message.image.save(img_byte_arr, format=message.image.format or "PNG")
+            kwargs["image"] = img_byte_arr.getvalue()
 
         # limit to model in the dataclass
         kwargs = {k: v for k, v in kwargs.items() if k in cls.__dataclass_fields__}
@@ -241,74 +230,62 @@ class ConversationMessage(DefaultBase, Base):
 
 
 @dataclass
-class Conversation(DefaultBase, Base):
+class Conversation(SerializerMixin, DefaultBase, Base):
     __tablename__ = "conversation"
 
-    id: uuid.UUID
-    name: str
-    ownerId: str
-    databaseId: uuid.UUID
-    projectId: uuid.UUID
-    createdAt: str
-    updatedAt: str
-    # messages: List[ConversationMessage] = field(default_factory=list)
-
-    id = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),
         default=uuid.uuid4,  # for sqlite
     )
-    name = Column(String)
-    ownerId = Column(String, ForeignKey("user.id"))
-    projectId = Column(UUID(as_uuid=True), ForeignKey("project.id"))
-    databaseId = Column(UUID(as_uuid=True), ForeignKey("database.id"), nullable=False)
+    name: Mapped[Optional[str]] = mapped_column(String)
+    ownerId: Mapped[Optional[str]] = mapped_column(String, ForeignKey("user.id"))
+    projectId: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("project.id")
+    )
+    databaseId: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("database.id"), nullable=False
+    )
 
-    owner = relationship("User")
-    database = relationship("Database")
-    messages = relationship(
+    owner: Mapped[Optional["User"]] = relationship()
+    database: Mapped["Database"] = relationship()
+    messages: Mapped[List["ConversationMessage"]] = relationship(
         "ConversationMessage",
         back_populates="conversation",
         lazy="joined",
         # Order by id
         order_by="ConversationMessage.createdAt",
     )
-    project = relationship("Project")
+    project: Mapped[Optional["Project"]] = relationship()
 
 
 @dataclass
 class Query(DefaultBase, Base):
     __tablename__ = "query"
 
-    id: uuid.UUID
-    title: str
-    databaseId: uuid.UUID
-    sql = Column(String)
-    # Optimal type to store large results
-    rows = Column(JSONB)
-    count = Column(Integer)
-    exception = Column(String)
-
-    id = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),
         default=uuid.uuid4,  # for sqlite
     )
-    title = Column(String, nullable=True)
-    databaseId = Column(UUID(as_uuid=True), ForeignKey("database.id"), nullable=False)
-    sql = Column(String)
+    title: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    databaseId: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("database.id"), nullable=False
+    )
+    sql: Mapped[Optional[str]] = mapped_column(String)
     # Optimal type to store large results
-    rows = Column(JSONB)
-    count = Column(Integer)
-    exception = Column(String)
-    is_favorite = Column(Boolean, nullable=False, default=False)
+    rows: Mapped[Optional[List[Any]]] = mapped_column(JSONB)
+    count: Mapped[Optional[int]] = mapped_column(Integer)
+    exception: Mapped[Optional[str]] = mapped_column(String)
+    is_favorite: Mapped[Boolean] = Column(Boolean, nullable=False, default=False)
 
-    database = relationship("Database")
-    conversation_messages = relationship(
+    database: Mapped["Database"] = relationship()
+    conversation_messages: Mapped[List["ConversationMessage"]] = relationship(
         "ConversationMessage", back_populates="query", lazy="joined"
     )
-    charts = relationship("Chart", back_populates="query")
+    charts: Mapped[List["Chart"]] = relationship(back_populates="query")
 
     @property
     def is_cached(self):
@@ -319,21 +296,18 @@ class Query(DefaultBase, Base):
 class Chart(DefaultBase, Base):
     __tablename__ = "chart"
 
-    id: uuid.UUID
-    config = Column(JSONB)
-    queryId: uuid.UUID
-    is_favorite = Column(Boolean, nullable=False, default=False)
-
-    id = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),
         default=uuid.uuid4,  # for sqlite
     )
-    config = Column(JSONB)
-    queryId = Column(UUID(as_uuid=True), ForeignKey("query.id"))
-    query = relationship("Query", back_populates="charts")
-    conversation_messages = relationship(
+    config: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
+    queryId: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("query.id")
+    )
+    query: Mapped[Optional["Query"]] = relationship(back_populates="charts")
+    conversation_messages: Mapped[List["ConversationMessage"]] = relationship(
         "ConversationMessage", back_populates="chart", lazy="joined"
     )
 
@@ -342,72 +316,72 @@ class Chart(DefaultBase, Base):
 class User(DefaultBase, Base):
     __tablename__ = "user"
 
-    id = Column(String, primary_key=True)
-    email = Column(String, nullable=False, unique=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
 
 
 class UserOrganisation(DefaultBase, Base):
     __tablename__ = "user_organisation"
 
-    userId = Column(String, ForeignKey("user.id"), primary_key=True)
-    organisationId = Column(String, ForeignKey("organisation.id"), primary_key=True)
+    userId: Mapped[str] = mapped_column(String, ForeignKey("user.id"), primary_key=True)
+    organisationId: Mapped[str] = mapped_column(
+        String, ForeignKey("organisation.id"), primary_key=True
+    )
 
-    organisation = relationship("Organisation")
-    user = relationship("User")
+    # organisation: Mapped["Organisation"] = relationship()
+    # user: Mapped["User"] = relationship()
 
 
 @dataclass
-class ProjectTables(DefaultBase, Base):
+class ProjectTables(SerializerMixin, DefaultBase, Base):
     __tablename__ = "project_tables"
 
-    databaseName: str
-    schemaName: str
-    tableName: str
-    id: uuid.UUID
-    projectId: uuid.UUID
-
-    id = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),
     )
-    projectId = Column(UUID(as_uuid=True), ForeignKey("project.id"), nullable=False)
-    databaseName = Column(String)
-    schemaName = Column(String)
-    tableName = Column(String)
+    projectId: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("project.id"), nullable=False
+    )
+    databaseName: Mapped[Optional[str]] = mapped_column(String)
+    schemaName: Mapped[Optional[str]] = mapped_column(String)
+    tableName: Mapped[Optional[str]] = mapped_column(String)
 
-    project = relationship("Project", back_populates="tables")
+    project: Mapped["Project"] = relationship(back_populates="tables")
 
 
 @dataclass
-class Project(DefaultBase, Base):
+class Project(SerializerMixin, DefaultBase, Base):
     __tablename__ = "project"
 
-    id: uuid.UUID
-    name: str
-    description: str
-    creatorId: str  # warning, it's a string
-    organisationId: str
-    databaseId: uuid.UUID
-    # TODO: change
-    # tables: [ProjectTables]
-    # tables: List[ConversationMessage] = field(default_factory=list)
-
-    id = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),
         default=uuid.uuid4,  # for sqlite
-    )  # TODO: transform to uuid
-    name = Column(String, nullable=False)
-    description = Column(String, nullable=False)
-    creatorId = Column(String, ForeignKey("user.id"), nullable=False)
-    organisationId = Column(String, ForeignKey("organisation.id"))
-    databaseId = Column(UUID(as_uuid=True), ForeignKey("database.id"), nullable=False)
+    )
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    creatorId: Mapped[str] = mapped_column(
+        String, ForeignKey("user.id"), nullable=False
+    )
+    organisationId: Mapped[Optional[str]] = mapped_column(
+        String, ForeignKey("organisation.id")
+    )
+    databaseId: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("database.id"), nullable=False
+    )
 
-    creator = relationship("User")
-    organisation = relationship("Organisation")
-    tables = relationship(
+    creator: Mapped["User"] = relationship()
+    organisation: Mapped[Optional["Organisation"]] = relationship(
+        back_populates="projects",
+        lazy="joined",
+        cascade="all, delete-orphan",
+        single_parent=True,
+        # order_by="Project.createdAt",
+    )
+    tables: Mapped[List["ProjectTables"]] = relationship(
         "ProjectTables",
         back_populates="project",
         cascade="all, delete-orphan",
@@ -415,30 +389,25 @@ class Project(DefaultBase, Base):
         # Order by id
         # order_by="ProjectTable.id",
     )
-    conversations = relationship("Conversation", back_populates="project")
-    notes = relationship("Note", back_populates="project")
+    conversations: Mapped[List["Conversation"]] = relationship(back_populates="project")
+    notes: Mapped[List["Note"]] = relationship(back_populates="project")
 
 
 @dataclass
 class Note(DefaultBase, Base):
     __tablename__ = "note"
 
-    id: uuid.UUID
-    title: str
-    content: str
-    projectId: uuid.UUID
-
-    id = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid_v7()"),
         default=uuid.uuid4,  # for sqlite
+    title: Mapped[Optional[str]] = mapped_column(String)
+    content: Mapped[Optional[str]] = mapped_column(String)
+    projectId: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("project.id")
     )
-    title = Column(String)
-    content = Column(String)
-    projectId = Column(UUID(as_uuid=True), ForeignKey("project.id"))
-
-    project = relationship("Project", back_populates="notes")
+    project: Mapped[Optional["Project"]] = relationship(back_populates="notes")
 
 
 @dataclass
@@ -479,18 +448,10 @@ class UserFavorite(DefaultBase, Base):
 class SensitiveDataMapping(Base):
     __tablename__ = "sensitive_data_mapping"
 
-    hash: str
-    generated_id: str
-    createdAt: datetime
-
-    hash = Column(String(64), primary_key=True)  # SHA-256 hash hex digest is 64 chars
-    generated_id = Column(String, nullable=False, unique=True)
-    createdAt = Column(DateTime, nullable=False, server_default=func.now())
-
-
-if __name__ == "__main__":
-    from session import DATABASE_URL
-    from sqlalchemy import create_engine
-
-    engine = create_engine(DATABASE_URL)
-    Base.metadata.create_all(engine)
+    hash: Mapped[str] = mapped_column(
+        String(64), primary_key=True
+    )  # SHA-256 hash hex digest is 64 chars
+    generated_id: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    createdAt: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )

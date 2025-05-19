@@ -135,7 +135,7 @@ const clickSave = async () => {
     if (isNew.value) {
       project.value = await createProject(project.value)
     } else {
-      await updateProject(project.value.id as number, project.value)
+      await updateProject(project.value.id as string, project.value)
     }
     router.push({ name: 'ProjectList' })
   } catch (error) {
@@ -227,7 +227,7 @@ watch(
 
 const isNew = computed(() => route.params.id === 'new')
 if (!isNew.value) {
-  const projectId = parseInt(route.params.id as string)
+  const projectId = route.params.id
   project.value = await fetchProjectById(projectId)
   await fetchDatabaseSchema()
 }
