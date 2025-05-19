@@ -451,7 +451,7 @@ class UserFavorite(DefaultBase, Base):
     user_id: str
     query_id: uuid.UUID
     chart_id: uuid.UUID
-    
+
     id = Column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -461,15 +461,15 @@ class UserFavorite(DefaultBase, Base):
     user_id = Column(String, ForeignKey("user.id"), nullable=False)
     query_id = Column(UUID(as_uuid=True), ForeignKey("query.id"), nullable=True)
     chart_id = Column(UUID(as_uuid=True), ForeignKey("chart.id"), nullable=True)
-    
+
     __table_args__ = (
         CheckConstraint(
             "(query_id IS NOT NULL AND chart_id IS NULL) OR "
             "(query_id IS NULL AND chart_id IS NOT NULL)",
-            name="check_favorite_type"
+            name="check_favorite_type",
         ),
     )
-    
+
     user = relationship("User", backref="favorites")
     query = relationship("Query", backref="user_favorites")
     chart = relationship("Chart", backref="user_favorites")
