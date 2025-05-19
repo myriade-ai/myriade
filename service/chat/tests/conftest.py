@@ -1,6 +1,7 @@
 """Shared fixtures for chat service tests."""
 
 import uuid
+
 import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker

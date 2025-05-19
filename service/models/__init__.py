@@ -464,7 +464,8 @@ class UserFavorite(DefaultBase, Base):
     
     __table_args__ = (
         CheckConstraint(
-            "(query_id IS NOT NULL AND chart_id IS NULL) OR (query_id IS NULL AND chart_id IS NOT NULL)",
+            "(query_id IS NOT NULL AND chart_id IS NULL) OR "
+            "(query_id IS NULL AND chart_id IS NOT NULL)",
             name="check_favorite_type"
         ),
     )
