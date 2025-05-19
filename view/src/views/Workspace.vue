@@ -26,6 +26,31 @@
                 <div class="mt-2 max-h-20 overflow-hidden text-sm text-gray-500">
                   {{ truncateSql(query.sql) }}
                 </div>
+                <!-- Add query result preview -->
+                <div class="mt-2 border rounded p-2 bg-gray-50 overflow-auto max-h-40">
+                  <div v-if="query.rows && query.rows.length > 0" class="text-xs">
+                    <table class="min-w-full divide-y divide-gray-200">
+                      <thead class="bg-gray-100">
+                        <tr>
+                          <th v-for="(_, key) in query.rows[0]" :key="key" class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {{ key }}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody class="bg-white divide-y divide-gray-200">
+                        <tr v-for="(row, i) in query.rows.slice(0, 3)" :key="i">
+                          <td v-for="(value, key) in row" :key="key" class="px-2 py-1 whitespace-nowrap text-xs text-gray-500">
+                            {{ value }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div v-if="query.rows.length > 3" class="text-center text-xs mt-1 text-gray-500">
+                      + {{ query.rows.length - 3 }} more rows
+                    </div>
+                  </div>
+                  <div v-else class="text-xs text-gray-500">No results available</div>
+                </div>
                 <div class="mt-4 flex justify-between">
                   <a :href="`/query/${query.id}`" class="text-sm font-medium text-blue-600 hover:text-blue-500">
                     View Query
@@ -52,7 +77,10 @@
                   {{ getChartTitle(chart) }}
                 </h3>
                 <div class="mt-2">
-                  <Echart :option="{ ...chart.config, query_id: chart.queryId }" style="height: 200px" />
+                  <Echart 
+                    :option="{ ...chart.config, query_id: chart.queryId }" 
+                    style="height: 200px; width: 100%" 
+                  />
                 </div>
                 <div class="mt-4 flex justify-between">
                   <a :href="`/query/${chart.queryId}`" class="text-sm font-medium text-blue-600 hover:text-blue-500">
@@ -110,7 +138,7 @@ const getChartTitle = (chart) => {
 // Actions
 const unfavoriteQuery = async (id) => {
   try {
-    await axios.post(`/api/query/${id}/favorite`, { is_favorite: false })
+    await axios.post(`/api/query/${id}/favorite`)
     queries.value = queries.value.filter(q => q.id !== id)
   } catch (err) {
     console.error('Error removing query from favorites:', err)
@@ -119,7 +147,7 @@ const unfavoriteQuery = async (id) => {
 
 const unfavoriteChart = async (id) => {
   try {
-    await axios.post(`/api/chart/${id}/favorite`, { is_favorite: false })
+    await axios.post(`/api/chart/${id}/favorite`)
     charts.value = charts.value.filter(c => c.id !== id)
   } catch (err) {
     console.error('Error removing chart from favorites:', err)

@@ -9,6 +9,7 @@ from autochat.model import Message as AutoChatMessage
 from PIL import Image as PILImage
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     ForeignKey,
@@ -438,6 +439,39 @@ class Note(DefaultBase, Base):
     projectId = Column(UUID(as_uuid=True), ForeignKey("project.id"))
 
     project = relationship("Project", back_populates="notes")
+
+
+@dataclass
+class UserFavorite(DefaultBase, Base):
+    """User favorite for queries and charts."""
+
+    __tablename__ = "user_favorite"
+
+    id: uuid.UUID
+    user_id: str
+    query_id: uuid.UUID
+    chart_id: uuid.UUID
+    
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid_v7()"),
+        default=uuid.uuid4,  # for sqlite
+    )
+    user_id = Column(String, ForeignKey("user.id"), nullable=False)
+    query_id = Column(UUID(as_uuid=True), ForeignKey("query.id"), nullable=True)
+    chart_id = Column(UUID(as_uuid=True), ForeignKey("chart.id"), nullable=True)
+    
+    __table_args__ = (
+        CheckConstraint(
+            "(query_id IS NOT NULL AND chart_id IS NULL) OR (query_id IS NULL AND chart_id IS NOT NULL)",
+            name="check_favorite_type"
+        ),
+    )
+    
+    user = relationship("User", backref="favorites")
+    query = relationship("Query", backref="user_favorites")
+    chart = relationship("Chart", backref="user_favorites")
 
 
 @dataclass

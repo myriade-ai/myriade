@@ -16,7 +16,6 @@ class WorkspaceTool:
             .filter(ConversationMessage.conversationId == self.conversation_id)
             .filter(Query.rows.isnot(None))
             .filter(Query.exception.is_(None))
-            .filter(Query.is_favorite)
             .all()
         )
         context = "Queries:\n"
@@ -27,7 +26,6 @@ class WorkspaceTool:
             self.session.query(Chart)
             .join(ConversationMessage, Chart.conversation_messages)
             .filter(ConversationMessage.conversationId == self.conversation_id)
-            .filter(Chart.is_favorite)
             .all()
         )
         context += "Charts:\n"

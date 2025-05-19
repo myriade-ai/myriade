@@ -59,16 +59,30 @@
             <ArrowPathIcon class="h-4 w-4" />
             <span class="ml-1 hidden lg:inline">regenerate</span>
           </button>
-          <span v-if="props.message.queryId || props.message.chartId" class="text-gray-400 mx-2">|</span>
+          <!-- Query favorite button -->
+          <span v-if="props.message.queryId" class="text-gray-400 mx-2">|</span>
           <button
-            v-if="props.message.queryId || props.message.chartId"
+            v-if="props.message.queryId"
             class="text-blue-500 hover:text-blue-700 flex items-center"
-            title="Save to workspace"
-            @click="toggleFavorite"
+            title="Save query to workspace"
+            @click="toggleQueryFavorite"
           >
-            <StarIconSolid v-if="isFavorite" class="h-4 w-4 text-yellow-500" />
+            <StarIconSolid v-if="isQueryFavorite" class="h-4 w-4 text-yellow-500" />
             <StarIcon v-else class="h-4 w-4" />
-            <span class="ml-1 hidden lg:inline">{{ isFavorite ? 'saved' : 'save' }}</span>
+            <span class="ml-1 hidden lg:inline">{{ isQueryFavorite ? 'saved query' : 'save query' }}</span>
+          </button>
+          
+          <!-- Chart favorite button -->
+          <span v-if="props.message.chartId" class="text-gray-400 mx-2">|</span>
+          <button
+            v-if="props.message.chartId"
+            class="text-blue-500 hover:text-blue-700 flex items-center"
+            title="Save chart to workspace"
+            @click="toggleChartFavorite"
+          >
+            <ChartBarIconSolid v-if="isChartFavorite" class="h-4 w-4 text-yellow-500" />
+            <ChartBarIcon v-else class="h-4 w-4" />
+            <span class="ml-1 hidden lg:inline">{{ isChartFavorite ? 'saved chart' : 'save chart' }}</span>
           </button>
         </span>
       </span>
@@ -163,8 +177,17 @@ import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
 import Echart from '@/components/Echart.vue'
-import { ArrowPathIcon, PencilIcon, PencilSquareIcon, StarIcon } from '@heroicons/vue/24/outline'
-import { StarIcon as StarIconSolid } from '@heroicons/vue/24/solid'
+import { 
+  ArrowPathIcon, 
+  PencilIcon, 
+  PencilSquareIcon, 
+  StarIcon,
+  ChartBarIcon 
+} from '@heroicons/vue/24/outline'
+import { 
+  StarIcon as StarIconSolid,
+  ChartBarIcon as ChartBarIconSolid 
+} from '@heroicons/vue/24/solid'
 
 // Store
 import { useDatabasesStore } from '@/stores/databases'
@@ -198,41 +221,45 @@ const sqlResult = ref<Array<Record<string, string | number | boolean | null>>>([
 const sqlCount = ref(0)
 const isEditing = ref(false)
 const editedContent = ref('')
-const isFavorite = ref(false)
+const isQueryFavorite = ref(false)
+const isChartFavorite = ref(false)
 
-// Check if the query or chart is favorited
+// Check if the query or chart is favorited by the current user
 onMounted(async () => {
   if (props.message.queryId) {
     try {
-      const response = await axios.get(`/api/query/${props.message.queryId}`)
-      isFavorite.value = response.data.is_favorite
+      const response = await axios.get(`/api/user/favorites/query/${props.message.queryId}`)
+      isQueryFavorite.value = response.data.is_favorite
     } catch (error) {
-      console.error('Error checking favorite status:', error)
+      console.error('Error checking query favorite status:', error)
     }
-  } else if (props.message.chartId) {
+  }
+  
+  if (props.message.chartId) {
     try {
-      const response = await axios.get(`/api/chart/${props.message.chartId}`)
-      isFavorite.value = response.data.is_favorite
+      const response = await axios.get(`/api/user/favorites/chart/${props.message.chartId}`)
+      isChartFavorite.value = response.data.is_favorite
     } catch (error) {
-      console.error('Error checking favorite status:', error)
+      console.error('Error checking chart favorite status:', error)
     }
   }
 })
 
-const toggleFavorite = async () => {
+const toggleQueryFavorite = async () => {
   try {
-    if (props.message.queryId) {
-      await axios.post(`/api/query/${props.message.queryId}/favorite`, {
-        is_favorite: !isFavorite.value
-      })
-    } else if (props.message.chartId) {
-      await axios.post(`/api/chart/${props.message.chartId}/favorite`, {
-        is_favorite: !isFavorite.value
-      })
-    }
-    isFavorite.value = !isFavorite.value
+    const response = await axios.post(`/api/query/${props.message.queryId}/favorite`)
+    isQueryFavorite.value = response.data.is_favorite
   } catch (error) {
-    console.error('Error toggling favorite status:', error)
+    console.error('Error toggling query favorite status:', error)
+  }
+}
+
+const toggleChartFavorite = async () => {
+  try {
+    const response = await axios.post(`/api/chart/${props.message.chartId}/favorite`)
+    isChartFavorite.value = response.data.is_favorite
+  } catch (error) {
+    console.error('Error toggling chart favorite status:', error)
   }
 }
 
