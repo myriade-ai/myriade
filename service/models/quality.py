@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import text
 
-from back.utils import Base, DefaultBase
+from db import Base, DefaultBase
 
 
 class Status(StrEnum):
