@@ -19,9 +19,7 @@ interface Project {
 export const useProjectsStore = defineStore('projects', () => {
   // --- state ---
   const projects = ref<Project[]>([])
-  const projectSelectedId = ref<string | null>(
-    localStorage.getItem('projectId') ? parseInt(localStorage.getItem('projectId') ?? '') : null
-  )
+  const projectSelectedId = ref<string | null>(localStorage.getItem('projectId') ?? null)
 
   // --- getters ---
   const projectSelected = computed<Project>({
