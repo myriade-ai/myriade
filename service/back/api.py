@@ -435,6 +435,116 @@ def update_database_privacy(database_id):
     return jsonify({"success": True})
 
 
+@api.route("/query/<query_id>/favorite", methods=["POST"])
+@user_middleware
+def toggle_query_favorite(query_id):
+    """Toggle favorite status for a query for the current user"""
+    from models import Query, UserFavorite
+    
+    query = g.session.query(Query).filter(Query.id == query_id).first()
+    if not query:
+        return jsonify({"error": "Query not found"}), 404
+    
+    favorite = g.session.query(UserFavorite).filter(
+        UserFavorite.user_id == g.user.id,
+        UserFavorite.query_id == query_id
+    ).first()
+    
+    if favorite:
+        g.session.delete(favorite)
+        g.session.flush()
+        is_favorite = False
+    else:
+        favorite = UserFavorite(user_id=g.user.id, query_id=query_id)
+        g.session.add(favorite)
+        g.session.flush()
+        is_favorite = True
+    
+    return jsonify({"success": True, "is_favorite": is_favorite})
+
+
+@api.route("/chart/<chart_id>/favorite", methods=["POST"])
+@user_middleware
+def toggle_chart_favorite(chart_id):
+    """Toggle favorite status for a chart for the current user"""
+    from models import Chart, UserFavorite
+    
+    chart = g.session.query(Chart).filter(Chart.id == chart_id).first()
+    if not chart:
+        return jsonify({"error": "Chart not found"}), 404
+    
+    favorite = g.session.query(UserFavorite).filter(
+        UserFavorite.user_id == g.user.id,
+        UserFavorite.chart_id == chart_id
+    ).first()
+    
+    if favorite:
+        g.session.delete(favorite)
+        g.session.flush()
+        is_favorite = False
+    else:
+        favorite = UserFavorite(user_id=g.user.id, chart_id=chart_id)
+        g.session.add(favorite)
+        g.session.flush()
+        is_favorite = True
+    
+    return jsonify({"success": True, "is_favorite": is_favorite})
+
+
+@api.route("/workspace", methods=["GET"])
+@user_middleware
+def get_workspace_items():
+    """Get all favorited queries and charts for the current user"""
+    from models import Chart, Query, UserFavorite
+    
+    query_favorites = g.session.query(Query).join(
+        UserFavorite, UserFavorite.query_id == Query.id
+    ).filter(
+        UserFavorite.user_id == g.user.id,
+        Query.rows.isnot(None),
+        Query.exception.is_(None)
+    ).all()
+    
+    chart_favorites = g.session.query(Chart).join(
+        UserFavorite, UserFavorite.chart_id == Chart.id
+    ).filter(
+        UserFavorite.user_id == g.user.id
+    ).all()
+    
+    return jsonify({
+        "queries": [query.to_dict() for query in query_favorites],
+        "charts": [chart.to_dict() for chart in chart_favorites]
+    })
+
+
+@api.route("/user/favorites/query/<query_id>", methods=["GET"])
+@user_middleware
+def check_query_favorite(query_id):
+    """Check if a query is favorited by the current user"""
+    from models import UserFavorite
+    
+    favorite = g.session.query(UserFavorite).filter(
+        UserFavorite.user_id == g.user.id,
+        UserFavorite.query_id == query_id
+    ).first()
+    
+    return jsonify({"is_favorite": favorite is not None})
+
+
+@api.route("/user/favorites/chart/<chart_id>", methods=["GET"])
+@user_middleware
+def check_chart_favorite(chart_id):
+    """Check if a chart is favorited by the current user"""
+    from models import UserFavorite
+    
+    favorite = g.session.query(UserFavorite).filter(
+        UserFavorite.user_id == g.user.id,
+        UserFavorite.chart_id == chart_id
+    ).first()
+    
+    return jsonify({"is_favorite": favorite is not None})
+
+
 @api.route("/databases/<database_id>/privacy/auto", methods=["POST"])
 @user_middleware
 def auto_update_database_privacy(database_id):

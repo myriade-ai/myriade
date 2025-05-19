@@ -1,7 +1,9 @@
 """Shared fixtures for chat service tests."""
 
+import os
+import uuid
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from chat.datachat import DatabaseChat
@@ -13,7 +15,16 @@ def session():
     """Create a new database session for testing"""
     # Create an in-memory SQLite database
     engine = create_engine("sqlite:///:memory:")
-
+    
+    def gen_random_uuid_v7():
+        return str(uuid.uuid4())
+    
+    @event.listens_for(engine, "connect")
+    def do_connect(dbapi_connection, connection_record):
+        dbapi_connection.create_function("gen_random_uuid_v7", 0, gen_random_uuid_v7)
+    
+    os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+    
     # Create all tables
     Base.metadata.create_all(engine)
 

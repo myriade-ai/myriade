@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 
 from autochat.model import Message as AutoChatMessage
 from PIL import Image as PILImage
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, LargeBinary, String, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, LargeBinary, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 from sqlalchemy.sql import text
@@ -409,6 +409,41 @@ class Note(DefaultBase, Base):
     )
 
     project: Mapped[Optional["Project"]] = relationship(back_populates="notes")
+
+
+@dataclass
+class UserFavorite(DefaultBase, Base):
+    """User favorite for queries and charts."""
+
+    __tablename__ = "user_favorite"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid_v7()"),
+        default=uuid.uuid4,  # for sqlite
+    )
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("user.id"), nullable=False
+    )
+    query_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("query.id"), nullable=True
+    )
+    chart_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("chart.id"), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "(query_id IS NOT NULL AND chart_id IS NULL) OR "
+            "(query_id IS NULL AND chart_id IS NOT NULL)",
+            name="check_favorite_type",
+        ),
+    )
+
+    user: Mapped["User"] = relationship(backref="favorites")
+    query: Mapped[Optional["Query"]] = relationship(backref="user_favorites")
+    chart: Mapped[Optional["Chart"]] = relationship(backref="user_favorites")
 
 
 @dataclass
