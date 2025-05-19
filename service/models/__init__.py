@@ -8,7 +8,16 @@ from typing import Any, Dict, List, Optional
 
 from autochat.model import Message as AutoChatMessage
 from PIL import Image as PILImage
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, LargeBinary, String, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    String,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 from sqlalchemy.sql import text
@@ -423,9 +432,7 @@ class UserFavorite(DefaultBase, Base):
         server_default=text("gen_random_uuid_v7()"),
         default=uuid.uuid4,  # for sqlite
     )
-    user_id: Mapped[str] = mapped_column(
-        String, ForeignKey("user.id"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("user.id"), nullable=False)
     query_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("query.id"), nullable=True
     )
