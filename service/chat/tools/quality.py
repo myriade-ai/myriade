@@ -26,25 +26,33 @@ class SemanticCatalog:
 
     def _fetch_entities(self):
         """Fetch the all entities, and their quality metrics"""
-        entities = self.session.query(
-            BusinessEntity.id,
-            BusinessEntity.name,
-            BusinessEntity.completeness,
-            BusinessEntity.quality_score,
-            BusinessEntity.review_date,
-        ).all()
+        entities = (
+            self.session.query(
+                BusinessEntity.id,
+                BusinessEntity.name,
+                BusinessEntity.completeness,
+                BusinessEntity.quality_score,
+                BusinessEntity.review_date,
+            )
+            .filter(BusinessEntity.database_id == self.database_id)
+            .all()
+        )
         return entities
 
     def _fetch_issues(self):
         """Fetch the all issues"""
-        issues = self.session.query(
-            Issue.id,
-            Issue.title,
-            Issue.scope,
-            Issue.severity,
-            Issue.status,
-            Issue.business_entity_id,
-        ).all()
+        issues = (
+            self.session.query(
+                Issue.id,
+                Issue.title,
+                Issue.scope,
+                Issue.severity,
+                Issue.status,
+                Issue.business_entity_id,
+            )
+            .filter(Issue.database_id == self.database_id)
+            .all()
+        )
         return issues
 
     def read_issue(self, issue_id: str):
@@ -60,6 +68,7 @@ class SemanticCatalog:
                 Issue.business_entity_id,
             )
             .filter(Issue.id == issue_id)
+            .filter(Issue.database_id == self.database_id)
             .first()
         )
         if not issue:
