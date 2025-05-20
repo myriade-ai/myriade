@@ -54,7 +54,7 @@ class Issue(Base, DefaultBase):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid_v7()"),
+        server_default=text("gen_random_uuid()"),
     )
     title: Mapped[str] = mapped_column(String(256), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
@@ -87,7 +87,7 @@ class BusinessEntity(Base, DefaultBase):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid_v7()"),
+        server_default=text("gen_random_uuid()"),
     )
     name: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     definition: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

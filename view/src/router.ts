@@ -48,9 +48,9 @@ const app_routes = [
     }
   },
   {
-    path: '/workspace',
-    name: 'Workspace',
-    component: loadView('Workspace')
+    path: '/favorites',
+    name: 'Favorites',
+    component: loadView('Favorites')
   },
   {
     path: '/databases',

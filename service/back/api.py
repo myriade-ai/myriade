@@ -65,9 +65,7 @@ def get_conversation(conversation_id):
 
     # TODO: redesign this to use a single query
     conversation_dict = conversation.to_dict()
-    conversation_dict["messages"] = [
-        m.to_dict(g.session) for m in conversation.messages
-    ]
+    conversation_dict["messages"] = [m.to_dict() for m in conversation.messages]
     conversation_dict["messages"].sort(key=lambda x: x["createdAt"])
     return jsonify(conversation_dict)
 
@@ -451,12 +449,13 @@ def toggle_query_favorite(query_id):
     query = g.session.query(Query).filter(Query.id == query_id).first()
     if not query:
         return jsonify({"error": "Query not found"}), 404
-    
-    favorite = g.session.query(UserFavorite).filter(
-        UserFavorite.user_id == g.user.id,
-        UserFavorite.query_id == query_id
-    ).first()
-    
+
+    favorite = (
+        g.session.query(UserFavorite)
+        .filter(UserFavorite.user_id == g.user.id, UserFavorite.query_id == query_id)
+        .first()
+    )
+
     if favorite:
         g.session.delete(favorite)
         g.session.flush()
@@ -466,8 +465,9 @@ def toggle_query_favorite(query_id):
         g.session.add(favorite)
         g.session.flush()
         is_favorite = True
-    
+
     return jsonify({"success": True, "is_favorite": is_favorite})
+
 
 @api.route("/chart/<chart_id>/favorite", methods=["POST"])
 @user_middleware
@@ -476,12 +476,13 @@ def toggle_chart_favorite(chart_id):
     chart = g.session.query(Chart).filter(Chart.id == chart_id).first()
     if not chart:
         return jsonify({"error": "Chart not found"}), 404
-    
-    favorite = g.session.query(UserFavorite).filter(
-        UserFavorite.user_id == g.user.id,
-        UserFavorite.chart_id == chart_id
-    ).first()
-    
+
+    favorite = (
+        g.session.query(UserFavorite)
+        .filter(UserFavorite.user_id == g.user.id, UserFavorite.chart_id == chart_id)
+        .first()
+    )
+
     if favorite:
         g.session.delete(favorite)
         g.session.flush()
@@ -491,53 +492,61 @@ def toggle_chart_favorite(chart_id):
         g.session.add(favorite)
         g.session.flush()
         is_favorite = True
-    
+
     return jsonify({"success": True, "is_favorite": is_favorite})
 
-@api.route("/workspace", methods=["GET"])
+
+@api.route("/favorites", methods=["GET"])
 @user_middleware
-def get_workspace_items():
+def get_favorites():
     """Get all favorited queries and charts for the current user"""
-    query_favorites = g.session.query(Query).join(
-        UserFavorite, UserFavorite.query_id == Query.id
-    ).filter(
-        UserFavorite.user_id == g.user.id,
-        Query.rows.isnot(None),
-        Query.exception.is_(None)
-    ).all()
-    
-    chart_favorites = g.session.query(Chart).join(
-        UserFavorite, UserFavorite.chart_id == Chart.id
-    ).filter(
-        UserFavorite.user_id == g.user.id
-    ).all()
-    
-    return jsonify({
-        "queries": query_favorites,
-        "charts": chart_favorites
-    })
+    query_favorites = (
+        g.session.query(Query)
+        .join(UserFavorite, UserFavorite.query_id == Query.id)
+        .filter(
+            UserFavorite.user_id == g.user.id,
+            Query.rows.isnot(None),
+            Query.exception.is_(None),
+        )
+        .all()
+    )
+
+    chart_favorites = (
+        g.session.query(Chart)
+        .join(UserFavorite, UserFavorite.chart_id == Chart.id)
+        .filter(UserFavorite.user_id == g.user.id)
+        .all()
+    )
+    queries = [query.to_dict() for query in query_favorites]
+    charts = [chart.to_dict() for chart in chart_favorites]
+    return jsonify({"queries": queries, "charts": charts})
+
 
 @api.route("/user/favorites/query/<query_id>", methods=["GET"])
 @user_middleware
 def check_query_favorite(query_id):
     """Check if a query is favorited by the current user"""
-    favorite = g.session.query(UserFavorite).filter(
-        UserFavorite.user_id == g.user.id,
-        UserFavorite.query_id == query_id
-    ).first()
-    
+    favorite = (
+        g.session.query(UserFavorite)
+        .filter(UserFavorite.user_id == g.user.id, UserFavorite.query_id == query_id)
+        .first()
+    )
+
     return jsonify({"is_favorite": favorite is not None})
+
 
 @api.route("/user/favorites/chart/<chart_id>", methods=["GET"])
 @user_middleware
 def check_chart_favorite(chart_id):
     """Check if a chart is favorited by the current user"""
-    favorite = g.session.query(UserFavorite).filter(
-        UserFavorite.user_id == g.user.id,
-        UserFavorite.chart_id == chart_id
-    ).first()
-    
+    favorite = (
+        g.session.query(UserFavorite)
+        .filter(UserFavorite.user_id == g.user.id, UserFavorite.chart_id == chart_id)
+        .first()
+    )
+
     return jsonify({"is_favorite": favorite is not None})
+
 
 @api.route("/databases/<database_id>/privacy/auto", methods=["POST"])
 @user_middleware

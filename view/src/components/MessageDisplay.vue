@@ -59,31 +59,6 @@
             <ArrowPathIcon class="h-4 w-4" />
             <span class="ml-1 hidden lg:inline">regenerate</span>
           </button>
-          <!-- Query favorite button -->
-          <span v-if="props.message.queryId" class="text-gray-400 mx-2">|</span>
-          <button
-            v-if="props.message.queryId"
-            class="text-blue-500 hover:text-blue-700 flex items-center"
-            title="Save query to workspace"
-            @click="toggleQueryFavorite"
-          >
-            <StarIconSolid v-if="isQueryFavorite" class="h-4 w-4 text-yellow-500" />
-            <StarIcon v-else class="h-4 w-4" />
-            <span class="ml-1 hidden lg:inline">{{ isQueryFavorite ? 'saved query' : 'save query' }}</span>
-          </button>
-          
-          <!-- Chart favorite button -->
-          <span v-if="props.message.chartId" class="text-gray-400 mx-2">|</span>
-          <button
-            v-if="props.message.chartId"
-            class="text-blue-500 hover:text-blue-700 flex items-center"
-            title="Save chart to workspace"
-            @click="toggleChartFavorite"
-          >
-            <ChartBarIconSolid v-if="isChartFavorite" class="h-4 w-4 text-yellow-500" />
-            <ChartBarIcon v-else class="h-4 w-4" />
-            <span class="ml-1 hidden lg:inline">{{ isChartFavorite ? 'saved chart' : 'save chart' }}</span>
-          </button>
         </span>
       </span>
     </div>
@@ -126,6 +101,15 @@
         >
           {{ part.content }}
         </div>
+        <div v-if="part.type === 'query'" :key="`query-${index}`">
+          <BaseEditorPreview
+            :queryId="part.query_id"
+            :databaseId="databaseSelectedId"
+          ></BaseEditorPreview>
+        </div>
+        <div v-if="part.type === 'chart'" :key="`chart-${index}`">
+          chart_id: {{ part.chart_id }}
+        </div>
         <BaseEditor
           v-if="part.type === 'sql'"
           :modelValue="part.content"
@@ -133,6 +117,19 @@
           :key="`sql-${index}`"
         ></BaseEditor>
         <BaseTable v-if="part.type === 'json'" :data="part.content" :key="`json-${index}`" />
+        <div v-if="part.type === 'echarts'" class="flex items-center" :key="index">
+          <button
+            class="text-blue-500 hover:text-blue-700 flex items-center"
+            title="Save chart to workspace"
+            @click="toggleChartFavorite(part.content.chartId)"
+          >
+            <ChartBarIconSolid v-if="isChartFavorite" class="h-4 w-4 text-yellow-500" />
+            <ChartBarIcon v-else class="h-4 w-4" />
+            <span class="ml-1 hidden lg:inline">{{
+              isChartFavorite ? 'saved chart' : 'save chart'
+            }}</span>
+          </button>
+        </div>
         <Echart v-if="part.type === 'echarts'" :option="part.content" :key="`echarts-${index}`" />
       </template>
 
@@ -177,17 +174,7 @@ import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
 import Echart from '@/components/Echart.vue'
-import { 
-  ArrowPathIcon, 
-  PencilIcon, 
-  PencilSquareIcon, 
-  StarIcon,
-  ChartBarIcon 
-} from '@heroicons/vue/24/outline'
-import { 
-  StarIcon as StarIconSolid,
-  ChartBarIcon as ChartBarIconSolid 
-} from '@heroicons/vue/24/solid'
+import { ArrowPathIcon, PencilIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 
 // Store
 import { useDatabasesStore } from '@/stores/databases'
@@ -234,7 +221,7 @@ onMounted(async () => {
       console.error('Error checking query favorite status:', error)
     }
   }
-  
+
   if (props.message.chartId) {
     try {
       const response = await axios.get(`/api/user/favorites/chart/${props.message.chartId}`)
@@ -245,18 +232,9 @@ onMounted(async () => {
   }
 })
 
-const toggleQueryFavorite = async () => {
+const toggleChartFavorite = async (chartId: string) => {
   try {
-    const response = await axios.post(`/api/query/${props.message.queryId}/favorite`)
-    isQueryFavorite.value = response.data.is_favorite
-  } catch (error) {
-    console.error('Error toggling query favorite status:', error)
-  }
-}
-
-const toggleChartFavorite = async () => {
-  try {
-    const response = await axios.post(`/api/chart/${props.message.chartId}/favorite`)
+    const response = await axios.post(`/api/chart/${chartId}/favorite`)
     isChartFavorite.value = response.data.is_favorite
   } catch (error) {
     console.error('Error toggling chart favorite status:', error)
@@ -307,6 +285,11 @@ const parsedText = computed(() => {
   let match
   let lastIndex = 0
   const parts: Array<{ type: string; content: any }> = []
+
+  // if content is a list, return it as is
+  if (Array.isArray(props.message.content)) {
+    return props.message.content
+  }
 
   while ((match = regex.exec(props.message.content)) !== null) {
     if (match.index > lastIndex) {
