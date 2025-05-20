@@ -224,7 +224,7 @@ const startAnalysis = async (entity: BusinessEntity) => {
     }
     await conversationsStore.sendMessage(
       'text',
-      `Can you verify quality of the business entity "${entity.name}"`,
+      `Verify quality of the business entity "${entity.name}". Create issues if you find any.`,
       null,
       contextsStore.contextSelected.id
     )
