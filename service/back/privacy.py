@@ -3,7 +3,7 @@ import random
 import string
 from typing import Dict, List
 
-from back.session import db_session
+from back.session import with_session
 from models import SensitiveDataMapping
 
 PRIVACY_PATTERNS = {  # Using regex patterns to detect sensitive data
@@ -19,38 +19,38 @@ def _random_id(length: int = 8) -> str:
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
 
-def get_or_create_sensitive_ids_batch(hashes: List[str]) -> Dict[str, str]:
+@with_session
+def get_or_create_sensitive_ids_batch(session, hashes: List[str]) -> Dict[str, str]:
     """
     Batch process multiple hashes at once to reduce database queries
     Returns a dictionary mapping hashes to their generated IDs
     """
     result = {}
-    with db_session() as db:
-        # Get existing mappings in a single query
-        existing_mappings = (
-            db.query(SensitiveDataMapping)
-            .filter(SensitiveDataMapping.hash.in_(hashes))  # type: ignore[attr-defined]
-            .all()
+    # Get existing mappings in a single query
+    existing_mappings = (
+        session.query(SensitiveDataMapping)
+        .filter(SensitiveDataMapping.hash.in_(hashes))  # type: ignore[attr-defined]
+        .all()
+    )
+
+    # Process existing mappings
+    existing_hash_ids = {m.hash: m.generated_id for m in existing_mappings}
+    result.update(existing_hash_ids)
+
+    # Create new IDs for remaining hashes
+    remaining_hashes = set(hashes) - set(existing_hash_ids.keys())
+    new_mappings = []
+
+    for hash_value in remaining_hashes:
+        generated_id = _random_id()
+        new_mappings.append(
+            SensitiveDataMapping(hash=hash_value, generated_id=generated_id)
         )
+        result[hash_value] = generated_id
 
-        # Process existing mappings
-        existing_hash_ids = {m.hash: m.generated_id for m in existing_mappings}
-        result.update(existing_hash_ids)
-
-        # Create new IDs for remaining hashes
-        remaining_hashes = set(hashes) - set(existing_hash_ids.keys())
-        new_mappings = []
-
-        for hash_value in remaining_hashes:
-            generated_id = _random_id()
-            new_mappings.append(
-                SensitiveDataMapping(hash=hash_value, generated_id=generated_id)
-            )
-            result[hash_value] = generated_id
-
-        # Bulk insert new mappings
-        if new_mappings:
-            db.bulk_save_objects(new_mappings)
+    # Bulk insert new mappings
+    if new_mappings:
+        session.bulk_save_objects(new_mappings)
     return result
 
 

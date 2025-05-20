@@ -1,6 +1,6 @@
 import config  # noqa: F401, I001
 import sentry_sdk
-from back.session import SessionLocal
+from back.session import get_db_session
 from flask import Flask, g
 from flask_socketio import SocketIO
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -39,26 +39,19 @@ def create_app():
 
     @app.before_request
     def _open_db_session():
-        g.session = SessionLocal()
-
-    @app.after_request
-    def _commit_or_rollback(response):
-        try:
-            # Commit only if *our* code did not raise – i.e. status < 400
-            if response.status_code < 400:
-                g.session.commit()
-            else:
-                g.session.rollback()
-        finally:
-            g.session.close()
-        return response
+        g.session = get_db_session()
+        g.session.begin()
 
     @app.teardown_request
-    def _teardown_request(exception):
-        # Handles unhandled exceptions (500 stacktrace, etc.)
-        if exception is not None and hasattr(g, "session"):
-            g.session.rollback()
-            g.session.close()
+    def end_session(exc=None):
+        session = g.pop("session", None)
+        if not session:
+            return
+        if exc is None:
+            session.commit()
+        else:
+            session.rollback()
+        session.close()
 
     socketio.init_app(app)
 
