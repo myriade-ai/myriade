@@ -18,42 +18,29 @@ class SemanticCatalog:
 
     def __llm__(self):
         return (
-            "Entities: "
+            "### Entities\n"
             + yaml.dump(self._fetch_entities())
-            + "\nIssues: "
+            + "\n### Issues\n"
             + yaml.dump(self._fetch_issues())
         )
 
     def _fetch_entities(self):
         """Fetch the all entities, and their quality metrics"""
         entities = (
-            self.session.query(
-                BusinessEntity.id,
-                BusinessEntity.name,
-                BusinessEntity.completeness,
-                BusinessEntity.quality_score,
-                BusinessEntity.review_date,
-            )
+            self.session.query(BusinessEntity)
             .filter(BusinessEntity.database_id == self.database_id)
             .all()
         )
-        return entities
+        return [e.to_dict() for e in entities]
 
     def _fetch_issues(self):
         """Fetch the all issues"""
         issues = (
-            self.session.query(
-                Issue.id,
-                Issue.title,
-                Issue.scope,
-                Issue.severity,
-                Issue.status,
-                Issue.business_entity_id,
-            )
+            self.session.query(Issue)
             .filter(Issue.database_id == self.database_id)
             .all()
         )
-        return issues
+        return [i.to_dict() for i in issues]
 
     def read_issue(self, issue_id: str):
         """Fetch an issue by id"""
@@ -173,7 +160,7 @@ class SemanticCatalog:
                 Explain the severity of the issue if it's high, critical or blocker.
             severity: The severity of the issue ("LOW", "MEDIUM", "HIGH", "CRITICAL").
             scope: The scope of the issue ("DATA", "BUSINESS", "BOTH", "UNKNOWN"). Data is for pipeline / warehouse, that can be fixed by data engineers with DBT. Business is for operations / process that impact the business.
-            business_entity_id: The id of the entity to create the issue for.
+            business_entity_id: The uuid of the entity to create the issue for.
         """  # noqa: E501
         issue = Issue(
             title=title,
@@ -185,7 +172,11 @@ class SemanticCatalog:
             message_id=self.conversation_id,
         )
         self.session.add(issue)
-        self.session.flush()
+        try:
+            self.session.flush()
+        except Exception:
+            self.session.rollback()
+            raise
 
     def update_issue(
         self,
