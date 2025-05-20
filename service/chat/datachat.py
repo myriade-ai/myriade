@@ -47,8 +47,8 @@ class DatabaseChat:
                 self.session.query(Conversation).filter_by(id=conversation_id).first()
             )
 
-        # Add a datalake object to the request
-        self.datalake = self.conversation.database.create_datalake()
+        # Add a data_warehouse object to the request
+        self.data_warehouse = self.conversation.database.create_data_warehouse()
         if stop_flags is None:
             self.stop_flags = {}
         else:
@@ -67,8 +67,8 @@ class DatabaseChat:
 
     def __del__(self):
         # On destruct, close the engine
-        if hasattr(self, "datalake"):
-            self.datalake.dispose()
+        if hasattr(self, "data_warehouse"):
+            self.data_warehouse.dispose()
 
     def _create_conversation(
         self, databaseId, name=None, project_id=None, user_id=None

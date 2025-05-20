@@ -31,7 +31,9 @@ def sizeof(obj):
 
 class AbstractDatabase(ABC):
     safe_mode = False
-    tables_metadata: list[dict] | None = None  # populated by Database.create_datalake()
+    tables_metadata: list[dict] | None = (
+        None  # populated by Database.create_data_warehouse()
+    )
 
     @abstractmethod
     def __init__(self):
@@ -270,7 +272,7 @@ class SnowflakeDatabase(AbstractDatabase):
             return [dict(zip(column_names, row)) for row in rows]
 
 
-class DatalakeFactory:
+class DataWarehouseFactory:
     @staticmethod
     def create(dtype, **kwargs):
         if dtype == "snowflake":

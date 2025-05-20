@@ -86,17 +86,17 @@ class Database(SerializerMixin, DefaultBase, Base):
 
     issues: Mapped[List[Issue]] = relationship(back_populates="database")
 
-    def create_datalake(self):
-        from back.datalake import DatalakeFactory
+    def create_data_warehouse(self):
+        from back.data_warehouse import DataWarehouseFactory
 
-        datalake = DatalakeFactory.create(
+        data_warehouse = DataWarehouseFactory.create(
             self.engine,
             **self.details,
         )
-        datalake.safe_mode = self.safe_mode
+        data_warehouse.safe_mode = self.safe_mode
         # Pass tables metadata for privacy handling
-        datalake.tables_metadata = self.tables_metadata
-        return datalake
+        data_warehouse.tables_metadata = self.tables_metadata
+        return data_warehouse
 
 
 class Organisation(SerializerMixin, DefaultBase, Base):

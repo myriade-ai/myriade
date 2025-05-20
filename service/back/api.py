@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, cast
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import or_
 
-from back.datalake import ConnectionError, DatalakeFactory
+from back.data_warehouse import ConnectionError, DataWarehouseFactory
 from back.privacy import PRIVACY_PATTERNS
 from chat.api import extract_context
 from middleware import admin_required, user_middleware
@@ -89,12 +89,12 @@ def create_database():
     data = request.get_json()
 
     try:
-        # Instantiate a new datalake object
-        datalake = DatalakeFactory.create(
+        # Instantiate a new data_warehouse object
+        data_warehouse = DataWarehouseFactory.create(
             data["engine"],
             **data["details"],
         )
-        datalake.test_connection()
+        data_warehouse.test_connection()
     except ConnectionError as e:
         return jsonify({"message": str(e.args[0])}), 400
 
@@ -111,7 +111,7 @@ def create_database():
         dbt_manifest=data["dbt_manifest"],
     )
 
-    updated_tables_metadata = datalake.load_metadata()
+    updated_tables_metadata = data_warehouse.load_metadata()
     # Merge with none (fresh create); adds empty privacy maps, then auto privacy scan
     merged_metadata = cast(Any, _merge_tables_metadata(None, updated_tables_metadata))  # type: ignore[attr-defined]
     database.tables_metadata = cast(  # type: ignore[attr-defined]
@@ -146,7 +146,7 @@ def update_database(database_id):
     database.organisationId = g.organization_id
 
     # If the engine info has changed, we need to check the connection
-    datalake = DatalakeFactory.create(
+    data_warehouse = DataWarehouseFactory.create(
         data["engine"],
         **data["details"],
     )
@@ -156,11 +156,11 @@ def update_database(database_id):
         or database.name != data["name"]
     ):
         try:
-            datalake.test_connection()
+            data_warehouse.test_connection()
         except Exception as e:
             return jsonify({"message": str(e)}), 400
 
-    new_meta = datalake.load_metadata()
+    new_meta = data_warehouse.load_metadata()
     merged_metadata = cast(
         Any, _merge_tables_metadata(database.tables_metadata, new_meta)
     )  # type: ignore[attr-defined]
@@ -583,7 +583,7 @@ def _merge_tables_metadata(
     """Return `new` tables list enriched with privacy maps from `existing`.
 
     If a table/column already has a privacy map in `existing`, keep it.
-    Tables not present in the datalake anymore are discarded.
+    Tables not present in the data_warehouse anymore are discarded.
     """
 
     existing_lookup = {}
