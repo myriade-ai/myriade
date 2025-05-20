@@ -42,7 +42,7 @@ def create_query():
     )
 
     g.session.add(new_query)
-    g.session.commit()
+    g.session.flush()
 
     response = {
         "id": new_query.id,
@@ -72,7 +72,7 @@ def handle_query_by_id(query_id):
             return jsonify({"message": "No JSON data provided"}), 400
         query.title = request.json.get("title")
         query.sql = request.json.get("sql")
-        g.session.commit()
+        g.session.flush()
 
     # Check if query is favorited by current user
     favorite = (

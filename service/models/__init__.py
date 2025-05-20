@@ -435,7 +435,7 @@ class UserFavorite(SerializerMixin, DefaultBase, Base):
 
 
 @dataclass
-class SensitiveDataMapping(SerializerMixin, DefaultBase, Base):
+class SensitiveDataMapping(SerializerMixin, Base):
     __tablename__ = "sensitive_data_mapping"
 
     hash: Mapped[str] = mapped_column(

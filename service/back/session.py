@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from datetime import date, datetime
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from config import DATABASE_URL
 
@@ -68,29 +68,36 @@ def teardown_database(engine):
 engine = create_engine(
     DATABASE_URL, json_serializer=json_serial, json_deserializer=json_deserial
 )
-SessionLocal = scoped_session(
-    sessionmaker(
-        bind=engine,
-        expire_on_commit=False,
-    )
-)
+SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
+
+
+def get_db_session():
+    return SessionLocal()
 
 
 @contextmanager
-def db_session():
+def transactional_session():
     """
     Context‑manager that yields a fresh Session,
     commits on success, rolls back on error, and always closes.
     """
-    s = SessionLocal()
+    session = SessionLocal()
     try:
-        yield s
-        s.commit()
+        yield session
+        session.commit()
     except Exception:
-        s.rollback()
+        session.rollback()
         raise
     finally:
-        s.close()
+        session.close()
+
+
+def with_session(handler):
+    def wrapper(*args, **kwargs):
+        with transactional_session() as db:
+            return handler(db, *args, **kwargs)
+
+    return wrapper
 
 
 if __name__ == "__main__":

@@ -46,6 +46,9 @@ class DataAnalystAgent:
             self.conversation = (
                 self.session.query(Conversation).filter_by(id=conversation_id).first()
             )
+        # Primitives
+        self.conversation_id = self.conversation.id
+        self.database_id = database_id
 
         # Add a data_warehouse object to the request
         self.data_warehouse = self.conversation.database.create_data_warehouse()
@@ -85,8 +88,8 @@ class DataAnalystAgent:
         return conversation
 
     def check_stop_flag(self):
-        if self.stop_flags.get(self.conversation.id):
-            del self.stop_flags[self.conversation.id]  # Remove the stop flag
+        if self.stop_flags.get(self.conversation_id):
+            del self.stop_flags[self.conversation_id]  # Remove the stop flag
             raise StopException("Query stopped by user")
 
     @property
@@ -130,7 +133,7 @@ class DataAnalystAgent:
         chatbot.add_function(self.submit)
         chatbot.add_function(self.answer)
         chatbot.add_function(self.ask_user)
-        chatbot.add_tool(WorkspaceTool(self.session, self.conversation.id), "workspace")
+        chatbot.add_tool(WorkspaceTool(self.session, self.conversation_id), "workspace")
         chatbot.add_tool(
             EchartsTool(self.session, self.conversation.database),
             "echarts",
@@ -138,7 +141,7 @@ class DataAnalystAgent:
         from chat.tools.quality import SemanticCatalog
 
         semantic_catalog = SemanticCatalog(
-            self.session, self.conversation.id, self.conversation.database.id
+            self.session, self.conversation_id, self.database_id
         )
 
         chatbot.add_tool(semantic_catalog, "semantic_catalog")
@@ -223,7 +226,7 @@ class DataAnalystAgent:
                     .join(ConversationMessage, Query.conversation_messages)
                     .filter(
                         Query.id == query_id,
-                        ConversationMessage.conversationId == self.conversation.id,
+                        ConversationMessage.conversationId == self.conversation_id,
                     )
                     .first()
                 )
@@ -241,7 +244,7 @@ class DataAnalystAgent:
                     .join(ConversationMessage, Chart.conversation_messages)
                     .filter(
                         Chart.id == chart_id,
-                        ConversationMessage.conversationId == self.conversation.id,
+                        ConversationMessage.conversationId == self.conversation_id,
                     )
                     .first()
                 )
@@ -254,24 +257,28 @@ class DataAnalystAgent:
         raise StopLoopException("We want to stop after submitting")
 
     def _run_conversation(self):
-        emit_status(self.conversation.id, STATUS.RUNNING)
+        emit_status(self.conversation_id, STATUS.RUNNING)
         try:
             messages = [m.to_autochat_message() for m in self.conversation.messages]
             self.chatbot.load_messages(messages)
             for m in self.chatbot.run_conversation():
                 self.check_stop_flag()
                 # We re-emit the status in case the user has refreshed the page
-                emit_status(self.conversation.id, STATUS.RUNNING)
+                emit_status(self.conversation_id, STATUS.RUNNING)
                 message = ConversationMessage.from_autochat_message(m)
-                message.conversationId = self.conversation.id
+                message.conversationId = self.conversation_id
                 self.session.add(message)
-                self.session.flush()
+                try:
+                    self.session.flush()
+                except Exception:
+                    self.session.rollback()
+                    raise
                 yield message
-            emit_status(self.conversation.id, STATUS.CLEAR)
+            emit_status(self.conversation_id, STATUS.CLEAR)
         except StopException:
-            emit_status(self.conversation.id, STATUS.CLEAR)
+            emit_status(self.conversation_id, STATUS.CLEAR)
         except Exception as e:
-            emit_status(self.conversation.id, STATUS.ERROR, e)
+            emit_status(self.conversation_id, STATUS.ERROR, e)
             import traceback
 
             traceback.print_exc()
