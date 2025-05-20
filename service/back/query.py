@@ -19,7 +19,7 @@ def run_query():
     sql_query = request.json.get("query")
 
     try:
-        rows, count = g.datalake.query(sql_query, role="users")
+        rows, count = g.data_warehouse.query(sql_query, role="users")
         return jsonify({"rows": rows, "count": count})
     except Exception as e:
         return jsonify({"message": str(e)}), 500
@@ -106,8 +106,8 @@ def get_query_results_by_id(query_id):
         # Backward compatibility
         # We temporarily support fetching results when we don't have them
         database = g.session.query(Database).filter_by(id=query.databaseId).first()
-        datalake = database.create_datalake()
-        rows, count = datalake.query(query.sql, role="users")
+        data_warehouse = database.create_data_warehouse()
+        rows, count = data_warehouse.query(query.sql, role="users")
         return jsonify({"rows": rows, "count": count})
 
     if query.exception:

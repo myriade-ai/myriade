@@ -14,7 +14,7 @@ class EchartsTool:
     def __init__(self, session, database: Database):
         self.session = session
         self.database = database
-        self.datalake = self.database.create_datalake()
+        self.data_warehouse = self.database.create_data_warehouse()
 
     def preview_render(
         self,
@@ -52,7 +52,7 @@ class EchartsTool:
         self.session.flush()
 
         query = self.session.query(Query).filter(Query.id == query_id).first()
-        rows, _ = self.datalake.query(query.sql, role="llm")
+        rows, _ = self.data_warehouse.query(query.sql, role="llm")
         chart_options = chart_options.copy()
         chart_options["dataset"] = {
             "source": rows,

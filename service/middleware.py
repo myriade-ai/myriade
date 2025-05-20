@@ -52,7 +52,7 @@ def database_middleware(f):
     def decorated_function(*args, **kwargs):
         database_id = request.json.get("databaseId")
         database = g.session.query(Database).filter_by(id=database_id).first()
-        g.datalake = database.create_datalake()
+        g.data_warehouse = database.create_data_warehouse()
         return f(*args, **kwargs)
 
     return decorated_function
