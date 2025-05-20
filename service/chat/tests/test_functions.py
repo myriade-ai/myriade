@@ -1,28 +1,28 @@
 """Use syrupy to test that the imported functions stay consistent.
 
-We initialize the datachat class and test that the functions are consistent.
+We initialize the data analyst agent class and test that the functions are consistent.
 """
 
 from syrupy.assertion import SnapshotAssertion
 
 
-def test_functions(datachat, snapshot: SnapshotAssertion):
+def test_functions(analyst_agent, snapshot: SnapshotAssertion):
     """Test that the functions dictionary stays consistent"""
-    chatbot = datachat.chatbot
+    chatbot = analyst_agent.chatbot
     # Convert functions to a serializable format
     functions_list = [name for name, _ in chatbot.functions.items()]
     assert functions_list == snapshot
 
 
-def test_functions_schema(datachat, snapshot: SnapshotAssertion):
+def test_functions_schema(analyst_agent, snapshot: SnapshotAssertion):
     """Test that the functions schema stays consistent"""
-    chatbot = datachat.chatbot
+    chatbot = analyst_agent.chatbot
     assert chatbot.functions_schema == snapshot
 
 
-def test_tools(datachat, snapshot: SnapshotAssertion):
+def test_tools(analyst_agent, snapshot: SnapshotAssertion):
     """Test that the tools dictionary stays consistent"""
-    chatbot = datachat.chatbot
+    chatbot = analyst_agent.chatbot
     # Convert tools to a serializable format
     tools_dict = {
         name: str(tool) if callable(tool) else tool.__class__.__name__
