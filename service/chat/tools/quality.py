@@ -149,6 +149,7 @@ class SemanticCatalog:
         severity: str,
         scope: str,
         business_entity_id: str,
+        from_response,
     ):
         """Creates a new issue for an entity.
         Args:
@@ -169,12 +170,16 @@ class SemanticCatalog:
             scope=scope,
             business_entity_id=business_entity_id,
             database_id=self.database_id,
-            message_id=self.conversation_id,
+            # TODO: find a way to give message_id
+            # message_id=self.message_id,
         )
         self.session.add(issue)
         try:
             self.session.flush()
         except Exception:
+            import traceback
+
+            traceback.print_exc()
             self.session.rollback()
             raise
 

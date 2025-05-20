@@ -110,12 +110,18 @@ class DataAnalystAgent:
 
     @property
     def chatbot(self):
-        messages = [m.to_autochat_message() for m in self.conversation.messages]
+        messages = (
+            self.session.query(ConversationMessage)
+            .filter_by(conversationId=self.conversation_id)
+            .order_by(ConversationMessage.createdAt)
+            .all()
+        )
+        autochat_messages = [m.to_autochat_message() for m in messages]
         chatbot = Autochat.from_template(
             os.path.join(os.path.dirname(__file__), "..", "chat", "chat_template.txt"),
             provider=AUTOCHAT_PROVIDER,
             context=self.context,
-            messages=messages,
+            messages=autochat_messages,
             use_tools_only=True,
         )
 
@@ -259,8 +265,14 @@ class DataAnalystAgent:
     def _run_conversation(self):
         emit_status(self.conversation_id, STATUS.RUNNING)
         try:
-            messages = [m.to_autochat_message() for m in self.conversation.messages]
-            self.chatbot.load_messages(messages)
+            messages = (
+                self.session.query(ConversationMessage)
+                .filter_by(conversationId=self.conversation_id)
+                .order_by(ConversationMessage.createdAt)
+                .all()
+            )
+            autochat_messages = [m.to_autochat_message() for m in messages]
+            self.chatbot.load_messages(autochat_messages)
             for m in self.chatbot.run_conversation():
                 self.check_stop_flag()
                 # We re-emit the status in case the user has refreshed the page
