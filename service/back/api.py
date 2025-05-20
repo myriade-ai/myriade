@@ -518,6 +518,9 @@ def toggle_chart_favorite(chart_id):
 @api.route("/favorites", methods=["GET"])
 @user_middleware
 def get_favorites():
+    context_id = request.args.get("contextId")
+    database_id, _ = extract_context(g.session, context_id)
+
     """Get all favorited queries and charts for the current user"""
     query_favorites = (
         g.session.query(Query)
@@ -526,6 +529,7 @@ def get_favorites():
             UserFavorite.user_id == g.user.id,
             Query.rows.isnot(None),
             Query.exception.is_(None),
+            Query.databaseId == database_id,
         )
         .all()
     )
@@ -533,7 +537,8 @@ def get_favorites():
     chart_favorites = (
         g.session.query(Chart)
         .join(UserFavorite, UserFavorite.chart_id == Chart.id)
-        .filter(UserFavorite.user_id == g.user.id)
+        .join(Query, Query.id == Chart.queryId)
+        .filter(UserFavorite.user_id == g.user.id, Query.databaseId == database_id)
         .all()
     )
     queries = [query.to_dict() for query in query_favorites]

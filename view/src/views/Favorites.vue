@@ -136,10 +136,11 @@
 import Echart from '@/components/Echart.vue'
 import axios from '@/plugins/axios'
 import { useChartStore } from '@/stores/chart'
+import { useContextsStore } from '@/stores/contexts'
 import { onMounted, ref } from 'vue'
 
 const { toggleChartFavorite } = useChartStore()
-
+const { contextSelected } = useContextsStore()
 const queries = ref([])
 const charts = ref([])
 const loading = ref(true)
@@ -149,7 +150,7 @@ const error = ref(null)
 onMounted(async () => {
   try {
     loading.value = true
-    const response = await axios.get('/api/favorites')
+    const response = await axios.get('/api/favorites?contextId=' + contextSelected?.id)
     queries.value = response.data.queries
     charts.value = response.data.charts
   } catch (err) {
