@@ -3,13 +3,14 @@ import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
+from uuid import UUID
 
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
 from back.data_warehouse import ConnectionError, DataWarehouseFactory
 from back.privacy import PRIVACY_PATTERNS
-from chat.api import extract_context
 from middleware import admin_required, user_middleware
 from models import (
     Chart,
@@ -26,6 +27,43 @@ from models.quality import BusinessEntity, Issue
 api = Blueprint("back_api", __name__)
 
 AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
+
+
+def extract_context(session: Session, context_id: str) -> tuple[UUID, UUID | None]:
+    """
+    Extract the databaseId from the context_id
+    context is "project-{projectId}" or "database-{databaseId}"
+    """
+    if context_id.startswith("project-"):
+        project_id = context_id.removeprefix("project-")
+        project = session.query(Project).filter_by(id=project_id).first()
+        if not project:
+            raise ValueError(f"Project with id {project_id} not found")
+        return project.databaseId, project.id
+    elif context_id.startswith("database-"):
+        database_id = context_id.removeprefix("database-")
+        return UUID(database_id), None
+    else:
+        raise ValueError(f"Invalid context_id: {context_id}")
+
+
+@api.route("/conversations", methods=["POST"])
+@user_middleware
+def create_conversation():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+    context_id = request.json.get("contextId")
+    if not context_id:
+        return jsonify({"message": "contextId is required"}), 400
+    database_id, project_id = extract_context(g.session, context_id)
+    new_conversation = Conversation(
+        databaseId=database_id,
+        ownerId=g.user.id,
+        projectId=project_id,
+    )
+    g.session.add(new_conversation)
+    g.session.flush()
+    return jsonify(new_conversation.to_dict())
 
 
 @api.route("/conversations", methods=["GET"])

@@ -11,6 +11,7 @@ from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
 from chat.tools.database import DatabaseTool
 from chat.tools.echarts import EchartsTool
+from chat.tools.quality import SemanticCatalog
 from chat.tools.workspace import WorkspaceTool
 from chat.utils import parse_answer_text
 from models import Chart, Conversation, ConversationMessage, Query
@@ -21,6 +22,35 @@ nest_asyncio.apply()
 AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
 
 
+def think(thought: str) -> None:
+    """
+    Think about the task at hand. It helps to reflect or decompose the situation.
+    Args:
+        thought: A thought to think about.
+    """
+
+
+def get_date() -> str:
+    """
+    Get the current date as a string.
+    Returns:
+        the current date string in YYYY-MM-DD format
+    """
+    return datetime.datetime.now().strftime("%Y-%m-%d")
+
+
+def ask_user(question: str, from_response: Message):
+    """
+    Ask the user a question. Use it to ask for confirmation, for ambiguous queries,\
+    etc.
+    Use it only when it strictly necessary.
+    Args:
+        question: The question to ask the user
+    """
+    from_response.isAnswer = True  # TODO: is answer is not the correct termilogy
+    raise StopLoopException("We want the user to answer")
+
+
 class DataAnalystAgent:
     """
     Chatbot assistant with a database, execute functions.
@@ -29,67 +59,65 @@ class DataAnalystAgent:
     def __init__(
         self,
         session,
-        database_id,
-        conversation_id=None,
-        stop_flags=None,
+        conversation: Conversation = None,
+        stop_flags: dict[str, bool] = None,
         model=None,
-        project_id=None,
-        user_id=None,
     ):
-        self.session = session
-        if conversation_id is None:
-            # Create conversation object
-            self.conversation = self._create_conversation(
-                databaseId=database_id, project_id=project_id, user_id=user_id
-            )
-        else:
-            self.conversation = (
-                self.session.query(Conversation).filter_by(id=conversation_id).first()
-            )
-        # Primitives
-        self.conversation_id = self.conversation.id
-        self.database_id = database_id
-
-        # Add a data_warehouse object to the request
-        self.data_warehouse = self.conversation.database.create_data_warehouse()
         if stop_flags is None:
-            self.stop_flags = {}
-        else:
-            self.stop_flags = stop_flags
-        self.model = model
+            stop_flags = {}
+        self.stop_flags = stop_flags
+        self.session = session
+        self.conversation = conversation
 
-        self.dbt = None
+        self.agent = Autochat.from_template(
+            os.path.join(os.path.dirname(__file__), "..", "chat", "chat_template.txt"),
+            provider=AUTOCHAT_PROVIDER,
+            context=self.context,
+            use_tools_only=True,
+            model=model,
+        )
+
+        self.agent.simple_response_callback = lambda response: Message(
+            role="user",
+            content="Only messages from 'answer' function call are\
+            visible to the user. Use it to answer the user.",
+        )
+
+        self.agent.add_tool(
+            DatabaseTool(self.session, self.conversation.database), "database"
+        )
+        self.agent.add_function(think)
+        self.agent.add_function(get_date)
+        self.agent.add_function(self.submit)
+        self.agent.add_function(self.answer)
+        self.agent.add_function(ask_user)
+        self.agent.add_tool(
+            WorkspaceTool(self.session, self.conversation.id), "workspace"
+        )
+        self.agent.add_tool(
+            EchartsTool(self.session, self.conversation.database),
+            "echarts",
+        )
+        semantic_catalog = SemanticCatalog(
+            self.session, self.conversation.id, self.conversation.databaseId
+        )
+        self.agent.add_tool(semantic_catalog, "semantic_catalog")
         if (
             self.conversation.database.dbt_catalog
             and self.conversation.database.dbt_manifest
         ):
-            self.dbt = DBT(
+            dbt = DBT(
                 catalog=self.conversation.database.dbt_catalog,
                 manifest=self.conversation.database.dbt_manifest,
             )
-
-    def __del__(self):
-        # On destruct, close the engine
-        if hasattr(self, "data_warehouse"):
-            self.data_warehouse.dispose()
-
-    def _create_conversation(
-        self, databaseId, name=None, project_id=None, user_id=None
-    ):
-        # Create conversation object
-        conversation = Conversation(
-            databaseId=databaseId,
-            ownerId=user_id,
-            name=name,
-            projectId=project_id,
-        )
-        self.session.add(conversation)
-        self.session.flush()
-        return conversation
+            self.agent.add_tool(dbt, "dbt")
+        if self.conversation.project:
+            notes = Notes(self.session, self.agent, self.conversation.project)
+            self.agent.add_tool(notes, "notes")
 
     def check_stop_flag(self):
-        if self.stop_flags.get(self.conversation_id):
-            del self.stop_flags[self.conversation_id]  # Remove the stop flag
+        if self.stop_flags.get(self.conversation.id):
+            del self.stop_flags[self.conversation.id]  # Remove the stop flag
             raise StopException("Query stopped by user")
 
     @property
@@ -108,75 +136,7 @@ class DataAnalystAgent:
             return yaml.dump(context)
         return None
 
-    @property
-    def chatbot(self):
-        messages = (
-            self.session.query(ConversationMessage)
-            .filter_by(conversationId=self.conversation_id)
-            .order_by(ConversationMessage.createdAt)
-            .all()
-        )
-        autochat_messages = [m.to_autochat_message() for m in messages]
-        chatbot = Autochat.from_template(
-            os.path.join(os.path.dirname(__file__), "..", "chat", "chat_template.txt"),
-            provider=AUTOCHAT_PROVIDER,
-            context=self.context,
-            messages=autochat_messages,
-            use_tools_only=True,
-        )
-
-        chatbot.simple_response_callback = lambda response: Message(
-            role="user",
-            content="Only messages from 'answer' function call are\
-            visible to the user. Use it to answer the user.",
-        )
-
-        chatbot.add_tool(
-            DatabaseTool(self.session, self.conversation.database), "database"
-        )
-        chatbot.add_function(self.think)
-        chatbot.add_function(self.get_date)
-        chatbot.add_function(self.submit)
-        chatbot.add_function(self.answer)
-        chatbot.add_function(self.ask_user)
-        chatbot.add_tool(WorkspaceTool(self.session, self.conversation_id), "workspace")
-        chatbot.add_tool(
-            EchartsTool(self.session, self.conversation.database),
-            "echarts",
-        )
-        from chat.tools.quality import SemanticCatalog
-
-        semantic_catalog = SemanticCatalog(
-            self.session, self.conversation_id, self.database_id
-        )
-
-        chatbot.add_tool(semantic_catalog, "semantic_catalog")
-        if self.dbt:
-            chatbot.add_tool(self.dbt, self.conversation.database.name)
-        if self.conversation.project:
-            notes = Notes(self.session, chatbot, self.conversation.project)
-            chatbot.add_tool(notes, "Notes")
-
-        if self.model:
-            chatbot.model = self.model
-
-        return chatbot
-
-    def think(self, thought: str) -> None:
-        """
-        Think about the task at hand. It helps to reflect or decompose the situation.
-        Args:
-            thought: A thought to think about.
-        """
-
-    def get_date(self) -> str:
-        """
-        Get the current date as a string.
-        Returns:
-            the current date string in YYYY-MM-DD format
-        """
-        return datetime.datetime.now().strftime("%Y-%m-%d")
-
+    # TODO: remove ?
     def submit(
         self,
         from_response: Message,
@@ -194,17 +154,6 @@ class DataAnalystAgent:
         from_response.query_id = query.id
         from_response.isAnswer = True
         raise StopLoopException("We want to stop after submitting")
-
-    def ask_user(self, question: str, from_response: Message):
-        """
-        Ask the user a question. Use it to ask for confirmation, for ambiguous queries,\
-        etc.
-        Use it only when it strictly necessary.
-        Args:
-            question: The question to ask the user
-        """
-        from_response.isAnswer = True  # TODO: is answer is not the correct termilogy
-        raise StopLoopException("We want the user to answer")
 
     def answer(
         self,
@@ -232,7 +181,7 @@ class DataAnalystAgent:
                     .join(ConversationMessage, Query.conversation_messages)
                     .filter(
                         Query.id == query_id,
-                        ConversationMessage.conversationId == self.conversation_id,
+                        ConversationMessage.conversationId == self.conversation.id,
                     )
                     .first()
                 )
@@ -250,7 +199,7 @@ class DataAnalystAgent:
                     .join(ConversationMessage, Chart.conversation_messages)
                     .filter(
                         Chart.id == chart_id,
-                        ConversationMessage.conversationId == self.conversation_id,
+                        ConversationMessage.conversationId == self.conversation.id,
                     )
                     .first()
                 )
@@ -262,23 +211,24 @@ class DataAnalystAgent:
         from_response.isAnswer = True
         raise StopLoopException("We want to stop after submitting")
 
+    # TODO: rename...
     def _run_conversation(self):
-        emit_status(self.conversation_id, STATUS.RUNNING)
+        emit_status(self.conversation.id, STATUS.RUNNING)
         try:
             messages = (
                 self.session.query(ConversationMessage)
-                .filter_by(conversationId=self.conversation_id)
+                .filter_by(conversationId=self.conversation.id)
                 .order_by(ConversationMessage.createdAt)
                 .all()
             )
             autochat_messages = [m.to_autochat_message() for m in messages]
-            self.chatbot.load_messages(autochat_messages)
-            for m in self.chatbot.run_conversation():
+            self.agent.load_messages(autochat_messages)
+            for m in self.agent.run_conversation():
                 self.check_stop_flag()
                 # We re-emit the status in case the user has refreshed the page
-                emit_status(self.conversation_id, STATUS.RUNNING)
+                emit_status(self.conversation.id, STATUS.RUNNING)
                 message = ConversationMessage.from_autochat_message(m)
-                message.conversationId = self.conversation_id
+                message.conversationId = self.conversation.id
                 self.session.add(message)
                 try:
                     self.session.flush()
@@ -286,11 +236,11 @@ class DataAnalystAgent:
                     self.session.rollback()
                     raise
                 yield message
-            emit_status(self.conversation_id, STATUS.CLEAR)
+            emit_status(self.conversation.id, STATUS.CLEAR)
         except StopException:
-            emit_status(self.conversation_id, STATUS.CLEAR)
+            emit_status(self.conversation.id, STATUS.CLEAR)
         except Exception as e:
-            emit_status(self.conversation_id, STATUS.ERROR, e)
+            emit_status(self.conversation.id, STATUS.ERROR, e)
             import traceback
 
             traceback.print_exc()

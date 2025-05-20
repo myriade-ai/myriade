@@ -222,12 +222,15 @@ const startAnalysis = async (entity: BusinessEntity) => {
     if (!contextsStore.contextSelected) {
       throw new Error('No context selected')
     }
-    await conversationsStore.sendMessage(
-      'text',
-      `Verify quality of the business entity "${entity.name}". Create issues if you find any.`,
-      null,
+    const conversation = await conversationsStore.createConversation(
       contextsStore.contextSelected.id
     )
+    await conversationsStore.sendMessage(
+      conversation.id,
+      `Verify quality of the business entity "${entity.name}". Create issues if you find any.`,
+      'text'
+    )
+    router.push({ name: 'ChatPage', params: { id: conversation.id.toString() } })
   } catch (error) {
     console.error('Error starting analysis:', error)
     // You might want to show an error message to the user here

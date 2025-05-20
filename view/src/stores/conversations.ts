@@ -166,12 +166,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   }
 
   // 5) Send message over Socket.IO
-  async function sendMessage(
-    type: 'text' | 'SQL',
-    messageContent: string,
-    conversationId?: string | null,
-    contextId?: string | null
-  ) {
+  async function sendMessage(conversationId: string, messageContent: string, type: 'text' | 'SQL') {
     const convStatus = conversationStatuses.value[conversationId]
     // If it's already running/pending, block
     if (convStatus && [STATUS.RUNNING, STATUS.PENDING].includes(convStatus.status)) {
@@ -182,9 +177,9 @@ export const useConversationsStore = defineStore('conversations', () => {
     }
 
     if (type === 'text') {
-      socket.emit('ask', messageContent, conversationId, contextId)
+      socket.emit('ask', conversationId, messageContent)
     } else if (type === 'SQL') {
-      socket.emit('query', messageContent, conversationId, contextId)
+      socket.emit('query', conversationId, messageContent)
     }
     setStatusToPending(conversationId)
   }
@@ -249,6 +244,21 @@ export const useConversationsStore = defineStore('conversations', () => {
     }
   }
 
+  async function createConversation(contextId: string) {
+    const newConversation: AxiosResponse<ConversationInfo> = await axios.post(
+      '/api/conversations',
+      { contextId }
+    )
+    const newConv: Conversation = {
+      ...newConversation.data,
+      createdAt: new Date(newConversation.data.createdAt),
+      updatedAt: new Date(newConversation.data.updatedAt),
+      messages: []
+    }
+    conversations.value[newConv.id] = newConv
+    return newConv
+  }
+
   // ——————————————————————————————————————————————————
   // SOCKET EVENT HANDLERS
   // ——————————————————————————————————————————————————
@@ -289,6 +299,8 @@ export const useConversationsStore = defineStore('conversations', () => {
     // actions messages
     fetchMessages,
     sendMessage,
-    regenerateFromMessage
+    regenerateFromMessage,
+    // actions conversations
+    createConversation
   }
 })
