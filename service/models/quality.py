@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import text
 
-from db import Base, DefaultBase
+from db import Base, DefaultBase, SerializerMixin
 
 
 class Status(StrEnum):
@@ -43,7 +43,7 @@ class IssueScope(StrEnum):
 
 
 @dataclass
-class Issue(Base, DefaultBase):
+class Issue(SerializerMixin, Base, DefaultBase):
     """
     Single-table model for every data-quality work item.
     Keep it simple; anything not needed can stay NULL.
@@ -79,7 +79,7 @@ class Issue(Base, DefaultBase):
 
 
 @dataclass
-class BusinessEntity(Base, DefaultBase):
+class BusinessEntity(SerializerMixin, Base, DefaultBase):
     """An entity in the semantic catalog with associated quality metrics."""
 
     __tablename__ = "business_entity"
