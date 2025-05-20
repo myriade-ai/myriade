@@ -641,9 +641,9 @@
             'description': 'The options of the chart. A dict, not a json dump',
           }),
           'query_id': dict({
-            'description': 'The ID of the query to execute',
+            'description': 'The uuid of the query to execute',
             'title': 'Query Id',
-            'type': 'integer',
+            'type': 'string',
           }),
         }),
         'required': list([

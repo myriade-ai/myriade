@@ -1,13 +1,14 @@
 <template>
-  <div class="flex mt-0" style="margin-top: -40px">
+  <div class="relative">
     <button
-      class="clipboard ml-auto border border-transparent text-sm font-medium rounded-md shadow-xs text-black mt-1 px-2 py-1 bg-gray-100 hover:bg-gray-300 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      class="absolute px-2 py-1 text-sm font-medium text-black bg-gray-100 rounded-md shadow-xs hover:bg-gray-300 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      style="top: 10px; right: 10px; z-index: 100"
       @click="copyToClipboard"
     >
       {{ copyText }}
     </button>
+    <div ref="table"></div>
   </div>
-  <div ref="table"></div>
 </template>
 
 <script setup lang="ts">
@@ -32,7 +33,7 @@ const props = defineProps({
 
 const copyText = ref('copy')
 const copyToClipboard = () => {
-  tabulator.value.copyToClipboard('all')
+  tabulator.value?.copyToClipboard('all')
   copyText.value = 'copied'
   setTimeout(() => {
     copyText.value = 'copy'
@@ -42,7 +43,7 @@ const copyToClipboard = () => {
 watch(
   props,
   () => {
-    tabulator.value.setData(hideEncryptedFields(props.data))
+    tabulator.value?.setData(hideEncryptedFields(props.data))
   },
   { deep: true }
 )
@@ -70,7 +71,7 @@ onMounted(() => {
     },
     pagination: true,
     paginationSize: 10,
-    paginationCounter: (pageSize, currentRow) => {
+    paginationCounter: (pageSize: number, currentRow: number) => {
       return `Showing ${currentRow}-${currentRow + pageSize} of ${props.count} rows`
     }
   })
@@ -83,12 +84,5 @@ onMounted(() => {
 }
 .tabulator {
   margin-top: 0.5rem;
-}
-.clipboard {
-  top: 48px;
-  position: relative;
-  background-color: #ccc;
-  z-index: 100;
-  right: 10px;
 }
 </style>

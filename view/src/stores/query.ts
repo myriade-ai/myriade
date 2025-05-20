@@ -18,6 +18,7 @@ export const useQueryStore = defineStore('query', () => {
   const queryResults = ref<any[] | null>(null)
   const queryCount = ref<number | null>(null)
   const queryError = ref<string | null>(null)
+  const queryIsFavorite = ref<boolean>(false)
   const loading = ref(false)
 
   // Same methods, now inside Pinia store
@@ -52,6 +53,8 @@ export const useQueryStore = defineStore('query', () => {
     if (querySQL.value) {
       runQuery(query.databaseId)
     }
+
+    queryIsFavorite.value = query.is_favorite
   }
 
   const executeQuery = async (

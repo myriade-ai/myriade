@@ -1,34 +1,4 @@
-import json
 import re
-
-
-def parse_function(text):
-    # Match function name and its optional arguments
-    match = re.search(r">\s*(\w+)(?:\(([^>]+)\))?\s*$", text, re.DOTALL)
-    if not match:
-        raise ValueError(f"Invalid function call: {text}")
-
-    function_name = match.group(1)
-    arguments_text = match.group(2) if match.group(2) else ""
-
-    # Split the arguments into key-value pairs
-    arg_pairs = re.findall(r'(\w+)="([^"]+)"', arguments_text)
-    additional_arg = re.search(r"(\w+)=```(.*?)```", arguments_text, re.DOTALL)
-    if additional_arg:
-        # Remove extra indentation from multi-line arguments
-        content = "\n".join(
-            [
-                line.strip()
-                for line in additional_arg.group(2).splitlines()
-                if line.strip()
-            ]
-        )
-        arg_pairs.append((additional_arg.group(1), content))
-
-    arguments = {key: value for key, value in arg_pairs}
-
-    result = {"name": function_name, "arguments": json.dumps(arguments)}
-    return result
 
 
 def parse_answer_text(text: str):
@@ -39,17 +9,33 @@ def parse_answer_text(text: str):
      {type: "text", content: " and "},
      {type: "chart", chart_id: 2}]
     """
+    if not text:
+        return []
+
     chunks = []
-    while text:
-        if "<QUERY:" in text:
-            query_id = int(text.split("<QUERY:")[1].split(">")[0].strip())
+    # Regex to find <QUERY:id> or <CHART:id> tags and capture the id
+    tag_regex = r"(<QUERY:([^>]+)>)|(<CHART:([^>]+)>)"
+
+    last_end = 0
+    for match in re.finditer(tag_regex, text):
+        start, end = match.span()
+
+        # Add preceding text segment if it exists
+        if start > last_end:
+            chunks.append({"type": "text", "content": text[last_end:start]})
+
+        # Check which group matched to determine type and get the ID
+        if match.group(1):  # Matched <QUERY:id>
+            query_id = match.group(2).strip()
             chunks.append({"type": "query", "query_id": query_id})
-            text = text.split("<QUERY:")[1].split(">")[1]
-        elif "<CHART:" in text:
-            chart_id = int(text.split("<CHART:")[1].split(">")[0].strip())
+        elif match.group(3):  # Matched <CHART:id>
+            chart_id = match.group(4).strip()
             chunks.append({"type": "chart", "chart_id": chart_id})
-            text = text.split("<CHART:")[1].split(">")[1]
-        else:
-            chunks.append({"type": "text", "content": text})
-            text = ""
+
+        last_end = end
+
+    # Add any remaining text segment after the last tag
+    if last_end < len(text):
+        chunks.append({"type": "text", "content": text[last_end:]})
+
     return chunks

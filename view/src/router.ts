@@ -48,6 +48,11 @@ const app_routes = [
     }
   },
   {
+    path: '/favorites',
+    name: 'Favorites',
+    component: loadView('Favorites')
+  },
+  {
     path: '/databases',
     name: 'DatabaseList',
     component: loadView('DatabaseList')

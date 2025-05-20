@@ -1,5 +1,4 @@
 import base64
-import json
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -8,11 +7,21 @@ from typing import Any, Dict, List, Optional
 
 from autochat.model import Message as AutoChatMessage
 from PIL import Image as PILImage
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, LargeBinary, String, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    String,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import text
 
+from chat.utils import parse_answer_text
 from db import JSONB, Base, DefaultBase, SerializerMixin
 
 from .quality import (
@@ -50,7 +59,7 @@ class Database(SerializerMixin, DefaultBase, Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid_v7()"),  # for postgres
+        server_default=text("gen_random_uuid()"),  # for postgres
         default=uuid.uuid4,  # for sqlite
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -90,7 +99,7 @@ class Database(SerializerMixin, DefaultBase, Base):
         return datalake
 
 
-class Organisation(DefaultBase, Base):
+class Organisation(SerializerMixin, DefaultBase, Base):
     __tablename__ = "organisation"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -106,13 +115,13 @@ class Organisation(DefaultBase, Base):
 
 
 @dataclass
-class ConversationMessage(DefaultBase, Base):
+class ConversationMessage(SerializerMixin, DefaultBase, Base):
     __tablename__ = "conversation_message"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid_v7()"),
+        server_default=text("gen_random_uuid()"),
         default=uuid.uuid4,  # for sqlite
     )
     conversationId: Mapped[uuid.UUID] = mapped_column(
@@ -147,39 +156,13 @@ class ConversationMessage(DefaultBase, Base):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def to_dict(self, session: Session):  # TODO: find better naming
+    def to_dict(self):
+        content = self.content
+        functionCall = self.functionCall
+        # Parse "answer" function call
         if self.functionCall and self.functionCall.get("name") == "answer":
-            self.content = self.functionCall["arguments"]["text"]
-            self.functionCall = None
-
-            if self.content and "<QUERY:" in self.content:
-                # extract the query id from the text
-                query_id = self.content.split("<QUERY:")[1].split(">")[0].strip()
-                # get the query from the database
-                query = session.query(Query).filter_by(id=query_id).first()
-                # Replace the <QUERY:QUERY_ID> tag with the query content
-                if query and query.sql:
-                    self.content = self.content.replace(
-                        f"<QUERY:{query_id}>", f"```sql\\n{query.sql}\\n```"
-                    )
-
-            if self.content and "<CHART:" in self.content:
-                # extract the chart id from the text
-                chart_id = self.content.split("<CHART:")[1].split(">")[0].strip()
-                # get the chart from the database
-                chart = session.query(Chart).filter_by(id=chart_id).first()
-                if not chart:
-                    raise ValueError(f"Chart with id {chart_id} not found")
-                # Replace the <CHART:CHART_ID> tag with the chart content
-                if chart.config:  # Check if chart.config is not None
-                    chart_config = dict(
-                        chart.config
-                    )  # Make a copy to avoid modifying the original
-                    chart_config["query_id"] = str(chart.queryId)
-                    chart_config_str = json.dumps(chart_config)
-                    self.content = self.content.replace(
-                        f"<CHART:{chart_id}>", f"```echarts\\n{chart_config_str}\\n```"
-                    )
+            content = parse_answer_text(self.functionCall["arguments"]["text"])
+            functionCall = None
 
         # Export to dict, only keys declared in the dataclass
         return {
@@ -188,8 +171,8 @@ class ConversationMessage(DefaultBase, Base):
             "conversationId": str(self.conversationId),  # uuid.UUID
             "role": self.role,
             "name": self.name,
-            "content": self.content,
-            "functionCall": self.functionCall,
+            "content": content,
+            "functionCall": functionCall,
             "data": self.data,  # TODO: remove
             "image": base64.b64encode(self.image).decode() if self.image else None,
             "queryId": str(self.queryId) if self.queryId else None,  # uuid.UUID
@@ -219,10 +202,9 @@ class ConversationMessage(DefaultBase, Base):
         # rewrite id to reqId
         kwargs["reqId"] = kwargs.pop("id", None)
         # transfrom image from PIL to binary
+
         if message.image:
-            img_byte_arr = BytesIO()
-            message.image.save(img_byte_arr, format=message.image.format or "PNG")
-            kwargs["image"] = img_byte_arr.getvalue()
+            kwargs["image"] = message.image.to_bytes()
 
         # limit to model in the dataclass
         kwargs = {k: v for k, v in kwargs.items() if k in cls.__dataclass_fields__}
@@ -236,7 +218,7 @@ class Conversation(SerializerMixin, DefaultBase, Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid_v7()"),
+        server_default=text("gen_random_uuid()"),
         default=uuid.uuid4,  # for sqlite
     )
     name: Mapped[Optional[str]] = mapped_column(String)
@@ -261,13 +243,13 @@ class Conversation(SerializerMixin, DefaultBase, Base):
 
 
 @dataclass
-class Query(DefaultBase, Base):
+class Query(SerializerMixin, DefaultBase, Base):
     __tablename__ = "query"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid_v7()"),
+        server_default=text("gen_random_uuid()"),
         default=uuid.uuid4,  # for sqlite
     )
     title: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -285,6 +267,9 @@ class Query(DefaultBase, Base):
         "ConversationMessage", back_populates="query", lazy="joined"
     )
     charts: Mapped[List["Chart"]] = relationship(back_populates="query")
+    user_favorites: Mapped[List["UserFavorite"]] = relationship(
+        "UserFavorite", back_populates="query", lazy="joined"
+    )
 
     @property
     def is_cached(self):
@@ -292,13 +277,13 @@ class Query(DefaultBase, Base):
 
 
 @dataclass
-class Chart(DefaultBase, Base):
+class Chart(SerializerMixin, DefaultBase, Base):
     __tablename__ = "chart"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid_v7()"),
+        server_default=text("gen_random_uuid()"),
         default=uuid.uuid4,  # for sqlite
     )
     config: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
@@ -309,17 +294,23 @@ class Chart(DefaultBase, Base):
     conversation_messages: Mapped[List["ConversationMessage"]] = relationship(
         "ConversationMessage", back_populates="chart", lazy="joined"
     )
+    user_favorites: Mapped[List["UserFavorite"]] = relationship(
+        "UserFavorite", back_populates="chart", lazy="joined"
+    )
 
 
 @dataclass
-class User(DefaultBase, Base):
+class User(SerializerMixin, DefaultBase, Base):
     __tablename__ = "user"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    favorites: Mapped[List["UserFavorite"]] = relationship(
+        "UserFavorite", back_populates="user", lazy="joined"
+    )
 
 
-class UserOrganisation(DefaultBase, Base):
+class UserOrganisation(SerializerMixin, DefaultBase, Base):
     __tablename__ = "user_organisation"
 
     userId: Mapped[str] = mapped_column(String, ForeignKey("user.id"), primary_key=True)
@@ -338,7 +329,7 @@ class ProjectTables(SerializerMixin, DefaultBase, Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid_v7()"),
+        server_default=text("gen_random_uuid()"),
     )
     projectId: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("project.id"), nullable=False
@@ -357,7 +348,7 @@ class Project(SerializerMixin, DefaultBase, Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid_v7()"),
+        server_default=text("gen_random_uuid()"),
         default=uuid.uuid4,  # for sqlite
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -393,13 +384,13 @@ class Project(SerializerMixin, DefaultBase, Base):
 
 
 @dataclass
-class Note(DefaultBase, Base):
+class Note(SerializerMixin, DefaultBase, Base):
     __tablename__ = "note"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid_v7()"),
+        server_default=text("gen_random_uuid()"),
         default=uuid.uuid4,  # for sqlite
     )
     title: Mapped[Optional[str]] = mapped_column(String)
@@ -407,12 +398,44 @@ class Note(DefaultBase, Base):
     projectId: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("project.id")
     )
-
     project: Mapped[Optional["Project"]] = relationship(back_populates="notes")
 
 
 @dataclass
-class SensitiveDataMapping(Base):
+class UserFavorite(SerializerMixin, DefaultBase, Base):
+    """User favorite for queries and charts."""
+
+    __tablename__ = "user_favorite"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+        default=uuid.uuid4,  # for sqlite
+    )
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("user.id"), nullable=False)
+    query_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("query.id"), nullable=True
+    )
+    chart_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("chart.id"), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "(query_id IS NOT NULL AND chart_id IS NULL) OR "
+            "(query_id IS NULL AND chart_id IS NOT NULL)",
+            name="check_favorite_type",
+        ),
+    )
+
+    user: Mapped["User"] = relationship(back_populates="favorites")
+    query: Mapped[Optional["Query"]] = relationship(back_populates="user_favorites")
+    chart: Mapped[Optional["Chart"]] = relationship(back_populates="user_favorites")
+
+
+@dataclass
+class SensitiveDataMapping(SerializerMixin, DefaultBase, Base):
     __tablename__ = "sensitive_data_mapping"
 
     hash: Mapped[str] = mapped_column(

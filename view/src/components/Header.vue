@@ -187,6 +187,7 @@ const isRouteActive = (navPath: string) => {
 const navigation = computed(() => [
   { name: 'Chat', href: '/' },
   { name: 'Editor', href: '/editor' },
+  { name: 'Favorites', href: '/favorites' },
   { name: 'Control', href: '/control' },
   { name: 'Issues', href: '/issues' }
 ])

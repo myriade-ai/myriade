@@ -1,7 +1,7 @@
 from flask import Blueprint, g, jsonify, request
 
 from middleware import database_middleware, user_middleware
-from models import Database, Query
+from models import Database, Query, UserFavorite
 
 api = Blueprint("ai_api", __name__)
 
@@ -14,6 +14,8 @@ def run_query():
     Run a query against the database
     Return eg. {"rows":[{"count":"607"}],"count":1}
     """
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
     sql_query = request.json.get("query")
 
     try:
@@ -26,6 +28,9 @@ def run_query():
 @api.route("/query", methods=["POST"])
 @user_middleware
 def create_query():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+
     database_id = request.json.get("databaseId")
     title = request.json.get("title")
     sql = request.json.get("sql")
@@ -63,14 +68,24 @@ def handle_query_by_id(query_id):
     databaseId = query.databaseId
 
     if request.method == "PUT":
+        if not request.json:
+            return jsonify({"message": "No JSON data provided"}), 400
         query.title = request.json.get("title")
         query.sql = request.json.get("sql")
         g.session.commit()
+
+    # Check if query is favorited by current user
+    favorite = (
+        g.session.query(UserFavorite)
+        .filter(UserFavorite.user_id == g.user.id, UserFavorite.query_id == query_id)
+        .first()
+    )
 
     response = {
         "databaseId": databaseId,
         "title": query.title,
         "sql": query.sql,
+        "is_favorite": favorite is not None,
     }
 
     return jsonify(response)

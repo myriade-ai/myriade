@@ -11,7 +11,16 @@ from back.datalake import ConnectionError, DatalakeFactory
 from back.privacy import PRIVACY_PATTERNS
 from chat.api import extract_context
 from middleware import admin_required, user_middleware
-from models import Conversation, ConversationMessage, Database, Project, ProjectTables
+from models import (
+    Chart,
+    Conversation,
+    ConversationMessage,
+    Database,
+    Project,
+    ProjectTables,
+    Query,
+    UserFavorite,
+)
 from models.quality import BusinessEntity, Issue
 
 api = Blueprint("back_api", __name__)
@@ -56,9 +65,7 @@ def get_conversation(conversation_id):
 
     # TODO: redesign this to use a single query
     conversation_dict = conversation.to_dict()
-    conversation_dict["messages"] = [
-        m.to_dict(g.session) for m in conversation.messages
-    ]
+    conversation_dict["messages"] = [m.to_dict() for m in conversation.messages]
     conversation_dict["messages"].sort(key=lambda x: x["createdAt"])
     return jsonify(conversation_dict)
 
@@ -433,6 +440,105 @@ def update_database_privacy(database_id):
     g.session.flush()
 
     return jsonify({"success": True})
+
+
+@api.route("/query/<query_id>/favorite", methods=["POST"])
+@user_middleware
+def toggle_query_favorite(query_id):
+    """Toggle favorite status for a query for the current user"""
+    query = g.session.query(Query).filter(Query.id == query_id).first()
+    if not query:
+        return jsonify({"error": "Query not found"}), 404
+
+    favorite = (
+        g.session.query(UserFavorite)
+        .filter(UserFavorite.user_id == g.user.id, UserFavorite.query_id == query_id)
+        .first()
+    )
+
+    if favorite:
+        g.session.delete(favorite)
+        g.session.flush()
+        is_favorite = False
+    else:
+        favorite = UserFavorite(user_id=g.user.id, query_id=query_id)
+        g.session.add(favorite)
+        g.session.flush()
+        is_favorite = True
+
+    return jsonify({"success": True, "is_favorite": is_favorite})
+
+
+@api.route("/chart/<chart_id>", methods=["GET"])
+@user_middleware
+def get_chart(chart_id):
+    chart = g.session.query(Chart).filter(Chart.id == chart_id).first()
+    if not chart:
+        return jsonify({"error": "Chart not found"}), 404
+
+    chart_dict = chart.to_dict()
+    # Add is_favorite to chart
+    chart_dict["is_favorite"] = (
+        g.session.query(UserFavorite)
+        .filter(UserFavorite.user_id == g.user.id, UserFavorite.chart_id == chart_id)
+        .first()
+        is not None
+    )
+
+    return jsonify(chart_dict)
+
+
+@api.route("/chart/<chart_id>/favorite", methods=["POST"])
+@user_middleware
+def toggle_chart_favorite(chart_id):
+    """Toggle favorite status for a chart for the current user"""
+    chart = g.session.query(Chart).filter(Chart.id == chart_id).first()
+    if not chart:
+        return jsonify({"error": "Chart not found"}), 404
+
+    favorite = (
+        g.session.query(UserFavorite)
+        .filter(UserFavorite.user_id == g.user.id, UserFavorite.chart_id == chart_id)
+        .first()
+    )
+
+    if favorite:
+        g.session.delete(favorite)
+        g.session.flush()
+        is_favorite = False
+    else:
+        favorite = UserFavorite(user_id=g.user.id, chart_id=chart_id)
+        g.session.add(favorite)
+        g.session.flush()
+        is_favorite = True
+
+    return jsonify({"success": True, "is_favorite": is_favorite})
+
+
+@api.route("/favorites", methods=["GET"])
+@user_middleware
+def get_favorites():
+    """Get all favorited queries and charts for the current user"""
+    query_favorites = (
+        g.session.query(Query)
+        .join(UserFavorite, UserFavorite.query_id == Query.id)
+        .filter(
+            UserFavorite.user_id == g.user.id,
+            Query.rows.isnot(None),
+            Query.exception.is_(None),
+        )
+        .all()
+    )
+
+    chart_favorites = (
+        g.session.query(Chart)
+        .join(UserFavorite, UserFavorite.chart_id == Chart.id)
+        .filter(UserFavorite.user_id == g.user.id)
+        .all()
+    )
+    queries = [query.to_dict() for query in query_favorites]
+    charts = [chart.to_dict() for chart in chart_favorites]
+    return jsonify({"queries": queries, "charts": charts})
 
 
 @api.route("/databases/<database_id>/privacy/auto", methods=["POST"])
