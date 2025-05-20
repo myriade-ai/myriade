@@ -135,7 +135,10 @@
 <script setup lang="ts">
 import Echart from '@/components/Echart.vue'
 import axios from '@/plugins/axios'
+import { useChartStore } from '@/stores/chart'
 import { onMounted, ref } from 'vue'
+
+const { toggleChartFavorite } = useChartStore()
 
 const queries = ref([])
 const charts = ref([])
@@ -168,7 +171,7 @@ const getChartTitle = (chart) => {
   return chart.config.title?.text || 'Untitled Chart'
 }
 
-// Actions
+// TODO: switch to store when Query Store is clean...
 const unfavoriteQuery = async (id) => {
   try {
     await axios.post(`/api/query/${id}/favorite`)
@@ -180,7 +183,7 @@ const unfavoriteQuery = async (id) => {
 
 const unfavoriteChart = async (id) => {
   try {
-    await axios.post(`/api/chart/${id}/favorite`)
+    await toggleChartFavorite(id)
     charts.value = charts.value.filter((c) => c.id !== id)
   } catch (err) {
     console.error('Error removing chart from favorites:', err)

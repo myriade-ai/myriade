@@ -19,7 +19,7 @@ class EchartsTool:
     def preview_render(
         self,
         chart_options: ChartOptions,
-        query_id: int,
+        query_id: str,
         from_response: ConversationMessage,
     ):
         """
@@ -34,7 +34,7 @@ class EchartsTool:
         When creating bar charts with ECharts, make sure to set the correct axis types.
         Args:
             chart_options: The options of the chart. A dict, not a json dump
-            query_id: The ID of the query to execute
+            query_id: The uuid of the query to execute
         """  # noqa: E501
         if isinstance(chart_options, str):
             try:

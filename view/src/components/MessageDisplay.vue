@@ -108,7 +108,7 @@
           ></BaseEditorPreview>
         </div>
         <div v-if="part.type === 'chart'" :key="`chart-${index}`">
-          chart_id: {{ part.chart_id }}
+          <Chart :chartId="part.chart_id" />
         </div>
         <BaseEditor
           v-if="part.type === 'sql'"
@@ -117,19 +117,7 @@
           :key="`sql-${index}`"
         ></BaseEditor>
         <BaseTable v-if="part.type === 'json'" :data="part.content" :key="`json-${index}`" />
-        <div v-if="part.type === 'echarts'" class="flex items-center" :key="index">
-          <button
-            class="text-blue-500 hover:text-blue-700 flex items-center"
-            title="Save chart to workspace"
-            @click="toggleChartFavorite(part.content.chartId)"
-          >
-            <ChartBarIconSolid v-if="isChartFavorite" class="h-4 w-4 text-yellow-500" />
-            <ChartBarIcon v-else class="h-4 w-4" />
-            <span class="ml-1 hidden lg:inline">{{
-              isChartFavorite ? 'saved chart' : 'save chart'
-            }}</span>
-          </button>
-        </div>
+        <!-- TODO: remove -->
         <Echart v-if="part.type === 'echarts'" :option="part.content" :key="`echarts-${index}`" />
       </template>
 
@@ -173,6 +161,7 @@ import { computed, defineEmits, defineProps, onMounted, ref } from 'vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
+import Chart from '@/components/Chart.vue'
 import Echart from '@/components/Echart.vue'
 import { ArrowPathIcon, PencilIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 
@@ -191,7 +180,6 @@ interface Message {
   display: boolean
   role: string
   queryId?: string
-  chartId?: string
   id?: string
   functionCall?: FunctionCall
   image?: string // base64 encoded image
@@ -208,38 +196,6 @@ const sqlResult = ref<Array<Record<string, string | number | boolean | null>>>([
 const sqlCount = ref(0)
 const isEditing = ref(false)
 const editedContent = ref('')
-const isQueryFavorite = ref(false)
-const isChartFavorite = ref(false)
-
-// Check if the query or chart is favorited by the current user
-onMounted(async () => {
-  if (props.message.queryId) {
-    try {
-      const response = await axios.get(`/api/user/favorites/query/${props.message.queryId}`)
-      isQueryFavorite.value = response.data.is_favorite
-    } catch (error) {
-      console.error('Error checking query favorite status:', error)
-    }
-  }
-
-  if (props.message.chartId) {
-    try {
-      const response = await axios.get(`/api/user/favorites/chart/${props.message.chartId}`)
-      isChartFavorite.value = response.data.is_favorite
-    } catch (error) {
-      console.error('Error checking chart favorite status:', error)
-    }
-  }
-})
-
-const toggleChartFavorite = async (chartId: string) => {
-  try {
-    const response = await axios.post(`/api/chart/${chartId}/favorite`)
-    isChartFavorite.value = response.data.is_favorite
-  } catch (error) {
-    console.error('Error toggling chart favorite status:', error)
-  }
-}
 
 const toggleEditMode = () => {
   isEditing.value = !isEditing.value

@@ -39,6 +39,7 @@ const isQueryFavorite = ref(false)
 onMounted(async () => {
   try {
     const query = await fetchQuery(props.queryId)
+    isQueryFavorite.value = query.is_favorite
     sqlQuery.value = query.sql
     const result = await fetchQueryResults(props.queryId)
     rows.value = result.rows
@@ -48,6 +49,7 @@ onMounted(async () => {
   }
 })
 
+// TODO: switch to store when Query Store will be cleaned
 const toggleQueryFavorite = async () => {
   try {
     const response = await axios.post(`/api/query/${props.queryId}/favorite`)

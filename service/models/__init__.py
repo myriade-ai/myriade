@@ -202,10 +202,9 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
         # rewrite id to reqId
         kwargs["reqId"] = kwargs.pop("id", None)
         # transfrom image from PIL to binary
+
         if message.image:
-            img_byte_arr = BytesIO()
-            message.image.save(img_byte_arr, format=message.image.format or "PNG")
-            kwargs["image"] = img_byte_arr.getvalue()
+            kwargs["image"] = message.image.to_bytes()
 
         # limit to model in the dataclass
         kwargs = {k: v for k, v in kwargs.items() if k in cls.__dataclass_fields__}
