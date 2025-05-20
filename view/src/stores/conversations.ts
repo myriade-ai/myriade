@@ -29,6 +29,7 @@ export interface ConversationInfo {
 // Define your message shape
 export interface Message {
   id: string
+  createdAt: Date
   role: 'user' | 'assistant' | 'function' | 'system'
   content: string
   isAnswer?: boolean
@@ -53,7 +54,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   // ——————————————————————————————————————————————————
   // STATE
   // ——————————————————————————————————————————————————
-  const conversations = ref<Record<number, Conversation>>({})
+  const conversations = ref<Record<string, Conversation>>({})
   const conversationStatuses = ref<Record<string, ConversationStatus>>({})
 
   // Watch for context changes and fetch conversations
@@ -218,7 +219,7 @@ export const useConversationsStore = defineStore('conversations', () => {
 
   function regenerateFromMessage(messageId: string, messageContent?: string) {
     // Find conversationId from messageId
-    const conversationId: string = Object.keys(conversations.value).find((id) =>
+    const conversationId: string | undefined = Object.keys(conversations.value).find((id) =>
       conversations.value[id].messages.some((m) => m.id === messageId)
     )
     if (!conversationId) {
@@ -231,11 +232,6 @@ export const useConversationsStore = defineStore('conversations', () => {
       if (message) {
         message.content = messageContent
       }
-    } else {
-      // Remove the message (and all following messages) from the conversation
-      conversations.value[conversationId].messages = conversations.value[
-        conversationId
-      ].messages.filter((m) => m.id <= messageId)
     }
     socket.emit('regenerateFromMessage', conversationId, messageId, messageContent)
   }
@@ -258,14 +254,15 @@ export const useConversationsStore = defineStore('conversations', () => {
   // ——————————————————————————————————————————————————
   socket.on('delete-message', (messageId: string) => {
     // Remove that message from whichever conversation it belongs to
-    const conversationId: string = Object.keys(conversations.value).find((id) =>
+    const conversationId: string | undefined = Object.keys(conversations.value).find((id) =>
       conversations.value[id].messages.some((m) => m.id === messageId)
     )
-    if (conversationId) {
-      conversations.value[conversationId].messages = conversations.value[
-        conversationId
-      ].messages.filter((m) => m.id !== messageId)
+    if (!conversationId) {
+      throw new Error('Conversation not found')
     }
+    conversations.value[conversationId].messages = conversations.value[
+      conversationId
+    ].messages.filter((m) => m.id !== messageId)
   })
 
   socket.on('response', (payload: any) => {
