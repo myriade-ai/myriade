@@ -9,7 +9,6 @@ from back.privacy import encrypt_rows
 from back.rewrite_sql import rewrite_sql
 
 MAX_SIZE = 2 * 1024 * 1024  # 2MB in bytes
-UNSAFE_KEYWORDS = ["DROP", "DELETE", "TRUNCATE", "ALTER", "INSERT", "UPDATE"]
 
 
 class SizeLimitError(Exception):
@@ -57,15 +56,6 @@ class AbstractDatabase(ABC):
         return result[0]["count"]
 
     def query(self, sql, role="llm"):
-        if self.safe_mode:
-            # Forbid DROP, DELETE, TRUNCATE, etc. queries
-            # If keyword is in query, raise ValueError
-            for keyword in UNSAFE_KEYWORDS:
-                if keyword + " " in sql.upper():
-                    raise UnsafeQueryError(
-                        f"Query contains forbidden keyword {keyword}"
-                    )
-
         # If privacy mode is enabled, attempt to rewrite the SQL so that the
         # encryption happens in-database rather than post-processing.
         if self.tables_metadata:
@@ -90,12 +80,20 @@ class AbstractDatabase(ABC):
             if privacy_rules:
                 sql = rewrite_sql(sql, privacy_rules)
 
+        # self._query will handle safe_mode internally if applicable
         rows = self._query(sql)
-        if sum([sizeof(r) for r in rows]) > MAX_SIZE * 0.9:
+
+        # Size check and count estimation
+        # Ensure rows is not empty before trying to sum sizes if sum can handle
+        # empty list, otherwise check
+        # Check if close to limit after initial fetch
+        current_data_size = sum([sizeof(r) for r in rows]) if rows else 0
+        if current_data_size > MAX_SIZE * 0.9:
             try:
                 count = self._query_count(sql)
             except Exception:
                 # TODO: should throw error
+                # Or some indicator of error / partial data
                 count = None
         else:
             count = len(rows)
@@ -160,24 +158,46 @@ class SQLDatabase(AbstractDatabase):
     def _query(self, query) -> list[dict]:
         """
         Run a query against the database
-        Limit the result to 2MB
+        Limit the result to MAX_SIZE (approx. 2MB)
+        If safe_mode is true, attempts to set the transaction to READ ONLY for
+        supported dialects.
         """
         with self.engine.connect() as connection:
-            result = connection.execute(text(query))
+            transaction_object = None  # For SQLAlchemy Transaction object
+            try:
+                if self.safe_mode and self.dialect in ["postgresql", "mysql", "mssql"]:
+                    # Explicitly begin a transaction so "SET TRANSACTION READ ONLY"
+                    # applies to it.
+                    transaction_object = connection.begin()
+                    connection.execute(text("SET TRANSACTION READ ONLY;"))
 
-            rows: list[dict] = []
-            total_size: int = 0
+                result = connection.execute(text(query))
 
-            for row in result:
-                row_dict = dict(row._mapping)
-                row_size = sizeof(row_dict)
+                rows: list[dict] = []
+                total_size: int = 0
 
-                if total_size + row_size > MAX_SIZE:
-                    return rows
+                for row_mapping in result:  # Iterate over SQLAlchemy Row objects
+                    row_dict = dict(row_mapping._mapping)  # Convert to dict
+                    row_size = sizeof(row_dict)
 
-                rows.append(row_dict)
-                total_size += row_size
-            return rows
+                    if total_size + row_size > MAX_SIZE:
+                        # Commit transaction if one was started, then return
+                        if transaction_object:
+                            transaction_object.commit()
+                        # Return partial data
+                        return rows
+
+                    rows.append(row_dict)
+                    total_size += row_size
+
+                # Commit transaction if one was started and all rows processed
+                if transaction_object:
+                    transaction_object.commit()
+                return rows
+            except Exception:
+                if transaction_object:
+                    transaction_object.rollback()
+                raise
 
 
 class PostgresDatabase(SQLDatabase):
@@ -257,19 +277,60 @@ class SnowflakeDatabase(AbstractDatabase):
         return self.metadata
 
     def _query(self, query):
+        """
+        Run a query against Snowflake.
+        Limits the result to MAX_SIZE (approx. 2MB).
+        If safe_mode is true, sets the transaction to READ ONLY.
+        Correctly calculates data size based on sum of individual row sizes.
+        """
         with self.connection.cursor() as cursor:
-            cursor.execute(query)
-            # On fetch maximum 1000 rows
-            results = cursor.fetchmany(1000)
-            rows = results
-            # We continue fetching until there we pass MAX_SIZE
-            while results and sizeof(results) < MAX_SIZE:
-                results = cursor.fetchmany(1000)
-                rows += results
+            transaction_started = False
+            try:
+                if self.safe_mode:
+                    cursor.execute("BEGIN TRANSACTION;")
+                    transaction_started = True
+                    cursor.execute("SET TRANSACTION READ ONLY;")
 
-            column_names = [column[0] for column in cursor.description]
+                cursor.execute(query)
 
-            return [dict(zip(column_names, row)) for row in rows]
+                column_names = [desc[0] for desc in cursor.description]
+                rows_list: list[dict] = []
+                total_size: int = 0
+
+                while True:
+                    fetched_batch_tuples = cursor.fetchmany(1000)
+                    if not fetched_batch_tuples:
+                        break  # No more rows to fetch
+
+                    for item_tuple in fetched_batch_tuples:
+                        row_dict = dict(zip(column_names, item_tuple))
+                        row_size = sizeof(row_dict)
+
+                        if total_size + row_size > MAX_SIZE:
+                            if transaction_started:
+                                # Commit before returning partial data
+                                cursor.execute("COMMIT;")
+                            # Return partial data
+                            return rows_list
+
+                        rows_list.append(row_dict)
+                        total_size += row_size
+
+                    if len(fetched_batch_tuples) < 1000:
+                        break  # Last batch fetched
+
+                if transaction_started:
+                    # Commit the transaction if fully completed
+                    cursor.execute("COMMIT;")
+                return rows_list
+            except Exception as e:
+                if transaction_started:
+                    try:
+                        cursor.execute("ROLLBACK;")
+                    except Exception as rb_e:
+                        # Log or handle rollback error, e.g., connection issue
+                        print(f"Error during rollback: {rb_e}")
+                raise e
 
 
 class DataWarehouseFactory:
@@ -284,9 +345,10 @@ class DataWarehouseFactory:
             port = kwargs.get("port", "5432")
             uri = f"postgresql://{user}:{password}@{host}:{port}/{kwargs['database']}"
             if "options" in kwargs:
-                uri += "?options=" + "&".join(
+                options_str = "&".join(
                     [f"--{k}={v}" for k, v in kwargs["options"].items()]
                 )
+                uri += f"?options={options_str}"
             return PostgresDatabase(uri)
         elif dtype == "mysql":
             user = kwargs.get("user")
@@ -294,11 +356,13 @@ class DataWarehouseFactory:
             host = kwargs.get("host")
             ssl_parameters = {"rejectUnauthorized": True}
             ssl_parameters_json = json.dumps(ssl_parameters)
-            uri = f"mysql://{user}:{password}@{host}/{kwargs['database']}?ssl={ssl_parameters_json}"
+            base_uri = f"mysql://{user}:{password}@{host}/{kwargs['database']}"
+            uri = f"{base_uri}?ssl={ssl_parameters_json}"
             if "options" in kwargs:
-                uri += "?" + "&".join(
+                options_str = "&".join(
                     [f"{k}={v}" for k, v in kwargs["options"].items()]
                 )
+                uri += f"?{options_str}"
             return SQLDatabase(uri)
 
         elif dtype == "sqlite":
