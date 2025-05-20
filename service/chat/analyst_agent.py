@@ -21,7 +21,7 @@ nest_asyncio.apply()
 AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
 
 
-class DatabaseChat:
+class DataAnalystAgent:
     """
     Chatbot assistant with a database, execute functions.
     """

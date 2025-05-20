@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app import socketio
 from auth.auth import UnauthorizedError, socket_auth
 from back.session import db_session
-from chat.datachat import DatabaseChat
+from chat.analyst_agent import DataAnalystAgent
 from chat.lock import STATUS, conversation_stop_flags, emit_status, stop_flag_lock
 from models import Conversation, ConversationMessage, Project
 
@@ -53,7 +53,7 @@ def handle_ask(
         # Extract database_id and project_id from the context
         database_id, project_id = extract_context(session, context_id)
         # Handle normal questions (not editing)
-        agent = DatabaseChat(
+        agent = DataAnalystAgent(
             session,
             database_id,
             conversation_id,
@@ -74,7 +74,7 @@ def handle_query(query, conversation_id=None, context_id=None):
 
     with db_session() as session:
         database_id, project_id = extract_context(session, context_id)
-        chat = DatabaseChat(
+        agent = DataAnalystAgent(
             session,
             database_id,
             conversation_id,
@@ -90,14 +90,16 @@ def handle_query(query, conversation_id=None, context_id=None):
                     "query": query,
                 },
             },
-            conversationId=chat.conversation.id,
+            conversationId=agent.conversation.id,
         )
         session.add(user_message)
         session.commit()
         emit("response", user_message.to_dict())
         # Run the SQL
         message = user_message.to_autochat_message()
-        content = chat.chatbot.tools["database"].sql_query(query, from_response=message)
+        content = agent.chatbot.tools["database"].sql_query(
+            query, from_response=message
+        )
         user_message.queryId = message.query_id
         # Update the message with the linked query
         session.add(user_message)
@@ -108,7 +110,7 @@ def handle_query(query, conversation_id=None, context_id=None):
             role="function",
             name="sql_query",
             content=content,
-            conversationId=chat.conversation.id,
+            conversationId=agent.conversation.id,
             isAnswer=True,
         )
         session.add(message)
@@ -171,14 +173,14 @@ def handle_regenerate_from_message(conversation_id, message_id, message_content=
             emit("delete-message", str(message_id))
 
         # Regenerate the conversation
-        chat = DatabaseChat(
+        agent = DataAnalystAgent(
             session,
             database_id,
             conversation_id,
             conversation_stop_flags,
             project_id=project_id,
         )
-        for message in chat._run_conversation():
+        for message in agent._run_conversation():
             session.commit()
             emit("response", message.to_dict())
 
