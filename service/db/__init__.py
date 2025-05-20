@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import DateTime, func
@@ -19,6 +19,9 @@ class JSONEncoder(json.JSONEncoder):
             return float(obj)
         if isinstance(obj, (datetime, date)):
             return obj.isoformat()
+        if isinstance(obj, timedelta):
+            # Represent timedeltas as total seconds for JSON compatibility
+            return obj.total_seconds()
         if isinstance(obj, uuid.UUID):
             return str(obj)
         return super().default(obj)
@@ -51,6 +54,8 @@ class SerializerMixin:
     def _convert(self, value):
         if isinstance(value, datetime):
             return value.isoformat()
+        if isinstance(value, timedelta):
+            return value.total_seconds()
         if isinstance(value, uuid.UUID):
             return str(value)
         return value
