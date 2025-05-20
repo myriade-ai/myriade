@@ -64,7 +64,7 @@ def handle_ask(
         for message in agent.ask(question):
             # We need to commit the session to save the message
             session.commit()
-            emit("response", message.to_dict(session))
+            emit("response", message.to_dict())
 
 
 @socketio.on("query")
@@ -94,7 +94,7 @@ def handle_query(query, conversation_id=None, context_id=None):
         )
         session.add(user_message)
         session.commit()
-        emit("response", user_message.to_dict(session))
+        emit("response", user_message.to_dict())
         # Run the SQL
         message = user_message.to_autochat_message()
         content = chat.chatbot.tools["database"].sql_query(query, from_response=message)
@@ -113,8 +113,8 @@ def handle_query(query, conversation_id=None, context_id=None):
         )
         session.add(message)
         session.commit()
-        emit("response", user_message.to_dict(session))
-        emit("response", message.to_dict(session))
+        emit("response", user_message.to_dict())
+        emit("response", message.to_dict())
 
 
 @socketio.on("regenerateFromMessage")
@@ -138,7 +138,7 @@ def handle_regenerate_from_message(conversation_id, message_id, message_content=
             )
             message.content = message_content
             session.commit()
-            emit("response", message.to_dict(session))
+            emit("response", message.to_dict())
 
         database_id = conversation.databaseId
         project_id = conversation.projectId
@@ -180,7 +180,7 @@ def handle_regenerate_from_message(conversation_id, message_id, message_content=
         )
         for message in chat._run_conversation():
             session.commit()
-            emit("response", message.to_dict(session))
+            emit("response", message.to_dict())
 
 
 @socketio.on("connect")

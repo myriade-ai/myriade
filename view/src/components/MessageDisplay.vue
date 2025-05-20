@@ -101,6 +101,15 @@
         >
           {{ part.content }}
         </div>
+        <div v-if="part.type === 'query'" :key="`query-${index}`">
+          <BaseEditorPreview
+            :queryId="part.query_id"
+            :databaseId="databaseSelectedId"
+          ></BaseEditorPreview>
+        </div>
+        <div v-if="part.type === 'chart'" :key="`chart-${index}`">
+          <Chart :chartId="part.chart_id" />
+        </div>
         <BaseEditor
           v-if="part.type === 'sql'"
           :modelValue="part.content"
@@ -108,6 +117,7 @@
           :key="`sql-${index}`"
         ></BaseEditor>
         <BaseTable v-if="part.type === 'json'" :data="part.content" :key="`json-${index}`" />
+        <!-- TODO: remove -->
         <Echart v-if="part.type === 'echarts'" :option="part.content" :key="`echarts-${index}`" />
       </template>
 
@@ -151,6 +161,7 @@ import { computed, defineEmits, defineProps, onMounted, ref } from 'vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
+import Chart from '@/components/Chart.vue'
 import Echart from '@/components/Echart.vue'
 import { ArrowPathIcon, PencilIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 
@@ -230,6 +241,11 @@ const parsedText = computed(() => {
   let match
   let lastIndex = 0
   const parts: Array<{ type: string; content: any }> = []
+
+  // if content is a list, return it as is
+  if (Array.isArray(props.message.content)) {
+    return props.message.content
+  }
 
   while ((match = regex.exec(props.message.content)) !== null) {
     if (match.index > lastIndex) {
