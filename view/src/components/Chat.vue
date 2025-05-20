@@ -12,7 +12,7 @@
                 <MessageDisplay
                   :message="message"
                   @editInlineClick="editInline"
-                  @regenerateFromMessage="store.regenerateFromMessage"
+                  @regenerateFromMessage="conversationsStore.regenerateFromMessage"
                 />
               </li>
               <li v-if="group.internalMessages.length > 0" class="flex justify-center">
@@ -46,7 +46,7 @@
                   <MessageDisplay
                     :message="message"
                     @editInlineClick="editInline"
-                    @regenerateFromMessage="store.regenerateFromMessage"
+                    @regenerateFromMessage="conversationsStore.regenerateFromMessage"
                     class="bg-gray-300"
                     style="border: 1px solid rgb(205 205 205)"
                   />
@@ -64,7 +64,10 @@
                 <p class="text-red-500">{{ errorMessage }}</p>
               </div>
               <div>
-                <BaseButton class="my-4" @click="store.regenerateFromMessage(lastMessage.id)">
+                <BaseButton
+                  class="my-4"
+                  @click="conversationsStore.regenerateFromMessage(lastMessage.id)"
+                >
                   Regenerate
                 </BaseButton>
               </div>
@@ -201,13 +204,10 @@ const router = useRouter()
 const contextsStore = useContextsStore()
 
 /** CONVERSATION LOGIC **/
-const store = useConversationsStore()
-const conversationId = computed(() => {
-  if (route.params.id === 'new') {
-    return null
-  }
-  return route.params.id
-})
+const conversationsStore = useConversationsStore()
+const conversationId = computed(() =>
+  route.params.id === 'new' ? null : (route.params.id as string)
+)
 const queryStatus = computed(() => conversation.value?.status ?? 'clear')
 const errorMessage = computed(() => conversation.value?.error ?? '')
 const lastMessage = computed(() => messages.value[messages.value.length - 1])
@@ -216,8 +216,9 @@ const sendStatus = computed(() => {
   if (!isConnected.value) {
     return 'error'
   }
+
   // if conversationId is not set, return clear
-  if (!conversationId.value) {
+  if (conversationId.value === null) {
     return 'clear'
   }
   // if conversationId is set, return status
@@ -226,7 +227,7 @@ const sendStatus = computed(() => {
 
 /** The current conversation object from the store. */
 const conversation = computed(() => {
-  return store.getConversationById(conversationId.value)
+  return conversationsStore.getConversationById(conversationId.value)
 })
 const messages = computed(() => {
   return conversation.value?.messages ?? []
@@ -297,17 +298,35 @@ const handleEnter = (event: KeyboardEvent) => {
 
 const handleSendMessage = async () => {
   try {
-    await store.sendMessage(
-      editMode.value,
-      editMode.value === 'text' ? inputText.value : inputSQL.value,
-      conversationId.value,
-      contextsStore.contextSelected.id
-    )
-    // After 100ms, clear the input and scroll to bottom.
-    setTimeout(() => {
-      clearInput()
-      scrollToBottom()
-    }, 100)
+    // If we are on the /new page and the response is for a new conversation, redirect to the new conversation
+    if (conversationId.value === null && contextsStore.contextSelected) {
+      const newConversation = await conversationsStore.createConversation(
+        contextsStore.contextSelected.id
+      )
+      await conversationsStore.sendMessage(
+        newConversation.id,
+        editMode.value === 'text' ? inputText.value : inputSQL.value,
+        editMode.value
+      )
+      // After 100ms, clear the input.
+      setTimeout(() => {
+        clearInput()
+        router.push({ path: `/chat/${newConversation.id}` })
+      }, 100)
+    } else if (conversationId.value) {
+      await conversationsStore.sendMessage(
+        conversationId.value,
+        editMode.value === 'text' ? inputText.value : inputSQL.value,
+        editMode.value
+      )
+      // After 100ms, clear the input and scroll to bottom.
+      setTimeout(() => {
+        clearInput()
+        scrollToBottom()
+      }, 100)
+    } else {
+      console.error('No conversation selected')
+    }
   } catch (error) {
     console.error('Error sending message:', error)
   }
@@ -334,15 +353,15 @@ const editInline = (query: string) => {
 /** END HANDLE EVENTS */
 
 onMounted(async () => {
-  inputTextarea.value.focus()
-  inputTextarea.value.select()
+  inputTextarea.value?.focus()
+  inputTextarea.value?.select()
 
-  if (!conversationId.value) {
+  if (!conversationId) {
     // New conversation
     await fetchAISuggestions()
   } else {
     // Existing conversation
-    store.fetchMessages(conversationId.value)
+    conversationsStore.fetchMessages(conversationId)
   }
 
   scrollToBottom()
@@ -350,11 +369,11 @@ onMounted(async () => {
 
 // If route changes (user navigates to a different ID)
 watch(
-  () => conversationId.value,
+  () => conversationId,
   (newVal) => {
     console.log('conversationId changed', newVal)
     if (newVal !== null) {
-      store.fetchMessages(newVal)
+      conversationsStore.fetchMessages(newVal)
     }
   }
 )
@@ -366,7 +385,7 @@ watch(
   () => contextsStore.contextSelected,
   async () => {
     aiSuggestions.value = []
-    if (!conversationId.value) {
+    if (!conversationId) {
       await fetchAISuggestions()
     }
   }
@@ -392,15 +411,8 @@ const applySuggestion = (suggestion: string) => {
 /** END AI SUGGESTIONS **/
 
 const stopQuery = async () => {
-  socket.emit('stop', conversationId.value)
+  socket.emit('stop', conversationId)
 }
-
-socket.on('response', (response) => {
-  // If we are on the /new page and the response is for a new conversation, redirect to the new conversation
-  if (conversationId.value === null && !store.getConversationById(response.conversationId)) {
-    router.push({ path: `/chat/${response.conversationId}` })
-  }
-})
 
 // Reference to the scroll container to allow scrolling to bottom
 const scrollContainer = ref<HTMLDivElement | null>(null)
