@@ -124,7 +124,6 @@ export const useConversationsStore = defineStore('conversations', () => {
 
   // 2) Fetch messages for a single conversation
   async function fetchMessages(conversationId: string) {
-    console.log('fetchMessages', conversationId)
     try {
       const response = await axios.get(`/api/conversations/${conversationId}`)
       // Update the conversation in the store

@@ -356,12 +356,12 @@ onMounted(async () => {
   inputTextarea.value?.focus()
   inputTextarea.value?.select()
 
-  if (!conversationId) {
+  if (!conversationId.value) {
     // New conversation
     await fetchAISuggestions()
   } else {
     // Existing conversation
-    conversationsStore.fetchMessages(conversationId)
+    conversationsStore.fetchMessages(conversationId.value)
   }
 
   scrollToBottom()
@@ -372,10 +372,11 @@ watch(
   () => conversationId,
   (newVal) => {
     console.log('conversationId changed', newVal)
-    if (newVal !== null) {
+    if (newVal !== null && newVal !== undefined) {
       conversationsStore.fetchMessages(newVal)
     }
-  }
+  },
+  { immediate: true }
 )
 
 /** AI SUGGESTIONS **/
