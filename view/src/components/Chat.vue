@@ -369,14 +369,12 @@ onMounted(async () => {
 
 // If route changes (user navigates to a different ID)
 watch(
-  () => conversationId,
+  () => conversationId.value,
   (newVal) => {
-    console.log('conversationId changed', newVal)
-    if (newVal !== null && newVal !== undefined) {
+    if (newVal !== null && newVal !== undefined && newVal !== '') {
       conversationsStore.fetchMessages(newVal)
     }
-  },
-  { immediate: true }
+  }
 )
 
 /** AI SUGGESTIONS **/
@@ -386,7 +384,7 @@ watch(
   () => contextsStore.contextSelected,
   async () => {
     aiSuggestions.value = []
-    if (!conversationId) {
+    if (!conversationId.value) {
       await fetchAISuggestions()
     }
   }
@@ -412,7 +410,7 @@ const applySuggestion = (suggestion: string) => {
 /** END AI SUGGESTIONS **/
 
 const stopQuery = async () => {
-  socket.emit('stop', conversationId)
+  socket.emit('stop', conversationId.value)
 }
 
 // Reference to the scroll container to allow scrolling to bottom
