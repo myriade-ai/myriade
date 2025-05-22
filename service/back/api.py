@@ -376,9 +376,9 @@ def get_projects():
 
 
 # Get specific project
-@api.route("/projects/<project_id>", methods=["GET"])
+@api.route("/projects/<uuid:project_id>", methods=["GET"])
 @user_middleware
-def get_project(project_id):
+def get_project(project_id: UUID):
     project = (
         g.session.query(Project)
         # .join(ProjectTables, Project.tables, isouter=True)
@@ -425,9 +425,9 @@ def create_project():
     return jsonify(new_project)
 
 
-@api.route("/projects/<project_id>", methods=["PUT"])
+@api.route("/projects/<uuid:project_id>", methods=["PUT"])
 @user_middleware
-def update_project(project_id):
+def update_project(project_id: UUID):
     data = request.get_json()
     project = g.session.query(Project).filter_by(id=project_id).first()
     # update name, description or tables
@@ -448,9 +448,9 @@ def update_project(project_id):
     return "ok"
 
 
-@api.route("/projects/<project_id>", methods=["DELETE"])
+@api.route("/projects/<uuid:project_id>", methods=["DELETE"])
 @user_middleware
-def delete_project(project_id):
+def delete_project(project_id: UUID):
     project = g.session.query(Project).filter_by(id=project_id).first()
     g.session.delete(project)
     g.session.flush()
@@ -480,9 +480,9 @@ def update_database_privacy(database_id):
     return jsonify({"success": True})
 
 
-@api.route("/query/<query_id>/favorite", methods=["POST"])
+@api.route("/query/<uuid:query_id>/favorite", methods=["POST"])
 @user_middleware
-def toggle_query_favorite(query_id):
+def toggle_query_favorite(query_id: UUID):
     """Toggle favorite status for a query for the current user"""
     query = g.session.query(Query).filter(Query.id == query_id).first()
     if not query:
@@ -507,9 +507,9 @@ def toggle_query_favorite(query_id):
     return jsonify({"success": True, "is_favorite": is_favorite})
 
 
-@api.route("/chart/<chart_id>", methods=["GET"])
+@api.route("/chart/<uuid:chart_id>", methods=["GET"])
 @user_middleware
-def get_chart(chart_id):
+def get_chart(chart_id: UUID):
     chart = g.session.query(Chart).filter(Chart.id == chart_id).first()
     if not chart:
         return jsonify({"error": "Chart not found"}), 404
@@ -526,9 +526,9 @@ def get_chart(chart_id):
     return jsonify(chart_dict)
 
 
-@api.route("/chart/<chart_id>/favorite", methods=["POST"])
+@api.route("/chart/<uuid:chart_id>/favorite", methods=["POST"])
 @user_middleware
-def toggle_chart_favorite(chart_id):
+def toggle_chart_favorite(chart_id: UUID):
     """Toggle favorite status for a chart for the current user"""
     chart = g.session.query(Chart).filter(Chart.id == chart_id).first()
     if not chart:
@@ -558,7 +558,6 @@ def toggle_chart_favorite(chart_id):
 def get_favorites():
     context_id = request.args.get("contextId")
     database_id, _ = extract_context(g.session, context_id)
-
     """Get all favorited queries and charts for the current user"""
     query_favorites = (
         g.session.query(Query)
@@ -584,9 +583,9 @@ def get_favorites():
     return jsonify({"queries": queries, "charts": charts})
 
 
-@api.route("/databases/<database_id>/privacy/auto", methods=["POST"])
+@api.route("/databases/<uuid:database_id>/privacy/auto", methods=["POST"])
 @user_middleware
-def auto_update_database_privacy(database_id):
+def auto_update_database_privacy(database_id: UUID):
     """Auto-detect sensitive columns based on PRIVACY_PATTERNS and update privacy maps.
 
     For every column whose name matches one of the regexes defined in

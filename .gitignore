@@ -9,7 +9,8 @@ ai
 .tmuxinator.yml
 *.code-workspace
 service/.env
-service/.env.test
 service/.env.dev
+service/.env.benchmark
+service/test.db
 .env
 *.ipynb

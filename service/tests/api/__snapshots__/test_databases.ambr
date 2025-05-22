@@ -1,0 +1,20 @@
+# serializer version: 1
+# name: test_list_databases
+  list([
+    dict({
+      '<truncated_items_5>': '...',
+      'description': 'ephemeral test db',
+      'details': dict({
+        'filename': ':memory:',
+      }),
+      'engine': 'sqlite',
+      'memory': None,
+      'name': 'pytest-sqlite',
+      'organisationId': 'mock',
+      'ownerId': 'admin',
+      'public': False,
+      'tables_metadata': list([
+      ]),
+    }),
+  ])
+# ---

@@ -26,7 +26,7 @@ RUN cd chat/tools/echarts-render && yarn
 # Install uv package installer
 RUN pip install uv
 
-# Copy poetry.lock and pyproject.toml
+# Copy uv.lock and pyproject.toml
 COPY ./pyproject.toml ./uv.lock ./
 
 ## Install Python dependencies using uv sync

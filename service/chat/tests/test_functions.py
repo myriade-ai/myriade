@@ -8,24 +8,24 @@ from syrupy.assertion import SnapshotAssertion
 
 def test_functions(analyst_agent, snapshot: SnapshotAssertion):
     """Test that the functions dictionary stays consistent"""
-    chatbot = analyst_agent.chatbot
+    agent = analyst_agent.agent
     # Convert functions to a serializable format
-    functions_list = [name for name, _ in chatbot.functions.items()]
+    functions_list = [name for name, _ in agent.functions.items()]
     assert functions_list == snapshot
 
 
 def test_functions_schema(analyst_agent, snapshot: SnapshotAssertion):
     """Test that the functions schema stays consistent"""
-    chatbot = analyst_agent.chatbot
-    assert chatbot.functions_schema == snapshot
+    agent = analyst_agent.agent
+    assert agent.functions_schema == snapshot
 
 
 def test_tools(analyst_agent, snapshot: SnapshotAssertion):
     """Test that the tools dictionary stays consistent"""
-    chatbot = analyst_agent.chatbot
+    agent = analyst_agent.agent
     # Convert tools to a serializable format
     tools_dict = {
         name: str(tool) if callable(tool) else tool.__class__.__name__
-        for name, tool in chatbot.tools.items()
+        for name, tool in agent.tools.items()
     }
     assert tools_dict == snapshot

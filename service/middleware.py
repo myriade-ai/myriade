@@ -1,3 +1,4 @@
+import uuid
 from functools import wraps
 
 from flask import g, jsonify, request
@@ -40,8 +41,10 @@ def user_middleware(f):
                 )
                 g.session.add(new_organisation)
                 g.session.flush()
+                g.organisation = new_organisation
+            else:
+                g.organisation = organisation
 
-            g.organisation = organisation
         return f(*args, **kwargs)
 
     return decorated_function
@@ -51,6 +54,11 @@ def database_middleware(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         database_id = request.json.get("databaseId")
+        if isinstance(database_id, str):
+            try:
+                database_id = uuid.UUID(database_id)
+            except ValueError:
+                return jsonify({"error": "Invalid databaseId"}), 400
         database = g.session.query(Database).filter_by(id=database_id).first()
         g.data_warehouse = database.create_data_warehouse()
         return f(*args, **kwargs)
