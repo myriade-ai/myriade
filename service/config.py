@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 
 # Load the appropriate .env file
-dotenv_file = os.getenv("DOTENV_FILE", ".env")
+dotenv_file = os.environ["DOTENV_FILE"]
 load_dotenv(dotenv_file)
 
 # Export all environment variables needed by the application

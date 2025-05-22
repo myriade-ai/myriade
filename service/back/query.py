@@ -1,3 +1,5 @@
+import uuid
+
 from flask import Blueprint, g, jsonify, request
 
 from middleware import database_middleware, user_middleware
@@ -32,6 +34,11 @@ def create_query():
         return jsonify({"message": "No JSON data provided"}), 400
 
     database_id = request.json.get("databaseId")
+    if isinstance(database_id, str):
+        try:
+            database_id = uuid.UUID(database_id)
+        except ValueError:
+            return jsonify({"error": "Invalid databaseId"}), 400
     title = request.json.get("title")
     sql = request.json.get("sql")
 
@@ -44,19 +51,12 @@ def create_query():
     g.session.add(new_query)
     g.session.flush()
 
-    response = {
-        "id": new_query.id,
-        "databaseId": new_query.databaseId,
-        "title": new_query.title,
-        "sql": new_query.sql,
-    }
-
-    return jsonify(response)
+    return jsonify({"id": new_query.id})
 
 
-@api.route("/query/<query_id>", methods=["GET", "PUT"])
+@api.route("/query/<uuid:query_id>", methods=["GET", "PUT"])
 @user_middleware
-def handle_query_by_id(query_id):
+def handle_query_by_id(query_id: uuid.UUID):
     """
     Run or Update a query based on the request method
     """
@@ -65,7 +65,7 @@ def handle_query_by_id(query_id):
         return jsonify({"error": "Query not found"}), 404
 
     # Get databaseId from query
-    databaseId = query.databaseId
+    databaseId = uuid.UUID(query.databaseId)
 
     if request.method == "PUT":
         if not request.json:

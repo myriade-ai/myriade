@@ -1,0 +1,41 @@
+# serializer version: 1
+# name: test_create_query_for_favorite_testing
+  dict({
+  })
+# ---
+# name: test_toggle_query_favorite_and_list[favorite_response]
+  dict({
+    'is_favorite': True,
+    'success': True,
+  })
+# ---
+# name: test_toggle_query_favorite_and_list[list_favorites_after_favoriting]
+  dict({
+    'charts': list([
+    ]),
+    'queries': list([
+      dict({
+        'count': None,
+        'databaseId': 'a0000000-0000-0000-0000-000000000001',
+        'exception': None,
+        'rows': None,
+        'sql': 'SELECT 100 AS fav_col;',
+        'title': 'Test Query for Favorites',
+      }),
+    ]),
+  })
+# ---
+# name: test_toggle_query_favorite_and_list[list_favorites_after_unfavoriting]
+  dict({
+    'charts': list([
+    ]),
+    'queries': list([
+    ]),
+  })
+# ---
+# name: test_toggle_query_favorite_and_list[unfavorite_response]
+  dict({
+    'is_favorite': False,
+    'success': True,
+  })
+# ---

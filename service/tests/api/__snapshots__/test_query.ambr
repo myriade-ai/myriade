@@ -1,0 +1,11 @@
+# serializer version: 1
+# name: test_run_simple_query
+  dict({
+    'count': 1,
+    'rows': list([
+      dict({
+        'test_col': 1,
+      }),
+    ]),
+  })
+# ---

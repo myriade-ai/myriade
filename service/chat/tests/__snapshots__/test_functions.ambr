@@ -15,14 +15,14 @@
     'SemanticCatalog-semantic_catalog__read_issue',
     'SemanticCatalog-semantic_catalog__update_entity',
     'SemanticCatalog-semantic_catalog__update_issue',
-    'DBT-test__fetch_model',
-    'DBT-test__fetch_model_list',
-    'DBT-test__search_models',
-    'Notes-Notes__close_note',
-    'Notes-Notes__create_note',
-    'Notes-Notes__delete_note',
-    'Notes-Notes__list_notes',
-    'Notes-Notes__open_note',
+    'DBT-dbt__fetch_model',
+    'DBT-dbt__fetch_model_list',
+    'DBT-dbt__search_models',
+    'Notes-notes__close_note',
+    'Notes-notes__create_note',
+    'Notes-notes__delete_note',
+    'Notes-notes__list_notes',
+    'Notes-notes__open_note',
   ])
 # ---
 # name: test_functions_schema
@@ -133,7 +133,7 @@
       }),
     }),
     dict({
-      'description': 'Ask the user a question. Use it to ask for confirmation, for ambiguous queries,        etc. Use it only when it strictly necessary.',
+      'description': 'Ask the user a question. Use it to ask for confirmation, for ambiguous queries,    etc. Use it only when it strictly necessary.',
       'name': 'ask_user',
       'parameters': dict({
         'properties': dict({
@@ -684,7 +684,7 @@
       'parameters': dict({
         'properties': dict({
           'business_entity_id': dict({
-            'description': 'The id of the entity to create the issue for.',
+            'description': 'The uuid of the entity to create the issue for.',
             'title': 'Business Entity Id',
             'type': 'string',
           }),
@@ -853,7 +853,7 @@
     }),
     dict({
       'description': 'Fetch all model details from the DBT catalog.',
-      'name': 'DBT-test__fetch_model',
+      'name': 'DBT-dbt__fetch_model',
       'parameters': dict({
         'properties': dict({
           'key': dict({
@@ -870,7 +870,7 @@
     }),
     dict({
       'description': 'Return a list of models in the DBT catalog. Return: key, description',
-      'name': 'DBT-test__fetch_model_list',
+      'name': 'DBT-dbt__fetch_model_list',
       'parameters': dict({
         'properties': dict({
         }),
@@ -880,7 +880,7 @@
     }),
     dict({
       'description': 'Search for a model in the DBT catalog. Return: key, description',
-      'name': 'DBT-test__search_models',
+      'name': 'DBT-dbt__search_models',
       'parameters': dict({
         'properties': dict({
           'query': dict({
@@ -897,7 +897,7 @@
     }),
     dict({
       'description': None,
-      'name': 'Notes-Notes__close_note',
+      'name': 'Notes-notes__close_note',
       'parameters': dict({
         'properties': dict({
           'id': dict({
@@ -914,7 +914,7 @@
     }),
     dict({
       'description': None,
-      'name': 'Notes-Notes__create_note',
+      'name': 'Notes-notes__create_note',
       'parameters': dict({
         'properties': dict({
           'content': dict({
@@ -936,7 +936,7 @@
     }),
     dict({
       'description': 'Delete a note from the project',
-      'name': 'Notes-Notes__delete_note',
+      'name': 'Notes-notes__delete_note',
       'parameters': dict({
         'properties': dict({
           'id': dict({
@@ -953,7 +953,7 @@
     }),
     dict({
       'description': None,
-      'name': 'Notes-Notes__list_notes',
+      'name': 'Notes-notes__list_notes',
       'parameters': dict({
         'properties': dict({
         }),
@@ -963,7 +963,7 @@
     }),
     dict({
       'description': None,
-      'name': 'Notes-Notes__open_note',
+      'name': 'Notes-notes__open_note',
       'parameters': dict({
         'properties': dict({
           'id': dict({
@@ -982,11 +982,11 @@
 # ---
 # name: test_tools
   dict({
-    'Notes': 'Notes',
     'database': 'DatabaseTool',
+    'dbt': 'DBT',
     'echarts': 'EchartsTool',
+    'notes': 'Notes',
     'semantic_catalog': 'SemanticCatalog',
-    'test': 'DBT',
     'workspace': 'WorkspaceTool',
   })
 # ---

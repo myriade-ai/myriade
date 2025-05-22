@@ -40,6 +40,8 @@ dev = [
     "ruff",
     "pytest>=8.3.4",
     "pre-commit>=4.1.0",
+    "pytest-httpx",
+    "pytest-cov",
 ]
 
 [tool.ruff]

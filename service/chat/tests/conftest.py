@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from chat.analyst_agent import DataAnalystAgent
-from models import Base, Database, Project, User
+from models import Base, Conversation, Database, Project, User
 
 
 @pytest.fixture
@@ -70,11 +70,18 @@ def project(session, database, user):
 
 
 @pytest.fixture
-def analyst_agent(session, database, project):
+def conversation(session, user, database, project):
+    """Create a test conversation"""
+    conv = Conversation(ownerId=user.id, databaseId=database.id, projectId=project.id)
+    session.add(conv)
+    session.commit()
+    return conv
+
+
+@pytest.fixture
+def analyst_agent(session, conversation):
     """Create a data analyst agent instance with a database and project"""
     return DataAnalystAgent(
         session=session,
-        database_id=database.id,
-        project_id=project.id,
-        user_id="test-user",
+        conversation=conversation,
     )

@@ -218,6 +218,7 @@ function editInline() {
   emit('editInlineClick', props.message.functionCall?.arguments?.query)
 }
 
+// TODO: move to store
 async function executeSql(sql: string) {
   try {
     const result = await axios.post('/api/query/_run', {
