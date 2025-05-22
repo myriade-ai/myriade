@@ -1,6 +1,60 @@
 # CHANGELOG
 
 
+## v0.15.0 (2025-05-22)
+
+### Bug Fixes
+
+- Adapt to timedelta
+  ([`b563951`](https://github.com/myriade-ai/ada/commit/b563951cba43b9b5f4bd8b2279bc2dd89f01d917))
+
+- Add database filtering for quality tool
+  ([`66ea7a1`](https://github.com/myriade-ai/ada/commit/66ea7a13c23bd22bc9ac767a6076a62b5d0a508e))
+
+- Catalog llm repr
+  ([`f6be3fb`](https://github.com/myriade-ai/ada/commit/f6be3fba5be43a99061fd2e95ec347042a0db9ab))
+
+- Conversations
+  ([`332b5da`](https://github.com/myriade-ai/ada/commit/332b5da6788066fccb8ba77b867a201353600e8d))
+
+- Fetch conversation
+  ([`1ebdbf0`](https://github.com/myriade-ai/ada/commit/1ebdbf055cb911b158c9ba870e8476d48ec3fa8d))
+
+- Filter favorites with context
+  ([`c92bf20`](https://github.com/myriade-ai/ada/commit/c92bf200035f190822cd2abc9db07ccefcb667ea))
+
+- Regeneratemessage
+  ([`e11b233`](https://github.com/myriade-ai/ada/commit/e11b2335391593f1af39cff420cd51f53958678e))
+
+- Socket
+  ([`404a298`](https://github.com/myriade-ai/ada/commit/404a2980fe82bf1de6a447a5d585ae88f371e0e6))
+
+- Switch to transaction to avoid delete error
+  ([`0e28452`](https://github.com/myriade-ai/ada/commit/0e28452c586e50bb10837b7a224c1d24b4a5f044))
+
+### Chores
+
+- Add tests suite
+  ([`731fa2a`](https://github.com/myriade-ai/ada/commit/731fa2a51b2e65262dc8d4c37660ac1a9e63aa93))
+
+- Move nginx files
+  ([`d73dd9a`](https://github.com/myriade-ai/ada/commit/d73dd9a08b5bd4e6757c5a7169bfafaabb946f8c))
+
+- Rename datachat to data analyst agent
+  ([`7c9d877`](https://github.com/myriade-ai/ada/commit/7c9d877983ea01d613911638a206bf8467f99e0e))
+
+- Rename datalake to data warehouse
+  ([`a75922a`](https://github.com/myriade-ai/ada/commit/a75922a85bb9eab60f672bb793a283c2cf9e22a7))
+
+- Rework data analysis agent & creation of conversation
+  ([`9121581`](https://github.com/myriade-ai/ada/commit/912158137a7fa8b664db15f75249e032f3b68567))
+
+### Features
+
+- Ask model to create issue when scanning
+  ([`ce4e7ff`](https://github.com/myriade-ai/ada/commit/ce4e7ff4b6458752816b054e839e08e5356a5b6e))
+
+
 ## v0.14.0 (2025-05-20)
 
 ### Features
