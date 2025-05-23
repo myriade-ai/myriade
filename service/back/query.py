@@ -65,7 +65,7 @@ def handle_query_by_id(query_id: uuid.UUID):
         return jsonify({"error": "Query not found"}), 404
 
     # Get databaseId from query
-    databaseId = uuid.UUID(query.databaseId)
+    databaseId = query.databaseId
 
     if request.method == "PUT":
         if not request.json:
