@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.15.1 (2025-05-23)
+
+### Bug Fixes
+
+- Quality catalog context
+  ([`a077557`](https://github.com/myriade-ai/ada/commit/a0775574a2267c4aad1439e01c8e07befed1079e))
+
+
 ## v0.15.0 (2025-05-22)
 
 ### Bug Fixes
