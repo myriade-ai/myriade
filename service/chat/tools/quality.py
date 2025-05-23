@@ -16,7 +16,7 @@ class SemanticCatalog:
         self.conversation_id = conversation_id
         self.database_id = database_id
 
-    def __llm__(self):
+    def __repr__(self):
         return (
             "### Entities\n"
             + yaml.dump(self._fetch_entities())

@@ -24,6 +24,7 @@ services:
       FLASK_ENV: production
       DATABASE_URL: postgresql://human:pass@db:5432/ada
       AUTOCHAT_PROVIDER: anthropic
+      AUTOCHAT_MODEL: claude-sonnet-4-20250514
       HOST: ${HOST}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
@@ -44,7 +45,7 @@ services:
   proxy:
     image: nginx:alpine
     volumes:
-      - ./setup/proxy_nginx.conf:/etc/nginx/conf.d/default.conf:ro # Mount nginx config read-only
+      - ./proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro # Mount nginx config read-only
     ports:
       - "8080:80" # Expose proxy on host port 8080
     depends_on:
