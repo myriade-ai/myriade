@@ -290,7 +290,10 @@
                 <p class="text-xs uppercase tracking-wide font-medium text-gray-500 mb-2">
                   Description
                 </p>
-                <p class="text-sm text-gray-800 whitespace-pre-wrap">{{ issue.description }}</p>
+                <div
+                  class="text-sm text-gray-800 markdown-content"
+                  v-html="marked(issue.description)"
+                ></div>
               </div>
 
               <div class="grid grid-cols-2 gap-3">
@@ -409,7 +412,10 @@
                   <p class="text-xs uppercase tracking-wide font-medium text-gray-500 mb-2">
                     Description
                   </p>
-                  <p class="text-sm text-gray-800 whitespace-pre-wrap">{{ issue.description }}</p>
+                  <div
+                    class="text-sm text-gray-800 markdown-content"
+                    v-html="marked(issue.description)"
+                  ></div>
                 </div>
               </div>
             </div>
@@ -672,6 +678,7 @@
 </template>
 
 <script setup lang="ts">
+import { marked } from 'marked'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useQualityStore, type Issue } from '../stores/quality'
 
@@ -882,11 +889,56 @@ watch(expandedIssue, () => {
 })
 </script>
 
-<style scoped>
+<style>
 .line-clamp-1 {
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
+}
+
+.markdown-content {
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+  ul {
+    margin-bottom: 1rem;
+    list-style-type: disc;
+    padding-left: 1rem;
+  }
+  ol {
+    margin-bottom: 1rem;
+    list-style-type: decimal;
+    padding-left: 1rem;
+  }
+  a {
+    color: #007bff;
+    text-decoration: underline;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+  }
+  th,
+  td {
+    border: 1px solid #dee2e6;
+    padding: 0.2rem;
+  }
 }
 </style>
