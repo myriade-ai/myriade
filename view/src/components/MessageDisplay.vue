@@ -89,11 +89,11 @@
     <!-- Normal display mode -->
     <div v-else>
       <template v-for="(part, index) in parsedText">
-        <span
+        <MarkdownDisplay
           v-if="part.type === 'text'"
           :key="`text-${index}`"
-          v-html="renderMarkdown(part.content)"
-        ></span>
+          :content="part.content"
+        ></MarkdownDisplay>
         <div
           style="white-space: pre-wrap; background-color: #db282873; padding: 0.6rem"
           v-if="part.type === 'error'"
@@ -129,8 +129,8 @@
         <p v-if="props.message.functionCall?.name === 'memory_search'">
           Search: "{{ props.message.functionCall?.arguments?.search }}"
         </p>
-        <p v-else-if="props.message.functionCall?.name === 'think'">
-          {{ props.message.functionCall?.arguments?.thought }}
+        <p v-else-if="props.message.functionCall?.name === 'think'" class="text-sm text-gray-500">
+          <MarkdownDisplay :content="props.message.functionCall?.arguments?.thought" />
         </p>
         <p v-else-if="props.message.functionCall?.name === 'ask_user'">
           {{ props.message.functionCall?.arguments?.question }}
@@ -154,7 +154,6 @@
 <script setup lang="ts">
 import axios from '@/plugins/axios'
 import yaml from 'js-yaml'
-import { marked } from 'marked'
 import { computed, defineEmits, defineProps, onMounted, ref } from 'vue'
 
 // Components
@@ -163,8 +162,8 @@ import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
 import Chart from '@/components/Chart.vue'
 import Echart from '@/components/Echart.vue'
+import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 import { ArrowPathIcon, PencilIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
-
 // Store
 import { useDatabasesStore } from '@/stores/databases'
 
@@ -231,10 +230,6 @@ async function executeSql(sql: string) {
   } catch (error) {
     console.error('Error executing SQL:', error)
   }
-}
-
-function renderMarkdown(text: string) {
-  return marked(text)
 }
 
 const parsedText = computed(() => {
