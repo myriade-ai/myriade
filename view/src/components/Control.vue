@@ -2,7 +2,17 @@
   <div class="flex h-screen">
     <!-- Left Panel: Business Entities Grid -->
     <div class="flex-1 bg-gray-100 p-4 overflow-y-auto">
-      <h2 class="text-xl font-semibold mb-3">Business Entities</h2>
+      <h2 class="text-xl font-semibold mb-3 inline-block">Semantic Entities</h2>
+      <button
+        @click="startAutoScan"
+        class="mb-3 ml-3 px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        :disabled="store.entities.length > 0"
+        :class="{
+          'opacity-50 cursor-not-allowed': store.entities.length > 0
+        }"
+      >
+        Scan auto
+      </button>
 
       <!-- Loading State -->
       <div v-if="store.loading" class="flex justify-center items-center h-32">
@@ -217,6 +227,26 @@ const selectEntity = (entity: BusinessEntity) => {
   }
 }
 
+const startAutoScan = async () => {
+  try {
+    if (!contextsStore.contextSelected) {
+      throw new Error('No context selected')
+    }
+    const conversation = await conversationsStore.createConversation(
+      contextsStore.contextSelected.id
+    )
+    await conversationsStore.sendMessage(
+      conversation.id,
+      'Can you explore the database, save to memory what you understood about the business, data structure,  and create missing semantic entities',
+      'text'
+    )
+    router.push({ name: 'ChatPage', params: { id: conversation.id.toString() } })
+  } catch (error) {
+    console.error('Error starting auto scan:', error)
+    // You might want to show an error message to the user here
+  }
+}
+
 const startAnalysis = async (entity: BusinessEntity) => {
   try {
     if (!contextsStore.contextSelected) {
@@ -227,7 +257,7 @@ const startAnalysis = async (entity: BusinessEntity) => {
     )
     await conversationsStore.sendMessage(
       conversation.id,
-      `Verify quality of the business entity "${entity.name}". Create issues if you find any.`,
+      `Verify quality of the business entity "${entity.name}".\nCreate issues if you find any.\nThen update the semantic catalog business entity report/quality score`,
       'text'
     )
     router.push({ name: 'ChatPage', params: { id: conversation.id.toString() } })
