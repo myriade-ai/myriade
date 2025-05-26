@@ -1,13 +1,20 @@
 <template>
-  <div :class="$attrs.class + ' markdown-content'" v-html="marked(props.content)"></div>
+  <div :class="$attrs.class + ' markdown-content'" v-html="marked(content)"></div>
 </template>
 
 <script setup lang="ts">
 import { marked } from 'marked'
+import { computed } from 'vue'
 
 const props = defineProps<{
   content: string
 }>()
+
+// We need to replace <QUERY:uuid> with link to the query
+// eg. uuid d3a2541d-6fc6-4ae9-841e-055e60f0575e
+const content = computed(() => {
+  return props.content.replace(/<QUERY:([^>]+)>/g, '<a href="/query/$1">Query $1</a>')
+})
 </script>
 
 <style>
@@ -45,7 +52,6 @@ const props = defineProps<{
   }
   a {
     color: #007bff;
-    text-decoration: underline;
   }
   table {
     width: 100%;
