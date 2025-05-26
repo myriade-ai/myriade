@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, cast
 from uuid import UUID
 
 from flask import Blueprint, g, jsonify, request
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from back.data_warehouse import ConnectionError, DataWarehouseFactory
@@ -76,7 +76,7 @@ def get_conversations():
     if context_id:
         database_id, project_id = extract_context(g.session, context_id)
         query = query.filter(
-            or_(
+            and_(
                 Conversation.databaseId == database_id,
                 Conversation.projectId == project_id,
             )
