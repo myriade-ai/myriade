@@ -19,7 +19,7 @@
           <div v-if="queries.length === 0" class="mt-4 text-center text-gray-500">
             <p>No saved queries</p>
           </div>
-          <div v-else class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div v-else class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
             <div
               v-for="query in queries"
               :key="query.id"
@@ -93,7 +93,7 @@
           <div v-if="charts.length === 0" class="mt-4 text-center text-gray-500">
             <p>No saved charts</p>
           </div>
-          <div v-else class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div v-else class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
             <div
               v-for="chart in charts"
               :key="chart.id"
