@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v0.16.0 (2025-05-26)
+
+### Bug Fixes
+
+- Allow multiple query / chart
+  ([`0c70f95`](https://github.com/myriade-ai/ada/commit/0c70f9541c68aeacbc91d0a2aef873d98159500f))
+
+- Query conversations
+  ([`a18c348`](https://github.com/myriade-ai/ada/commit/a18c3482b733f9ef39db0f3fe9b809f4038c73e1))
+
+### Features
+
+- Add markdown to issues
+  ([`f585491`](https://github.com/myriade-ai/ada/commit/f585491323d3f373de02a35b8cc5f08cfa4c2543))
+
+
 ## v0.15.1 (2025-05-23)
 
 ### Bug Fixes
