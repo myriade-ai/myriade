@@ -162,13 +162,11 @@ class DataAnalystAgent:
     ):
         """
         Give the final response from the user demand/query as a text.
-        You can insert a query in the text using the <QUERY:{query_id}> tag.
+        You can insert a query with it's preview result in the text using the <QUERY:{query_id}> tag.
         You can insert a chart in the text using the <CHART:{chart_id}> tag.
         Replace {query_id} and {chart_id} with the actual query id and chart id.
-        You can only insert one query and one chart per message.
-        Show the query only if the user asked for it.
-        Show the chart only if the user asked for it or if that make sense to have it.
-        """
+        Show the query / chart only if the user asked for it or if that make sense to have it.
+        """  # noqa: E501
 
         chunks = parse_answer_text(text)
         # Check query_id & chart_id
