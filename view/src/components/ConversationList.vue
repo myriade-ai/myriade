@@ -55,7 +55,7 @@
 <script setup lang="ts">
 import type { ConversationInfo } from '@/stores/conversations'
 import { useConversationsStore } from '@/stores/conversations'
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 // UI components
@@ -77,11 +77,6 @@ function setNameInputRef(id: string) {
     }
   }
 }
-
-// On mount, fetch the conversation list
-onMounted(async () => {
-  await store.fetchConversations()
-})
 
 const sortedGroup = computed(() => {
   // e.g. simply use store.sortedConversations,
