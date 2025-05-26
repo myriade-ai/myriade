@@ -63,6 +63,9 @@ export const useConversationsStore = defineStore('conversations', () => {
     () => contextsStore.contextSelected,
     (newContext) => {
       if (newContext && newContext.id) {
+        // clear the conversations store
+        conversations.value = {}
+        conversationStatuses.value = {}
         fetchConversations(newContext.id)
       }
     },
