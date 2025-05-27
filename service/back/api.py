@@ -152,9 +152,7 @@ def create_database():
     updated_tables_metadata = data_warehouse.load_metadata()
     # Merge with none (fresh create); adds empty privacy maps, then auto privacy scan
     merged_metadata = cast(Any, _merge_tables_metadata(None, updated_tables_metadata))  # type: ignore[attr-defined]
-    database.tables_metadata = cast(  # type: ignore[attr-defined]
-        Any, _apply_privacy_patterns_to_metadata(merged_metadata)
-    )
+    database.tables_metadata = merged_metadata
 
     g.session.add(database)
     g.session.flush()
@@ -202,9 +200,7 @@ def update_database(database_id):
     merged_metadata = cast(
         Any, _merge_tables_metadata(database.tables_metadata, new_meta)
     )  # type: ignore[attr-defined]
-    database.tables_metadata = cast(  # type: ignore[attr-defined]
-        Any, _apply_privacy_patterns_to_metadata(merged_metadata)
-    )
+    database.tables_metadata = merged_metadata
     database.engine = data["engine"]
     database.details = data["details"]
     database.safe_mode = data["safe_mode"]
