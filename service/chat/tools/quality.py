@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from uuid import UUID
 
 import yaml
 from sqlalchemy.orm import Session
@@ -9,7 +10,7 @@ from models.quality import BusinessEntity, Issue, IssueScope, Severity, Status
 
 
 class SemanticCatalog:
-    """A catalog of semantic entities with their quality metrics."""
+    """A catalog of business entities with their quality metrics."""
 
     def __init__(self, session: Session, conversation_id: str, database_id: str):
         self.session = session
@@ -18,7 +19,7 @@ class SemanticCatalog:
 
     def __repr__(self):
         return (
-            "### Entities\n"
+            "### Business Entities\n"
             + yaml.dump(self._fetch_entities())
             + "\n### Issues\n"
             + yaml.dump(self._fetch_issues())
@@ -75,7 +76,7 @@ class SemanticCatalog:
             name=entity_name,
             definition=definition,
             database_id=self.database_id,
-            review_conversation_id=self.conversation_id,
+            review_conversation_id=UUID(self.conversation_id),
         )
         self.session.add(new_entity)
         self.session.flush()
@@ -120,7 +121,7 @@ class SemanticCatalog:
 
         # These should always be updated as an update operation was performed
         entity.review_date = datetime.now()
-        entity.review_conversation_id = self.conversation_id
+        entity.review_conversation_id = UUID(self.conversation_id)
         self.session.flush()
 
     def delete_entity(self, entity_name: str) -> bool:
