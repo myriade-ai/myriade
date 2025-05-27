@@ -2,7 +2,7 @@
   <div class="flex h-screen">
     <!-- Left Panel: Business Entities Grid -->
     <div class="flex-1 bg-gray-100 p-4 overflow-y-auto">
-      <h2 class="text-xl font-semibold mb-3 inline-block">Semantic Entities</h2>
+      <h2 class="text-xl font-semibold mb-3 inline-block">Business Entities</h2>
       <button
         @click="startAutoScan"
         class="mb-3 ml-3 px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -237,7 +237,7 @@ const startAutoScan = async () => {
     )
     await conversationsStore.sendMessage(
       conversation.id,
-      'Can you explore the database, save to memory what you understood about the business, data structure,  and create missing semantic entities',
+      'Can you explore the database, save to memory what you understood about the business, data structure,  and create missing business entities',
       'text'
     )
     router.push({ name: 'ChatPage', params: { id: conversation.id.toString() } })
