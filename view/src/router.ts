@@ -104,6 +104,11 @@ const app_routes = [
     name: 'NotFound',
     component: loadView('NotFound'),
     meta: { requiresGuest: true, layout: 'empty' }
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: loadView('ProfilePage')
   }
 ]
 

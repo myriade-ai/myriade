@@ -58,6 +58,7 @@
             >
               <MenuItems
                 class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-gray-200 ring-opacity-100 focus:outline-hidden"
+                v-if="userNavigation.length > 0"
               >
                 <MenuItem
                   v-for="item in userNavigation"
@@ -194,6 +195,7 @@ const navigation = computed(() => [
 
 const userNavigation = computed(() => [
   // Only show these items to admins
+  { name: 'Profile', href: '/profile', click: () => router.push('/profile') },
   ...(user.value?.isAdmin
     ? [
         {
