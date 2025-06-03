@@ -64,7 +64,11 @@
               class="flex flex-col items-center w-full"
               style="position: relative"
             >
+<<<<<<< HEAD
               <SubscriptionPrompt />
+=======
+              <SubscriptionPrompt @dismiss="showSubscriptionPrompt = false" />
+>>>>>>> c54ca84 (base for test)
             </div>
 
             <!-- Display error message if queryStatus is error -->
@@ -301,7 +305,11 @@ const inputSQL = ref('')
 const editMode = ref<'text' | 'SQL'>('text')
 
 // Subscription prompt state
+<<<<<<< HEAD
 const showSubscriptionPrompt = computed(() => conversationsStore.subscriptionRequired)
+=======
+const showSubscriptionPrompt = ref(false)
+>>>>>>> c54ca84 (base for test)
 
 const handleEnter = (event: KeyboardEvent) => {
   if (!event.shiftKey) {
@@ -380,6 +388,14 @@ onMounted(async () => {
 
   scrollToBottom()
 })
+
+// Watch for subscription required from store
+watch(
+  () => conversationsStore.subscriptionRequired,
+  (newValue) => {
+    showSubscriptionPrompt.value = newValue
+  }
+)
 
 // If route changes (user navigates to a different ID)
 watch(

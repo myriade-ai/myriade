@@ -18,7 +18,13 @@ def check_subscription_required(session):
     user_id = flask_session["user"].id
     user = session.query(User).filter(User.id == user_id).first()
     if not user or not user.has_active_subscription:
+<<<<<<< HEAD
         return False
+=======
+        emit("error", {"message": "SUBSCRIPTION_REQUIRED"})
+        return False
+
+>>>>>>> c54ca84 (base for test)
     return True
 
 
@@ -36,10 +42,13 @@ def handle_stop(conversation_id: str):
 def handle_ask(session, conversation_id, question):
     # Check subscription requirement
     if not check_subscription_required(session):
+<<<<<<< HEAD
         emit(
             "error",
             {"message": "SUBSCRIPTION_REQUIRED", "conversationId": conversation_id},
         )
+=======
+>>>>>>> c54ca84 (base for test)
         return
 
     # We reset stop flag if the user sent a new request
@@ -73,10 +82,13 @@ def handle_query(
 ):
     # Check subscription requirement
     if not check_subscription_required(session):
+<<<<<<< HEAD
         emit(
             "error",
             {"message": "SUBSCRIPTION_REQUIRED", "conversationId": conversation_id},
         )
+=======
+>>>>>>> c54ca84 (base for test)
         return
 
     # We reset stop flag if the user sent a new request
