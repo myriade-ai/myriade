@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.17.1 (2025-06-10)
+
+### Bug Fixes
+
+- Small fixes
+  ([`f51c287`](https://github.com/myriade-ai/ada/commit/f51c287934efb57cad51901f173b95eee89cbb09))
+
+
 ## v0.17.0 (2025-06-10)
 
 ### Bug Fixes
