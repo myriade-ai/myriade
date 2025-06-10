@@ -6,9 +6,8 @@
       <button
         @click="startAutoScan"
         class="mb-3 ml-3 px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        :disabled="store.entities.length > 0"
         :class="{
-          'opacity-50 cursor-not-allowed': store.entities.length > 0
+          'opacity-50': store.entities.length > 0
         }"
       >
         Scan auto

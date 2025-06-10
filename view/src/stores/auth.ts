@@ -6,7 +6,7 @@ export const user = ref({
   email: null,
   firstName: null,
   lastName: null,
-  imageUrl: null,
+  profilePictureUrl: null,
   isAdmin: false
 })
 
