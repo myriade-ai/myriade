@@ -1,6 +1,40 @@
 # CHANGELOG
 
 
+## v0.17.0 (2025-06-10)
+
+### Bug Fixes
+
+- Augment size favorites
+  ([`d81f868`](https://github.com/myriade-ai/ada/commit/d81f868b1ee9ab69de7956dea52fe4acc36c39ea))
+
+- Conversation by context
+  ([`134571d`](https://github.com/myriade-ai/ada/commit/134571d8b3e656e173a4596612f4687bd41e9a0a))
+
+- Implement query link
+  ([`f4e51ab`](https://github.com/myriade-ai/ada/commit/f4e51ab82dd09ae3bf700a8a6d968d8b6de15d14))
+
+- Move back to business entities to be clearer
+  ([`cc1f194`](https://github.com/myriade-ai/ada/commit/cc1f194cdcccb780ba96600ce1465b3751a0daa7))
+
+- Remove privacy settings by default
+  ([`be440e0`](https://github.com/myriade-ai/ada/commit/be440e01a58029794618601096658ec8fb9318b3))
+
+- Review conversation
+  ([`e9796ed`](https://github.com/myriade-ai/ada/commit/e9796ed05a6e52e752b4045541fd46ee174e699a))
+
+### Features
+
+- Add profile
+  ([`1886598`](https://github.com/myriade-ai/ada/commit/1886598898ee89eee8ad72051352a54177320c9b))
+
+- Add scan auto semantic entities
+  ([`444ebc8`](https://github.com/myriade-ai/ada/commit/444ebc851fecb5052908b033a0428339871aa753))
+
+- Follow language
+  ([`c9a0360`](https://github.com/myriade-ai/ada/commit/c9a0360f47fbe00f2598815c40776fabe84d1a34))
+
+
 ## v0.16.0 (2025-05-26)
 
 ### Bug Fixes
