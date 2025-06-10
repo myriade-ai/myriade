@@ -31,7 +31,7 @@
     "marked": "^14.0.0",
     "pinia": "^2.0.32",
     "pinia-plugin-persistedstate": "^3.1.0",
-    "postcss": "^8.4.21",
+    "postcss": "^8.5.4",
     "socket.io-client": "^4.8.1",
     "sql-prettier": "^0.2.10",
     "tabulator-tables": "^5.4.4",
@@ -58,7 +58,7 @@
     "prettier": "^3.5.3",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.26.1",
-    "vite": "^6.2.7",
+    "vite": "^6.3.5",
     "vue-eslint-parser": "^10.1.1",
     "vue-tsc": "^2.2.8"
   }
