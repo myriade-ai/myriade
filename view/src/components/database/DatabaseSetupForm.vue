@@ -20,24 +20,27 @@
         </p>
       </div>
 
-      <Form @submit="testConnection" class="space-y-6 max-w-2xl mx-auto">
+      <Form @submit="testConnection" class="space-y-6 max-w-lg mx-auto">
         <DatabaseConnectionForm
           v-model="databaseConfig.details"
           :engine="databaseConfig.engine"
+          :name-value="databaseConfig.name"
+          @update:name="databaseConfig.name = $event"
           layout="grid"
           :show-engine-title="false"
           :user-required="true"
           :password-required="false"
           :safe-mode="databaseConfig.safe_mode"
+          :show-name-field="true"
           @update:safe-mode="databaseConfig.safe_mode = $event"
         />
 
         <!-- Test Connection Button -->
         <div class="flex justify-center pt-4">
-          <button
+          <BaseButton
             type="submit"
             :disabled="isTestingConnection"
-            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span v-if="!isTestingConnection">Test Connection</span>
             <span v-else class="flex items-center">
@@ -63,7 +66,7 @@
               </svg>
               Testing Connection...
             </span>
-          </button>
+          </BaseButton>
         </div>
 
         <!-- Connection Status -->
@@ -84,9 +87,9 @@
           </div>
           <div v-else class="bg-red-50 border border-red-200 rounded-md p-4">
             <div class="flex">
-              <div class="ml-3">
+              <div class="w-full">
                 <h3 class="text-sm font-medium text-red-800">Connection Failed</h3>
-                <div class="mt-2 text-sm text-red-700">
+                <div class="mt-2 text-sm text-red-700 w-full break-words">
                   <p>{{ connectionStatus.message }}</p>
                 </div>
               </div>
@@ -155,6 +158,7 @@
 </template>
 
 <script setup lang="ts">
+import BaseButton from '@/components/base/BaseButton.vue'
 import axios from '@/plugins/axios'
 import { useDatabasesStore } from '@/stores/databases'
 import {

@@ -6,7 +6,7 @@
       name="Connection Name"
       :model-value="nameValue || ''"
       :rules="nameRequired ? 'required' : ''"
-      :placeholder="namePlaceholder"
+      placeholder="A nice name for your connection, like 'My Production Database'"
       @update:model-value="$emit('update:name', $event)"
     />
 

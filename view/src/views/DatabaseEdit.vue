@@ -40,7 +40,9 @@
       />
 
       <div class="mt-4 block text-sm font-medium text-gray-700" @click="toggleDbtSupport">
-        <p>DBT Support <span v-if="isDbtSupportOpen">▼</span><span v-else>▶</span></p>
+        <p>
+          DBT Support (experimental) <span v-if="isDbtSupportOpen">▼</span><span v-else>▶</span>
+        </p>
       </div>
     </div>
 

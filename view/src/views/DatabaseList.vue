@@ -24,11 +24,12 @@
         </li>
       </ul>
     </div>
-    <div class="mt-6">
+    <hr class="my-4" />
+    <div class="mt-6 mb-6">
       <router-link
         to="/databases/new"
         href="#"
-        class="flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-xs hover:bg-gray-50"
+        class="flex w-full items-center justify-center rounded-md border border-gray-300 bg-gray-50 px-4 py-2 mb-4 text-sm font-medium text-gray-700 shadow-xs hover:bg-gray-50"
         >Add new
       </router-link>
     </div>
