@@ -104,11 +104,10 @@ const getStepIconClasses = (index: number) => {
 }
 
 const onDatabaseSaved = () => {
-  router.push('/subscribe')
+  router.push('/')
 }
 
 const onSaveError = (error: any) => {
   console.error('Database save error:', error)
-  // Error handling is already done in the component
 }
 </script>

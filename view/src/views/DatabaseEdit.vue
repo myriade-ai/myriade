@@ -12,21 +12,31 @@
       </div>
     </nav>
     <br />
-    <div class="sm:col-span-6" v-if="!isNew">
+    <div class="sm:col-span-6 max-w-lg">
+      <!-- Database Type Display (read-only when editing) -->
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700">Database Type</label>
+        <div
+          class="mt-1 text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-300"
+        >
+          {{ getDatabaseTypeName(database.engine) }}<br />
+          <i class="text-xs text-gray-500">Database type cannot be changed after creation</i>
+        </div>
+      </div>
+
       <DatabaseConnectionForm
-        v-model="database"
+        v-model="database.details"
         :engine="database.engine"
         layout="stack"
         :show-engine-title="true"
+        :show-name-field="true"
+        :name-value="database.name"
         :name-required="true"
-        name-placeholder=""
+        name-placeholder="My Database Connection"
         description-placeholder="Database used for X,Y and Z..."
-      />
-
-      <DatabaseTypeSelector
-        v-model="database.engine"
-        layout="dropdown"
-        :included-types="['postgres', 'sqlite', 'snowflake', 'mysql']"
+        :safe-mode="database.safe_mode"
+        @update:safe-mode="database.safe_mode = $event"
+        @update:name="database.name = $event"
       />
 
       <div class="mt-4 block text-sm font-medium text-gray-700" @click="toggleDbtSupport">
@@ -34,15 +44,7 @@
       </div>
     </div>
 
-    <div v-else class="sm:col-span-6">
-      <DatabaseSetupForm
-        save-button-text="Save Database"
-        @database-saved="onDatabaseSaved"
-        @save-error="onSaveError"
-      />
-    </div>
-
-    <div v-if="isDbtSupportOpen && !isNew">
+    <div v-if="isDbtSupportOpen">
       <p class="text-sm text-gray-500">
         Add DBT json files so the AI can leverage DBT (experimental)
       </p>
@@ -83,13 +85,7 @@
       </div>
     </div>
 
-    <BaseSwitch v-model="database.safe_mode" class="mt-1">
-      <span class="text-gray-700">Safe mode (read-only)</span>
-    </BaseSwitch>
-
-    <hr class="mt-5" />
-
-    <BaseAlert class="mt-5" v-if="apiError">
+    <BaseAlert class="mt-5 max-w-lg" v-if="apiError">
       <template #title> There is an error 😔 </template>
       {{ apiError }}
       <!-- Server IP whitelist information section - always visible -->
@@ -108,7 +104,7 @@
       </div>
     </BaseAlert>
 
-    <div class="py-5" v-if="!isNew">
+    <div class="py-5 max-w-lg">
       <div class="flex justify-end">
         <button
           @click.prevent="clickDelete"
@@ -130,10 +126,7 @@
 
 <script setup lang="ts">
 import BaseAlert from '@/components/base/BaseAlert.vue'
-import BaseSwitch from '@/components/base/BaseSwitch.vue'
 import DatabaseConnectionForm from '@/components/database/DatabaseConnectionForm.vue'
-import DatabaseSetupForm from '@/components/database/DatabaseSetupForm.vue'
-import DatabaseTypeSelector from '@/components/database/DatabaseTypeSelector.vue'
 import router from '@/router'
 import { useDatabasesStore } from '@/stores/databases'
 import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
@@ -167,28 +160,25 @@ const database = ref({
     password: '',
     database: ''
   },
-  safe_mode: true,
   dbt_catalog: null,
   dbt_manifest: null
 } as any)
 
 const databasesStore = useDatabasesStore()
-const { selectDatabaseById, createDatabase, updateDatabase, deleteDatabase } = databasesStore
+const { selectDatabaseById, updateDatabase, deleteDatabase } = databasesStore
 
-const isNew = computed(() => route.params.id === 'new')
-if (!isNew.value) {
-  const databaseId = route.params.id as string
-  await selectDatabaseById(databaseId)
-  // Copy the databaseSelected to the database
-  database.value.id = databasesStore.databaseSelected.id
-  database.value.name = databasesStore.databaseSelected.name
-  database.value.engine = databasesStore.databaseSelected.engine
-  database.value.details = databasesStore.databaseSelected.details
+// Load the existing database for editing
+const databaseId = route.params.id as string
+await selectDatabaseById(databaseId)
+// Copy the databaseSelected to the database
+database.value.id = databasesStore.databaseSelected.id
+database.value.name = databasesStore.databaseSelected.name
+database.value.engine = databasesStore.databaseSelected.engine
+database.value.details = databasesStore.databaseSelected.details
 
-  database.value.safe_mode = databasesStore.databaseSelected.safe_mode
-  database.value.dbt_catalog = databasesStore.databaseSelected.dbt_catalog
-  database.value.dbt_manifest = databasesStore.databaseSelected.dbt_manifest
-}
+database.value.safe_mode = databasesStore.databaseSelected.safe_mode
+database.value.dbt_catalog = databasesStore.databaseSelected.dbt_catalog
+database.value.dbt_manifest = databasesStore.databaseSelected.dbt_manifest
 
 const clickDelete = async () => {
   await deleteDatabase(database.value.id)
@@ -202,11 +192,7 @@ const clickCancel = () => {
 
 const clickSave = async () => {
   try {
-    if (isNew.value) {
-      database.value = await createDatabase(database.value)
-    } else {
-      await updateDatabase(database.value.id, database.value)
-    }
+    await updateDatabase(database.value.id, database.value)
     router.push({ name: 'DatabaseList' })
   } catch (error: any) {
     console.error(error)
@@ -245,13 +231,14 @@ const toggleDbtSupport = () => {
   isDbtSupportOpen.value = !isDbtSupportOpen.value
 }
 
-const onDatabaseSaved = () => {
-  // Handle the event when a new database is saved
-  router.push({ name: 'DatabaseList' })
-}
-
-const onSaveError = (error: any) => {
-  // Handle the event when there's an error during database save
-  console.error('Database save error:', error)
+const getDatabaseTypeName = (engine: string) => {
+  const engineNames: Record<string, string> = {
+    postgres: 'PostgreSQL',
+    mysql: 'MySQL',
+    snowflake: 'Snowflake',
+    sqlite: 'SQLite',
+    bigquery: 'BigQuery'
+  }
+  return engineNames[engine] || engine
 }
 </script>

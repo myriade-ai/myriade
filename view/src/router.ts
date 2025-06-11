@@ -70,6 +70,12 @@ const app_routes = [
     component: loadView('DatabaseList')
   },
   {
+    path: '/databases/new',
+    name: 'DatabaseNew',
+    component: loadView('SetupFunnel'),
+    meta: { layout: 'empty' }
+  },
+  {
     path: '/databases/:id',
     name: 'DatabaseEdit',
     component: loadView('DatabaseEdit')

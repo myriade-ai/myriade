@@ -1,18 +1,14 @@
 <template>
   <div class="space-y-6">
     <!-- Basic Information -->
-    <!-- <base-input
+    <base-input
+      v-if="showNameField"
       name="Connection Name"
-      v-model="internalDetails.name"
+      :model-value="nameValue || ''"
       :rules="nameRequired ? 'required' : ''"
       :placeholder="namePlaceholder"
-    /> -->
-
-    <!-- <base-input
-      name="Description"
-      v-model="internalDetails.description"
-      :placeholder="descriptionPlaceholder"
-    /> -->
+      @update:model-value="$emit('update:name', $event)"
+    />
 
     <!-- PostgreSQL/MySQL Fields -->
     <div v-if="engine === 'postgres' || engine === 'mysql'" class="space-y-4">
@@ -163,6 +159,8 @@ interface Props {
   engine: string
   layout?: 'stack' | 'grid'
   showEngineTitle?: boolean
+  showNameField?: boolean
+  nameValue?: string
   nameRequired?: boolean
   userRequired?: boolean
   passwordRequired?: boolean
@@ -171,7 +169,7 @@ interface Props {
   safeMode?: boolean
 }
 const props = defineProps<Props>()
-const emit = defineEmits(['update:modelValue', 'update:safeMode'])
+const emit = defineEmits(['update:modelValue', 'update:safeMode', 'update:name'])
 
 const details = props.modelValue
 
