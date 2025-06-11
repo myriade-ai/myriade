@@ -3,7 +3,7 @@ requires-python = ">=3.13"
 
 [[package]]
 name = "ada"
-version = "0.15.1"
+version = "0.16.0"
 source = { virtual = "." }
 dependencies = [
     { name = "alembic" },
@@ -22,6 +22,7 @@ dependencies = [
     { name = "sentry-sdk", extra = ["flask"] },
     { name = "sqlalchemy" },
     { name = "sqlglot" },
+    { name = "stripe" },
     { name = "syrupy" },
     { name = "workos" },
 ]
@@ -69,6 +70,7 @@ requires-dist = [
     { name = "snowflake-connector-python", marker = "extra == 'snowflake'", specifier = ">=3.0.1" },
     { name = "sqlalchemy", specifier = ">=2.0.6" },
     { name = "sqlglot", specifier = ">=26.16.2" },
+    { name = "stripe", specifier = ">=12.2.0" },
     { name = "syrupy", specifier = ">=4.8.2" },
     { name = "workos", specifier = "==5.15.0" },
 ]
@@ -1269,6 +1271,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/04/1b/52b27f2e13ceedc79a908e29eac426a63465a1a01248e5f24aa36a62aeb3/starlette-0.46.1.tar.gz", hash = "sha256:3c88d58ee4bd1bb807c0d1acb381838afc7752f9ddaec81bbe4383611d833230", size = 2580102 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/4b/528ccf7a982216885a1ff4908e886b8fb5f19862d1962f56a3fce2435a70/starlette-0.46.1-py3-none-any.whl", hash = "sha256:77c74ed9d2720138b25875133f3a2dae6d854af2ec37dceb56aef370c1d8a227", size = 71995 },
+]
+
+[[package]]
+name = "stripe"
+version = "12.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/31/00/346d0baff3ade82faf1299262ae9c0e1a497593e9c294837abecac8c7822/stripe-12.2.0.tar.gz", hash = "sha256:1ac2a4abba371acb3f99ff1c4a8748929862ad42d0cdee488298982f1be8d56e", size = 1393146 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9b/d6/c97a38e2997c368e62443aa8f7d0f3e903a9cb686d2445a23f5d4b552894/stripe-12.2.0-py2.py3-none-any.whl", hash = "sha256:cc9086d162e65e32893e4a03c31194e36e07870653a5f30aacc62da61e548cb9", size = 1633772 },
 ]
 
 [[package]]

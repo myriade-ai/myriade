@@ -7,9 +7,19 @@ from auth.auth import UnauthorizedError, socket_auth
 from back.session import with_session
 from chat.analyst_agent import DataAnalystAgent
 from chat.lock import STATUS, conversation_stop_flags, emit_status, stop_flag_lock
-from models import Conversation, ConversationMessage
+from models import Conversation, ConversationMessage, User
 
 api = Blueprint("chat_api", __name__)
+
+
+def check_subscription_required(session):
+    """Check if user has an active subscription. Emit error if not."""
+    # Get user from session using flask session
+    user_id = flask_session["user"].id
+    user = session.query(User).filter(User.id == user_id).first()
+    if not user or not user.has_active_subscription:
+        return False
+    return True
 
 
 @socketio.on("stop")
@@ -24,6 +34,14 @@ def handle_stop(conversation_id: str):
 @socketio.on("ask")
 @with_session
 def handle_ask(session, conversation_id, question):
+    # Check subscription requirement
+    if not check_subscription_required(session):
+        emit(
+            "error",
+            {"message": "SUBSCRIPTION_REQUIRED", "conversationId": conversation_id},
+        )
+        return
+
     # We reset stop flag if the user sent a new request
     conversation_stop_flags.pop(conversation_id, None)
 
@@ -53,6 +71,14 @@ def handle_query(
     query,
     conversation_id=None,
 ):
+    # Check subscription requirement
+    if not check_subscription_required(session):
+        emit(
+            "error",
+            {"message": "SUBSCRIPTION_REQUIRED", "conversationId": conversation_id},
+        )
+        return
+
     # We reset stop flag if the user sent a new request
     conversation_stop_flags.pop(conversation_id, None)
 
@@ -108,6 +134,13 @@ def handle_regenerate_from_message(
     If the message is from the assistant, delete it
     If the message is from the user, regenerate the conversation from the next message
     """
+    if not check_subscription_required(session):
+        emit(
+            "error",
+            {"message": "SUBSCRIPTION_REQUIRED", "conversationId": conversation_id},
+        )
+        return
+
     # We reset stop flag if the user sent a new request
     conversation_stop_flags.pop(conversation_id, None)
 

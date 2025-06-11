@@ -142,7 +142,7 @@ def create_database():
         description=data["description"],
         engine=data["engine"],
         details=data["details"],
-        organisationId=g.organisation.id,
+        organisationId=g.organisation.id if g.organisation else None,
         ownerId=g.user.id,
         safe_mode=data["safe_mode"],
         dbt_catalog=data["dbt_catalog"],
@@ -160,19 +160,19 @@ def create_database():
     return jsonify(database)
 
 
-@api.route("/databases/<database_id>", methods=["DELETE"])
+@api.route("/databases/<uuid:database_id>", methods=["DELETE"])
 @user_middleware
 @admin_required
-def delete_database(database_id):
+def delete_database(database_id: UUID):
     # Delete database
     g.session.query(Database).filter_by(id=database_id).delete()
     g.session.flush()
     return jsonify({"success": True})
 
 
-@api.route("/databases/<database_id>", methods=["PUT"])
+@api.route("/databases/<uuid:database_id>", methods=["PUT"])
 @user_middleware
-def update_database(database_id):
+def update_database(database_id: UUID):
     data = request.get_json()
 
     # Update database
@@ -237,6 +237,10 @@ def get_databases():
 @api.route("/contexts/<string:context_id>/questions", methods=["GET"])
 @user_middleware
 def get_questions(context_id):
+    # Check if user has active subscription
+    if not g.user or not g.user.has_active_subscription:
+        return jsonify({"error": "Subscription required"}), 403
+
     # Get the preferred language from Accept-Language header
     user_language = request.headers.get("Accept-Language")
 

@@ -56,6 +56,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   // ——————————————————————————————————————————————————
   const conversations = ref<Record<string, Conversation>>({})
   const conversationStatuses = ref<Record<string, ConversationStatus>>({})
+  const subscriptionRequired = ref(false)
 
   // Watch for context changes and fetch conversations
   const contextsStore = useContextsStore()
@@ -278,6 +279,9 @@ export const useConversationsStore = defineStore('conversations', () => {
   })
 
   socket.on('response', (payload: any) => {
+    if (subscriptionRequired.value) {
+      subscriptionRequired.value = false
+    }
     receiveMessage(payload)
   })
 
@@ -286,11 +290,19 @@ export const useConversationsStore = defineStore('conversations', () => {
     setConversationStatus(conversation_id, status, error)
   })
 
+  socket.on('error', (error: any) => {
+    if (error.message === 'SUBSCRIPTION_REQUIRED') {
+      subscriptionRequired.value = true
+      setConversationStatus(error.conversationId, STATUS.CLEAR)
+    }
+  })
+
   // 8) Return references to everything
   return {
     // state
     conversations,
     conversationStatuses,
+    subscriptionRequired,
     // getters
     sortedUserConversations,
     getConversationById,
