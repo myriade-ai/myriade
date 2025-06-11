@@ -16,12 +16,10 @@ export const useContextsStore = defineStore('contexts', () => {
   const databasesStore = useDatabasesStore()
 
   // State
-  // Initialize with null or a sensible default. It will be updated after fetching.
-  const contextSelected = useLocalStorage<Context | null>(
-    'contextSelected',
-    null,
-    { serializer: StorageSerializers.object } // Explicitly use JSON serialization
-  )
+  // Store only the context ID instead of the full object
+  const contextSelectedId = useLocalStorage<string | null>('contextSelectedId', null, {
+    serializer: StorageSerializers.string
+  })
 
   // Getters
   const contexts = computed<Context[]>(() => {
@@ -38,6 +36,12 @@ export const useContextsStore = defineStore('contexts', () => {
     return [...projectContexts, ...databaseContexts]
   })
 
+  // Computed property to get the selected context object based on ID
+  const contextSelected = computed<Context | null>(() => {
+    if (!contextSelectedId.value) return null
+    return contexts.value.find((context) => context.id === contextSelectedId.value) || null
+  })
+
   // Actions
   async function initializeContexts() {
     // Fetch data if not already loaded (Pinia might handle this internally if stores are already used)
@@ -47,26 +51,33 @@ export const useContextsStore = defineStore('contexts', () => {
 
     // Update selected context only if it's null/invalid or doesn't exist in the new list
     const currentSelectionValid = contexts.value.some(
-      (context) => context.id === contextSelected.value?.id
+      (context) => context.id === contextSelectedId.value
     )
 
-    if ((!contextSelected.value || !currentSelectionValid) && contexts.value.length > 0) {
-      contextSelected.value = contexts.value[0]
+    if ((!contextSelectedId.value || !currentSelectionValid) && contexts.value.length > 0) {
+      contextSelectedId.value = contexts.value[0].id
     }
   }
 
-  // Function to manually set the selected context
-  function setSelectedContext(context: Context | null) {
-    contextSelected.value = context
+  // Function to manually set the selected context by ID
+  function setSelectedContext(contextId: string | null) {
+    contextSelectedId.value = contextId
+  }
+
+  // Function to manually set the selected context by object (for backward compatibility)
+  function setSelectedContextByObject(context: Context | null) {
+    contextSelectedId.value = context?.id || null
   }
 
   return {
     // State
-    contextSelected,
+    contextSelectedId,
     // Getters
     contexts,
+    contextSelected, // Returns the full context object based on selected ID
     // Actions
     initializeContexts,
-    setSelectedContext
+    setSelectedContext,
+    setSelectedContextByObject
   }
 })

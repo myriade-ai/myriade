@@ -23,6 +23,12 @@ const app_routes = [
     redirect: '/chat/new'
   },
   {
+    path: '/setup',
+    name: 'SetupFunnel',
+    component: loadView('SetupFunnel'),
+    meta: { layout: 'empty' }
+  },
+  {
     path: '/subscribe',
     name: 'Subscribe',
     component: loadView('Subscribe'),
@@ -62,6 +68,12 @@ const app_routes = [
     path: '/databases',
     name: 'DatabaseList',
     component: loadView('DatabaseList')
+  },
+  {
+    path: '/databases/new',
+    name: 'DatabaseNew',
+    component: loadView('SetupFunnel'),
+    meta: { layout: 'empty' }
   },
   {
     path: '/databases/:id',
