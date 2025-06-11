@@ -160,6 +160,26 @@ def create_database():
     return jsonify(database)
 
 
+@api.route("/databases/test-connection", methods=["POST"])
+@user_middleware
+def test_database_connection():
+    """Test database connection without creating the database."""
+    data = request.get_json()
+
+    try:
+        # Instantiate a new data_warehouse object
+        data_warehouse = DataWarehouseFactory.create(
+            data["engine"],
+            **data["details"],
+        )
+        data_warehouse.test_connection()
+        return jsonify({"success": True, "message": "Connection successful"})
+    except ConnectionError as e:
+        return jsonify({"success": False, "message": str(e.args[0])}), 400
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 400
+
+
 @api.route("/databases/<uuid:database_id>", methods=["DELETE"])
 @user_middleware
 @admin_required

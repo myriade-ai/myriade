@@ -12,87 +12,37 @@
       </div>
     </nav>
     <br />
-    <div class="sm:col-span-6">
-      <base-input name="Name" v-model="database.name" rules="required" />
-      <base-input
-        name="Description"
-        v-model="database.description"
-        placeholder="Database used for X,Y and Z..."
+    <div class="sm:col-span-6" v-if="!isNew">
+      <DatabaseConnectionForm
+        v-model="database"
+        :engine="database.engine"
+        layout="stack"
+        :show-engine-title="true"
+        :name-required="true"
+        name-placeholder=""
+        description-placeholder="Database used for X,Y and Z..."
       />
 
-      <base-field name="Engine">
-        <div class="select">
-          <select
-            v-model="database.engine"
-            class="block w-full max-w-lg rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500 sm:max-w-xs sm:text-sm"
-          >
-            <option>postgres</option>
-            <option>sqlite</option>
-            <option>snowflake</option>
-            <option>mysql</option>
-          </select>
-        </div>
-      </base-field>
-
-      <div class="mt-4 text-sm text-gray-500" v-if="database.engine === 'postgres'">
-        <p>Postgres connection details</p>
-        <base-input
-          name="Host"
-          v-model="database.details.host"
-          placeholder="localhost"
-          rules="required"
-        />
-        <base-input name="Port" v-model="database.details.port" type="number" />
-        <base-input name="User" v-model="database.details.user" />
-        <base-input-password
-          name="Password"
-          v-model="database.details.password"
-          placeholder="Enter password"
-        />
-        <base-input name="Database" v-model="database.details.database" rules="required" />
-      </div>
-      <div class="mt-4 text-sm text-gray-500" v-if="database.engine === 'mysql'">
-        <p>Mysql connection details</p>
-        <base-input
-          name="Host"
-          v-model="database.details.host"
-          placeholder="localhost"
-          rules="required"
-        />
-        <base-input name="Port" v-model="database.details.port" type="number" />
-        <base-input name="User" v-model="database.details.user" />
-        <base-input-password
-          name="Password"
-          v-model="database.details.password"
-          placeholder="Enter password"
-        />
-        <base-input name="Database" v-model="database.details.database" rules="required" />
-      </div>
-    </div>
-    <div class="mt-4 text-sm text-gray-500" v-if="database.engine === 'sqlite'">
-      <p>Sqlite connection details</p>
-      <base-input name="Path" v-model="database.details.filename" rules="required" />
-    </div>
-    <div class="mt-4 text-sm text-gray-500" v-if="database.engine === 'snowflake'">
-      <p>Snowflake connection details</p>
-      <base-input name="Account" v-model="database.details.account" rules="required" />
-      <base-input name="User" v-model="database.details.user" rules="required" />
-      <base-input-password
-        name="Password"
-        v-model="database.details.password"
-        placeholder="Enter password"
-        rules="required"
+      <DatabaseTypeSelector
+        v-model="database.engine"
+        layout="dropdown"
+        :included-types="['postgres', 'sqlite', 'snowflake', 'mysql']"
       />
-      <base-input name="Database" v-model="database.details.database" rules="required" />
-      <base-input name="Schema" v-model="database.details.schema" />
-      <base-input name="Role" v-model="database.details.role" />
-      <base-input name="Warehouse" v-model="database.details.warehouse" />
+
+      <div class="mt-4 block text-sm font-medium text-gray-700" @click="toggleDbtSupport">
+        <p>DBT Support <span v-if="isDbtSupportOpen">▼</span><span v-else>▶</span></p>
+      </div>
     </div>
 
-    <div class="mt-4 block text-sm font-medium text-gray-700" @click="toggleDbtSupport">
-      <p>DBT Support <span v-if="isDbtSupportOpen">▼</span><span v-else>▶</span></p>
+    <div v-else class="sm:col-span-6">
+      <DatabaseSetupForm
+        save-button-text="Save Database"
+        @database-saved="onDatabaseSaved"
+        @save-error="onSaveError"
+      />
     </div>
-    <div v-if="isDbtSupportOpen">
+
+    <div v-if="isDbtSupportOpen && !isNew">
       <p class="text-sm text-gray-500">
         Add DBT json files so the AI can leverage DBT (experimental)
       </p>
@@ -158,7 +108,7 @@
       </div>
     </BaseAlert>
 
-    <div class="py-5">
+    <div class="py-5" v-if="!isNew">
       <div class="flex justify-end">
         <button
           @click.prevent="clickDelete"
@@ -180,10 +130,10 @@
 
 <script setup lang="ts">
 import BaseAlert from '@/components/base/BaseAlert.vue'
-import BaseField from '@/components/base/BaseField.vue'
-import BaseInput from '@/components/base/BaseInput.vue'
-import BaseInputPassword from '@/components/base/BaseInputPassword.vue'
 import BaseSwitch from '@/components/base/BaseSwitch.vue'
+import DatabaseConnectionForm from '@/components/database/DatabaseConnectionForm.vue'
+import DatabaseSetupForm from '@/components/database/DatabaseSetupForm.vue'
+import DatabaseTypeSelector from '@/components/database/DatabaseTypeSelector.vue'
 import router from '@/router'
 import { useDatabasesStore } from '@/stores/databases'
 import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
@@ -192,7 +142,7 @@ import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
-const apiError = ref(null)
+const apiError = ref<string | null>(null)
 const serverIp = ref('')
 
 const getServerIp = async () => {
@@ -266,7 +216,7 @@ const clickSave = async () => {
 }
 
 const isConnectionTimeout = computed(() => {
-  return apiError.value?.includes('timeout')
+  return apiError.value?.includes('timeout') || false
 })
 
 const handleFileUpload = (event: any, key: 'dbt_catalog' | 'dbt_manifest') => {
@@ -293,5 +243,15 @@ const handleManifestFileUpload = (event: any) => {
 const isDbtSupportOpen = ref(database.value.dbt_catalog || database.value.dbt_manifest)
 const toggleDbtSupport = () => {
   isDbtSupportOpen.value = !isDbtSupportOpen.value
+}
+
+const onDatabaseSaved = () => {
+  // Handle the event when a new database is saved
+  router.push({ name: 'DatabaseList' })
+}
+
+const onSaveError = (error: any) => {
+  // Handle the event when there's an error during database save
+  console.error('Database save error:', error)
 }
 </script>

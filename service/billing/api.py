@@ -16,11 +16,7 @@ api = Blueprint("billing_api", __name__)
 @user_middleware
 def create_checkout_session():
     subscription_url = request.referrer
-<<<<<<< HEAD
     host_url = config.HOST
-=======
-    host_url = request.host_url
->>>>>>> c54ca84 (base for test)
     prices = stripe.Price.list(
         lookup_keys=["standard_monthly"],
         expand=["data.product"],
