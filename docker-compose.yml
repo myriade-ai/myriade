@@ -31,6 +31,7 @@ services:
       WORKOS_API_KEY: ${WORKOS_API_KEY}
       WORKOS_CLIENT_ID: ${WORKOS_CLIENT_ID}
       WORKOS_ORGANIZATION_ID: ${WORKOS_ORGANIZATION_ID}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
     networks:
       - ada-network
 
