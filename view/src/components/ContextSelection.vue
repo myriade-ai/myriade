@@ -2,7 +2,7 @@
   <div class="flex items-center">
     <BaseSelector
       :options="contextsStore.contexts"
-      v-model="contextsStore.contextSelected"
+      v-model="contextsStore.contextSelectedId"
       @update:modelValue="contextsStore.setSelectedContext"
       class="w-48"
       placeholder="Select context"
