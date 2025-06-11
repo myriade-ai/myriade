@@ -16,7 +16,8 @@ api = Blueprint("billing_api", __name__)
 @user_middleware
 def create_checkout_session():
     subscription_url = request.referrer
-    host_url = config.HOST
+    scheme = "https" if config.ENV == "production" else "http"
+    host_url = scheme + "://" + config.HOST
     prices = stripe.Price.list(
         lookup_keys=["standard_monthly"],
         expand=["data.product"],
