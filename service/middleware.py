@@ -44,7 +44,8 @@ def user_middleware(f):
                 g.organisation = new_organisation
             else:
                 g.organisation = organisation
-
+        else:
+            g.organisation = None
         return f(*args, **kwargs)
 
     return decorated_function
@@ -69,7 +70,11 @@ def database_middleware(f):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not hasattr(g, "role") or not g.role == "admin":
+        """Check if user is attached to an organization,
+        that is has admin role
+        Otherwise, we consider the user is admin
+        """
+        if g.organization_id is not None and g.role != "admin":
             return jsonify({"error": "Admin access required"}), 403
         return f(*args, **kwargs)
 

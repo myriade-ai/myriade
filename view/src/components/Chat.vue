@@ -56,10 +56,19 @@
           </ul>
         </div>
 
-        <div id="chat-status" class="w-full py-4">
+        <div id="chat-status" class="w-full pb-4">
           <div class="w-full flex justify-center">
+            <!-- Subscription Prompt -->
+            <div
+              v-if="showSubscriptionPrompt"
+              class="flex flex-col items-center w-full"
+              style="position: relative"
+            >
+              <SubscriptionPrompt />
+            </div>
+
             <!-- Display error message if queryStatus is error -->
-            <div v-if="queryStatus === 'error'" class="flex flex-col items-center">
+            <div v-else-if="queryStatus === 'error'" class="flex flex-col items-center">
               <div>
                 <p class="text-red-500">{{ errorMessage }}</p>
               </div>
@@ -73,7 +82,7 @@
               </div>
             </div>
 
-            <div v-if="queryStatus === STATUS.RUNNING || queryStatus === STATUS.PENDING">
+            <div v-else-if="queryStatus === STATUS.RUNNING || queryStatus === STATUS.PENDING">
               <!-- Add loading icon, centered, displayed only if a query is running -->
               <LoaderIcon /><br />
               <!-- Add stop button, centered, displayed only if a query is running -->
@@ -185,6 +194,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import SendButtonWithStatus from '@/components/icons/SendButtonWithStatus.vue'
 import MessageDisplay from '@/components/MessageDisplay.vue'
+import SubscriptionPrompt from '@/components/SubscriptionPrompt.vue'
 import axios from '@/plugins/axios'
 import { useContextsStore } from '@/stores/contexts'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -290,6 +300,9 @@ const inputText = ref('')
 const inputSQL = ref('')
 const editMode = ref<'text' | 'SQL'>('text')
 
+// Subscription prompt state
+const showSubscriptionPrompt = computed(() => conversationsStore.subscriptionRequired)
+
 const handleEnter = (event: KeyboardEvent) => {
   if (!event.shiftKey) {
     handleSendMessage()
@@ -350,6 +363,7 @@ const editInline = (query: string) => {
   inputSQL.value = query
   editMode.value = 'SQL'
 }
+
 /** END HANDLE EVENTS */
 
 onMounted(async () => {
@@ -394,9 +408,14 @@ const fetchAISuggestions = async () => {
   try {
     const response = await axios.get(`/api/contexts/${contextsStore.contextSelected.id}/questions`)
     aiSuggestions.value = response.data
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching AI suggestions:', error)
-    // You might want to set an error state or show a notification to the user here
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.error?.includes('Subscription required')
+    ) {
+      conversationsStore.subscriptionRequired = true
+    }
     aiSuggestions.value = [] // Reset suggestions in case of error
   }
 }
