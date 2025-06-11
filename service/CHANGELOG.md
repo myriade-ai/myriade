@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.18.2 (2025-06-11)
+
+### Bug Fixes
+
+- Stripe
+  ([`470c78e`](https://github.com/myriade-ai/myriade/commit/470c78e5af7b35fd035dac40b726ea915c736184))
+
+
 ## v0.18.1 (2025-06-11)
 
 ### Bug Fixes
