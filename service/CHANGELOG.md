@@ -1,6 +1,16 @@
 # CHANGELOG
 
 
+## v0.19.0 (2025-06-11)
+
+### Features
+
+- Setup funnel
+  ([`3f91ba1`](https://github.com/myriade-ai/myriade/commit/3f91ba194b25bf279bcc9caa4c680848b738a8e6))
+
+Rework the configuration so we have beautiful setup funnel
+
+
 ## v0.18.2 (2025-06-11)
 
 ### Bug Fixes
