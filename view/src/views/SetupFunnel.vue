@@ -1,7 +1,17 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
-    <div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto px-4 py-8 relative">
+      <!-- Close button - only shown when there are existing databases -->
+      <button
+        v-if="hasExistingDatabases"
+        @click="closeFunnel"
+        class="absolute top-8 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors duration-200"
+        aria-label="Close setup"
+      >
+        <XMarkIcon class="w-6 h-6" />
+      </button>
+
       <div class="text-center">
         <h1 class="text-3xl font-bold text-gray-900 mb-4">Database Setup</h1>
         <p class="text-lg text-gray-600">
@@ -74,8 +84,9 @@
 <script setup lang="ts">
 import DatabaseSetupForm from '@/components/database/DatabaseSetupForm.vue'
 import router from '@/router'
-import { CheckIcon } from '@heroicons/vue/24/outline'
-import { computed, ref } from 'vue'
+import { useDatabasesStore } from '@/stores/databases'
+import { CheckIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { computed, onMounted, ref } from 'vue'
 
 // Steps configuration
 const steps = [
@@ -84,6 +95,17 @@ const steps = [
 ]
 
 const setupFormRef = ref<InstanceType<typeof DatabaseSetupForm> | null>(null)
+const databasesStore = useDatabasesStore()
+
+// Load databases on mount to check if there are existing ones
+onMounted(async () => {
+  await databasesStore.fetchDatabases({ refresh: true })
+})
+
+// Check if there are existing databases
+const hasExistingDatabases = computed(() => {
+  return databasesStore.databases.length > 0
+})
 
 // Watch the form's currentStep to update our local state
 const currentStep = computed(() => {
@@ -101,6 +123,10 @@ const getStepIconClasses = (index: number) => {
   if (index < currentStep.value) return 'bg-blue-600 border-blue-600'
   if (index === currentStep.value) return 'bg-blue-600 border-blue-600'
   return 'bg-white border-gray-300'
+}
+
+const closeFunnel = () => {
+  router.push({ name: 'DatabaseList' })
 }
 
 const onDatabaseSaved = () => {
