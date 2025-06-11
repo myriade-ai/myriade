@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.18.1 (2025-06-11)
+
+### Bug Fixes
+
+- Stripe secret & redirect
+  ([`0a993f9`](https://github.com/myriade-ai/myriade/commit/0a993f98b67fd2324e16622dee6a7da17d74e1e8))
+
+
 ## v0.18.0 (2025-06-11)
 
 ### Build System
