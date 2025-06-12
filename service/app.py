@@ -1,9 +1,12 @@
 import config  # noqa: F401, I001
+import logging
 import sentry_sdk
 from back.session import get_db_session
-from flask import Flask, g
+from flask import Flask, g, jsonify, request
 from flask_socketio import SocketIO
 from werkzeug.middleware.proxy_fix import ProxyFix
+
+logger = logging.getLogger(__name__)
 
 socketio = SocketIO(
     cors_allowed_origins="*",
@@ -26,6 +29,33 @@ def create_app():
     # trust 1 proxy in front of you for proto *and* host
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     app.json.sort_keys = False
+
+    # Global error handler for all routes
+    @app.errorhandler(Exception)
+    def handle_global_exception(e):
+        error_type = e.__class__.__name__
+        endpoint = request.endpoint or "unknown"
+
+        # Log the error with context
+        logger.error(
+            f"{error_type} occurred in {endpoint}: {str(e)}",
+            exc_info=True,
+            extra={
+                "endpoint": endpoint,
+                "method": request.method,
+                "url": request.url,
+                "user_email": getattr(getattr(g, "user", None), "email", "anonymous"),
+                "user_agent": request.headers.get("User-Agent", ""),
+                "ip_address": request.remote_addr,
+            },
+        )
+
+        # Send to Sentry if configured
+        if config.ENV != "development":
+            sentry_sdk.capture_exception(e)
+
+        # Return JSON error response
+        return jsonify({"error": "An error occurred processing your request"}), 500
 
     from auth.api import api as auth_api
     from back.api import api as back_api
