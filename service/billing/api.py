@@ -1,4 +1,5 @@
 import json
+import logging
 
 import stripe
 from flask import Blueprint, g, jsonify, request
@@ -10,6 +11,7 @@ from models import User
 stripe.api_key = config.STRIPE_SECRET_KEY
 
 api = Blueprint("billing_api", __name__)
+logger = logging.getLogger(__name__)
 
 
 @api.route("/create-checkout-session", methods=["POST"])
@@ -22,6 +24,11 @@ def create_checkout_session():
         lookup_keys=["standard_monthly"],
         expand=["data.product"],
     )
+
+    if not prices.data:
+        logger.error("No prices found with lookup_key 'standard_monthly'")
+        return jsonify({"error": "Product price not found"}), 400
+
     price_id = prices.data[0].id
 
     checkout_session = stripe.checkout.Session.create(
