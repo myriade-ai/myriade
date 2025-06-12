@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.20.0 (2025-06-12)
+
+### Features
+
+- Add logger
+  ([`d8a51bb`](https://github.com/myriade-ai/myriade/commit/d8a51bbc1b58629308048645fd081324dcdc6e43))
+
+
 ## v0.19.0 (2025-06-11)
 
 ### Features
