@@ -6,7 +6,7 @@
         <div class="flex items-center space-x-4">
           <!-- Avatar placeholder -->
           <div
-            class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center"
+            class="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center"
           >
             <span class="text-2xl font-bold text-white">
               {{ (user.firstName?.[0] || '') + (user.lastName?.[0] || '') }}
@@ -33,7 +33,7 @@
             <!-- Admin badge -->
             <div class="mt-2" v-if="user.isAdmin">
               <span
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
               >
                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -51,7 +51,7 @@
           <!-- Logout button -->
           <button
             @click="logout"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-error-500 hover:bg-error-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-error-500 transition-colors duration-200 cursor-pointer"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -121,7 +121,9 @@
                 <span
                   class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
                   :class="
-                    user.isAdmin ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                    user.isAdmin
+                      ? 'bg-primary-100 text-primary-800'
+                      : 'bg-primary-100 text-primary-800'
                   "
                 >
                   {{ user.isAdmin ? 'Admin' : 'User' }}

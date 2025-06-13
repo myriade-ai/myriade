@@ -59,7 +59,7 @@
               <div
                 v-if="index < steps.length - 1"
                 class="ml-8 w-16 h-0.5"
-                :class="index < currentStep ? 'bg-blue-600' : 'bg-gray-300'"
+                :class="index < currentStep ? 'bg-primary-600' : 'bg-gray-300'"
               ></div>
             </li>
           </ol>
@@ -114,14 +114,14 @@ const currentStep = computed(() => {
 
 // Methods for step styling
 const getStepClasses = (index: number) => {
-  if (index < currentStep.value) return 'text-blue-600'
-  if (index === currentStep.value) return 'text-blue-600'
+  if (index < currentStep.value) return 'text-primary-600'
+  if (index === currentStep.value) return 'text-primary-600'
   return 'text-gray-500'
 }
 
 const getStepIconClasses = (index: number) => {
-  if (index < currentStep.value) return 'bg-blue-600 border-blue-600'
-  if (index === currentStep.value) return 'bg-blue-600 border-blue-600'
+  if (index < currentStep.value) return 'bg-primary-600 border-primary-600'
+  if (index === currentStep.value) return 'bg-primary-600 border-primary-600'
   return 'bg-white border-gray-300'
 }
 

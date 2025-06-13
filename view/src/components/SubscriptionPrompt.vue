@@ -3,8 +3,8 @@
     <div class="flex items-start space-x-4">
       <!-- Icon -->
       <div class="flex-shrink-0">
-        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-          <SparklesIcon class="w-5 h-5 text-blue-600" />
+        <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+          <SparklesIcon class="w-5 h-5 text-primary-600" />
         </div>
       </div>
 
@@ -19,7 +19,7 @@
         <div class="flex items-center space-x-3">
           <router-link
             to="/subscribe"
-            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-500 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
           >
             <SparklesIcon class="w-4 h-4 mr-2" />
             Set Up AI Connection

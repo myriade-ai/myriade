@@ -10,7 +10,7 @@
   <input
     type="text"
     placeholder="Database used for X,Y and Z..."
-    class="block w-full max-w-lg rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+    class="block w-full max-w-lg rounded-md border-gray-300 shadow-xs focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
     v-model="queryStore.queryTitle"
   />
 
@@ -21,7 +21,7 @@
       @run-query="() => queryStore.runQuery(selectedDatabase?.id)"
     />
     <button
-      class="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center disabled:bg-blue-900"
+      class="absolute bottom-2 right-2 bg-primary-500 hover:bg-primary-600 text-white rounded-full p-3 shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center justify-center disabled:bg-primary-800"
       @click="queryStore.runQuery(selectedDatabase?.id)"
       :disabled="queryStore.loading"
       aria-label="Run query"

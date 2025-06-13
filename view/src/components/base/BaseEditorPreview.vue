@@ -3,7 +3,7 @@
     <!-- Query favorite button -->
     <button
       v-if="props.queryId"
-      class="text-blue-500 hover:text-blue-700 flex items-center float-right"
+      class="text-primary-500 hover:text-primary-700 flex items-center float-right"
       title="Save query to workspace"
       @click="toggleQueryFavorite"
     >

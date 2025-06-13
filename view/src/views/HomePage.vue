@@ -22,7 +22,8 @@
       <p class="text-sm">
         We are currently piloting Myriade with small and medium-sized businesses. Join our pilot
         program and enjoy tailored onboarding and early access to powerful new features. Reach out
-        today at <a href="mailto:contact@myriade.ai" class="text-blue-500">contact@myriade.ai</a> to
+        today at
+        <a href="mailto:contact@myriade.ai" class="text-primary-500">contact@myriade.ai</a> to
         explore your data dreams with us.
       </p>
       <h3 class="font-bold mt-8 mb-2">Join Us</h3>
@@ -36,7 +37,7 @@
       </div>
       <p class="text-sm mb-4">
         Connect with us at
-        <a href="mailto:join@myriade.ai" class="text-blue-500">join@myriade.ai</a>.
+        <a href="mailto:join@myriade.ai" class="text-primary-500">join@myriade.ai</a>.
       </p>
       <hr />
       <h3 class="font-bold mt-4 mb-2">FAQ</h3>

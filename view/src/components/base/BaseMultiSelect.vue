@@ -34,7 +34,7 @@
                 type="checkbox"
                 :checked="isGroupSelected(group)"
                 @change="toggleGroup(group)"
-                class="h-4 w-4 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-4"
+                class="h-4 w-4 rounded-sm border-gray-300 text-primary-600 focus:ring-primary-500 mr-4"
               />
             </div>
             <div class="mt-1">
@@ -61,8 +61,8 @@
                       :checked="isSelected(item)"
                       :disabled="isGroupSelected(group)"
                       :class="[
-                        'absolute right-0 h-4 w-4 rounded-sm border-gray-300 focus:ring-indigo-500',
-                        isGroupSelected(group) ? 'text-gray-600' : 'text-indigo-600'
+                        'absolute right-0 h-4 w-4 rounded-sm border-gray-300 focus:ring-primary-500',
+                        isGroupSelected(group) ? 'text-gray-600' : 'text-primary-600'
                       ]"
                     />
                   </div>
@@ -79,15 +79,15 @@
 <script lang="ts"></script>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
 import type { PropType } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import {
   Combobox,
-  ComboboxInput,
   ComboboxButton,
-  ComboboxOptions,
-  ComboboxOption
+  ComboboxInput,
+  ComboboxOption,
+  ComboboxOptions
 } from '@headlessui/vue'
 import { ChevronUpDownIcon } from '@heroicons/vue/20/solid'
 

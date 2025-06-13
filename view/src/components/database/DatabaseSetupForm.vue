@@ -40,7 +40,7 @@
           <button
             type="submit"
             :disabled="isTestingConnection"
-            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span v-if="!isTestingConnection">Test Connection</span>
             <span v-else class="flex items-center">
@@ -85,11 +85,11 @@
               </div>
             </div>
           </div>
-          <div v-else class="bg-red-50 border border-red-200 rounded-md p-4">
+          <div v-else class="bg-error-50 border border-error-200 rounded-md p-4">
             <div class="flex">
               <div class="w-full">
-                <h3 class="text-sm font-medium text-red-800">Connection Failed</h3>
-                <div class="mt-2 text-sm text-red-700 w-full break-words">
+                <h3 class="text-sm font-medium text-error-800">Connection Failed</h3>
+                <div class="mt-2 text-sm text-error-700 w-full break-words">
                   <p>{{ connectionStatus.message }}</p>
                 </div>
               </div>
@@ -104,7 +104,7 @@
       <button
         v-if="currentStep > 0"
         @click="previousStep"
-        class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
       >
         <ArrowLeftIcon class="w-4 h-4 mr-2" />
         Previous
@@ -115,7 +115,7 @@
         v-if="currentStep < 1"
         @click="nextStep"
         :disabled="!canProceedToNextStep"
-        class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Continue
         <ArrowRightIcon class="w-4 h-4 ml-2" />
@@ -125,7 +125,7 @@
         v-else
         @click="saveDatabase"
         :disabled="!canProceedToNextStep || isSaving"
-        class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <span v-if="!isSaving">{{ saveButtonText }}</span>
         <span v-else class="flex items-center">
@@ -236,8 +236,8 @@ const databaseTypes = [
     name: 'PostgreSQL',
     description: 'Popular open-source database',
     icon: CircleStackIcon,
-    iconBg: 'bg-blue-100',
-    iconColor: 'text-blue-600'
+    iconBg: 'bg-primary-100',
+    iconColor: 'text-primary-600'
   },
   {
     value: 'mysql',

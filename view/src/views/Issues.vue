@@ -19,7 +19,7 @@
           type="text"
           v-model="searchQuery"
           placeholder="Search issues..."
-          class="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+          class="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500 sm:text-sm"
         />
       </div>
       <div class="flex items-center space-x-2 text-sm text-gray-600">
@@ -29,7 +29,7 @@
         <button
           v-if="searchQuery"
           @click="searchQuery = ''"
-          class="text-indigo-600 hover:text-indigo-800"
+          class="text-primary-600 hover:text-primary-800"
         >
           Clear search
         </button>
@@ -46,7 +46,7 @@
         <select
           id="entity-filter"
           v-model="selectedEntity"
-          class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
+          class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md shadow-sm"
         >
           <option value="">All Entities</option>
           <option v-for="entity in store.entities" :key="entity.id" :value="entity.id">
@@ -63,7 +63,7 @@
         <select
           id="status-filter"
           v-model="selectedStatus"
-          class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
+          class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md shadow-sm"
         >
           <option value="">All Statuses</option>
           <option value="OPEN">Open</option>
@@ -79,7 +79,7 @@
         <select
           id="scope-filter"
           v-model="selectedScope"
-          class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
+          class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md shadow-sm"
         >
           <option value="">All Scopes</option>
           <option value="DATA">Data</option>
@@ -93,7 +93,7 @@
       <div>
         <button
           @click="clearFilters"
-          class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
         >
           Clear Filters
         </button>
@@ -102,14 +102,14 @@
 
     <!-- Loading State -->
     <div v-if="store.loadingIssues" class="flex justify-center items-center py-10">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       <p class="ml-3 text-gray-600">Loading issues...</p>
     </div>
 
     <!-- Error State -->
     <div
       v-else-if="store.errorIssues"
-      class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6"
+      class="bg-error-100 border border-error-400 text-error-700 px-4 py-3 rounded relative mb-6"
       role="alert"
     >
       <strong class="font-bold">Error!</strong>
@@ -125,7 +125,7 @@
         :class="
           notification.type === 'success'
             ? 'bg-green-100 text-green-800'
-            : 'bg-red-100 text-red-800'
+            : 'bg-error-100 text-error-800'
         "
       >
         <svg
@@ -168,7 +168,7 @@
         <!-- Issue Header -->
         <div
           class="p-4 cursor-pointer border-b"
-          :class="{ 'bg-indigo-50': expandedIssue?.id === issue.id }"
+          :class="{ 'bg-primary-50': expandedIssue?.id === issue.id }"
           @click="toggleExpand(issue.id)"
         >
           <!-- Mobile layout -->
@@ -207,7 +207,7 @@
                 {{ issue.status }}
               </span>
               <span
-                class="bg-blue-100 text-blue-800 text-xs font-medium ml-2 px-2.5 py-1 rounded"
+                class="bg-primary-100 text-primary-800 text-xs font-medium ml-2 px-2.5 py-1 rounded"
                 v-if="issue.scope"
               >
                 {{ issue.scope }}
@@ -239,7 +239,7 @@
               <!-- Scope Badge -->
               <span
                 v-if="issue.scope"
-                class="bg-purple-100 text-purple-800 text-xs font-medium mr-4 px-2.5 py-1 rounded"
+                class="bg-primary-100 text-primary-800 text-xs font-medium mr-4 px-2.5 py-1 rounded"
               >
                 {{ issue.scope }}
               </span>
@@ -270,7 +270,7 @@
               <h4 class="text-base font-medium text-gray-900">Issue Details</h4>
               <button
                 @click.stop="switchToEditMode(issue)"
-                class="inline-flex items-center text-sm px-3 py-1.5 border border-gray-300 rounded-md text-indigo-700 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                class="inline-flex items-center text-sm px-3 py-1.5 border border-gray-300 rounded-md text-primary-700 hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
@@ -432,7 +432,7 @@
                   type="text"
                   id="edit-title"
                   v-model="formState.title"
-                  class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                  class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2"
                   placeholder="Issue title"
                 />
               </div>
@@ -450,7 +450,7 @@
                     id="mobile-edit-description"
                     v-model="formState.description"
                     rows="6"
-                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2"
                     placeholder="Detailed description of the issue"
                   ></textarea>
                 </div>
@@ -465,7 +465,7 @@
                   <select
                     id="mobile-edit-severity"
                     v-model="formState.severity"
-                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2"
                   >
                     <option value="HIGH">High</option>
                     <option value="MEDIUM">Medium</option>
@@ -484,7 +484,7 @@
                   <select
                     id="mobile-edit-status"
                     v-model="formState.status"
-                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2"
                   >
                     <option value="OPEN">Open</option>
                     <option value="IN_PROGRESS">In Progress</option>
@@ -503,7 +503,7 @@
                   <select
                     id="mobile-edit-scope"
                     v-model="formState.scope"
-                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2"
                   >
                     <option value="DATA">Data</option>
                     <option value="BUSINESS">Business</option>
@@ -524,7 +524,7 @@
                     <select
                       id="edit-severity"
                       v-model="formState.severity"
-                      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2"
                     >
                       <option value="HIGH">High</option>
                       <option value="MEDIUM">Medium</option>
@@ -540,7 +540,7 @@
                     <select
                       id="edit-status"
                       v-model="formState.status"
-                      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2"
                     >
                       <option value="OPEN">Open</option>
                       <option value="IN_PROGRESS">In Progress</option>
@@ -556,7 +556,7 @@
                     <select
                       id="edit-scope"
                       v-model="formState.scope"
-                      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2"
                     >
                       <option value="DATA">Data</option>
                       <option value="BUSINESS">Business</option>
@@ -578,7 +578,7 @@
                     id="edit-description"
                     v-model="formState.description"
                     rows="8"
-                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2"
                     placeholder="Detailed description of the issue"
                   ></textarea>
                 </div>
@@ -590,13 +590,13 @@
                 <button
                   type="button"
                   @click.stop="cancelEditMode"
-                  class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full sm:w-auto"
+                  class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 w-full sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center justify-center w-full sm:w-auto"
+                  class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center justify-center w-full sm:w-auto"
                   :disabled="saving"
                 >
                   <svg
@@ -650,7 +650,7 @@
       <p class="mt-1 text-sm text-gray-500">Try adjusting your search query.</p>
       <button
         @click="searchQuery = ''"
-        class="mt-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        class="mt-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
       >
         Clear search
       </button>
@@ -835,31 +835,31 @@ const saveIssueChanges = async () => {
 const getPriorityBadgeClass = (priority: string) => {
   const p = priority?.toUpperCase() || ''
   if (p === 'CRITICAL') return 'bg-pink-600' // Added CRITICAL
-  if (p === 'HIGH') return 'bg-red-500'
+  if (p === 'HIGH') return 'bg-error-500'
   if (p === 'MEDIUM') return 'bg-amber-400'
   return 'bg-green-500' // LOW or other
 }
 
 const getPriorityDotClass = (priority: string) => {
   const p = priority?.toUpperCase() || ''
-  if (p === 'CRITICAL') return 'bg-pink-600' // Added CRITICAL
-  if (p === 'HIGH') return 'bg-red-500'
-  if (p === 'MEDIUM') return 'bg-amber-400'
-  return 'bg-green-500' // LOW or other
+  if (p === 'CRITICAL') return 'bg-error-600' // Added CRITICAL
+  if (p === 'HIGH') return 'bg-error-500'
+  if (p === 'MEDIUM') return 'bg-warning-500'
+  return 'bg-success-500' // LOW or other
 }
 
 const getStatusBadgeClass = (status: string) => {
   const s = status?.toUpperCase() || ''
-  if (s === 'OPEN') return 'bg-blue-100 text-blue-800'
-  if (s === 'IN_PROGRESS') return 'bg-yellow-100 text-yellow-800'
-  if (s === 'RESOLVED') return 'bg-green-100 text-green-800'
-  if (s === 'CLOSED' || s === 'DONE') return 'bg-gray-100 text-gray-800'
-  return 'bg-gray-100 text-gray-800'
+  if (s === 'OPEN') return 'bg-info-100 text-info-800'
+  if (s === 'IN_PROGRESS') return 'bg-warning-100 text-warning-800'
+  if (s === 'RESOLVED') return 'bg-success-100 text-success-800'
+  if (s === 'CLOSED' || s === 'DONE') return 'bg-neutral-100 text-neutral-800'
+  return 'bg-neutral-100 text-neutral-800'
 }
 
 const getStatusTextClass = (status: string) => {
   const s = status?.toUpperCase() || ''
-  if (s === 'OPEN') return 'text-blue-700'
+  if (s === 'OPEN') return 'text-primary-700'
   if (s === 'IN_PROGRESS') return 'text-yellow-700'
   if (s === 'RESOLVED') return 'text-green-700'
   if (s === 'CLOSED' || s === 'DONE') return 'text-gray-700'

@@ -8,7 +8,7 @@
         <p>Loading...</p>
       </div>
 
-      <div v-else-if="error" class="mt-4 text-center text-red-500">
+      <div v-else-if="error" class="mt-4 text-center text-error-500">
         <p>{{ error }}</p>
       </div>
 
@@ -71,13 +71,13 @@
                 <div class="mt-4 flex justify-between">
                   <a
                     :href="`/query/${query.id}`"
-                    class="text-sm font-medium text-blue-600 hover:text-blue-500"
+                    class="text-sm font-medium text-primary-600 hover:text-primary-500"
                   >
                     View Query
                   </a>
                   <button
                     @click="unfavoriteQuery(query.id)"
-                    class="text-sm text-red-600 hover:text-red-500"
+                    class="text-sm text-error-600 hover:text-error-500"
                   >
                     Remove
                   </button>
@@ -112,13 +112,13 @@
                 <div class="mt-4 flex justify-between">
                   <a
                     :href="`/query/${chart.queryId}`"
-                    class="text-sm font-medium text-blue-600 hover:text-blue-500"
+                    class="text-sm font-medium text-primary-600 hover:text-primary-500"
                   >
                     View Query
                   </a>
                   <button
                     @click="unfavoriteChart(chart.id)"
-                    class="text-sm text-red-600 hover:text-red-500"
+                    class="text-sm text-error-600 hover:text-error-500"
                   >
                     Remove
                   </button>

@@ -10,6 +10,88 @@
     'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
+  /* Custom Brand Colors */
+  --color-primary: #027BCF;
+  --color-background: #E6F4FF;
+  --color-accent: #FFC947;
+  --color-success: #2BD9A8;
+  --color-warning: #FFC947;
+  --color-error: #FF5C5C;
+  --color-info: #3ED2FF;
+  --color-neutral: #7A8CA9;
+
+  /* Extended primary palette with shades */
+  --color-primary-50: #E5F3FE;
+  --color-primary-100: #CCE7FD;
+  --color-primary-200: #99CFFB;
+  --color-primary-300: #66B7F9;
+  --color-primary-400: #339FF7;
+  --color-primary-500: #027BCF;
+  --color-primary-600: #0262A6;
+  --color-primary-700: #014A7D;
+  --color-primary-800: #1B3B6F;
+  --color-primary-900: #00192B;
+
+  /* Extended success palette */
+  --color-success-50: #E8FBF5;
+  --color-success-100: #D1F7EB;
+  --color-success-200: #A3EFD7;
+  --color-success-300: #75E7C3;
+  --color-success-400: #47DFAF;
+  --color-success-500: #2BD9A8;
+  --color-success-600: #22AE87;
+  --color-success-700: #1A8266;
+  --color-success-800: #115744;
+  --color-success-900: #092B22;
+
+  /* Extended error palette */
+  --color-error-50: #FEE8E8;
+  --color-error-100: #FDD1D1;
+  --color-error-200: #FBA3A3;
+  --color-error-300: #F97575;
+  --color-error-400: #F74747;
+  --color-error-500: #FF5C5C;
+  --color-error-600: #CC4A4A;
+  --color-error-700: #993737;
+  --color-error-800: #662525;
+  --color-error-900: #331212;
+
+  /* Extended warning/accent palette */
+  --color-warning-50: #FEF8E5;
+  --color-warning-100: #FEF1CC;
+  --color-warning-200: #FDE399;
+  --color-warning-300: #FCD566;
+  --color-warning-400: #FBD033;
+  --color-warning-500: #FFC947;
+  --color-warning-600: #CCA139;
+  --color-warning-700: #99792B;
+  --color-warning-800: #66501C;
+  --color-warning-900: #33280E;
+
+  /* Extended info palette */
+  --color-info-50: #E8FCFF;
+  --color-info-100: #D1F9FF;
+  --color-info-200: #A3F3FF;
+  --color-info-300: #75EDFF;
+  --color-info-400: #47E7FF;
+  --color-info-500: #3ED2FF;
+  --color-info-600: #32A8CC;
+  --color-info-700: #257E99;
+  --color-info-800: #195466;
+  --color-info-900: #0C2A33;
+
+  /* Extended neutral palette */
+  --color-neutral-50: #F2F4F7;
+  --color-neutral-100: #E5E9EF;
+  --color-neutral-200: #CBD3DF;
+  --color-neutral-300: #B1BDCF;
+  --color-neutral-400: #97A7BF;
+  --color-neutral-500: #7A8CA9;
+  --color-neutral-600: #627087;
+  --color-neutral-700: #495465;
+  --color-neutral-800: #313843;
+  --color-neutral-900: #181C22;
+
   @keyframes reverse-spin {
     from {
       transform: rotate(360deg);
