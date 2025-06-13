@@ -122,7 +122,7 @@
                 class="flex items-center space-x-2"
               >
                 <button
-                  class="rounded-md bg-white px-3.5 py-2 text-sm font-semibold text-primary-900 shadow-xs ring-1 ring-inset ring-primary-300 hover:bg-primary-50 text-left"
+                  class="rounded-md bg-white px-3.5 py-2 text-sm text-primary-500 shadow-xs ring-1 ring-inset ring-primary-300 hover:bg-primary-50 text-left"
                   @click="applySuggestion(suggestion)"
                 >
                   {{ suggestion }}
