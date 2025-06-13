@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.21.0 (2025-06-13)
+
+### Features
+
+- Update logo
+  ([`9c9e5f3`](https://github.com/myriade-ai/myriade/commit/9c9e5f378cca01628a902ca6878af7cad69f34ee))
+
+
 ## v0.20.0 (2025-06-12)
 
 ### Features
