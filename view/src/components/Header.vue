@@ -5,8 +5,7 @@
         <div class="flex text-xl font-bold">
           <div class="shrink-0 flex items-center">
             <a href="/" class="flex items-center">
-              <img src="/logo.svg?v=2" class="h-8 w-auto" />
-              <span class="ml-2 text-primary-800">Myriade</span>
+              <img src="/logo.svg?v=3" class="h-8 w-auto" />
             </a>
           </div>
           <div class="hidden sm:-my-px sm:ml-6 sm:flex sm:space-x-8">
