@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.22.1 (2025-06-13)
+
+### Bug Fixes
+
+- Color
+  ([`aaa5976`](https://github.com/myriade-ai/myriade/commit/aaa59769f66b4d6642fdf1fb6075368939744069))
+
+
 ## v0.22.0 (2025-06-13)
 
 ### Features
