@@ -1,6 +1,17 @@
 # CHANGELOG
 
 
+## v0.22.0 (2025-06-13)
+
+### Features
+
+- Update colors
+  ([`12bf50c`](https://github.com/myriade-ai/myriade/commit/12bf50c7a4f12b271003c9d696cb1d80530e6b87))
+
+- Update logo
+  ([`c717012`](https://github.com/myriade-ai/myriade/commit/c7170120979c9d9e4c1518018e11d66df497ddda))
+
+
 ## v0.21.0 (2025-06-13)
 
 ### Features
