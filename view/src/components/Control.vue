@@ -5,7 +5,7 @@
       <h2 class="text-xl font-semibold mb-3 inline-block">Business Entities</h2>
       <button
         @click="startAutoScan"
-        class="mb-3 ml-3 px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        class="mb-3 ml-3 px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
         :class="{
           'opacity-50': store.entities.length > 0
         }"
@@ -15,14 +15,14 @@
 
       <!-- Loading State -->
       <div v-if="store.loading" class="flex justify-center items-center h-32">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
       </div>
 
       <!-- Error State -->
-      <div v-else-if="store.error" class="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+      <div v-else-if="store.error" class="bg-error-50 border border-error-200 rounded-md p-4 mb-4">
         <div class="flex">
           <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <svg class="h-5 w-5 text-error-400" viewBox="0 0 20 20" fill="currentColor">
               <path
                 fill-rule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -31,8 +31,8 @@
             </svg>
           </div>
           <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800">Error loading business entities</h3>
-            <div class="mt-2 text-sm text-red-700">{{ store.error }}</div>
+            <h3 class="text-sm font-medium text-error-800">Error loading business entities</h3>
+            <div class="mt-2 text-sm text-error-700">{{ store.error }}</div>
           </div>
         </div>
       </div>
@@ -43,7 +43,7 @@
           type="text"
           v-model="searchQuery"
           placeholder="Search entities..."
-          class="w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          class="w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-400"
         />
         <svg
           class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
@@ -110,7 +110,7 @@
             <p class="mt-1 text-sm text-gray-500">This entity hasn't been analyzed yet.</p>
             <button
               @click.stop="startAnalysis(entity)"
-              class="mt-3 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              class="mt-3 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               Start Analysis
             </button>
@@ -162,7 +162,7 @@
                   class="flex items-start"
                 >
                   <svg
-                    class="h-4 w-4 text-indigo-500 mr-2 mt-0.5 flex-shrink-0"
+                    class="h-4 w-4 text-primary-500 mr-2 mt-0.5 flex-shrink-0"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -176,7 +176,7 @@
                   </svg>
                   <span>{{ rec.title }}</span>
                 </li>
-                <li v-if="entity.issues.length > 2" class="text-indigo-600 text-sm">
+                <li v-if="entity.issues.length > 2" class="text-primary-600 text-sm">
                   +{{ entity.issues.length - 2 }} more issues
                 </li>
               </ul>
@@ -211,7 +211,7 @@ const filteredEntities = computed(() => {
 const getQualityColor = (score: number) => {
   if (score >= 90) return 'bg-green-500'
   if (score >= 70) return 'bg-yellow-500'
-  return 'bg-red-500'
+  return 'bg-error-500'
 }
 
 const formatDate = (dateString: string | null) => {

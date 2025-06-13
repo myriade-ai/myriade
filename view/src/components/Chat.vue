@@ -70,7 +70,7 @@
             <!-- Display error message if queryStatus is error -->
             <div v-else-if="queryStatus === 'error'" class="flex flex-col items-center">
               <div>
-                <p class="text-red-500">{{ errorMessage }}</p>
+                <p class="text-error-500">{{ errorMessage }}</p>
               </div>
               <div>
                 <BaseButton
@@ -113,8 +113,8 @@
             class="flex flex-col"
             v-if="aiSuggestions && aiSuggestions.length && messages.length === 0"
           >
-            <SparklesIcon class="h-5 w-5 text-blue-500" />
-            <span class="text-blue-700 text-sm font-bold mb-2">AI Suggestions</span>
+            <SparklesIcon class="h-5 w-5 text-primary-500" />
+            <span class="text-primary-700 text-sm font-bold mb-2">AI Suggestions</span>
             <div v-if="aiSuggestions && aiSuggestions.length" class="flex flex-col space-y-2">
               <div
                 v-for="(suggestion, index) in aiSuggestions"
@@ -122,7 +122,7 @@
                 class="flex items-center space-x-2"
               >
                 <button
-                  class="rounded-md bg-white px-3.5 py-2 text-sm font-semibold text-blue-900 shadow-xs ring-1 ring-inset ring-blue-300 hover:bg-blue-50 text-left"
+                  class="rounded-md bg-white px-3.5 py-2 text-sm font-semibold text-primary-900 shadow-xs ring-1 ring-inset ring-primary-300 hover:bg-primary-50 text-left"
                   @click="applySuggestion(suggestion)"
                 >
                   {{ suggestion }}
@@ -182,7 +182,7 @@
     <!-- Connection status notification -->
     <div
       v-if="!isConnected"
-      class="fixed top-3 bg-red-500 text-white px-4 py-2 rounded-md shadow-lg z-50"
+      class="fixed top-3 bg-error-500 text-white px-4 py-2 rounded-md shadow-lg z-50"
     >
       Socket disconnected
     </div>

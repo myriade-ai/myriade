@@ -3,7 +3,7 @@
   <div class="relative">
     <div class="flex justify-end mb-2">
       <button
-        class="text-blue-500 hover:text-blue-700 flex items-center"
+        class="text-primary-500 hover:text-primary-700 flex items-center"
         title="Save chart to workspace"
         @click="handleToggleChartFavorite"
       >

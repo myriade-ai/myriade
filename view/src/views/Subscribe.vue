@@ -14,7 +14,7 @@
           <!-- Professional Plan Card -->
           <div class="max-w-md mx-auto mt-8">
             <div
-              class="bg-white border border-blue-500 rounded-lg p-6 shadow-lg ring-2 ring-blue-200 cursor-pointer hover:shadow-xl transition-shadow"
+              class="bg-white border border-primary-500 rounded-lg p-6 shadow-lg ring-2 ring-primary-200 cursor-pointer hover:shadow-xl transition-shadow"
               @click="processPayment"
             >
               <div class="text-center">
@@ -44,7 +44,7 @@
                 <button
                   @click.stop="processPayment"
                   :disabled="isProcessingPayment"
-                  class="w-full inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="w-full inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span v-if="!isProcessingPayment">Subscribe Now</span>
                   <span v-else class="flex items-center">

@@ -11,7 +11,7 @@
           <!-- Edit button for user messages -->
           <span v-if="props.message.role === 'user'" class="flex items-center space-x-2">
             <button
-              class="text-blue-500 hover:text-blue-700 flex items-center"
+              class="text-primary-500 hover:text-primary-700 flex items-center"
               @click="toggleEditMode"
               title="Edit message"
             >
@@ -24,7 +24,7 @@
           <span v-if="props.message.queryId" class="flex items-center space-x-2">
             <span v-if="props.message.role === 'user'" class="text-gray-400 mx-2">|</span>
             <button
-              class="text-blue-500 hover:text-blue-700 flex items-center"
+              class="text-primary-500 hover:text-primary-700 flex items-center"
               @click="editInline"
               title="Edit inline"
             >
@@ -34,7 +34,7 @@
             <span class="text-gray-400 mx-2">|</span>
             <a
               :href="`/query/${props.message.queryId}`"
-              class="text-blue-500 hover:text-blue-700 flex items-center"
+              class="text-primary-500 hover:text-primary-700 flex items-center"
               target="_blank"
               title="Edit in new tab"
             >
@@ -52,7 +52,7 @@
           >
           <button
             v-if="props.message.role !== 'function'"
-            class="text-blue-500 hover:text-blue-700 flex items-center"
+            class="text-primary-500 hover:text-primary-700 flex items-center"
             title="Regenerate from this message"
             @click="() => emit('regenerateFromMessage', props.message.id)"
           >
@@ -79,7 +79,7 @@
         </button>
         <button
           @click="saveEdit"
-          class="px-3 py-1 text-sm text-white bg-blue-500 rounded-sm hover:bg-blue-600"
+          class="px-3 py-1 text-sm text-white bg-primary-500 rounded-sm hover:bg-primary-600"
         >
           Send
         </button>

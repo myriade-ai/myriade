@@ -14,9 +14,9 @@
           v-for="dbType in availableTypes"
           :key="dbType.value"
           @click="selectType(dbType.value)"
-          class="relative group p-6 bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all duration-200 cursor-pointer"
+          class="relative group p-6 bg-white border border-gray-200 rounded-lg hover:border-primary-500 hover:shadow-md transition-all duration-200 cursor-pointer"
           :class="{
-            'border-blue-500 bg-blue-50': modelValue === dbType.value,
+            'border-primary-500 bg-primary-50': modelValue === dbType.value,
             'hover:bg-gray-50': modelValue !== dbType.value
           }"
         >
@@ -32,7 +32,7 @@
           </div>
           <CheckCircleIcon
             v-if="modelValue === dbType.value"
-            class="absolute top-2 right-2 w-5 h-5 text-blue-600"
+            class="absolute top-2 right-2 w-5 h-5 text-primary-600"
           />
         </button>
       </div>
@@ -44,7 +44,7 @@
         <select
           :value="modelValue"
           @change="selectType(($event.target as HTMLSelectElement).value)"
-          class="block w-full max-w-lg rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500 sm:max-w-xs sm:text-sm"
+          class="block w-full max-w-lg rounded-md border-gray-300 shadow-xs focus:border-primary-500 focus:ring-primary-500 sm:max-w-xs sm:text-sm"
         >
           <option v-for="dbType in availableTypes" :key="dbType.value" :value="dbType.value">
             {{ dbType.name }}
@@ -98,8 +98,8 @@ const allDatabaseTypes: DatabaseType[] = [
     name: 'PostgreSQL',
     description: 'Popular open-source database',
     icon: CircleStackIcon,
-    iconBg: 'bg-blue-100',
-    iconColor: 'text-blue-600'
+    iconBg: 'bg-primary-100',
+    iconColor: 'text-primary-600'
   },
   {
     value: 'mysql',

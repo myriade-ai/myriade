@@ -108,7 +108,7 @@
           <label
             class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
             :class="{
-              'border-blue-400 bg-blue-50': details.service_account_json
+              'border-primary-400 bg-primary-50': details.service_account_json
             }"
           >
             <div class="flex flex-col items-center justify-center pt-5 pb-6">
@@ -117,7 +117,10 @@
                 <span class="font-semibold">Click to upload</span> your service account JSON
               </p>
               <p class="text-xs text-gray-500">JSON files only</p>
-              <p v-if="details.service_account_json" class="mt-2 text-sm text-blue-600 font-medium">
+              <p
+                v-if="details.service_account_json"
+                class="mt-2 text-sm text-primary-600 font-medium"
+              >
                 ✓ Service account file uploaded
               </p>
             </div>
@@ -141,7 +144,7 @@
           class="sr-only peer"
         />
         <div
-          class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
+          class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"
         ></div>
       </label>
     </div>

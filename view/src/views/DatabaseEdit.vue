@@ -59,13 +59,13 @@
             encodeURIComponent(JSON.stringify(databasesStore.databaseSelected.dbt_catalog))
           "
           download="catalog.json"
-          class="text-blue-600 hover:text-blue-800"
+          class="text-primary-600 hover:text-primary-800"
           >catalog.json</a
         >
         <input
           type="file"
           @change="handleCatalogFileUpload"
-          class="mb-2 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+          class="mb-2 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
         />
 
         <label class="text-gray-700 mt-4">Manifest</label>
@@ -76,13 +76,13 @@
             encodeURIComponent(JSON.stringify(databasesStore.databaseSelected.dbt_manifest))
           "
           download="manifest.json"
-          class="text-blue-600 hover:text-blue-800"
+          class="text-primary-600 hover:text-primary-800"
           >manifest.json</a
         >
         <input
           type="file"
           @change="handleManifestFileUpload"
-          class="mb-2 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+          class="mb-2 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
         />
       </div>
     </div>
@@ -111,13 +111,13 @@
         <button
           @click.prevent="clickDelete"
           type="button"
-          class="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          class="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
         >
           Delete
         </button>
         <button
           type="submit"
-          class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-xs hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-primary-600 py-2 px-4 text-sm font-medium text-white shadow-xs hover:bg-primary-700 focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
         >
           Save
         </button>
