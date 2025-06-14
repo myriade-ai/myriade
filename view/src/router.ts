@@ -7,16 +7,7 @@ function loadView(view: string) {
   return () => import(`./views/${view}.vue`)
 }
 
-const website_routes = [
-  {
-    path: '/',
-    name: 'Home',
-    component: loadView('HomePage'),
-    meta: { layout: 'empty' }
-  }
-]
-
-const app_routes = [
+const routes = [
   {
     path: '/',
     name: 'NewChat',
@@ -130,20 +121,10 @@ const app_routes = [
   }
 ]
 
-let router = null
-// If env.APP == 'website', then the routes are homepage
-// If env.APP == 'app', then the routes are the application routes
-if (import.meta.env.VITE_APP === 'website') {
-  router = createRouter({
-    history: createWebHistory(),
-    routes: website_routes
-  })
-} else {
-  router = createRouter({
-    history: createWebHistory(),
-    routes: app_routes
-  })
-  router.beforeEach(authGuard)
-}
+const router = createRouter({
+  history: createWebHistory(),
+  routes: routes
+})
+router.beforeEach(authGuard)
 
 export default router
