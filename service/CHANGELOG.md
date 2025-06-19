@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.22.2 (2025-06-19)
+
+### Bug Fixes
+
+- Remove website
+  ([`2058d8a`](https://github.com/myriade-ai/myriade/commit/2058d8a18b3aa671742e88e10de6542314a9bf5d))
+
+
 ## v0.22.1 (2025-06-13)
 
 ### Bug Fixes
