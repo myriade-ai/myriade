@@ -20,15 +20,15 @@ else
 fi
 
 # Run migrations
-alembic upgrade head
+uv run alembic upgrade head
 
 # Start the server based on environment
 if [ "$1" = "prod" ]; then
     # Production mode with Gunicorn
-    gunicorn wsgi:application --config gunicorn_conf.py
+    uv run gunicorn wsgi:application --config gunicorn_conf.py
 else
     # Development mode with Flask
     export FLASK_APP=app.py
     export FLASK_DEBUG=true
-    flask run --host=0.0.0.0 --port=4000
+    uv run flask run --host=0.0.0.0 --port=4000
 fi
