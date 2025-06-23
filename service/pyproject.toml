@@ -31,7 +31,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mysql = ["mysqlclient>=2.2.1"]
+mysql = [
+    "pymysql>=1.1.1",
+]
 snowflake = ["snowflake-connector-python>=3.15.0"]
 bigquery = ["google-cloud-bigquery>=3.34.0"]
 # Note: Postgres is included by default as the database of the project
