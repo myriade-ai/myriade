@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.23.3 (2025-06-23)
+
+### Bug Fixes
+
+- Start server with uv
+  ([`628bae7`](https://github.com/myriade-ai/myriade/commit/628bae781104b86be4ad96c5eb97c9eccbb87a68))
+
+
 ## v0.23.2 (2025-06-23)
 
 ### Bug Fixes
