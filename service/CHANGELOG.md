@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.23.0 (2025-06-23)
+
+### Features
+
+- Add bigquery
+  ([`b8f322c`](https://github.com/myriade-ai/myriade/commit/b8f322ce44bb02ea29ef219135f5c6a69df1a89e))
+
+
 ## v0.22.2 (2025-06-19)
 
 ### Bug Fixes
