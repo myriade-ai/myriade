@@ -392,7 +392,10 @@ const saveDatabase = async () => {
   } catch (error) {
     console.error('Database save failed:', error)
     const errorMessage =
-      (error as any)?.response?.data?.message || (error as Error).message || 'Database save failed'
+      (error as any)?.response?.data?.message ||
+      (error as any)?.response?.data?.error ||
+      (error as Error).message ||
+      'Database save failed'
     emit('save-error', error)
     alert('Database save failed: ' + errorMessage)
   } finally {
