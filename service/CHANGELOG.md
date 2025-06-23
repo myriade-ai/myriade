@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.23.1 (2025-06-23)
+
+### Bug Fixes
+
+- Mysql support
+  ([`fb14d11`](https://github.com/myriade-ai/myriade/commit/fb14d118561a900531fcca322a13b5035327e968))
+
+
 ## v0.23.0 (2025-06-23)
 
 ### Features
