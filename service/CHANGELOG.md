@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.23.2 (2025-06-23)
+
+### Bug Fixes
+
+- Add pymysql
+  ([`8a9be42`](https://github.com/myriade-ai/myriade/commit/8a9be42dee3d1f6aceb06da0db155af28627fb96))
+
+
 ## v0.23.1 (2025-06-23)
 
 ### Bug Fixes
