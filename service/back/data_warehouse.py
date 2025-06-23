@@ -477,12 +477,7 @@ class DataWarehouseFactory:
             # URL-encode username and password to handle special characters
             encoded_user = quote_plus(user) if user else ""
             encoded_password = quote_plus(password) if password else ""
-            ssl_parameters = {"rejectUnauthorized": True}
-            ssl_parameters_json = json.dumps(ssl_parameters)
-            base_uri = (
-                f"mysql://{encoded_user}:{encoded_password}@{host}/{kwargs['database']}"
-            )
-            uri = f"{base_uri}?ssl={ssl_parameters_json}"
+            uri = f"mysql+pymysql://{encoded_user}:{encoded_password}@{host}/{kwargs['database']}"
             if "options" in kwargs:
                 options_str = "&".join(
                     [f"{k}={v}" for k, v in kwargs["options"].items()]
