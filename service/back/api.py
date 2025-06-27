@@ -175,9 +175,8 @@ def test_database_connection():
         data_warehouse.test_connection()
         return jsonify({"success": True, "message": "Connection successful"})
     except ConnectionError as e:
-        return jsonify({"success": False, "message": str(e.args[0])}), 400
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 400
+        error = str(e.args[0].orig)
+        return jsonify({"success": False, "message": error}), 400
 
 
 @api.route("/databases/<uuid:database_id>", methods=["DELETE"])
