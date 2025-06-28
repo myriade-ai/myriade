@@ -28,6 +28,7 @@
     "echarts": "^5.6.0",
     "js-yaml": "^4.1.0",
     "marked": "^14.0.0",
+    "notiwind": "^2.1.0",
     "pinia": "^2.0.32",
     "pinia-plugin-persistedstate": "^3.1.0",
     "postcss": "^8.5.4",

@@ -70,12 +70,7 @@
     <!-- Setup Form -->
     <div class="max-w-4xl mx-auto px-4 pb-8">
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-        <DatabaseSetupForm
-          ref="setupFormRef"
-          save-button-text="Complete Setup"
-          @database-saved="onDatabaseSaved"
-          @save-error="onSaveError"
-        />
+        <DatabaseSetupForm ref="setupFormRef" @database-saved="onDatabaseSaved" />
       </div>
     </div>
   </div>
@@ -131,9 +126,5 @@ const closeFunnel = () => {
 
 const onDatabaseSaved = () => {
   router.push('/')
-}
-
-const onSaveError = (error: any) => {
-  console.error('Database save error:', error)
 }
 </script>

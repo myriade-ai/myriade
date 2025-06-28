@@ -13,7 +13,7 @@
     <!-- PostgreSQL/MySQL Fields -->
     <div v-if="engine === 'postgres' || engine === 'mysql'" class="space-y-4">
       <div class="text-sm text-gray-500" v-if="showEngineTitle">
-        <p>{{ getEngineTitle() }} connection details</p>
+        <p>{{ getDatabaseTypeName(engine) }} connection details</p>
       </div>
       <div :class="layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'">
         <base-input name="Host" v-model="details.host" rules="required" placeholder="localhost" />
@@ -154,6 +154,7 @@
 <script setup lang="ts">
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseInputPassword from '@/components/base/BaseInputPassword.vue'
+import { getDatabaseTypeName, getDefaultDetailsForEngine } from '@/utils/database'
 import { CloudArrowUpIcon } from '@heroicons/vue/24/outline'
 import { watch } from 'vue'
 
@@ -172,68 +173,8 @@ interface Props {
   safeMode?: boolean
 }
 const props = defineProps<Props>()
-const emit = defineEmits(['update:modelValue', 'update:safeMode', 'update:name'])
-
-const details = props.modelValue
-
-// emit changes when details mutate
-watch(
-  details,
-  (val) => {
-    emit('update:modelValue', val)
-  },
-  { deep: true }
-)
-
-// existing watch for props.modelValue we keep
-
-watch(
-  () => props.modelValue,
-  (val) => Object.assign(details, val)
-)
-
-const getEngineTitle = () => {
-  switch (props.engine) {
-    case 'postgres':
-      return 'PostgreSQL'
-    case 'mysql':
-      return 'MySQL'
-    case 'snowflake':
-      return 'Snowflake'
-    case 'sqlite':
-      return 'SQLite'
-    case 'bigquery':
-      return 'BigQuery'
-    default:
-      return 'Database'
-  }
-}
-
-const getDefaultDetailsForEngine = (engine: string) => {
-  switch (engine) {
-    case 'postgres':
-      return { host: '', port: 5432, user: '', password: '', database: '' }
-    case 'mysql':
-      return { host: '', port: 3306, user: '', password: '', database: '' }
-    case 'snowflake':
-      return {
-        account: '',
-        user: '',
-        password: '',
-        database: '',
-        schema: '',
-        role: '',
-        warehouse: ''
-      }
-    case 'sqlite':
-      return { filename: '' }
-    case 'bigquery':
-      return { project_id: '', service_account_json: null }
-    default:
-      return {}
-  }
-}
-
+const emit = defineEmits(['update:safeMode', 'update:name'])
+const details = defineModel({ type: Object, required: true })
 // Watch for engine changes and reset details
 watch(
   () => props.engine,
@@ -249,11 +190,7 @@ const handleServiceAccountUpload = (event: Event) => {
     const reader = new FileReader()
     reader.onload = (e) => {
       try {
-        const updatedDetails = {
-          ...details,
-          service_account_json: JSON.parse(e.target?.result as string)
-        }
-        emit('update:modelValue', updatedDetails)
+        details.value.service_account_json = JSON.parse(e.target?.result as string)
       } catch {
         console.error('Invalid JSON file')
       }
