@@ -139,7 +139,7 @@ def create_database():
     # Create a new database
     database = Database(
         name=data["name"],
-        description=data["description"],
+        description=data.get("description", ""),
         engine=data["engine"],
         details=data["details"],
         organisationId=g.organisation.id if g.organisation else None,
@@ -175,8 +175,7 @@ def test_database_connection():
         data_warehouse.test_connection()
         return jsonify({"success": True, "message": "Connection successful"})
     except ConnectionError as e:
-        error = str(e.args[0].orig)
-        return jsonify({"success": False, "message": error}), 400
+        return jsonify({"success": False, "message": str(e)}), 400
 
 
 @api.route("/databases/<uuid:database_id>", methods=["DELETE"])
@@ -200,20 +199,21 @@ def update_database(database_id: UUID):
     database.description = data["description"]
     database.organisationId = g.organization_id
 
-    # If the engine info has changed, we need to check the connection
-    data_warehouse = DataWarehouseFactory.create(
-        data["engine"],
-        **data["details"],
-    )
-    if (
-        database.engine != data["engine"]
-        or database.details != data["details"]
-        or database.name != data["name"]
-    ):
-        try:
+    try:
+        # If the engine info has changed, we need to check the connection
+        data_warehouse = DataWarehouseFactory.create(
+            data["engine"],
+            **data["details"],
+        )
+        if (
+            database.engine != data["engine"]
+            or database.details != data["details"]
+            or database.name != data["name"]
+        ):
             data_warehouse.test_connection()
-        except Exception as e:
-            return jsonify({"message": str(e)}), 400
+    except ConnectionError as e:
+        error = str(e.args[0].orig)
+        return jsonify({"success": False, "message": error}), 400
 
     new_meta = data_warehouse.load_metadata()
     merged_metadata = cast(

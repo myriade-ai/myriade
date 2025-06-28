@@ -82,7 +82,7 @@ export const useDatabasesStore = defineStore('databases', () => {
   }
 
   function getDatabaseById(id: string) {
-    return axios.get('/api/databases/').then((res) => res.data.find((db: Database) => db.id === id))
+    return axios.get('/api/databases').then((res) => res.data.find((db: Database) => db.id === id))
   }
 
   // Return everything you want available in the store

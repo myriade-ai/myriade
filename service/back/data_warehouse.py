@@ -21,7 +21,11 @@ class UnsafeQueryError(Exception):
 
 
 class ConnectionError(Exception):
-    pass
+    """Wrap driver-specific connection errors with a clean message."""
+
+    def __init__(self, original: Exception, *, message: str | None = None):
+        self.original = original  # keep a reference if you ever need it
+        super().__init__(message or str(original))
 
 
 def sizeof(obj):
@@ -116,7 +120,7 @@ class SQLDatabase(AbstractDatabase):
             self.inspector = sqlalchemy.inspect(self.engine)
             self.metadata = []
         except sqlalchemy.exc.OperationalError as e:
-            raise ConnectionError(e) from e
+            raise ConnectionError(e, message=str(e.args[0].orig)) from e
 
     def dispose(self):
         # On destruct, close the engine
@@ -221,7 +225,7 @@ class SnowflakeConnectionPool:
             try:
                 cls._instances[key] = snowflake.connector.connect(**connection_params)
             except snowflake.connector.errors.OperationalError as e:
-                raise ConnectionError() from e
+                raise ConnectionError(e, message=str(e)) from e
 
         return cls._instances[key]
 

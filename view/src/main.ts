@@ -3,6 +3,7 @@ import '@/assets/main.css'
 import '@/check_version'
 import router from '@/router'
 import * as Sentry from '@sentry/vue'
+import Notifications from 'notiwind'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedState from 'pinia-plugin-persistedstate'
 import { createApp } from 'vue'
@@ -32,11 +33,10 @@ const pinia = createPinia()
 pinia.use(piniaPluginPersistedState)
 app.use(pinia)
 app.use(router)
-
 app.use<Vue3TouchEventsOptions>(Vue3TouchEvents, {
   disableClick: false
   // any other global options...
 })
-
+app.use(Notifications)
 app.use(createMetaManager())
 app.mount('#app')
