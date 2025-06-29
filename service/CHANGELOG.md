@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## v0.23.4 (2025-06-29)
+
+### Bug Fixes
+
+- Connection to db
+  ([`fac7053`](https://github.com/myriade-ai/myriade/commit/fac7053becce8fd4944e31c85a72c0cee7839c12))
+
+- Improve error message
+  ([`836fb07`](https://github.com/myriade-ai/myriade/commit/836fb07678db6612ed5e260b1ebbf1f95894ce21))
+
+- Snowflake connection
+  ([`d5ec669`](https://github.com/myriade-ai/myriade/commit/d5ec669aa12fdd72ed22d0641785139c38fcb2b5))
+
+
 ## v0.23.3 (2025-06-23)
 
 ### Bug Fixes
