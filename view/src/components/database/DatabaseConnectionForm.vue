@@ -63,10 +63,10 @@
         <p>Snowflake connection details</p>
       </div>
       <base-input
-        name="Account"
+        name="Account Identifier"
         v-model="details.account"
         rules="required"
-        placeholder="your-account.snowflakecomputing.com"
+        placeholder="ORGANIZATION-ACCOUNT"
       />
       <div :class="layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'">
         <base-input
@@ -131,7 +131,7 @@
     </div>
 
     <!-- Safe Mode Toggle -->
-    <div class="p-4 bg-gray-50 rounded-lg max-w-lg">
+    <div class="p-4 bg-gray-50 rounded-lg max-w-lg" v-if="engine !== 'snowflake'">
       <h3 class="text-sm font-medium text-gray-900">Safe Mode (read-only)</h3>
       <p class="text-sm text-gray-500 mb-3">
         When enabled, prevents destructive operations like DROP, DELETE, and UPDATE statements
