@@ -15,7 +15,7 @@ export const makeEmptyDatabase = () => ({
   name: '',
   engine: '',
   details: null,
-  safe_mode: true,
+  safe_mode: false,
   dbt_catalog: null,
   dbt_manifest: null
 })

@@ -226,6 +226,8 @@ class SnowflakeConnectionPool:
                 cls._instances[key] = snowflake.connector.connect(**connection_params)
             except snowflake.connector.errors.OperationalError as e:
                 raise ConnectionError(e, message=str(e)) from e
+            except snowflake.connector.errors.DatabaseError as e:
+                raise ConnectionError(e, message=str(e)) from e
 
         return cls._instances[key]
 
@@ -285,16 +287,13 @@ class SnowflakeDatabase(AbstractDatabase):
         """
         Run a query against Snowflake.
         Limits the result to MAX_SIZE (approx. 2MB).
-        If safe_mode is true, sets the transaction to READ ONLY.
+        If safe_mode is true, throws an error.
         Correctly calculates data size based on sum of individual row sizes.
         """
         with self.connection.cursor() as cursor:
-            transaction_started = False
             try:
                 if self.safe_mode:
-                    cursor.execute("BEGIN TRANSACTION;")
-                    transaction_started = True
-                    cursor.execute("SET TRANSACTION READ ONLY;")
+                    raise Exception("Safe mode not supported for Snowflake")
 
                 cursor.execute(query)
 
@@ -312,9 +311,6 @@ class SnowflakeDatabase(AbstractDatabase):
                         row_size = sizeof(row_dict)
 
                         if total_size + row_size > MAX_SIZE:
-                            if transaction_started:
-                                # Commit before returning partial data
-                                cursor.execute("COMMIT;")
                             # Return partial data
                             return rows_list
 
@@ -324,17 +320,8 @@ class SnowflakeDatabase(AbstractDatabase):
                     if len(fetched_batch_tuples) < 1000:
                         break  # Last batch fetched
 
-                if transaction_started:
-                    # Commit the transaction if fully completed
-                    cursor.execute("COMMIT;")
                 return rows_list
             except Exception as e:
-                if transaction_started:
-                    try:
-                        cursor.execute("ROLLBACK;")
-                    except Exception as rb_e:
-                        # Log or handle rollback error, e.g., connection issue
-                        print(f"Error during rollback: {rb_e}")
                 raise e
 
 
