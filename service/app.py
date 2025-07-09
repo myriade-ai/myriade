@@ -1,6 +1,6 @@
 import config  # noqa: F401, I001
 import logging
-import sentry_sdk
+
 from back.session import get_db_session
 from flask import Flask, g, jsonify, request
 from flask_socketio import SocketIO
@@ -15,8 +15,9 @@ socketio = SocketIO(
     transports=["polling"],
 )
 
+if config.SENTRY_DSN:
+    import sentry_sdk
 
-if config.ENV != "development":
     sentry_sdk.init(
         dsn=config.SENTRY_DSN,
         send_default_pii=True,
