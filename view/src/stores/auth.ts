@@ -7,7 +7,8 @@ export const user = ref({
   firstName: null,
   lastName: null,
   profilePictureUrl: null,
-  isAdmin: false
+  isAdmin: false,
+  inOrganization: false
 })
 
 export const isAuthenticated = computed(() => user.value.id !== null)
@@ -30,6 +31,7 @@ export const fetchUser = async () => {
     user.value.lastName = response.data.last_name
     user.value.profilePictureUrl = response.data.profile_picture_url
     user.value.isAdmin = response.data.role === 'admin'
+    user.value.inOrganization = response.data.organization_id !== null
   } catch (error) {
     console.error('Failed to fetch user:', error)
   }
