@@ -193,9 +193,9 @@ const navigation = computed(() => [
 ])
 
 const userNavigation = computed(() => [
-  // Only show these items to admins
+  // Only show these items to admins or users not in an organization
   { name: 'Profile', href: '/profile', click: () => router.push('/profile') },
-  ...(user.value?.isAdmin
+  ...(user.value?.isAdmin || user.value?.inOrganization === false
     ? [
         {
           name: 'Databases',
