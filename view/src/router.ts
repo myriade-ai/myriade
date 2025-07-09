@@ -92,12 +92,6 @@ const routes = [
     component: loadView('ProjectEdit')
   },
   {
-    path: '/login',
-    name: 'Login',
-    component: loadView('Login'),
-    meta: { requiresGuest: true, layout: 'empty' }
-  },
-  {
     path: '/user',
     name: 'User',
     component: loadView('User')

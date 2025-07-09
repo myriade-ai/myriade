@@ -1,4 +1,4 @@
-import { fetchUser, isAuthenticated } from '@/stores/auth'
+import { fetchUser, getLoginUrl, isAuthenticated } from '@/stores/auth'
 import { useDatabasesStore } from '@/stores/databases'
 
 export const authGuard = async (to: any, from: any, next: any) => {
@@ -18,7 +18,8 @@ export const authGuard = async (to: any, from: any, next: any) => {
       }
     } catch (error) {
       console.error('Auth check failed:', error)
-      next('/login') // Redirect to login on error
+      const loginUrl = await getLoginUrl()
+      window.location.href = loginUrl
     }
   } else {
     // User is already authenticated, allow navigation
