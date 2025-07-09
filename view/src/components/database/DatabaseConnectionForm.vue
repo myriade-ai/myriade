@@ -12,6 +12,13 @@
 
     <!-- PostgreSQL/MySQL Fields -->
     <div v-if="engine === 'postgres' || engine === 'mysql'" class="space-y-4">
+      <!-- Information box for IP whitelisting -->
+      <BaseNotification
+        color="warning"
+        title="Network Configuration"
+        :message="`Please whitelist the following IP in your cloud-database network rules: ${serverIp}`"
+        class="max-w-lg mx-auto bg-warning-50"
+      />
       <div class="text-sm text-gray-500" v-if="showEngineTitle">
         <p>{{ getDatabaseTypeName(engine) }} connection details</p>
       </div>
@@ -154,9 +161,13 @@
 <script setup lang="ts">
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseInputPassword from '@/components/base/BaseInputPassword.vue'
+import BaseNotification from '@/components/base/BaseNotification.vue'
+import { useServerInfo } from '@/composables/useServerInfo'
 import { getDatabaseTypeName, getDefaultDetailsForEngine } from '@/utils/database'
 import { CloudArrowUpIcon } from '@heroicons/vue/24/outline'
 import { watch } from 'vue'
+
+const { serverIp } = useServerInfo()
 
 interface Props {
   modelValue: Record<string, any> // this is *details* only
