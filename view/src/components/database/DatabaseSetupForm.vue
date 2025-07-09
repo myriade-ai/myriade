@@ -67,12 +67,13 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import { getDatabaseTypeName } from '@/utils/database'
 import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/vue/24/outline'
 import { CheckIcon } from '@heroicons/vue/24/solid'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import DatabaseForm from './DatabaseForm.vue'
 import DatabaseTypeSelector from './DatabaseTypeSelector.vue'
 
 const emit = defineEmits<{
   'database-saved': [database: any]
+  'step-changed': [step: number]
 }>()
 
 // State
@@ -114,6 +115,7 @@ const onDatabaseSaved = (database: any) => {
 const nextStep = () => {
   if (currentStep.value < 1) {
     currentStep.value++
+    emit('step-changed', currentStep.value)
   }
 }
 
@@ -121,6 +123,7 @@ const previousStep = () => {
   if (currentStep.value > 0) {
     currentStep.value--
     connectionTested.value = false
+    emit('step-changed', currentStep.value)
   }
 }
 
@@ -140,5 +143,10 @@ watch(selectedEngine, (newEngine) => {
   if (databaseForm.value && databaseForm.value.database) {
     databaseForm.value.database.engine = newEngine
   }
+})
+
+// Emit initial step on mount
+onMounted(() => {
+  emit('step-changed', currentStep.value)
 })
 </script>
