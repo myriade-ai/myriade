@@ -70,7 +70,7 @@
     <!-- Setup Form -->
     <div class="max-w-4xl mx-auto px-4 pb-8">
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-        <DatabaseSetupForm ref="setupFormRef" @database-saved="onDatabaseSaved" />
+        <DatabaseSetupForm @database-saved="onDatabaseSaved" @step-changed="onStepChanged" />
       </div>
     </div>
   </div>
@@ -89,8 +89,8 @@ const steps = [
   { title: 'Connection Details', completed: false }
 ]
 
-const setupFormRef = ref<InstanceType<typeof DatabaseSetupForm> | null>(null)
 const databasesStore = useDatabasesStore()
+const currentStep = ref(0)
 
 // Load databases on mount to check if there are existing ones
 onMounted(async () => {
@@ -102,10 +102,10 @@ const hasExistingDatabases = computed(() => {
   return databasesStore.databases.length > 0
 })
 
-// Watch the form's currentStep to update our local state
-const currentStep = computed(() => {
-  return setupFormRef.value?.currentStep || 0
-})
+// Handle step changes from the form
+const onStepChanged = (step: number) => {
+  currentStep.value = step
+}
 
 // Methods for step styling
 const getStepClasses = (index: number) => {
