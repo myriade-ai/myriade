@@ -19,4 +19,4 @@ OFFLINE_MODE = os.environ.get("OFFLINE_MODE", "false").lower() == "true"
 
 ENV = os.environ.get("FLASK_ENV", "development")
 
-SENTRY_DSN = "https://b030d37fd0ec1da2e17104283f990f1a@o4508993570275328.ingest.de.sentry.io/4508993573814352"
+SENTRY_DSN = os.environ.get("SENTRY_DSN")
