@@ -13,13 +13,10 @@ export const user = ref({
 
 export const isAuthenticated = computed(() => user.value.id !== null)
 
-export const login = async () => {
-  try {
-    const response = await axios.get('/api/auth')
-    window.location.href = response.data.authorization_url
-  } catch (error) {
-    console.error('Login failed:', error)
-  }
+export const getLoginUrl = async () => {
+  const response = await axios.get('/api/auth')
+  const { authorization_url } = response.data
+  return authorization_url
 }
 
 export const fetchUser = async () => {
@@ -39,11 +36,15 @@ export const fetchUser = async () => {
 
 export const logout = async () => {
   try {
+    // We get the logout url from the server
     const { data } = await axios.post('/api/logout')
     const { logout_url } = data
     window.location.href = logout_url
   } catch (error) {
     console.error('Logout failed, user is not logged in:', error)
-    window.location.href = '/login'
+    // If logout fails, we redirect to the login page
+    const response = await axios.get('/api/auth')
+    const { authorization_url } = response.data
+    window.location.href = authorization_url
   }
 }
