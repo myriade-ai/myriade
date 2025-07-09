@@ -52,7 +52,7 @@ def create_app():
         )
 
         # Send to Sentry if configured
-        if config.ENV != "development":
+        if config.SENTRY_DSN:
             sentry_sdk.capture_exception(e)
 
         # Return JSON error response
