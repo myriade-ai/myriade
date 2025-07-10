@@ -1,23 +1,47 @@
-# ADA: Accelerate Data Analysis
+# Myriade - The secure AI analytics copilot for your database.
 
-Ada is the best AI tool to explore your data in a safe, fast & accessible way.
+Query any database in natural language, inspect every SQL the agent runs, and get instant, actionable insights
 
-![Ada Demo Screenshot](https://github.com/BenderV/ada/assets/2799516/6b1e457c-477d-4b22-a471-915c5f8ac8b6)
+[![image](https://img.shields.io/github/license/myriade-ai/myriade)](https://github.com/myriade-ai/myriade/blob/master/LICENSE)
+[![Actions status](https://github.com/myriade-ai/myriade/actions/workflows/test.yml/badge.svg)](https://github.com/myriade-ai/myriade/actions)
 
-## Features
+## ✨ Why Myriade?
 
-- **Easy set up:** Run Ada locally in 5 minutes
-- **Human Friendly:** Query in English, Ada will take care of the rest.
-- **“Take Over” Mode:** Built-in Editor to run SQL
-- **Built-in Privacy & Safety:** Use with a peace of mind
-- **DBT Support:** Upload DBT catalog and manifest to leverage DBT (experimental)
+Traditional BI tools still require you to **think about tables, joins, and SQL** before you get to insight. Myriade removes all that friction with an **AI‑native chat interface** that reads your question, explores your database safely in read‑only mode, writes and refines SQL, analyses the result set, and surfaces the answer—all in seconds.
 
-## Demo
+- ⚡ **10× faster answers** – skip schema spelunking and boilerplate SQL.
+- 🔒 **Secure by design** – read‑only credentials, limited previews, zero data retention.
+- 🧠 **Beyond NL2SQL** – root‑cause analysis, anomaly detection, opportunity discovery.
+- 🏗️ **Extensible** – works with Postgres, MySQL, Snowflake, BigQuery and more.
 
-Check out this [2 min demo video](https://www.youtube.com/watch?v=rh8CWB0ClOc) to see Ada in action.
-Or better 👉 [try it yourself](https://ada.universaldata.io)
+## 🔐 Security Model
 
-## Quick Start Guide
+0. **Local hosting** – Install Myriade on your own hardware.
+1. **Read‑only DB users** – Myriade never mutates your production data.
+2. **Limited result preview** – the agent sees row samples & column stats, not full dumps.
+3. **Zero‑Knowledge Protection** – encrypt sensitive data before sending it to the LLM.
+
+## 📦 Features
+
+- **Simple set up:** Run Myriade locally in < 5 minutes.
+- **Natural‑language chat** to query your data database.
+- **AI ↔️ DB trace viewer** so you can inspect every query the agent runs.
+- **SQL editor** for power users with AI autocorrect & explain.
+- **Prompt templates** ("Projects") to tailor the agent to a domain or KPI set.
+- **Data quality control panel** (coming soon).
+- **Zero‑Knowledge Protection** (opt‑in, coming soon).
+
+## 💬 Usage Examples
+
+| Ask…                                                           | Myriade does…                                             |
+| -------------------------------------------------------------- | --------------------------------------------------------- |
+| _"Why did sales drop on 2025‑03‑10?"_                          | scans fact tables, runs cohort diffs, returns root causes |
+| _"Create a view of user_id, total_sales, last_product_bought"_ | generates SQL, saves the view, returns preview            |
+| _"What KPIs are missing in the store report?"_                 | reviews schema, suggests additional metrics               |
+
+---
+
+## 🚀 Quick Start
 
 ### Pre-requisites
 
@@ -75,31 +99,3 @@ yarn dev
 ```
 
 After completing the steps, open your browser and visit: [http://localhost:5173](http://localhost:5173)
-
-## Privacy & Safety
-
-We have developed built-in features to protect privacy and ensure safety
-
-- **Preview only:** Model only have preview of the requested data
-- **“Privacy protection”:** hide fields about name, location
-- **“Safe mode”:** limit to read-only query
-
-## Tech Stacks
-
-- **AI Interaction**: Using [Autochat](https://github.com/BenderV/autochat) library with OpenAI GPT-4 API.
-- **Frontend**: Built using Vue3 and Vite
-- **Backend**: Developed in Python
-- **Database**: Postgres
-
-## FAQs
-
-- Q: How secure is my data with Ada / OpenAI?
-- A: Since it's open source, you can run Ada on your own server and keep your data private. OpenAI's API is also secure and encrypted, and they don't use your data for training with the API.
-
-## Troubleshooting & Contribution
-
-For any issues, please open an issue on GitHub or contact me on [Twitter](https://twitter.com/benderville).
-
-## License
-
-[LICENSE](LICENSE) - AGPL
