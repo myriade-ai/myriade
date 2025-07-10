@@ -1,6 +1,33 @@
 # CHANGELOG
 
 
+## v0.24.0 (2025-07-10)
+
+### Bug Fixes
+
+- Funnel steps
+  ([`c3fecf8`](https://github.com/myriade-ai/myriade/commit/c3fecf863ac04ef28d4f40a2aaeef86833435667))
+
+- Sentry condition
+  ([`7d9d71b`](https://github.com/myriade-ai/myriade/commit/7d9d71b6b4db7e34a12f3eaf47a3d3f024695128))
+
+- Show links to user not in orga
+  ([`ffde3f1`](https://github.com/myriade-ai/myriade/commit/ffde3f16d8fb3d7575c41abae8ea7fc9d1e24804))
+
+### Chores
+
+- Remove sentry ref
+  ([`dd88f15`](https://github.com/myriade-ai/myriade/commit/dd88f15f2a3341d6f3ff46c703d4c7af0d793220))
+
+### Features
+
+- Add info box to show ip to whitelist
+  ([`27a69ca`](https://github.com/myriade-ai/myriade/commit/27a69ca3cf72ae3885eb9e90ed373d1b08d96333))
+
+- Autoredirect to sign-in page
+  ([`381fd1f`](https://github.com/myriade-ai/myriade/commit/381fd1f4ee2203533020d19edef7331d852091ce))
+
+
 ## v0.23.4 (2025-06-29)
 
 ### Bug Fixes
