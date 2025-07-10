@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.24.1 (2025-07-10)
+
+### Bug Fixes
+
+- Session refresh
+  ([`e3207e2`](https://github.com/myriade-ai/myriade/commit/e3207e23b32d670b460fcd5754408d869179a152))
+
+
 ## v0.24.0 (2025-07-10)
 
 ### Bug Fixes
