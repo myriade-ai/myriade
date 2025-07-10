@@ -1,9 +1,9 @@
 # Myriade
 [Myriade](https://www.myriade.ai) is the secure AI analytics copilot for your database.
 
-![output](https://github.com/user-attachments/assets/e4a20de4-8b1e-4ec2-a692-cfdd02dd0533)
-
 Query any database in natural language, inspect every SQL the agent runs, and get instant, actionable insights.
+
+![output](https://github.com/user-attachments/assets/e4a20de4-8b1e-4ec2-a692-cfdd02dd0533)
 
 ## ✨ Why Myriade?
 
@@ -12,7 +12,7 @@ Traditional BI tools still require you to **think about tables, joins, and SQL**
 - ⚡ **10× faster answers** – skip schema spelunking and boilerplate SQL.
 - 🔒 **Secure by design** – read‑only credentials, limited previews, zero data retention.
 - 🧠 **Beyond NL2SQL** – root‑cause analysis, anomaly detection, opportunity discovery.
-- 🏗️ **Extensible** – works with Postgres, MySQL, Snowflake, BigQuery and more.
+- 🏗️ **Extensible** – works with Postgres, MySQL, Snowflake, BigQuery, ...
 
 ## 🔐 Security Model
 
