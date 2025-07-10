@@ -1,6 +1,11 @@
-# Myriade - The secure AI analytics copilot for your database.
+# Myriade
+[Myriade](https://www.myriade.ai) is the secure AI analytics copilot for your database.
 
-Query any database in natural language, inspect every SQL the agent runs, and get instant, actionable insights
+Query any database in natural language, inspect every SQL the agent runs, and get instant, actionable insights.
+
+![output](https://github.com/user-attachments/assets/e4a20de4-8b1e-4ec2-a692-cfdd02dd0533)
+
+---
 
 [![image](https://img.shields.io/github/license/myriade-ai/myriade)](https://github.com/myriade-ai/myriade/blob/master/LICENSE)
 [![Actions status](https://github.com/myriade-ai/myriade/actions/workflows/test.yml/badge.svg)](https://github.com/myriade-ai/myriade/actions)
