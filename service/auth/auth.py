@@ -1,6 +1,8 @@
 import base64
 import hashlib
-from functools import wraps
+import logging
+from functools import lru_cache, wraps
+from threading import RLock
 
 from flask import g, jsonify, make_response, request
 from workos.types.user_management.session import (
@@ -9,7 +11,6 @@ from workos.types.user_management.session import (
 
 from config import (
     OFFLINE_MODE,
-    WORKOS_API_KEY,
     WORKOS_CLIENT_ID,
     WORKOS_ORGANIZATION_ID,
 )
@@ -19,12 +20,14 @@ if OFFLINE_MODE:
 else:
     from workos import WorkOSClient
 
+logger = logging.getLogger(__name__)
 
 workos_client = WorkOSClient(
-    api_key=WORKOS_API_KEY,
     client_id=WORKOS_CLIENT_ID,
 )
+_refresh_locks = lru_cache(maxsize=1024)(lambda sid: RLock())
 
+# TODO: change this
 cookie_password = "mkPRI77h3M6iehoYFhwWXQ27f2sGpPuM"
 
 # Generate a proper Fernet key from the password
@@ -44,12 +47,17 @@ def with_auth(f):
         # Validate session cookie exists
         session_cookie = request.cookies.get("wos_session")
         if not session_cookie:
+            logger.warning("No session cookie found")
             return jsonify({"error": "No session cookie"}), 401
+
+        logger.info(f"Authenticating session: {session_cookie[:20]}...")
 
         # Load and authenticate session
         try:
             auth_response, is_refreshed = _authenticate_session(session_cookie)
+            logger.info(f"Authentication successful, refreshed: {is_refreshed}")
         except UnauthorizedError as e:
+            logger.error(f"Authentication failed: {str(e)}")
             return jsonify({"error": str(e)}), 401
 
         # Set user context
@@ -79,7 +87,7 @@ def with_auth(f):
 
 
 def _authenticate_session(
-    session_cookie,
+    session_cookie: str,
 ) -> tuple[AuthenticateWithSessionCookieSuccessResponse, bool]:
     """Authenticate and potentially refresh the session."""
     session = workos_client.user_management.load_sealed_session(
@@ -87,16 +95,18 @@ def _authenticate_session(
         cookie_password=cookie_password_b64,
     )
 
-    auth_response = session.authenticate()
-    if auth_response.authenticated:
-        return auth_response, False  # type: ignore
+    # ensure only one concurrent refresh per session
+    with _refresh_locks(session.client_id):
+        auth_response = session.authenticate()
+        if auth_response.authenticated:
+            return auth_response, False  # type: ignore
 
-    refreshed_auth_response = session.refresh()
+        refreshed_auth_response = session.refresh()
 
-    if not refreshed_auth_response.authenticated:
-        raise UnauthorizedError(refreshed_auth_response.reason)  # type: ignore
+        if not refreshed_auth_response.authenticated:
+            raise UnauthorizedError(refreshed_auth_response.reason)  # type: ignore
 
-    return refreshed_auth_response, True  # type: ignore
+        return refreshed_auth_response, True  # type: ignore
 
 
 def _set_user_context(auth_response):
@@ -112,11 +122,16 @@ def _create_response_with_cookie(response, sealed_session):
     response.set_cookie(
         "wos_session",
         sealed_session,
-        secure=True,
-        httponly=True,
-        samesite="lax",
-        domain=None,
+        secure=True,  # Only over HTTPS
+        httponly=True,  # Not accessible via JavaScript
+        samesite="lax",  # CSRF protection
+        domain=None,  # Current domain only
+        max_age=60 * 60 * 24 * 7,  # 7 days
+        path="/",  # Available to all paths
     )
+    # Add header to ensure cookie is set
+    response.headers["X-Session-Refreshed"] = "true"
+
     return response
 
 
