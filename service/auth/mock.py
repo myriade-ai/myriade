@@ -32,7 +32,7 @@ class MockSSOClient:
 
 # Mock WorkOS client for development mode
 class MockWorkOSClient:
-    def __init__(self, api_key, client_id):
+    def __init__(self, client_id):
         self.organizations = MockOrganizationsClient()
         self.user_management = MockUserManagementClient()
         self.sso = MockSSOClient()
@@ -92,7 +92,10 @@ class MockUser:
 
 # Mock session class for development mode
 class MockSession:
+    client_id: str
+
     def __init__(self, user_data=None):
+        self.client_id = "mock_client_id"
         self.user_data = user_data or MOCK_USER_DATA
 
     def authenticate(self):

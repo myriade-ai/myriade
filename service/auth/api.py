@@ -80,7 +80,7 @@ def logout():
         return jsonify({"message": "Failed to authenticate session"}), 500
 
     scheme = "https" if ENV == "production" else "http"
-    redirect_url = scheme + "://" + HOST + "/login"
+    redirect_url = scheme + "://" + HOST + "/"
 
     logout_url = workos_client.user_management.get_logout_url(
         session_id=auth_result.session_id,
