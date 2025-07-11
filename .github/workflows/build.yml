@@ -37,6 +37,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./service
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             myriadeai/myriade-service:latest
@@ -46,6 +47,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./view
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             myriadeai/myriade-view:latest
