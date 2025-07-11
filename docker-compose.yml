@@ -10,11 +10,11 @@ services:
     ports: # For debugging purpose, we expose the Postgres port
       - "2345:5432" # To avoid conflicts with other Postgres instances
     networks:
-      - ada-network
+      - myriade-network
 
   service:
     build: ./service
-    image: benderville/ada-service:latest
+    image: myriadeai/myriade-service:latest
     volumes:
       - logs:/var/log/gunicorn
     depends_on:
@@ -23,27 +23,29 @@ services:
       FLASK_APP: app.py
       FLASK_ENV: production
       DATABASE_URL: postgresql://human:pass@db:5432/ada
-      AUTOCHAT_PROVIDER: anthropic
-      AUTOCHAT_MODEL: claude-sonnet-4-20250514
       HOST: ${HOST}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      AUTOCHAT_PROVIDER: anthropic
+      AUTOCHAT_MODEL: claude-sonnet-4
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY} # If you want to use OpenAI, set this
+      # Optional
       WORKOS_API_KEY: ${WORKOS_API_KEY}
       WORKOS_CLIENT_ID: ${WORKOS_CLIENT_ID}
       WORKOS_ORGANIZATION_ID: ${WORKOS_ORGANIZATION_ID}
+      COOKIE_PASSWORD: ${COOKIE_PASSWORD}
+      # Ignore
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       SENTRY_DSN: ${SENTRY_DSN}
-      COOKIE_PASSWORD: ${COOKIE_PASSWORD}
     networks:
-      - ada-network
+      - myriade-network
 
   view:
     build: ./view
-    image: benderville/ada-view:latest
+    image: myriadeai/myriade-view:latest
     depends_on:
       - service
     networks:
-      - ada-network
+      - myriade-network
 
   proxy:
     image: nginx:alpine
@@ -55,10 +57,10 @@ services:
       - service
       - view
     networks:
-      - ada-network
+      - myriade-network
 
 networks:
-  ada-network:
+  myriade-network:
     driver: bridge
 
 volumes:
