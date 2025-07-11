@@ -39,8 +39,8 @@ jobs:
           context: ./service
           push: true
           tags: |
-            benderville/ada-service:latest
-            benderville/ada-service:${{ steps.get_version.outputs.version }}
+            myriadeai/myriade-service:latest
+            myriadeai/myriade-service:${{ steps.get_version.outputs.version }}
 
       - name: Build and push view image
         uses: docker/build-push-action@v5
@@ -48,7 +48,7 @@ jobs:
           context: ./view
           push: true
           tags: |
-            benderville/ada-view:latest
-            benderville/ada-view:${{ steps.get_version.outputs.version }}
+            myriadeai/myriade-view:latest
+            myriadeai/myriade-view:${{ steps.get_version.outputs.version }}
           secrets: |
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
