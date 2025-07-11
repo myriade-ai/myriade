@@ -31,7 +31,7 @@ Myriade removes all that friction with an **AI‑native chat interface** that re
 - **AI ↔️ DB trace viewer** – so you can inspect every query the agent runs.
 - **SQL editor** – for power users with AI autocorrect & explain.
 - **Prompt templates** ("Projects") – to tailor the agent to a domain or KPI set.
-- **Data quality control panel** – (coming soon).
+- **Data Quality control panel** – (coming soon).
 - **Zero‑Knowledge Protection** – (opt‑in, beta).
 
 ## 💬 Usage Examples
@@ -46,9 +46,12 @@ Myriade removes all that friction with an **AI‑native chat interface** that re
 
 ## 🚀 Quick Start
 
+This will help you run Myriade locally, without the user management support.
+
 ### Pre-requisites
 
-At this time, we recommend using Anthropic. Get an Anthropic API key if you don't have one [here](https://www.anthropic.com/).
+At this time, we recommend using **Anthropic** to get the best results. Get an Anthropic API key if you don't have one [here](https://www.anthropic.com/).
+
 Note: you can also use any other LLM provider (OpenAI, Gemini, etc.). Check the [docker-compose.yml](./docker-compose.yml) file for the available environment variables.
 
 ### Run docker-compose
