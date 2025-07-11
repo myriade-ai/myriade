@@ -23,19 +23,19 @@ services:
       FLASK_APP: app.py
       FLASK_ENV: production
       DATABASE_URL: postgresql://human:pass@db:5432/ada
-      HOST: ${HOST}
+      HOST: ${HOST:-http://localhost:8080}
       AUTOCHAT_PROVIDER: anthropic
       AUTOCHAT_MODEL: claude-sonnet-4
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      OPENAI_API_KEY: ${OPENAI_API_KEY} # If you want to use OpenAI, set this
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-} # If you want to use OpenAI, set this
       # Optional
-      WORKOS_API_KEY: ${WORKOS_API_KEY}
-      WORKOS_CLIENT_ID: ${WORKOS_CLIENT_ID}
-      WORKOS_ORGANIZATION_ID: ${WORKOS_ORGANIZATION_ID}
-      COOKIE_PASSWORD: ${COOKIE_PASSWORD}
+      WORKOS_API_KEY: ${WORKOS_API_KEY:-}
+      WORKOS_CLIENT_ID: ${WORKOS_CLIENT_ID:-}
+      WORKOS_ORGANIZATION_ID: ${WORKOS_ORGANIZATION_ID:-}
+      COOKIE_PASSWORD: ${COOKIE_PASSWORD:-}
       # Ignore
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      SENTRY_DSN: ${SENTRY_DSN}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     networks:
       - myriade-network
 
@@ -50,7 +50,7 @@ services:
   proxy:
     image: nginx:alpine
     volumes:
-      - ./proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro # Mount nginx config read-only
+      - ./setup/proxy_nginx.conf:/etc/nginx/conf.d/default.conf:ro # Mount nginx config read-only
     ports:
       - "8080:80" # Expose proxy on host port 8080
     depends_on:
