@@ -10,6 +10,7 @@ from workos.types.user_management.session import (
 )
 
 from config import (
+    COOKIE_PASSWORD,
     OFFLINE_MODE,
     WORKOS_CLIENT_ID,
     WORKOS_ORGANIZATION_ID,
@@ -27,11 +28,8 @@ workos_client = WorkOSClient(
 )
 _refresh_locks = lru_cache(maxsize=1024)(lambda sid: RLock())
 
-# TODO: change this
-cookie_password = "mkPRI77h3M6iehoYFhwWXQ27f2sGpPuM"
-
 # Generate a proper Fernet key from the password
-cookie_password_bytes = cookie_password.encode()
+cookie_password_bytes = COOKIE_PASSWORD.encode()
 cookie_password_b64 = base64.urlsafe_b64encode(
     hashlib.sha256(cookie_password_bytes).digest()
 ).decode("utf-8")
