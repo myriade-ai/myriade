@@ -3,7 +3,7 @@ import uuid
 from contextlib import contextmanager
 from datetime import date, datetime
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from config import DATABASE_URL
@@ -32,37 +32,6 @@ def json_deserial(d):
         return json_dict
 
     return json.loads(d, object_hook=date_hook)
-
-
-def setup_database(refresh=False):
-    from models import Base
-
-    # Create engine and metadata
-    engine = create_engine(DATABASE_URL)
-
-    if refresh:
-        # Drop all tables
-        Base.metadata.drop_all(engine)
-
-    # Create all tables
-    Base.metadata.create_all(engine)
-
-    # Create vector extension if it doesn't exist
-    with engine.connect() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-
-    # Return the engine
-    return engine
-
-
-def teardown_database(engine):
-    from models import Base
-
-    # Drop all tables
-    Base.metadata.drop_all(engine)
-
-    # Dispose the engine
-    engine.dispose()
 
 
 engine = create_engine(
@@ -98,7 +67,3 @@ def with_session(handler):
             return handler(db, *args, **kwargs)
 
     return wrapper
-
-
-if __name__ == "__main__":
-    setup_database()

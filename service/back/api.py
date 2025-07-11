@@ -331,9 +331,9 @@ def get_questions(context_id):
     return jsonify(response_values)
 
 
-@api.route("/databases/<database_id>/schema", methods=["GET"])
+@api.route("/databases/<uuid:database_id>/schema", methods=["GET"])
 @user_middleware
-def get_schema(database_id):
+def get_schema(database_id: UUID):
     # Filter databases based on user ID and specific database ID
     database = g.session.query(Database).filter_by(id=database_id).first()
 
@@ -476,9 +476,9 @@ def delete_project(project_id: UUID):
     return jsonify({"message": "Project deleted successfully"})
 
 
-@api.route("/databases/<database_id>/privacy", methods=["PUT"])
+@api.route("/databases/<uuid:database_id>/privacy", methods=["PUT"])
 @user_middleware
-def update_database_privacy(database_id):
+def update_database_privacy(database_id: UUID):
     """Update privacy configuration (tables_metadata) for a database."""
     database = g.session.query(Database).filter_by(id=database_id).first()
     if not database:

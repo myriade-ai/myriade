@@ -1,6 +1,6 @@
 services:
   db:
-    image: ankane/pgvector:latest # Postgres with vector similarity search
+    image: postgres:17
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
