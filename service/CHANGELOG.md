@@ -1,6 +1,21 @@
 # CHANGELOG
 
 
+## v0.25.1 (2025-07-11)
+
+### Bug Fixes
+
+- Improvement for self hosting
+  ([`0662100`](https://github.com/myriade-ai/myriade/commit/0662100a0ffdf89ba01c2801622beddb3815261e))
+
+switch admin to activate sub, improve network warning, rework readme, fix uuid bugs
+
+### Chores
+
+- Remove migrations
+  ([`c3b13e4`](https://github.com/myriade-ai/myriade/commit/c3b13e4c87e4fd31ea71b7596f31bee5f22ce496))
+
+
 ## v0.25.0 (2025-07-11)
 
 ### Features
