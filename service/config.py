@@ -19,3 +19,4 @@ OFFLINE_MODE = os.environ.get("OFFLINE_MODE", "false").lower() == "true"
 ENV = os.environ.get("FLASK_ENV", "development")
 
 SENTRY_DSN = os.environ.get("SENTRY_DSN")
+COOKIE_PASSWORD = os.environ.get("COOKIE_PASSWORD", "")
