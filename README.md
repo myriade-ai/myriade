@@ -45,57 +45,25 @@ Traditional BI tools still require you to **think about tables, joins, and SQL**
 
 ### Pre-requisites
 
-ℹ️ Note: get an OpenAI API key. If you don't have one, get it [here](https://www.openai.com/).
+ℹ️ Note: get an Anthropic API key. If you don't have one, get it [here](https://www.anthropic.com/).
 
-### Docker installation
-
-```bash
-docker-compose up -d
-```
-
-### Manual installation
-
-#### Backend Setup (in [`/service`](/service) directory)
-
-1. **Install Dependencies**:
-
-   ```bash
-   uv sync
-   ```
-
-2. **Set Environment Variables**:
-   in `service/.env.sh` file:
-
-   ```bash
-   export AUTOCHAT_MODEL=<Your_OpenAI_Model>
-   export OPENAI_API_KEY=<Your_OpenAI_API_Key>
-   export DATABASE_URL=<Your_Postgres_Database_URL>
-   ```
-
-or to use another provider:
+### Create .env file
 
 ```bash
-export AUTOCHAT_PROVIDER=<Your_Provider>
-export ANTHROPIC_API_KEY=<Your_Anthropic_API_Key>
+cp .env.example .env
+# Edit .env file with your values
 ```
 
-3. **Run the Backend**:
-   ```bash
-   bash start.sh dev
-   ```
-
-#### Frontend Setup (in [`/view`](/view) directory)
-
-Install Dependencies
+### Run docker-compose
 
 ```bash
-yarn
+git clone https://github.com/myriade-ai/myriade.git
+docker compose pull
+docker compose up -d
 ```
 
-Run the front-end
+### Open the app
 
 ```bash
-yarn dev
+http://localhost:5173
 ```
-
-After completing the steps, open your browser and visit: [http://localhost:5173](http://localhost:5173)
