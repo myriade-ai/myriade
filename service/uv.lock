@@ -962,7 +962,7 @@ wheels = [
 
 [[package]]
 name = "myriade-service"
-version = "0.23.4"
+version = "0.24.1"
 source = { virtual = "." }
 dependencies = [
     { name = "alembic" },
@@ -973,7 +973,6 @@ dependencies = [
     { name = "flask-socketio" },
     { name = "gunicorn" },
     { name = "nest-asyncio" },
-    { name = "pgvector" },
     { name = "psycopg2-binary" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
@@ -1024,7 +1023,6 @@ requires-dist = [
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "mysql", marker = "extra == 'all'" },
     { name = "nest-asyncio", specifier = ">=1.6.0" },
-    { name = "pgvector", specifier = ">=0.1.8" },
     { name = "psycopg2-binary", specifier = ">=2.9.7" },
     { name = "pymysql", marker = "extra == 'mysql'", specifier = ">=1.1.1" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
@@ -1179,18 +1177,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/25/b0/98d6ae2e1abac4f35230aa756005e8654649d305df9a28b16b9ae4353bff/pandas-2.2.3-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1db71525a1538b30142094edb9adc10be3f3e176748cd7acc2240c2f2e5aa3a4", size = 11871013, upload-time = "2024-09-20T13:09:44.39Z" },
     { url = "https://files.pythonhosted.org/packages/cc/57/0f72a10f9db6a4628744c8e8f0df4e6e21de01212c7c981d31e50ffc8328/pandas-2.2.3-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:15c0e1e02e93116177d29ff83e8b1619c93ddc9c49083f237d4312337a61165d", size = 15711620, upload-time = "2024-09-20T19:02:20.639Z" },
     { url = "https://files.pythonhosted.org/packages/ab/5f/b38085618b950b79d2d9164a711c52b10aefc0ae6833b96f626b7021b2ed/pandas-2.2.3-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:ad5b65698ab28ed8d7f18790a0dc58005c7629f227be9ecc1072aa74c0c1d43a", size = 13098436, upload-time = "2024-09-20T13:09:48.112Z" },
-]
-
-[[package]]
-name = "pgvector"
-version = "0.4.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/e2/40/296ffb7f97fc7ec7b7c34f46861a519c576d561fd31455fc75c5ce2fa8db/pgvector-0.4.0.tar.gz", hash = "sha256:f909f8e8081b57fb8a2442c36c3a1e521228d0d4ad66100c28c674806ff62688", size = 30688, upload-time = "2025-03-16T00:56:01.321Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/90/fb/77d29e98b36f1a0c6f770157001d3747557cae46f0e6f6d282461e554b80/pgvector-0.4.0-py3-none-any.whl", hash = "sha256:9d3e0c27f676c61d2fd4270ac1bc520d39b947b199200babe4a56d6d00c74a07", size = 27027, upload-time = "2025-03-16T00:55:59.948Z" },
 ]
 
 [[package]]
