@@ -12,18 +12,19 @@
 
     <!-- PostgreSQL/MySQL Fields -->
     <div v-if="engine === 'postgres' || engine === 'mysql'" class="space-y-4">
-      <!-- Information box for IP whitelisting -->
-      <BaseNotification
-        color="warning"
-        title="Network Configuration"
-        :message="`Please whitelist the following IP in your cloud-database network rules: ${serverIp}`"
-        class="max-w-lg mx-auto bg-warning-50"
-      />
       <div class="text-sm text-gray-500" v-if="showEngineTitle">
         <p>{{ getDatabaseTypeName(engine) }} connection details</p>
       </div>
-      <div :class="layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'">
+      <div :class="layout === 'grid' ? 'grid grid-cols-1' : 'space-y-4'">
         <base-input name="Host" v-model="details.host" rules="required" placeholder="localhost" />
+        <!-- Information box for IP whitelisting -->
+        <BaseNotification
+          v-if="!shouldHideNetworkConfig"
+          color="warning"
+          title="Cloud Database Network Configuration"
+          :message="`If necessary, please whitelist the following IP in your cloud-database network rules: ${serverIp}`"
+          class="bg-warning-50"
+        />
         <base-input
           name="Port"
           v-model="details.port"
@@ -165,7 +166,7 @@ import BaseNotification from '@/components/base/BaseNotification.vue'
 import { useServerInfo } from '@/composables/useServerInfo'
 import { getDatabaseTypeName, getDefaultDetailsForEngine } from '@/utils/database'
 import { CloudArrowUpIcon } from '@heroicons/vue/24/outline'
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
 
 const { serverIp } = useServerInfo()
 
@@ -184,8 +185,15 @@ interface Props {
   safeMode?: boolean
 }
 const props = defineProps<Props>()
-const emit = defineEmits(['update:safeMode', 'update:name'])
+defineEmits(['update:safeMode', 'update:name'])
 const details = defineModel({ type: Object, required: true })
+
+// Check if we should show network configuration notification
+const shouldHideNetworkConfig = computed(() => {
+  const host = details.value?.host?.trim()
+  return !host || 'localhost'.startsWith(host) || '127.0.0.1'.startsWith(host)
+})
+
 // Watch for engine changes and reset details
 watch(
   () => props.engine,

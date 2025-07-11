@@ -86,9 +86,9 @@ def get_conversations():
     return jsonify(conversations_dict)
 
 
-@api.route("/conversations/<conversation_id>", methods=["GET", "PUT"])
+@api.route("/conversations/<uuid:conversation_id>", methods=["GET", "PUT"])
 @user_middleware
-def get_conversation(conversation_id):
+def get_conversation(conversation_id: UUID):
     conversation = (
         g.session.query(Conversation)
         .join(ConversationMessage, Conversation.messages, isouter=True)
@@ -108,9 +108,9 @@ def get_conversation(conversation_id):
     return jsonify(conversation_dict)
 
 
-@api.route("/conversations/<conversation_id>", methods=["DELETE"])
+@api.route("/conversations/<uuid:conversation_id>", methods=["DELETE"])
 @user_middleware
-def delete_conversation(conversation_id):
+def delete_conversation(conversation_id: UUID):
     # Delete conversation and all related messages
     g.session.query(ConversationMessage).filter_by(
         conversationId=conversation_id

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from flask import Blueprint
 from flask import session as flask_session
 from flask_socketio import emit
@@ -45,7 +47,9 @@ def handle_ask(session, conversation_id, question):
     # We reset stop flag if the user sent a new request
     conversation_stop_flags.pop(conversation_id, None)
 
-    conversation = session.query(Conversation).filter_by(id=conversation_id).first()
+    conversation = (
+        session.query(Conversation).filter_by(id=UUID(conversation_id)).first()
+    )
 
     agent = DataAnalystAgent(
         session,
@@ -82,7 +86,9 @@ def handle_query(
     # We reset stop flag if the user sent a new request
     conversation_stop_flags.pop(conversation_id, None)
 
-    conversation = session.query(Conversation).filter_by(id=conversation_id).first()
+    conversation = (
+        session.query(Conversation).filter_by(id=UUID(conversation_id)).first()
+    )
     agent = DataAnalystAgent(
         session,
         conversation,
@@ -146,7 +152,9 @@ def handle_regenerate_from_message(
 
     # if message_content is not None, it means the user has edited the message
     if message_content is not None:
-        message = session.query(ConversationMessage).filter_by(id=message_id).first()
+        message = (
+            session.query(ConversationMessage).filter_by(id=UUID(message_id)).first()
+        )
         message.content = message_content
         try:
             session.commit()
@@ -159,13 +167,13 @@ def handle_regenerate_from_message(
 
     # Clear all messages after the message_id, from the conversation
     selected_message = (
-        session.query(ConversationMessage).filter_by(id=message_id).first()
+        session.query(ConversationMessage).filter_by(id=UUID(message_id)).first()
     )
     messages = (
         session.query(ConversationMessage)
         .filter(
             ConversationMessage.createdAt > selected_message.createdAt,
-            ConversationMessage.conversationId == conversation_id,
+            ConversationMessage.conversationId == UUID(conversation_id),
         )
         .all()
     )
@@ -175,7 +183,7 @@ def handle_regenerate_from_message(
         session.delete(message)
 
     # Also, if the message is from the assistant, delete it
-    message = session.query(ConversationMessage).filter_by(id=message_id).first()
+    message = session.query(ConversationMessage).filter_by(id=UUID(message_id)).first()
     if message.role == "assistant":
         deleted_message_ids.append(message.id)
         session.delete(message)
@@ -191,7 +199,9 @@ def handle_regenerate_from_message(
     for message_id in deleted_message_ids:
         emit("delete-message", str(message_id))
 
-    conversation = session.query(Conversation).filter_by(id=conversation_id).first()
+    conversation = (
+        session.query(Conversation).filter_by(id=UUID(conversation_id)).first()
+    )
 
     # Regenerate the conversation
     agent = DataAnalystAgent(
