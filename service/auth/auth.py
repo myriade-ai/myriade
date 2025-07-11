@@ -11,12 +11,11 @@ from workos.types.user_management.session import (
 
 from config import (
     COOKIE_PASSWORD,
-    OFFLINE_MODE,
     WORKOS_CLIENT_ID,
     WORKOS_ORGANIZATION_ID,
 )
 
-if OFFLINE_MODE:
+if not WORKOS_CLIENT_ID:
     from auth.mock import MockWorkOSClient as WorkOSClient
 else:
     from workos import WorkOSClient

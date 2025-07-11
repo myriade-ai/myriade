@@ -8,15 +8,9 @@ For local development without requiring a WorkOS account, you can use the develo
 
 ### How to Enable Development Mode
 
-1. Set the `OFFLINE_MODE` environment variable to `true` in your `.env` file:
+1. When in development mode, you don't need to provide `WORKOS_API_KEY` or `WORKOS_CLIENT_ID`.
 
-```
-OFFLINE_MODE=true
-```
-
-2. When in development mode, you don't need to provide `WORKOS_API_KEY` or `WORKOS_CLIENT_ID`.
-
-3. The system will automatically use a mock user.
+2. The system will automatically use a mock user.
 
 ### Customizing the Mock Data
 
@@ -40,8 +34,7 @@ This allows your code to use the WorkOS client API without changes in both devel
 
 For production, make sure to:
 
-1. Set `OFFLINE_MODE` to `false` or remove it from your environment variables
-2. Provide valid `WORKOS_API_KEY` and `WORKOS_CLIENT_ID` values
+1. Provide valid `WORKOS_API_KEY` and `WORKOS_CLIENT_ID` values
 
 ## Authentication Flow
 
