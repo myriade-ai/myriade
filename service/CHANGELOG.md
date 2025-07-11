@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.24.3 (2025-07-11)
+
+### Bug Fixes
+
+- Docker build
+  ([`99dc5de`](https://github.com/myriade-ai/myriade/commit/99dc5de5ab5e0474bb786fd6fa83b0aba331329d))
+
+### Build System
+
+- Add linux/arm64
+  ([`5f70a05`](https://github.com/myriade-ai/myriade/commit/5f70a0561f9bcff2a7033a91b6b78ff02378e18f))
+
+
 ## v0.24.2 (2025-07-11)
 
 ### Bug Fixes
