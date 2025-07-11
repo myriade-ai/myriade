@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.25.0 (2025-07-11)
+
+### Features
+
+- Allow to use locally without workos
+  ([`97ae18d`](https://github.com/myriade-ai/myriade/commit/97ae18df5431330feed4e8d20fa7ca427e75b454))
+
+
 ## v0.24.3 (2025-07-11)
 
 ### Bug Fixes
