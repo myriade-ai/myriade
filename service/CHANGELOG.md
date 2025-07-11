@@ -1,6 +1,33 @@
 # CHANGELOG
 
 
+## v0.24.2 (2025-07-11)
+
+### Bug Fixes
+
+- Remove se crets
+  ([`c9dca91`](https://github.com/myriade-ai/myriade/commit/c9dca9156407bcb166103f1096fe42878e51f1a1))
+
+### Build System
+
+- Change docker org
+  ([`c922b49`](https://github.com/myriade-ai/myriade/commit/c922b497b2330cd4077a84134b2c5112ee6cbff8))
+
+- Clean for oss publish
+  ([`a2a4e04`](https://github.com/myriade-ai/myriade/commit/a2a4e040cb32950ca0b050a80f80d66fbded5e8b))
+
+### Chores
+
+- Update README
+  ([`adf74ae`](https://github.com/myriade-ai/myriade/commit/adf74ae6b98c566f83299ed43a90bd151bf5c169))
+
+- Update README.md
+  ([`cbf37f4`](https://github.com/myriade-ai/myriade/commit/cbf37f4af73d2f43af9cf524c3aefe5e7ae0fc09))
+
+- Update README.md
+  ([`cd08a69`](https://github.com/myriade-ai/myriade/commit/cd08a69c70263b0d05ed428d3a6d91e475849c23))
+
+
 ## v0.24.1 (2025-07-10)
 
 ### Bug Fixes
