@@ -22,7 +22,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Create admin user
-    op.execute(insert(User).values(email="admin@localhost", id="admin"))
+    op.execute("INSERT INTO user (id, email) VALUES ('admin', 'admin@localhost')")
 
 
 def downgrade() -> None:
