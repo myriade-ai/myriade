@@ -1,7 +1,6 @@
 import json
 import os
 import re
-from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 from uuid import UUID
 
@@ -9,6 +8,7 @@ from flask import Blueprint, g, jsonify, request
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
+import telemetry
 from back.data_warehouse import ConnectionError, DataWarehouseFactory
 from back.privacy import PRIVACY_PATTERNS
 from middleware import admin_required, user_middleware
@@ -354,24 +354,26 @@ def get_server_info():
 
 @api.route("/version", methods=["GET"])
 def get_version():
-    """Get the application version"""
-    try:
-        # Read version directly from pyproject.toml
-        pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+    """Get the application version and check for updates"""
+    current_version = telemetry.get_current_version()
+    latest_version = None
 
-        # Simple parsing to extract the version
-        with open(pyproject_path, "r") as f:
-            for line in f:
-                if line.strip().startswith("version = "):
-                    # Extract version from the line (format: version = "0.1.0")
-                    version = line.strip().split("=")[1].strip().strip('"')
-                    return jsonify({"version": version})
+    # Check for latest version if we should (throttled)
+    if telemetry.should_check_version():
+        latest_version = telemetry.get_latest_version()
+    else:
+        # Use cached version if available
+        latest_version = telemetry.get_cached_latest_version()
 
-        # If version not found in the file
-        return jsonify({"error": "Version information not available"}), 500
-    except Exception as e:
-        # Return error if version information is not available
-        return jsonify({"error": f"Version information not available: {str(e)}"}), 500
+    has_update = latest_version and latest_version != current_version
+
+    return jsonify(
+        {
+            "version": current_version,
+            "latest": latest_version,
+            "hasUpdate": has_update,
+        }
+    )
 
 
 # Get all projects of the user or it's organisation

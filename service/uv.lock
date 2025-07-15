@@ -962,7 +962,7 @@ wheels = [
 
 [[package]]
 name = "myriade-service"
-version = "0.24.1"
+version = "0.25.1"
 source = { virtual = "." }
 dependencies = [
     { name = "alembic" },
