@@ -5,6 +5,7 @@ from back.session import get_db_session
 from flask import Flask, g, jsonify, request
 from flask_socketio import SocketIO
 from werkzeug.middleware.proxy_fix import ProxyFix
+import telemetry
 
 logger = logging.getLogger(__name__)
 
@@ -91,5 +92,8 @@ def create_app():
     @socketio.on("ping")
     def handle_ping():
         socketio.emit("pong")
+
+    # Start telemetry service for version checking and usage analytics
+    telemetry.start_telemetry_service()
 
     return app

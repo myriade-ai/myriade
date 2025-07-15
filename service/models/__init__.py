@@ -449,3 +449,15 @@ class SensitiveDataMapping(SerializerMixin, Base):
     createdAt: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
     )
+
+
+@dataclass
+class Metadata(SerializerMixin, DefaultBase, Base):
+    __tablename__ = "metadata"
+
+    instance_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+        default=uuid.uuid4,  # for sqlite
+    )
