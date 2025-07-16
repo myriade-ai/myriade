@@ -27,6 +27,7 @@ dependencies = [
     "nest-asyncio>=1.6.0",
     "sqlglot>=26.16.2",
     "stripe>=12.2.0",
+    "python-slugify>=8.0.4",
 ]
 
 [project.optional-dependencies]

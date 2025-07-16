@@ -12,6 +12,7 @@ export interface Database {
   safe_mode: boolean
   dbt_catalog: any
   dbt_manifest: any
+  slug: string
 }
 
 export const useDatabasesStore = defineStore('databases', () => {

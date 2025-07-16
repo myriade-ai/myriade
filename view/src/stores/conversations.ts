@@ -186,6 +186,28 @@ export const useConversationsStore = defineStore('conversations', () => {
     }
     setStatusToPending(conversationId)
   }
+  // async function sendMessage(
+  //   type: 'text' | 'SQL',
+  //   messageContent: string,
+  //   conversationId: string,
+  //   contextId?: string
+  // ) {
+  //   const convStatus = conversationStatuses.value[conversationId]
+  //   // If it’s already running/pending, block
+  //   if (convStatus && [STATUS.RUNNING, STATUS.PENDING].includes(convStatus.status)) {
+  //     throw new Error('Conversation is already running')
+  //   }
+  //   if (!isConnected.value) {
+  //     throw new Error('Socket is disconnected')
+  //   }
+
+  //   if (type === 'text') {
+  //     socket.emit('ask', messageContent, conversationId, contextId)
+  //   } else if (type === 'SQL') {
+  //     socket.emit('query', messageContent, conversationId, contextId)
+  //   }
+  //   setStatusToPending(conversationId)
+  // }
 
   // 6) Receive an incoming message from the socket
   function receiveMessage(incomingMsg: any) {
