@@ -97,6 +97,6 @@ max-complexity = 10
 version_toml = [
     "pyproject.toml:project.version",
 ]
-changelog_file = "../CHANGELOG.md"
+changelog_file = "./CHANGELOG.md"
 commit_message = "chore(release): bump version to {version}"
 
