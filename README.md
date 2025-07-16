@@ -6,9 +6,12 @@
     <br /><br />
     Query any database in natural language, inspect every SQL the agent runs, and get instant, actionable insights.
   </p>
-</div
 
 ![output](https://github.com/user-attachments/assets/e4a20de4-8b1e-4ec2-a692-cfdd02dd0533)
+
+==================> [Demo](https://demo.myriade.ai) <==================
+
+</div>
 
 ## ✨ Why Myriade?
 
