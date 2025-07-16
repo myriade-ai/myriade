@@ -1,67 +1,82 @@
 # CHANGELOG
 
 
-## v0.25.1 (2025-07-11)
+## v0.25.0 (2025-07-16)
 
 ### Bug Fixes
 
+- Anthropic model
+  ([`3c237c3`](https://github.com/myriade-ai/myriade/commit/3c237c305d700aa486a373d1d5a081d44b3b2aff))
+
+- Docker build
+  ([`f477347`](https://github.com/myriade-ai/myriade/commit/f477347eb32d729a323f65f39592fce178f8ac8e))
+
+- Error display on database added
+  ([`008123a`](https://github.com/myriade-ai/myriade/commit/008123a55825aab582ac8707677c11c68a02b743))
+
 - Improvement for self hosting
-  ([`0662100`](https://github.com/myriade-ai/myriade/commit/0662100a0ffdf89ba01c2801622beddb3815261e))
+  ([`827dd6a`](https://github.com/myriade-ai/myriade/commit/827dd6a28dae94d453309224022e9fc7d45f1ae9))
 
 switch admin to activate sub, improve network warning, rework readme, fix uuid bugs
 
-### Chores
+- Remove deprecated changelog
+  ([`97cd715`](https://github.com/myriade-ai/myriade/commit/97cd715e77cc511d0c4761e10e86d7176a9fe647))
 
-- Remove migrations
-  ([`c3b13e4`](https://github.com/myriade-ai/myriade/commit/c3b13e4c87e4fd31ea71b7596f31bee5f22ce496))
+- Remove se crets
+  ([`f12f0a4`](https://github.com/myriade-ai/myriade/commit/f12f0a4a953e34bba7717872f2d422c115fd9f8e))
 
-
-## v0.25.0 (2025-07-11)
-
-### Features
-
-- Allow to use locally without workos
-  ([`97ae18d`](https://github.com/myriade-ai/myriade/commit/97ae18df5431330feed4e8d20fa7ca427e75b454))
-
-
-## v0.24.3 (2025-07-11)
-
-### Bug Fixes
-
-- Docker build
-  ([`99dc5de`](https://github.com/myriade-ai/myriade/commit/99dc5de5ab5e0474bb786fd6fa83b0aba331329d))
+- Switch back to postgres 15
+  ([`1f89776`](https://github.com/myriade-ai/myriade/commit/1f89776ca023c7bbb845f04915ecbea97fa64d5e))
 
 ### Build System
 
 - Add linux/arm64
-  ([`5f70a05`](https://github.com/myriade-ai/myriade/commit/5f70a0561f9bcff2a7033a91b6b78ff02378e18f))
-
-
-## v0.24.2 (2025-07-11)
-
-### Bug Fixes
-
-- Remove se crets
-  ([`c9dca91`](https://github.com/myriade-ai/myriade/commit/c9dca9156407bcb166103f1096fe42878e51f1a1))
-
-### Build System
+  ([`7b06879`](https://github.com/myriade-ai/myriade/commit/7b068796f32a139f5a6d2de6871d417fdcc4df99))
 
 - Change docker org
-  ([`c922b49`](https://github.com/myriade-ai/myriade/commit/c922b497b2330cd4077a84134b2c5112ee6cbff8))
+  ([`6158832`](https://github.com/myriade-ai/myriade/commit/61588328db651d55cbe1d35fcec8ecdd8b1738e6))
 
 - Clean for oss publish
-  ([`a2a4e04`](https://github.com/myriade-ai/myriade/commit/a2a4e040cb32950ca0b050a80f80d66fbded5e8b))
+  ([`a29909c`](https://github.com/myriade-ai/myriade/commit/a29909c5644bafdd93c37d1308ca995ddc3ea04b))
 
 ### Chores
 
+- Remove migrations
+  ([`b48065e`](https://github.com/myriade-ai/myriade/commit/b48065e34e105b60e403d7277d65ef170eab8fe4))
+
 - Update README
-  ([`adf74ae`](https://github.com/myriade-ai/myriade/commit/adf74ae6b98c566f83299ed43a90bd151bf5c169))
+  ([`fec3836`](https://github.com/myriade-ai/myriade/commit/fec3836cdc91433ee4ff9c5ec8bff8d7b60e1cbf))
 
 - Update README.md
-  ([`cbf37f4`](https://github.com/myriade-ai/myriade/commit/cbf37f4af73d2f43af9cf524c3aefe5e7ae0fc09))
+  ([`3fa2658`](https://github.com/myriade-ai/myriade/commit/3fa265871f7f38c2c4e670fdcc88238b66f30c8c))
 
 - Update README.md
-  ([`cd08a69`](https://github.com/myriade-ai/myriade/commit/cd08a69c70263b0d05ed428d3a6d91e475849c23))
+  ([`4697167`](https://github.com/myriade-ai/myriade/commit/46971672d58d3772b1cdf321b71720271230c3bf))
+
+### Documentation
+
+- Add license
+  ([`43619e6`](https://github.com/myriade-ai/myriade/commit/43619e64243d610ae30d9ebb7eca0b3ec4e3cc99))
+
+- Add security info
+  ([`ea40f5b`](https://github.com/myriade-ai/myriade/commit/ea40f5b2e00c705798c0e6dcf4ac9e4f7c3ab45d))
+
+- Update README
+  ([`a7b1ff0`](https://github.com/myriade-ai/myriade/commit/a7b1ff0593006568df6705c93f0e6194aeb22acc))
+
+- Update README.md
+  ([`a7a644f`](https://github.com/myriade-ai/myriade/commit/a7a644fe60475faa929c23d6c966c47e8f66541c))
+
+- Update README.md
+  ([`1f16128`](https://github.com/myriade-ai/myriade/commit/1f161289f9cb413b7ab4efade278193e5d5d7002))
+
+### Features
+
+- Add telemetry
+  ([`c016974`](https://github.com/myriade-ai/myriade/commit/c0169748797b7185ecdca80b74310335b57ea25f))
+
+- Allow to use locally without workos
+  ([`d4feab7`](https://github.com/myriade-ai/myriade/commit/d4feab7d602f603b64649087e54e138b24e71d61))
 
 
 ## v0.24.1 (2025-07-10)
