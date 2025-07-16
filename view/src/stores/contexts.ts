@@ -5,7 +5,7 @@ import { defineStore } from 'pinia'
 import { computed } from 'vue'
 
 // Define the type for a context item
-interface Context {
+export interface Context {
   id: string
   type: 'project' | 'database'
   name: string
@@ -69,6 +69,11 @@ export const useContextsStore = defineStore('contexts', () => {
     contextSelectedId.value = context?.id || null
   }
 
+  function setSelectedContextById(id: string) {
+    const context = contexts.value.find((context) => context.id === id)
+    contextSelected.value = context
+  }
+
   return {
     // State
     contextSelectedId,
@@ -78,6 +83,7 @@ export const useContextsStore = defineStore('contexts', () => {
     // Actions
     initializeContexts,
     setSelectedContext,
-    setSelectedContextByObject
+    setSelectedContextByObject,
+    setSelectedContextById
   }
 })

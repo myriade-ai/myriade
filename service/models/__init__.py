@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from autochat.model import Message as AutoChatMessage
 from PIL import Image as PILImage
+from slugify import slugify
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -85,6 +86,10 @@ class Database(SerializerMixin, DefaultBase, Base):
     )
 
     issues: Mapped[List[Issue]] = relationship(back_populates="database")
+
+    @property
+    def slug(self) -> str:
+        return f"{self.id}-{slugify(self.name)}"
 
     def create_data_warehouse(self):
         from back.data_warehouse import DataWarehouseFactory

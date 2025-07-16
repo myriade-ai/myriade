@@ -61,7 +61,11 @@
     <div class="w-full h-full flex justify-center">
       <div class="flex flex-col h-full w-full justify-end">
         <!-- only when swipe right can trigger the callback -->
-        <Chat v-touch:swipe.right="onSwipe" />
+        <Chat
+          v-touch:swipe.right="onSwipe"
+          :conversation-id="conversationId"
+          :context="contextsStore.contextSelected"
+        />
       </div>
     </div>
   </div>
@@ -74,9 +78,22 @@ import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessu
 import { XMarkIcon } from '@heroicons/vue/24/solid'
 import { ref } from 'vue'
 
+import { useContextsStore } from '@/stores/contexts'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 const sidebarOpen = ref(false)
 
 const onSwipe = () => {
   sidebarOpen.value = true
 }
+
+const route = useRoute()
+
+const contextsStore = useContextsStore()
+const conversationId = computed<number | null>(() => {
+  if (route.params.id === 'new') {
+    return null
+  }
+  return route.params.id
+})
 </script>

@@ -50,6 +50,7 @@ class SerializerMixin:
     """
 
     _json_exclude = {"organisation", "owner", "issues"}  # default blacklist
+    _json_include_properties = {"slug"}  # properties to include
 
     def _convert(self, value):
         if isinstance(value, datetime):
@@ -69,6 +70,11 @@ class SerializerMixin:
             if col.key in exclude:
                 continue
             data[col.key] = self._convert(getattr(self, col.key))
+
+        # Include specified properties
+        for prop_name in self._json_include_properties:
+            if prop_name not in exclude and hasattr(self, prop_name):
+                data[prop_name] = self._convert(getattr(self, prop_name))
 
         if include_relations:
             for rel in inspect(self).mapper.relationships:

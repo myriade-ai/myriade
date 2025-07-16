@@ -112,6 +112,18 @@ const routes = [
     path: '/profile',
     name: 'Profile',
     component: loadView('ProfilePage')
+  },
+  {
+    path: '/openanalytics',
+    name: 'OpenAnalyticsList',
+    component: loadView('OpenAnalyticsList'),
+    meta: { layout: 'empty' }
+  },
+  {
+    path: '/openanalytics/:slug',
+    name: 'OpenAnalytics',
+    component: loadView('OpenAnalytics'),
+    meta: { layout: 'empty' }
   }
 ]
 
