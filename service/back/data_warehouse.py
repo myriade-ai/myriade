@@ -120,7 +120,7 @@ class SQLDatabase(AbstractDatabase):
             self.inspector = sqlalchemy.inspect(self.engine)
             self.metadata = []
         except sqlalchemy.exc.OperationalError as e:
-            raise ConnectionError(e, message=str(e.args[0].orig)) from e
+            raise ConnectionError(e, message=str(e.orig)) from e
 
     def dispose(self):
         # On destruct, close the engine
