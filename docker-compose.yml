@@ -25,7 +25,7 @@ services:
       DATABASE_URL: postgresql://human:pass@db:5432/ada
       HOST: ${HOST:-http://localhost:8080}
       AUTOCHAT_PROVIDER: ${PROVIDER:-anthropic}
-      AUTOCHAT_MODEL: ${MODEL:-claude-sonnet-4}
+      AUTOCHAT_MODEL: ${MODEL:-claude-sonnet-4-20250514}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-} # If you want to use OpenAI, set this
       # Optional
