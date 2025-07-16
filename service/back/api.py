@@ -197,7 +197,8 @@ def update_database(database_id: UUID):
     database = g.session.query(Database).filter_by(id=database_id).first()
     database.name = data["name"]
     database.description = data["description"]
-    database.organisationId = g.organization_id
+    if g.organization_id:
+        database.organisationId = g.organization_id
 
     try:
         # If the engine info has changed, we need to check the connection
@@ -205,15 +206,10 @@ def update_database(database_id: UUID):
             data["engine"],
             **data["details"],
         )
-        if (
-            database.engine != data["engine"]
-            or database.details != data["details"]
-            or database.name != data["name"]
-        ):
+        if database.engine != data["engine"] or database.details != data["details"]:
             data_warehouse.test_connection()
     except ConnectionError as e:
-        error = str(e.args[0].orig)
-        return jsonify({"success": False, "message": error}), 400
+        return jsonify({"success": False, "message": str(e)}), 400
 
     new_meta = data_warehouse.load_metadata()
     merged_metadata = cast(
