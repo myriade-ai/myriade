@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.25.1 (2025-07-16)
+
+### Bug Fixes
+
+- Update database without organization
+  ([`198bc68`](https://github.com/myriade-ai/myriade/commit/198bc68e38fe3477abb6915fe63447a2fd467361))
+
+
 ## v0.25.0 (2025-07-16)
 
 ### Bug Fixes
