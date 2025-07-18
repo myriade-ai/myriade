@@ -24,6 +24,7 @@ services:
       FLASK_ENV: production
       DATABASE_URL: postgresql://human:pass@db:5432/ada
       HOST: ${HOST:-http://localhost:8080}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
       AUTOCHAT_PROVIDER: ${PROVIDER:-anthropic}
       AUTOCHAT_MODEL: ${MODEL:-claude-sonnet-4-20250514}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
