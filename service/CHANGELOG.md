@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.25.3 (2025-07-18)
+
+### Bug Fixes
+
+- Hide password to front
+  ([`26d5d5e`](https://github.com/myriade-ai/myriade/commit/26d5d5ee536e7f05ea7b50cec69a50b64d63d69f))
+
+
 ## v0.25.2 (2025-07-18)
 
 ### Bug Fixes
