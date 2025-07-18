@@ -1,6 +1,32 @@
 # CHANGELOG
 
 
+## v0.25.2 (2025-07-18)
+
+### Bug Fixes
+
+- Add data warehouse pooling
+  ([`4e3f94d`](https://github.com/myriade-ai/myriade/commit/4e3f94d5b8ca26de3bb71e37502ef1c1413a1dea))
+
+- Switch to threading to support multi-users...
+  ([`ff1d8b3`](https://github.com/myriade-ai/myriade/commit/ff1d8b371d214c45fcbf980ee055467f96c88a4c))
+
+max 15p chatting the same time
+
+### Build System
+
+- Switch gunicorn threads to env var
+  ([`d4233df`](https://github.com/myriade-ai/myriade/commit/d4233df80fcadd530e4f43ada9b3f1c3f5ae5486))
+
+### Documentation
+
+- Add link to demo
+  ([`f435dd7`](https://github.com/myriade-ai/myriade/commit/f435dd7954d22d5ad2bb83d9d68cbc102d054d69))
+
+- Fix install process
+  ([`ba39039`](https://github.com/myriade-ai/myriade/commit/ba390392dda8c8ad4f0927937a07fe6bcdaea409))
+
+
 ## v0.25.1 (2025-07-16)
 
 ### Bug Fixes
