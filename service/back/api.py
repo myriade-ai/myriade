@@ -157,7 +157,7 @@ def create_database():
     g.session.add(database)
     g.session.flush()
 
-    return jsonify(database)
+    return jsonify(database.to_dict())
 
 
 @api.route("/databases/test-connection", methods=["POST"])
@@ -226,7 +226,7 @@ def update_database(database_id: UUID):
     database.tables_metadata = database.tables_metadata  # type: ignore[attr-defined]
     g.session.flush()
 
-    return jsonify(database)
+    return jsonify(database.to_dict())
 
 
 @api.route("/databases", methods=["GET"])
