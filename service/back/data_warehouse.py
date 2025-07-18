@@ -42,13 +42,20 @@ class DataWarehouseRegistry:
 
     @classmethod
     def get_sqlalchemy_engine(cls, uri, **kwargs):
+        if uri.startswith("postgresql"):
+            return cls.get_postgres_engine(uri, **kwargs)
+        else:
+            return sqlalchemy.create_engine(uri, **kwargs)
+
+    @classmethod
+    def get_postgres_engine(cls, uri, **kwargs):
         with cls._lock:
             key = hash(uri)
             if key not in cls._engines:
                 cls._engines[key] = sqlalchemy.create_engine(
                     uri,
-                    pool_size=5,
-                    max_overflow=10,
+                    pool_size=10,
+                    max_overflow=20,
                     pool_timeout=30,
                     pool_recycle=3600,
                     pool_pre_ping=True,

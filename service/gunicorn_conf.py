@@ -1,7 +1,11 @@
+import os
+
 bind = "0.0.0.0:4000"
 worker_class = "sync"
-workers = 1  # Single worker for shared memory state
-threads = 16  # Multiple threads per worker for concurrency
+# Single worker for shared memory state
+workers = 1
+# Multiple threads per worker for concurrency
+threads = int(os.environ["GUNICORN_THREADS"])
 loglevel = "debug"
 capture_output = True
 accesslog = "/var/log/gunicorn/access_log"
