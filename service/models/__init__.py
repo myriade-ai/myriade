@@ -86,6 +86,24 @@ class Database(SerializerMixin, DefaultBase, Base):
 
     issues: Mapped[List[Issue]] = relationship(back_populates="database")
 
+    def to_dict(self, *, include_relations=False, exclude=None):
+        """Override to sanitize sensitive fields from details
+        before sending to frontend.
+        """
+        # Get the base dictionary from parent class
+        result = super().to_dict(include_relations=include_relations, exclude=exclude)
+
+        # Sanitize the details field by removing sensitive keys
+        if "details" in result and result["details"]:
+            sanitized_details = result["details"].copy()
+            # Remove sensitive keys
+            sensitive_keys = ["password", "service_account_json"]
+            for key in sensitive_keys:
+                sanitized_details.pop(key, None)
+            result["details"] = sanitized_details
+
+        return result
+
     def create_data_warehouse(self):
         from back.data_warehouse import DataWarehouseFactory
 
