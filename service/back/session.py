@@ -35,7 +35,14 @@ def json_deserial(d):
 
 
 engine = create_engine(
-    DATABASE_URL, json_serializer=json_serial, json_deserializer=json_deserial
+    DATABASE_URL,
+    json_serializer=json_serial,
+    json_deserializer=json_deserial,
+    pool_size=20,
+    max_overflow=30,
+    pool_timeout=30,  # Wait 30s for connection
+    pool_recycle=3600,  # Recycle connections every hour
+    pool_pre_ping=True,  # Validate connections
 )
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 

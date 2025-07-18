@@ -8,7 +8,7 @@ from app import socketio
 from auth.auth import UnauthorizedError, socket_auth
 from back.session import with_session
 from chat.analyst_agent import DataAnalystAgent
-from chat.lock import STATUS, conversation_stop_flags, emit_status, stop_flag_lock
+from chat.lock import STATUS, clear_stop_flag, emit_status, set_stop_flag
 from models import Conversation, ConversationMessage, User
 
 api = Blueprint("chat_api", __name__)
@@ -28,9 +28,8 @@ def check_subscription_required(session):
 def handle_stop(conversation_id: str):
     print("Received stop signal for conversation_id", conversation_id)
     # Stop the query
-    with stop_flag_lock:
-        conversation_stop_flags[conversation_id] = True
-        emit_status(conversation_id, STATUS.TO_STOP)
+    set_stop_flag(conversation_id)
+    emit_status(conversation_id, STATUS.TO_STOP)
 
 
 @socketio.on("ask")
@@ -45,7 +44,7 @@ def handle_ask(session, conversation_id, question):
         return
 
     # We reset stop flag if the user sent a new request
-    conversation_stop_flags.pop(conversation_id, None)
+    clear_stop_flag(conversation_id)
 
     conversation = (
         session.query(Conversation).filter_by(id=UUID(conversation_id)).first()
@@ -54,7 +53,6 @@ def handle_ask(session, conversation_id, question):
     agent = DataAnalystAgent(
         session,
         conversation,
-        conversation_stop_flags,
     )
     for message in agent.ask(question):
         # We need to commit the session to save the message
@@ -84,7 +82,7 @@ def handle_query(
         return
 
     # We reset stop flag if the user sent a new request
-    conversation_stop_flags.pop(conversation_id, None)
+    clear_stop_flag(conversation_id)
 
     conversation = (
         session.query(Conversation).filter_by(id=UUID(conversation_id)).first()
@@ -92,7 +90,6 @@ def handle_query(
     agent = DataAnalystAgent(
         session,
         conversation,
-        conversation_stop_flags,
     )
 
     user_message = ConversationMessage(
@@ -148,7 +145,7 @@ def handle_regenerate_from_message(
         return
 
     # We reset stop flag if the user sent a new request
-    conversation_stop_flags.pop(conversation_id, None)
+    clear_stop_flag(conversation_id)
 
     # if message_content is not None, it means the user has edited the message
     if message_content is not None:
@@ -207,7 +204,6 @@ def handle_regenerate_from_message(
     agent = DataAnalystAgent(
         session,
         conversation,
-        conversation_stop_flags,
     )
     for message in agent._run_conversation():
         try:
