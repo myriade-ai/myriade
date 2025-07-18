@@ -65,6 +65,7 @@ Note: you can also use any other LLM provider (OpenAI, Gemini, etc.). Check the 
 
 ```bash
 git clone --depth 1 https://github.com/myriade-ai/myriade.git
+cd myriade
 docker compose pull
 ANTHROPIC_API_KEY=XXXX docker compose up -d
 ```
