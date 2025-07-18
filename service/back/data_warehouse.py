@@ -1,5 +1,6 @@
 import json
 import sys
+import threading
 from abc import ABC, abstractmethod, abstractproperty
 from urllib.parse import quote_plus
 
@@ -31,6 +32,82 @@ class ConnectionError(Exception):
 def sizeof(obj):
     # This function returns the size of an object in bytes
     return sys.getsizeof(obj)
+
+
+class DataWarehouseRegistry:
+    _engines = {}
+    _clients = {}
+    _snowflake_connections = {}
+    _lock = threading.Lock()
+
+    @classmethod
+    def get_sqlalchemy_engine(cls, uri, **kwargs):
+        with cls._lock:
+            key = hash(uri)
+            if key not in cls._engines:
+                cls._engines[key] = sqlalchemy.create_engine(
+                    uri,
+                    pool_size=5,
+                    max_overflow=10,
+                    pool_timeout=30,
+                    pool_recycle=3600,
+                    pool_pre_ping=True,
+                    **kwargs,
+                )
+            return cls._engines[key]
+
+    @classmethod
+    def get_bigquery_client(cls, project_id, service_account_json):
+        try:
+            from google.cloud import bigquery
+            from google.oauth2 import service_account
+        except ImportError as err:
+            raise ImportError(
+                "google-cloud-bigquery package is required for BigQuery support"
+            ) from err
+
+        with cls._lock:
+            key = hash((project_id, str(service_account_json)))
+            if key not in cls._clients:
+                if service_account_json:
+                    from google.oauth2 import service_account
+
+                    credentials = service_account.Credentials.from_service_account_info(
+                        service_account_json
+                    )
+                    cls._clients[key] = bigquery.Client(
+                        project=project_id, credentials=credentials
+                    )
+                else:
+                    cls._clients[key] = bigquery.Client(project=project_id)
+            return cls._clients[key]
+
+    @classmethod
+    def get_snowflake_connection(cls, connection_params):
+        with cls._lock:
+            key = hash(tuple(sorted(connection_params.items())))
+            if key not in cls._snowflake_connections:
+                import snowflake.connector
+
+                try:
+                    cls._snowflake_connections[key] = snowflake.connector.connect(
+                        **connection_params
+                    )
+                except snowflake.connector.errors.OperationalError as e:
+                    raise ConnectionError(e, message=str(e)) from e
+                except snowflake.connector.errors.DatabaseError as e:
+                    raise ConnectionError(e, message=str(e)) from e
+            return cls._snowflake_connections[key]
+
+    @classmethod
+    def close_all_snowflake(cls):
+        with cls._lock:
+            for conn in cls._snowflake_connections.values():
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+            cls._snowflake_connections.clear()
 
 
 class AbstractDatabase(ABC):
@@ -116,7 +193,7 @@ class AbstractDatabase(ABC):
 class SQLDatabase(AbstractDatabase):
     def __init__(self, uri, **kwargs):
         try:
-            self.engine = sqlalchemy.create_engine(uri, **kwargs)
+            self.engine = DataWarehouseRegistry.get_sqlalchemy_engine(uri, **kwargs)
             self.inspector = sqlalchemy.inspect(self.engine)
             self.metadata = []
         except sqlalchemy.exc.OperationalError as e:
@@ -211,39 +288,9 @@ class PostgresDatabase(SQLDatabase):
         super().__init__(uri, connect_args=self.connect_args)
 
 
-class SnowflakeConnectionPool:
-    _instances = {}
-
-    @classmethod
-    def get_connection(cls, connection_params):
-        # Create a unique key from connection parameters
-        key = tuple(sorted(connection_params.items()))
-
-        if key not in cls._instances:
-            import snowflake.connector
-
-            try:
-                cls._instances[key] = snowflake.connector.connect(**connection_params)
-            except snowflake.connector.errors.OperationalError as e:
-                raise ConnectionError(e, message=str(e)) from e
-            except snowflake.connector.errors.DatabaseError as e:
-                raise ConnectionError(e, message=str(e)) from e
-
-        return cls._instances[key]
-
-    @classmethod
-    def close_all(cls):
-        for conn in cls._instances.values():
-            try:
-                conn.close()
-            except Exception:
-                pass
-        cls._instances.clear()
-
-
 class SnowflakeDatabase(AbstractDatabase):
     def __init__(self, **kwargs):
-        self.connection = SnowflakeConnectionPool.get_connection(kwargs)
+        self.connection = DataWarehouseRegistry.get_snowflake_connection(kwargs)
         self.metadata = []
 
     @property
@@ -327,32 +374,14 @@ class SnowflakeDatabase(AbstractDatabase):
 
 class BigQueryDatabase(AbstractDatabase):
     def __init__(self, **kwargs):
-        try:
-            from google.cloud import bigquery
-            from google.oauth2 import service_account
-        except ImportError as err:
-            raise ImportError(
-                "google-cloud-bigquery package is required for BigQuery support"
-            ) from err
-
         self.project_id = kwargs.get("project_id")
         if not self.project_id:
             raise ValueError("project_id is required for BigQuery")
 
-        print("kwargs", kwargs)
-        # Initialize client with credentials if provided
         service_account_json = kwargs.get("service_account_json")
-        if service_account_json:
-            credentials = service_account.Credentials.from_service_account_info(
-                service_account_json
-            )
-            self.client = bigquery.Client(
-                project=self.project_id, credentials=credentials
-            )
-        else:
-            # Use default credentials (ADC, service account, etc.)
-            self.client = bigquery.Client(project=self.project_id)
-
+        self.client = DataWarehouseRegistry.get_bigquery_client(
+            self.project_id, service_account_json
+        )
         self.metadata = []
 
     @property
