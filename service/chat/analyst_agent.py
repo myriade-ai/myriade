@@ -19,7 +19,7 @@ from models import Chart, Conversation, ConversationMessage, Query
 # Workaround because of eventlet doesn't support loop in loop ?
 nest_asyncio.apply()
 
-AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
+AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "anthropic")
 
 
 def think(thought: str) -> None:

@@ -9,7 +9,7 @@
 
 ![output](https://github.com/user-attachments/assets/e4a20de4-8b1e-4ec2-a692-cfdd02dd0533)
 
-==================> [Demo](https://demo.myriade.ai) <==================
+👉👉👉 [Live Demo](https://demo.myriade.ai) 👈👈👈
 
 </div>
 
@@ -27,19 +27,18 @@ Myriade removes all that friction with an **AI‑native chat interface** that re
 ## 🔐 Security Model
 
 - **Local hosting** – Install Myriade on your own hardware.
-- **Read‑only DB users** – Myriade never mutates your production data.
+- **Read‑only** – Myriade never mutates your production data (opt‑in).
 - **Limited result preview** – the agent sees row samples & column stats, not full dumps.
-- **Zero‑Knowledge Protection** – encrypt sensitive data before sending it to the LLM.
+- **Zero‑Knowledge Protection** – encrypt sensitive data before sending it to the LLM (opt‑in, beta).
 
 ## 📦 Features
 
 - **Simple set up** – Run Myriade locally in < 5 minutes.
 - **Natural‑language chat** – to query your data database.
 - **AI ↔️ DB trace viewer** – so you can inspect every query the agent runs.
-- **SQL editor** – for power users with AI autocorrect & explain.
+- **SQL editor** – take over and edit the SQL the agent generates.
 - **Prompt templates** ("Projects") – to tailor the agent to a domain or KPI set.
 - **Data Quality control panel** – (coming soon).
-- **Zero‑Knowledge Protection** – (opt‑in, beta).
 
 ## 💬 Usage Examples
 
@@ -70,6 +69,13 @@ docker compose pull
 ANTHROPIC_API_KEY=XXXX docker compose up -d
 ```
 
+#### Alternative OpenAI
+
+```bash
+docker compose pull
+AUTOCHAT_PROVIDER=openai OPENAI_API_KEY=XXXX docker compose up -d
+```
+
 ### Open the app
 
 ```bash
@@ -77,3 +83,7 @@ http://localhost:8080
 ```
 
 Connect your database & profit
+
+## Running for Development
+
+If you're a developer looking to modify Myriade or set up a local development environment, follow the instructions in [DEVELOPMENT.md](./DEVELOPMENT.md).
