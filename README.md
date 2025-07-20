@@ -73,7 +73,7 @@ ANTHROPIC_API_KEY=XXXX docker compose up -d
 
 ```bash
 docker compose pull
-AUTOCHAT_PROVIDER=openai OPENAI_API_KEY=XXXX docker compose up -d
+AUTOCHAT_PROVIDER=openai AUTOCHAT_MODEL="o4-mini" OPENAI_API_KEY=XXXX docker compose up -d
 ```
 
 ### Open the app
