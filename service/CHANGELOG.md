@@ -1,6 +1,24 @@
 # CHANGELOG
 
 
+## v0.25.4 (2025-07-20)
+
+### Bug Fixes
+
+- Update dependencies to fix openai support
+  ([`d7446d4`](https://github.com/myriade-ai/myriade/commit/d7446d4d1cb38fb76838b9bf46955a4cd08c302a))
+
+### Documentation
+
+- Update README
+  ([`37b4c3a`](https://github.com/myriade-ai/myriade/commit/37b4c3a5212c8f8fdf38d3f08816af26a627a10d))
+
+- Update readme, add development
+  ([`f51eb21`](https://github.com/myriade-ai/myriade/commit/f51eb2114e78c0276e1541862c96473ff054283c))
+
+and switch default autochat provider to anthropic
+
+
 ## v0.25.3 (2025-07-18)
 
 ### Bug Fixes
