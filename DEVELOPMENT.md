@@ -35,7 +35,7 @@
 
    ```bash
    AUTOCHAT_PROVIDER=openai
-   AUTOCHAT_MODEL=gpt-4.1-2025-04-14
+   AUTOCHAT_MODEL=o4-mini
    OPENAI_API_KEY=<Your_OpenAI_API_Key>
    DATABASE_URL=postgresql://user:pass@localhost:5432/myriade
    ```
