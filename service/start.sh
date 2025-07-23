@@ -19,9 +19,6 @@ else
     exit 1
 fi
 
-# Run migrations
-uv run alembic upgrade head
-
 # Start the server based on environment
 if [ "$1" = "prod" ]; then
     # Production mode with Gunicorn
