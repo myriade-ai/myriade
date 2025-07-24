@@ -12,12 +12,12 @@ def user_middleware(f):
     @with_auth
     def decorated_function(*args, **kwargs):
         # Get or create user based on authentication
-        user = g.session.query(User).filter(User.id == g.user.id).first()
+        user = g.session.query(User).filter(User.id == g.workos_user.id).first()
         if not user:
             # Create new user from authentication
             user = User(
-                id=g.user.id,
-                email=g.user.email,
+                id=g.workos_user.id,
+                email=g.workos_user.email,
             )
             g.session.add(user)
             g.session.flush()

@@ -14,4 +14,4 @@ def test_questions_endpoint_structure(app_server, session, test_db_id):
     assert response.status_code in [200, 403]
 
     if response.status_code == 403:
-        assert "Subscription required" in response.json().get("error", "")
+        assert "SUBSCRIPTION_REQUIRED" in response.json().get("message", "")

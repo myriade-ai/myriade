@@ -16,13 +16,45 @@ api = Blueprint("chat_api", __name__)
 
 
 def check_subscription_required(session):
-    """Check if user has an active subscription. Emit error if not."""
+    """Check if user has an active subscription or credits for the request."""
     # Get user from session using flask session
     user_id = flask_session["user"].id
     user = session.query(User).filter(User.id == user_id).first()
-    if not user or not user.has_active_subscription:
-        return False
-    return True
+
+    # If user has active subscription, allow access
+    if user.has_active_subscription:
+        return True
+
+    # Check if user has credits for free trial
+    if user.credits > 0:
+        return True
+
+    return False
+
+
+def consume_user_credit(session, conversation_id):
+    """Decrement user credits if they're using free trial."""
+    user_id = flask_session["user"].id
+    user = session.query(User).filter(User.id == user_id).first()
+
+    if not user or user.has_active_subscription:
+        return  # No need to consume credits for subscribed users
+
+    # Check if this is a public database (free to use)
+    if conversation_id:
+        try:
+            conversation = (
+                session.query(Conversation).filter_by(id=UUID(conversation_id)).first()
+            )
+            if conversation and conversation.database.public:
+                return  # No need to consume credits for public databases
+        except Exception:
+            pass
+
+    # Decrement credits if user has any
+    if user.credits > 0:
+        user.credits -= 1
+        session.commit()
 
 
 def socket_auth_required(f):
@@ -117,6 +149,9 @@ def handle_ask(session, conversation_id, question):
         )
         return
 
+    # Consume credit if user is on free trial
+    consume_user_credit(session, conversation_id)
+
     # We reset stop flag if the user sent a new request
     clear_stop_flag(conversation_id)
 
@@ -155,6 +190,9 @@ def handle_query(
             {"message": "SUBSCRIPTION_REQUIRED", "conversationId": conversation_id},
         )
         return
+
+    # Consume credit if user is on free trial
+    consume_user_credit(session, conversation_id)
 
     # We reset stop flag if the user sent a new request
     clear_stop_flag(conversation_id)
@@ -219,6 +257,9 @@ def handle_regenerate_from_message(
             {"message": "SUBSCRIPTION_REQUIRED", "conversationId": conversation_id},
         )
         return
+
+    # Consume credit if user is on free trial
+    consume_user_credit(session, conversation_id)
 
     # We reset stop flag if the user sent a new request
     clear_stop_flag(conversation_id)
