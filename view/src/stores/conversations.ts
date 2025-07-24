@@ -62,8 +62,8 @@ export const useConversationsStore = defineStore('conversations', () => {
   const contextsStore = useContextsStore()
   watch(
     () => contextsStore.contextSelected,
-    (newContext) => {
-      if (newContext && newContext.id) {
+    (newContext, oldContext) => {
+      if (newContext && newContext.id && newContext.id !== oldContext?.id) {
         // clear the conversations store
         conversations.value = {}
         conversationStatuses.value = {}
