@@ -4,7 +4,7 @@ from functools import wraps
 from flask import g, jsonify, request
 
 from auth.auth import with_auth, workos_client
-from models import Database, Organisation, User
+from models import Database, Organisation, Query, User
 
 
 def user_middleware(f):
@@ -60,8 +60,53 @@ def database_middleware(f):
                 database_id = uuid.UUID(database_id)
             except ValueError:
                 return jsonify({"error": "Invalid databaseId"}), 400
+
         database = g.session.query(Database).filter_by(id=database_id).first()
+        if not database:
+            return jsonify({"error": "Database not found"}), 404
+
+        # Verify user has access to this database
+        if (
+            database.ownerId != g.user.id
+            and database.organisationId != g.organization_id
+            and not database.public
+        ):
+            return jsonify({"error": "Access denied"}), 403
+
+        g.database = database
         g.data_warehouse = database.create_data_warehouse()
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def query_middleware(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Extract query_id from URL parameters
+        query_id = kwargs.get("query_id")
+        if not query_id:
+            return jsonify({"error": "Query ID required"}), 400
+
+        query = g.session.query(Query).filter_by(id=query_id).first()
+        if not query:
+            return jsonify({"error": "Query not found"}), 404
+
+        # Get the database this query belongs to
+        database = g.session.query(Database).filter_by(id=query.databaseId).first()
+        if not database:
+            return jsonify({"error": "Database not found"}), 404
+
+        # Verify user has access to this database
+        if (
+            database.ownerId != g.user.id
+            and database.organisationId != g.organization_id
+            and not database.public
+        ):
+            return jsonify({"error": "Access denied"}), 403
+
+        g.query = query
+        g.database = database
         return f(*args, **kwargs)
 
     return decorated_function
