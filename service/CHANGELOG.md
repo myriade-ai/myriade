@@ -1,6 +1,17 @@
 # CHANGELOG
 
 
+## v0.27.3 (2025-07-24)
+
+### Bug Fixes
+
+- Access rights for queries
+  ([`b47248c`](https://github.com/myriade-ai/myriade/commit/b47248c3d90246d08f828db8ce82782d9ac96f12))
+
+- Socket access rights
+  ([`a0f4a00`](https://github.com/myriade-ai/myriade/commit/a0f4a0064769e7aadd1911f8e9dac6d89d07061e))
+
+
 ## v0.27.2 (2025-07-24)
 
 ### Bug Fixes
