@@ -112,12 +112,12 @@
 <script setup lang="ts">
 import BaseButton from '@/components/base/BaseButton.vue'
 import axios from '@/plugins/axios'
-import { useDatabasesStore } from '@/stores/databases'
 import {
   getDatabaseTypeName,
   getDefaultDetailsForEngine,
-  makeEmptyDatabase
-} from '@/utils/database'
+  makeEmptyDatabase,
+  useDatabasesStore
+} from '@/stores/databases'
 import { Form } from 'vee-validate'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import ConnectionStatusAlert from './ConnectionStatusAlert.vue'
