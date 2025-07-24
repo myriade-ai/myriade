@@ -7,6 +7,12 @@
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-medium text-gray-900">
                 {{ database.name }}
+                <span
+                  v-if="database.public"
+                  class="ml-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800"
+                >
+                  public
+                </span>
               </p>
               <p class="truncate text-sm text-gray-500">
                 {{ database.engine }}
@@ -15,6 +21,7 @@
             <div>
               <router-link
                 :to="'/databases/' + database.id"
+                v-if="!database.public"
                 class="inline-flex items-center rounded-full border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-xs hover:bg-gray-50"
               >
                 Edit
@@ -26,20 +33,24 @@
     </div>
     <hr class="my-4" />
     <div class="mt-6 mb-6">
-      <router-link
-        to="/databases/new"
-        href="#"
-        class="flex w-full items-center justify-center rounded-md border border-gray-300 bg-gray-50 px-4 py-2 mb-4 text-sm font-medium text-gray-700 shadow-xs hover:bg-gray-50"
-        >Add new
-      </router-link>
+      <BaseButton @click="router.push('/setup')" color="primary" class="w-full justify-center">
+        <div class="relative -ml-0.5 h-4 w-4 mr-2">
+          <DatabaseIcon />
+        </div>
+        Add Database
+      </BaseButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import BaseButton from '@/components/base/BaseButton.vue'
+import DatabaseIcon from '@/components/icons/DatabaseIcon.vue'
 import { useDatabasesStore } from '@/stores/databases'
+import { useRouter } from 'vue-router'
 
 const databasesStore = useDatabasesStore()
+const router = useRouter()
 
 databasesStore.fetchDatabases({ refresh: true })
 </script>

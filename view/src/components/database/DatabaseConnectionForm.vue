@@ -164,7 +164,7 @@ import BaseInput from '@/components/base/BaseInput.vue'
 import BaseInputPassword from '@/components/base/BaseInputPassword.vue'
 import BaseNotification from '@/components/base/BaseNotification.vue'
 import { useServerInfo } from '@/composables/useServerInfo'
-import { getDatabaseTypeName, getDefaultDetailsForEngine } from '@/utils/database'
+import { getDatabaseTypeName, getDefaultDetailsForEngine } from '@/stores/databases'
 import { CloudArrowUpIcon } from '@heroicons/vue/24/outline'
 import { computed, watch } from 'vue'
 

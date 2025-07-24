@@ -31,7 +31,7 @@ export const useContextsStore = defineStore('contexts', () => {
     const databaseContexts = databasesStore.databases.map((database: any) => ({
       id: `database-${database.id}`,
       type: 'database' as const, // Use 'as const' for literal type
-      name: `database > ${database.name}`
+      name: database.name
     }))
     return [...projectContexts, ...databaseContexts]
   })
