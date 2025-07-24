@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.28.0 (2025-07-24)
+
+### Features
+
+- Add free trial - 25 req
+  ([`55ff771`](https://github.com/myriade-ai/myriade/commit/55ff771cdf8a1d2a7512f27e351de482be285842))
+
+
 ## v0.27.4 (2025-07-24)
 
 ### Bug Fixes
