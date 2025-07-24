@@ -33,24 +33,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push service image
+      - name: Build and push image
         uses: docker/build-push-action@v5
         with:
-          context: ./service
+          context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            myriadeai/myriade-service:latest
-            myriadeai/myriade-service:${{ steps.get_version.outputs.version }}
-
-      - name: Build and push view image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./view
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            myriadeai/myriade-view:latest
-            myriadeai/myriade-view:${{ steps.get_version.outputs.version }}
+            myriadeai/myriade:latest
+            myriadeai/myriade:${{ steps.get_version.outputs.version }}
           secrets: |
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}

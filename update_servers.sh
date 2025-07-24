@@ -63,11 +63,6 @@ for server in "${servers[@]}"; do
   echo "Copying docker-compose.yml to instance: $server"
   gcloud compute scp docker-compose.yml "$server":~/docker-compose.yml
 
-  echo "Copying setup/proxy_nginx.conf to instance: $server"
-  gcloud compute scp setup/proxy_nginx.conf "$server":~/setup/proxy_nginx.conf
-  echo "Moving proxy_nginx.conf to ~/proxy/nginx.conf"
-  gcloud compute ssh "$server" --command="sudo mv setup/proxy_nginx.conf ~/setup/proxy_nginx.conf"
-
   echo "Executing command on instance: $server"
   gcloud compute ssh "$server" --command="$COMMANDS"
 done

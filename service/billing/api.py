@@ -1,14 +1,11 @@
 import json
 import logging
 
-import stripe
 from flask import Blueprint, g, jsonify, request
 
 import config
 from middleware import user_middleware
 from models import User
-
-stripe.api_key = config.STRIPE_SECRET_KEY
 
 api = Blueprint("billing_api", __name__)
 logger = logging.getLogger(__name__)
@@ -17,6 +14,10 @@ logger = logging.getLogger(__name__)
 @api.route("/create-checkout-session", methods=["POST"])
 @user_middleware
 def create_checkout_session():
+    import stripe
+
+    stripe.api_key = config.STRIPE_SECRET_KEY
+
     subscription_url = request.referrer
     scheme = "https" if config.ENV == "production" else "http"
     host_url = scheme + "://" + config.HOST

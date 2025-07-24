@@ -57,7 +57,7 @@ def app_server(session):
     )
     server.start()
 
-    yield f"http://localhost:{port}"
+    yield f"http://localhost:{port}/api"
 
     # Teardown (optional, as daemon threads exit with main thread)
     # server.join(timeout=1) # Example of explicit teardown
