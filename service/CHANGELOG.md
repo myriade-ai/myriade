@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.27.1 (2025-07-24)
+
+### Bug Fixes
+
+- Docker build
+  ([`347caa4`](https://github.com/myriade-ai/myriade/commit/347caa4e096492066cf5bbad75ac4a91fc118dcb))
+
+
 ## v0.27.0 (2025-07-24)
 
 ### Features
