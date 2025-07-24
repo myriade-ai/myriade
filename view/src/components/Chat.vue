@@ -132,20 +132,31 @@
           </div>
         </transition>
         <div id="input-container" class="py-1 lg:py-2">
-          <button
-            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-xs hover:bg-gray-50"
-            :style="editMode == 'text' ? 'background-color: #e5e7eb' : ''"
-            @click="editMode = 'text'"
-          >
-            Text
-          </button>
-          <button
-            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 mx-0.5 text-sm font-medium leading-5 text-gray-700 shadow-xs hover:bg-gray-50"
-            :style="editMode == 'SQL' ? 'background-color: #e5e7eb' : ''"
-            @click="editMode = 'SQL'"
-          >
-            Editor
-          </button>
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <button
+                class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-xs hover:bg-gray-50"
+                :style="editMode == 'text' ? 'background-color: #e5e7eb' : ''"
+                @click="editMode = 'text'"
+              >
+                Text
+              </button>
+              <button
+                class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 mx-0.5 text-sm font-medium leading-5 text-gray-700 shadow-xs hover:bg-gray-50"
+                :style="editMode == 'SQL' ? 'background-color: #e5e7eb' : ''"
+                @click="editMode = 'SQL'"
+              >
+                Editor
+              </button>
+            </div>
+            <!-- Credits Display -->
+            <div
+              v-if="!user?.hasActiveSubscription && user?.credits !== undefined"
+              class="text-sm text-gray-500"
+            >
+              {{ user.credits }} credits left
+            </div>
+          </div>
           <div class="w-full flex py-1 relative" v-if="editMode == 'SQL'">
             <BaseEditor v-model="inputSQL" @run-query="handleSendMessage" />
             <div v-if="inputSQL.trim().length > 0" class="text-gray-300 hover:text-white">
@@ -196,6 +207,7 @@ import SendButtonWithStatus from '@/components/icons/SendButtonWithStatus.vue'
 import MessageDisplay from '@/components/MessageDisplay.vue'
 import SubscriptionPrompt from '@/components/SubscriptionPrompt.vue'
 import axios from '@/plugins/axios'
+import { user } from '@/stores/auth'
 import { useContextsStore } from '@/stores/contexts'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
@@ -412,7 +424,7 @@ const fetchAISuggestions = async () => {
     console.error('Error fetching AI suggestions:', error)
     if (
       error.response?.status === 403 &&
-      error.response?.data?.error?.includes('Subscription required')
+      error.response?.data?.message?.includes('SUBSCRIPTION_REQUIRED')
     ) {
       conversationsStore.subscriptionRequired = true
     }

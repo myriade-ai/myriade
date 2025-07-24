@@ -37,8 +37,8 @@ jobs:
       - name: Run tests
         working-directory: ./service
         env:
-          OPENAI_API_KEY: fake
-          ANTHROPIC_API_KEY: fake
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: PYTHONPATH=$PYTHONPATH:. uv run pytest
       - name: Run pre-commit
         working-directory: ./service

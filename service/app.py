@@ -73,19 +73,20 @@ def create_app():
     app.register_blueprint(auth_api, url_prefix="/api")
     app.register_blueprint(billing_api, url_prefix="/api")
 
-    # serve SPA entry point
-    @app.route("/")
-    def index():
-        return app.send_static_file("index.html")
-
-    @app.route("/<path:path>")
-    def static_files(path):
-        """Serve anything that isn't under /api from the bundled static dir,
-        then fall back to index.html for SPA routes."""
-        try:
-            return send_from_directory(app.static_folder, path)
-        except Exception:
+    if config.ENV != "development":
+        # serve SPA entry point
+        @app.route("/")
+        def index():
             return app.send_static_file("index.html")
+
+        @app.route("/<path:path>")
+        def static_files(path):
+            """Serve anything that isn't under /api from the bundled static dir,
+            then fall back to index.html for SPA routes."""
+            try:
+                return send_from_directory(app.static_folder, path)
+            except Exception:
+                return app.send_static_file("index.html")
 
     @app.before_request
     def _open_db_session():

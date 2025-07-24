@@ -286,10 +286,6 @@ def get_databases():
 @api.route("/contexts/<string:context_id>/questions", methods=["GET"])
 @user_middleware
 def get_questions(context_id):
-    # Check if user has active subscription
-    if not g.user or not g.user.has_active_subscription:
-        return jsonify({"error": "Subscription required"}), 403
-
     # Get the preferred language from Accept-Language header
     user_language = request.headers.get("Accept-Language")
 
@@ -338,7 +334,9 @@ def get_questions(context_id):
     from autochat import Autochat
 
     questionAssistant = Autochat(
-        provider=AUTOCHAT_PROVIDER, context=json.dumps(context)
+        provider=AUTOCHAT_PROVIDER,
+        context=json.dumps(context),
+        use_tools_only=True,
     )
     # TODO: if exist ; add database.memory, dbt.catalog, dbt.manifest
 
@@ -354,7 +352,6 @@ def get_questions(context_id):
     )
     message = questionAssistant.ask(
         prompt,
-        tool_choice={"type": "tool", "name": "questions"},  # anthropic specific
     )
     response_dict = message.function_call["arguments"]
     response_values = list(response_dict.values())

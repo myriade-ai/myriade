@@ -2,8 +2,9 @@ from urllib.parse import urlencode
 
 from flask import Blueprint, g, jsonify, make_response, redirect, request
 
-from auth.auth import cookie_password_b64, with_auth, workos_client
+from auth.auth import cookie_password_b64, workos_client
 from config import ENV, HOST, WORKOS_ORGANIZATION_ID
+from middleware import user_middleware
 
 api = Blueprint("auth", __name__)
 
@@ -57,10 +58,15 @@ def callback():
 
 
 @api.route("/user")
-@with_auth
+@user_middleware
 def user():
     return jsonify(
-        {**g.user.__dict__, "role": g.role, "organization_id": g.organization_id}
+        {
+            **g.workos_user.__dict__,
+            **g.user.to_dict(),
+            "role": g.role,
+            "organization_id": g.organization_id,
+        }
     )
 
 

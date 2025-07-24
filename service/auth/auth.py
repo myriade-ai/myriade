@@ -101,7 +101,7 @@ def _authenticate_session(
 
 def _set_user_context(auth_response):
     """Set user context in Flask's g object."""
-    g.user = auth_response.user
+    g.workos_user = auth_response.user
     g.role = auth_response.role
     g.organization_id = auth_response.organization_id
 
