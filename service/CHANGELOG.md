@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.27.0 (2025-07-24)
+
+### Features
+
+- Add demo
+  ([`22e3267`](https://github.com/myriade-ai/myriade/commit/22e3267714228b53f9775a2131d9ba3beb669e9f))
+
+
 ## v0.26.0 (2025-07-24)
 
 ### Features
