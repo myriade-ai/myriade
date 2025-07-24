@@ -100,6 +100,10 @@ def get_conversation(conversation_id: UUID):
         .one()
     )
 
+    # Verify user owns this conversation
+    if conversation.ownerId != g.user.id:
+        return jsonify({"error": "Access denied"}), 403
+
     if request.method == "PUT":
         # Update conversation name
         conversation.name = request.json["name"]
@@ -115,6 +119,14 @@ def get_conversation(conversation_id: UUID):
 @api.route("/conversations/<uuid:conversation_id>", methods=["DELETE"])
 @user_middleware
 def delete_conversation(conversation_id: UUID):
+    # Verify user owns this conversation before deletion
+    conversation = g.session.query(Conversation).filter_by(id=conversation_id).first()
+    if not conversation:
+        return jsonify({"error": "Conversation not found"}), 404
+
+    if conversation.ownerId != g.user.id:
+        return jsonify({"error": "Access denied"}), 403
+
     # Delete conversation and all related messages
     g.session.query(ConversationMessage).filter_by(
         conversationId=conversation_id
@@ -209,6 +221,13 @@ def update_database(database_id: UUID):
 
     # Update database
     database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access to update this database
+    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+        return jsonify({"error": "Access denied"}), 403
+
     database.name = data["name"]
     database.description = data["description"]
     if g.organization_id:
@@ -351,6 +370,14 @@ def get_schema(database_id: UUID):
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
+    # Verify user has access to this database
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
     return jsonify(database.tables_metadata)
 
 
@@ -462,6 +489,13 @@ def create_project():
 def update_project(project_id: UUID):
     data = request.get_json()
     project = g.session.query(Project).filter_by(id=project_id).first()
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+
+    # Verify user has access to update this project
+    if project.creatorId != g.user.id and project.organisationId != g.organization_id:
+        return jsonify({"error": "Access denied"}), 403
+
     # update name, description or tables
     project.name = data.get("name")
     project.organisationId = g.organization_id
@@ -484,6 +518,13 @@ def update_project(project_id: UUID):
 @user_middleware
 def delete_project(project_id: UUID):
     project = g.session.query(Project).filter_by(id=project_id).first()
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+
+    # Verify user has access to delete this project
+    if project.creatorId != g.user.id and project.organisationId != g.organization_id:
+        return jsonify({"error": "Access denied"}), 403
+
     g.session.delete(project)
     g.session.flush()
     return jsonify({"message": "Project deleted successfully"})
