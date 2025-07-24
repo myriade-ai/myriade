@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.26.0 (2025-07-24)
+
+### Features
+
+- Add docker support
+  ([`3dce568`](https://github.com/myriade-ai/myriade/commit/3dce568acfcee7e694bda7868b35b55faa22149b))
+
+
 ## v0.25.4 (2025-07-20)
 
 ### Bug Fixes
