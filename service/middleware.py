@@ -3,7 +3,8 @@ from functools import wraps
 
 from flask import g, jsonify, request
 
-from auth.auth import with_auth, workos_client
+from auth.auth import with_auth
+from auth.proxy_utils import get_organization_data
 from models import Database, Organisation, Query, User
 
 
@@ -12,12 +13,12 @@ def user_middleware(f):
     @with_auth
     def decorated_function(*args, **kwargs):
         # Get or create user based on authentication
-        user = g.session.query(User).filter(User.id == g.workos_user.id).first()
+        user = g.session.query(User).filter(User.id == g.auth_user.user.id).first()
         if not user:
             # Create new user from authentication
             user = User(
-                id=g.workos_user.id,
-                email=g.workos_user.email,
+                id=g.auth_user.user.id,
+                email=g.auth_user.user.email,
             )
             g.session.add(user)
             g.session.flush()
@@ -32,12 +33,11 @@ def user_middleware(f):
             )
             if not organisation:
                 # Create new organization from authentication
-                workos_organization = workos_client.organizations.get_organization(
-                    organization_id=g.organization_id
-                )
+
+                auth_organization = get_organization_data(g.organization_id)
                 new_organisation = Organisation(
                     id=g.organization_id,
-                    name=workos_organization.name,
+                    name=auth_organization["name"],
                 )
                 g.session.add(new_organisation)
                 g.session.flush()
@@ -119,7 +119,7 @@ def admin_required(f):
         that is has admin role
         Otherwise, we consider the user is admin
         """
-        if g.organization_id is not None and g.role != "admin":
+        if g.organization_id is not None and g.auth_user.role != "admin":
             return jsonify({"error": "Admin access required"}), 403
         return f(*args, **kwargs)
 
