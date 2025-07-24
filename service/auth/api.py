@@ -11,7 +11,7 @@ api = Blueprint("auth", __name__)
 @api.route("/auth")
 def auth():
     scheme = "https" if ENV == "production" else "http"
-    redirect_uri = scheme + "://" + HOST + "/auth/callback"
+    redirect_uri = scheme + "://" + HOST + "/api/auth/callback"
     authorization_url = workos_client.sso.get_authorization_url(
         provider="authkit",
         redirect_uri=redirect_uri,
@@ -20,7 +20,7 @@ def auth():
     return jsonify({"authorization_url": authorization_url})
 
 
-@api.route("/callback")
+@api.route("/auth/callback")
 def callback():
     if request.args.get("error"):
         error_params = urlencode(
@@ -44,7 +44,7 @@ def callback():
         response.set_cookie(
             "wos_session",
             auth_response.sealed_session,
-            secure=True,
+            secure=ENV == "production",  # Only set secure in production
             httponly=True,
             samesite="lax",
             domain=None,  # This will be set automatically based on the domain

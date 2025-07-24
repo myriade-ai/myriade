@@ -13,3 +13,5 @@ service/.env.benchmark
 service/test.db
 .env
 *.ipynb
+build
+dist

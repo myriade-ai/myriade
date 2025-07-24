@@ -352,6 +352,7 @@ class ProjectTables(SerializerMixin, DefaultBase, Base):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid()"),
+        default=uuid.uuid4,  # for sqlite
     )
     projectId: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("project.id"), nullable=False

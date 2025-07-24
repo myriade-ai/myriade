@@ -12,51 +12,38 @@ services:
     networks:
       - myriade-network
 
-  service:
-    build: ./service
-    image: myriadeai/myriade-service:latest
-    volumes:
-      - logs:/var/log/gunicorn
+  myriade:
+    build: .
+    image: myriadeai/myriade:latest
     depends_on:
       - db
+    ports:
+      - "8080:8080"  # Consistent ports, avoids conflicts
+    volumes:
+      - logs:/var/log/gunicorn
     environment:
-      FLASK_APP: app.py
-      FLASK_ENV: production
+      # Database
       DATABASE_URL: postgresql://human:pass@db:5432/ada
+      
+      # Required
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      
+      # Optional - defaults provided in .env.docker
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       HOST: ${HOST:-http://localhost:8080}
       GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
       AUTOCHAT_PROVIDER: ${PROVIDER:-anthropic}
       AUTOCHAT_MODEL: ${MODEL:-claude-sonnet-4-20250514}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-} # If you want to use OpenAI, set this
-      # Optional
+      
+      # Optional authentication
       WORKOS_API_KEY: ${WORKOS_API_KEY:-}
       WORKOS_CLIENT_ID: ${WORKOS_CLIENT_ID:-}
       WORKOS_ORGANIZATION_ID: ${WORKOS_ORGANIZATION_ID:-}
       COOKIE_PASSWORD: ${COOKIE_PASSWORD:-}
-      # Ignore
+      
+      # Optional integrations
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
-    networks:
-      - myriade-network
-
-  view:
-    build: ./view
-    image: myriadeai/myriade-view:latest
-    depends_on:
-      - service
-    networks:
-      - myriade-network
-
-  proxy:
-    image: nginx:alpine
-    volumes:
-      - ./setup/proxy_nginx.conf:/etc/nginx/conf.d/default.conf:ro # Mount nginx config read-only
-    ports:
-      - "8080:80" # Expose proxy on host port 8080
-    depends_on:
-      - service
-      - view
     networks:
       - myriade-network
 
