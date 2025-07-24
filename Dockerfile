@@ -48,6 +48,9 @@ COPY --from=frontend-build /app/view/dist ./static
 # Create data directory for SQLite (when using docker run)
 RUN mkdir -p /app/data
 
+# Create log directory for gunicorn
+RUN mkdir -p /var/log/gunicorn
+
 # Copy environment file for Docker
 COPY .env.docker .env
 

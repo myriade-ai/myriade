@@ -24,7 +24,8 @@ uv run alembic upgrade head
 # Start the server based on environment
 if [ "$1" = "prod" ]; then
     # Production mode with Gunicorn
-    uv run gunicorn wsgi:application --config gunicorn_conf.py
+    echo "Starting server in production mode"
+    exec uv run gunicorn wsgi:application --config gunicorn_conf.py
 else
     # Development mode with Flask
     export FLASK_APP=app.py

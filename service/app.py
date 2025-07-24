@@ -1,6 +1,5 @@
 import config  # noqa: F401, I001
 import logging
-import os
 from back.session import get_db_session
 from flask import Flask, g, jsonify, request, send_from_directory
 from flask_socketio import SocketIO
@@ -77,12 +76,7 @@ def create_app():
     # serve SPA entry point
     @app.route("/")
     def index():
-        static_path = app.static_folder
-        if not os.path.exists(static_path):
-            return "Static folder does not exist!", 500
-
-        index_path = os.path.join(static_path, "index.html")
-        return app.send_static_file(index_path)
+        return app.send_static_file("index.html")
 
     @app.route("/<path:path>")
     def static_files(path):
