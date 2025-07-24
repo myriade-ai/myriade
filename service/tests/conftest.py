@@ -1,6 +1,7 @@
 import os
 import socket
 from threading import Thread
+from unittest.mock import patch
 
 import pytest
 import requests
@@ -12,6 +13,55 @@ from app import create_app  # noqa: E402
 from back.session import create_engine  # noqa: E402
 from config import DATABASE_URL  # noqa: E402
 from models import Base, Database  # noqa: E402
+
+
+class MockAuthResponse:
+    def __init__(self):
+        self.authenticated = True
+        self.user = MockUser()
+        self.id = "admin"  # Add id property for middleware compatibility
+        self.organization_id = "mock"
+        self.access_token = "MOCK"
+        self.refresh_token = "mock_refresh_token"
+        self.session_id = "mock_session_id"
+        self.role = "admin"
+        self.reason = None
+        self.sealed_session = "MOCK"
+
+
+class MockUser:
+    def __init__(self):
+        self.id = "admin"
+        self.email = "test@example.com"
+        self.first_name = "Test"
+        self.last_name = "User"
+        self.role = "admin"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_auth():
+    """Mock authentication functions for all tests"""
+    mock_org_data = {
+        "id": "mock",
+        "name": "Test Organization",
+        "slug": "test-org",
+        "status": "active",
+        "plan": "enterprise",
+        "features": ["advanced_analytics", "api_access"],
+        "limits": {"max_databases": 100, "max_queries_per_month": 10000},
+    }
+
+    with (
+        patch("auth.auth._authenticate_session") as mock_auth_session,
+        patch("auth.proxy_utils.get_organization_data") as mock_org,
+    ):
+        # Mock the session authentication to return our mock response
+        mock_auth_session.return_value = (MockAuthResponse(), False)
+
+        # Mock organization data
+        mock_org.return_value = mock_org_data
+
+        yield
 
 
 @pytest.fixture(scope="session")
@@ -80,7 +130,7 @@ def test_db_id(app_server, session):
     }
 
     r = requests.post(
-        f"{app_server}/databases", json=payload, cookies={"wos_session": "MOCK"}
+        f"{app_server}/databases", json=payload, cookies={"session": "MOCK"}
     )
     r.raise_for_status()
 
@@ -94,4 +144,4 @@ def test_db_id(app_server, session):
     yield str(fixed_db_id)  # give the id to tests
 
     # teardown – remove the DB
-    requests.delete(f"{app_server}/databases/{db_id}", cookies={"wos_session": "MOCK"})
+    requests.delete(f"{app_server}/databases/{db_id}", cookies={"session": "MOCK"})

@@ -16,7 +16,7 @@ def test_create_query_for_favorite_testing(app_server, test_db_id, snapshot):
     response = requests.post(
         f"{app_server}/query",  # Endpoint to create a persistent query object
         json=query_payload,
-        cookies={"wos_session": "MOCK"},
+        cookies={"session": "MOCK"},
     )
     assert response.status_code == 200
     response_data = response.json()
@@ -39,7 +39,7 @@ def test_toggle_query_favorite_and_list(app_server, test_db_id, snapshot):
     # 1. Favorite the query
     response_fav = requests.post(
         f"{app_server}/query/{created_query_id_for_favorite_test}/favorite",
-        cookies={"wos_session": "MOCK"},
+        cookies={"session": "MOCK"},
     )
     assert response_fav.status_code == 200
     assert normalise_json(response_fav.json()) == snapshot(name="favorite_response")
@@ -49,7 +49,7 @@ def test_toggle_query_favorite_and_list(app_server, test_db_id, snapshot):
     # The /favorites endpoint needs a contextId, which is typically the databaseId
     response_list_fav = requests.get(
         f"{app_server}/favorites?contextId=database-{test_db_id}",
-        cookies={"wos_session": "MOCK"},
+        cookies={"session": "MOCK"},
     )
     assert response_list_fav.status_code == 200
     favorites_data = normalise_json(response_list_fav.json())
@@ -65,7 +65,7 @@ def test_toggle_query_favorite_and_list(app_server, test_db_id, snapshot):
     response_unfav = requests.post(
         # Calling again toggles it off
         f"{app_server}/query/{created_query_id_for_favorite_test}/favorite",
-        cookies={"wos_session": "MOCK"},
+        cookies={"session": "MOCK"},
     )
     assert response_unfav.status_code == 200
     assert normalise_json(response_unfav.json()) == snapshot(name="unfavorite_response")
@@ -74,7 +74,7 @@ def test_toggle_query_favorite_and_list(app_server, test_db_id, snapshot):
     # 4. List favorites again and check if our query is gone
     response_list_unfav = requests.get(
         f"{app_server}/favorites?contextId=database-{test_db_id}",
-        cookies={"wos_session": "MOCK"},
+        cookies={"session": "MOCK"},
     )
     assert response_list_unfav.status_code == 200
     favorites_data_after_unfav = normalise_json(response_list_unfav.json())
