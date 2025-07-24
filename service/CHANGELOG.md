@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.27.4 (2025-07-24)
+
+### Bug Fixes
+
+- Display glitch
+  ([`e4d4a35`](https://github.com/myriade-ai/myriade/commit/e4d4a35ff0ad212cd423e38f6797d8c4bda39f9f))
+
+
 ## v0.27.3 (2025-07-24)
 
 ### Bug Fixes
