@@ -1,5 +1,4 @@
 import { fetchUser, getLoginUrl, isAuthenticated } from '@/stores/auth'
-import { useDatabasesStore } from '@/stores/databases'
 
 export const authGuard = async (to: any, from: any, next: any) => {
   if (to.path === '/logged') {
@@ -14,13 +13,7 @@ export const authGuard = async (to: any, from: any, next: any) => {
       const loginUrl = await getLoginUrl()
       window.location.href = loginUrl
     }
-    const databasesStore = useDatabasesStore()
-    await databasesStore.fetchDatabases({ refresh: true })
-    if (databasesStore.databases.length === 0 && to.path !== '/setup') {
-      next('/setup')
-    } else {
-      next()
-    }
+    next()
   } else {
     // User is already authenticated, allow navigation
     next()

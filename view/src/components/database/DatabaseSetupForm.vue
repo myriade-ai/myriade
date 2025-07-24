@@ -64,7 +64,7 @@
 
 <script setup lang="ts">
 import BaseButton from '@/components/base/BaseButton.vue'
-import { getDatabaseTypeName } from '@/utils/database'
+import { getDatabaseTypeName } from '@/stores/databases'
 import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/vue/24/outline'
 import { CheckIcon } from '@heroicons/vue/24/solid'
 import { computed, onMounted, ref, watch } from 'vue'

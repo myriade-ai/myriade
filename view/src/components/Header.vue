@@ -5,7 +5,8 @@
         <div class="flex text-xl font-bold">
           <div class="shrink-0 flex items-center">
             <a href="/" class="flex items-center">
-              <img src="/logo.svg?v=3" class="h-8 w-auto" />
+              <img src="/logo.svg?v=3" class="h-10 w-auto hidden sm:inline" />
+              <img src="/icon.svg?v=3" class="h-10 w-auto sm:hidden" />
             </a>
           </div>
           <div class="hidden sm:-my-px sm:ml-6 sm:flex sm:space-x-8">
@@ -76,6 +77,9 @@
           </Menu>
         </div>
         <div class="-mr-2 flex items-center sm:hidden">
+          <!-- Context Selection -->
+          <ContextSelection :disabled="false" class="mr-4" />
+
           <!-- Mobile menu button -->
           <DisclosureButton
             class="bg-white inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-hidden focus:ring-2 focus:ring-offset-1 focus:ring-primary-500"
