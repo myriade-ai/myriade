@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.27.2 (2025-07-24)
+
+### Bug Fixes
+
+- Correct access rights
+  ([`2d6660f`](https://github.com/myriade-ai/myriade/commit/2d6660fa52ef69f601daa7e015eec7f2a34583ed))
+
+
 ## v0.27.1 (2025-07-24)
 
 ### Bug Fixes
