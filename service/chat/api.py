@@ -1,3 +1,4 @@
+from functools import wraps
 from uuid import UUID
 
 from flask import Blueprint
@@ -24,8 +25,80 @@ def check_subscription_required(session):
     return True
 
 
+def socket_auth_required(f):
+    """Decorator to ensure Socket.IO events are authenticated."""
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            # Check if user is authenticated via socket_auth
+            if "user" not in flask_session:
+                emit("error", {"message": "Authentication required"})
+                return
+        except Exception:
+            emit("error", {"message": "Authentication failed"})
+            return
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def conversation_auth_required(f):
+    """Decorator to verify user owns the conversation in Socket.IO events."""
+
+    @wraps(f)
+    @with_session
+    def decorated_function(session, *args, **kwargs):
+        # Extract conversation_id from arguments
+        conversation_id = None
+        if len(args) > 0 and isinstance(args[0], str):
+            conversation_id = args[0]
+        elif "conversation_id" in kwargs:
+            conversation_id = kwargs["conversation_id"]
+
+        if not conversation_id:
+            emit("error", {"message": "Conversation ID required"})
+            return
+
+        try:
+            conversation = (
+                session.query(Conversation).filter_by(id=UUID(conversation_id)).first()
+            )
+            if not conversation:
+                emit(
+                    "error",
+                    {
+                        "message": "Conversation not found",
+                        "conversationId": conversation_id,
+                    },
+                )
+                return
+
+            # Verify user owns this conversation
+            user_id = flask_session["user"].id
+            if conversation.ownerId != user_id:
+                emit(
+                    "error",
+                    {"message": "Access denied", "conversationId": conversation_id},
+                )
+                return
+
+        except Exception:
+            emit(
+                "error",
+                {"message": "Authorization failed", "conversationId": conversation_id},
+            )
+            return
+
+        return f(session, *args, **kwargs)
+
+    return decorated_function
+
+
 @socketio.on("stop")
-def handle_stop(conversation_id: str):
+@socket_auth_required
+@conversation_auth_required
+def handle_stop(session, conversation_id: str):
     print("Received stop signal for conversation_id", conversation_id)
     # Stop the query
     set_stop_flag(conversation_id)
@@ -33,7 +106,8 @@ def handle_stop(conversation_id: str):
 
 
 @socketio.on("ask")
-@with_session
+@socket_auth_required
+@conversation_auth_required
 def handle_ask(session, conversation_id, question):
     # Check subscription requirement
     if not check_subscription_required(session):
@@ -67,7 +141,8 @@ def handle_ask(session, conversation_id, question):
 
 
 @socketio.on("query")
-@with_session
+@socket_auth_required
+@conversation_auth_required
 def handle_query(
     session,
     query,
@@ -127,7 +202,8 @@ def handle_query(
 
 
 @socketio.on("regenerateFromMessage")
-@with_session
+@socket_auth_required
+@conversation_auth_required
 def handle_regenerate_from_message(
     session, conversation_id, message_id, message_content=None
 ):
@@ -180,7 +256,11 @@ def handle_regenerate_from_message(
         session.delete(message)
 
     # Also, if the message is from the assistant, delete it
-    message = session.query(ConversationMessage).filter_by(id=UUID(message_id)).first()
+    message = (
+        session.query(ConversationMessage)
+        .filter_by(id=UUID(message_id), conversationId=UUID(conversation_id))
+        .first()
+    )
     if message.role == "assistant":
         deleted_message_ids.append(message.id)
         session.delete(message)
