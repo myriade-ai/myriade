@@ -15,7 +15,7 @@ def socketio_client(app_server):
     try:
         client.connect(
             app_server,
-            headers={"Cookie": "wos_session=dummy_session_token"},
+            headers={"Cookie": "session=dummy_session_token"},
             transports=["polling"],
             namespaces=["/"],  # Explicitly specify, though it's default
             wait=True,  # Default, waits for namespace connection

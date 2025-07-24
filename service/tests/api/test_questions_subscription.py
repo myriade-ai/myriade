@@ -6,7 +6,7 @@ def test_questions_endpoint_structure(app_server, session, test_db_id):
     # Test with mock authentication and the test database
     response = requests.get(
         f"{app_server}/contexts/database-{test_db_id}/questions",
-        cookies={"wos_session": "MOCK"},
+        cookies={"session": "MOCK"},
     )
 
     # Should either return questions or subscription error

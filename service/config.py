@@ -26,10 +26,12 @@ if DATABASE_URL.startswith("sqlite:///") and ENV != "development":
     if parent and not os.path.exists(parent):
         os.makedirs(parent)
 
-WORKOS_CLIENT_ID = os.environ.get("WORKOS_CLIENT_ID", "")
-WORKOS_ORGANIZATION_ID = os.environ.get("WORKOS_ORGANIZATION_ID", "")
-HOST = os.environ.get("HOST", "localhost:5173")
+HOST = os.environ.get("HOST", "http://localhost:5173")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 
+# Auth Proxy Configuration
+INFRA_URL = os.environ.get("INFRA_URL", "https://infra.myriade.ai")
 SENTRY_DSN = os.environ.get("SENTRY_DSN")
-COOKIE_PASSWORD = os.environ.get("COOKIE_PASSWORD", "")
+
+# JWT Configuration for auth tokens
+AUTH_CLIENT_ID = os.environ.get("AUTH_CLIENT_ID", "")

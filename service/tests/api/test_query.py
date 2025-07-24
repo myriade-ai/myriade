@@ -10,7 +10,7 @@ def test_run_simple_query(app_server, test_db_id, snapshot):
     }
 
     response = requests.post(
-        f"{app_server}/query/_run", json=query_payload, cookies={"wos_session": "MOCK"}
+        f"{app_server}/query/_run", json=query_payload, cookies={"session": "MOCK"}
     )
 
     assert response.status_code == 200
