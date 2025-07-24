@@ -36,7 +36,11 @@ mysql = [
 snowflake = ["snowflake-connector-python>=3.15.0"]
 bigquery = ["google-cloud-bigquery>=3.34.0"]
 # Note: Postgres is included by default as the database of the project
-all = ["mysql", "snowflake", "bigquery"]  
+all = [
+    "pymysql>=1.1.1",
+    "snowflake-connector-python>=3.15.0",
+    "google-cloud-bigquery>=3.34.0",
+]
 
 [dependency-groups]
 dev = [

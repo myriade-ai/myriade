@@ -55,6 +55,7 @@ class Issue(SerializerMixin, Base, DefaultBase):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid()"),
+        default=uuid.uuid4,  # for sqlite
     )
     title: Mapped[str] = mapped_column(String(256), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
@@ -88,6 +89,7 @@ class BusinessEntity(SerializerMixin, Base, DefaultBase):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid()"),
+        default=uuid.uuid4,  # for sqlite
     )
     name: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     definition: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

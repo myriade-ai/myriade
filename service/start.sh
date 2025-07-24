@@ -19,7 +19,6 @@ else
     exit 1
 fi
 
-# Run migrations
 uv run alembic upgrade head
 
 # Start the server based on environment
@@ -30,5 +29,5 @@ else
     # Development mode with Flask
     export FLASK_APP=app.py
     export FLASK_DEBUG=true
-    uv run flask run --host=0.0.0.0 --port=4000
+    uv run flask run --host=0.0.0.0 --port=8080
 fi

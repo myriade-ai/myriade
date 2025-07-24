@@ -60,21 +60,49 @@ At this time, we recommend using **Anthropic** to get the best results. Get an A
 
 Note: you can also use any other LLM provider (OpenAI, Gemini, etc.). Check the [docker-compose.yml](./docker-compose.yml) file for the available environment variables.
 
-### Run docker-compose
+### Basic run with SQLite backend
 
 ```bash
-git clone --depth 1 https://github.com/myriade-ai/myriade.git
-cd myriade
-docker compose pull
-ANTHROPIC_API_KEY=XXXX docker compose up -d
+docker run -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
+  -e ANTHROPIC_API_KEY=your_key_here
+  myriadeai/myriade:latest
 ```
 
-#### Alternative OpenAI
+This will create a SQLite database in the `data` folder.
+
+### Run with OpenAI provider
 
 ```bash
-docker compose pull
-AUTOCHAT_PROVIDER=openai AUTOCHAT_MODEL="o4-mini" OPENAI_API_KEY=XXXX docker compose up -d
+docker run -p 8080:8080 \
+  -e AUTOCHAT_PROVIDER=openai \
+  -e AUTOCHAT_MODEL=o4-mini \
+  -e OPENAI_API_KEY=your_key_here \
+  myriadeai/myriade:latest
 ```
+
+### Run with PostgreSQL backend
+
+```bash
+docker run -p 8080:8080 \
+  -e ANTHROPIC_API_KEY=your_key_here \
+  -e DATABASE_URL=postgresql://user:pass@localhost:5432/myriade \
+  myriadeai/myriade:latest
+```
+
+### Access the application
+
+Open your browser to: http://localhost:8080
+
+### Environment variables
+
+- `ANTHROPIC_API_KEY` - Required for AI functionality
+- `DATABASE_URL` - Optional, for PostgreSQL backend
+- `HOST` - The public URL of your deployment (default: http://localhost:8080)
+- `GUNICORN_THREADS` - Optional, for Gunicorn threads (default: 4)
+- `AUTOCHAT_PROVIDER` - Optional, for AI provider (default: anthropic)
+- `AUTOCHAT_MODEL` - Optional, for AI model (default: claude-sonnet-4-20250514)
+- `OPENAI_API_KEY` - Optional, for OpenAI models
 
 ### Open the app
 

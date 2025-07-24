@@ -22,16 +22,11 @@ export default defineConfig({
 
   server: {
     proxy: {
-      '/auth': {
-        target: 'http://127.0.0.1:4000',
-        rewrite: (path) => path.replace(/^\/auth/, '')
-      },
       '/api': {
-        target: 'http://127.0.0.1:4000',
-        rewrite: (path) => path.replace(/^\/api/, '')
+        target: 'http://127.0.0.1:8080'
       },
       '/socket.io': {
-        target: 'http://127.0.0.1:4000',
+        target: 'http://127.0.0.1:8080',
         changeOrigin: true,
         ws: true
       }
@@ -42,9 +37,5 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
-  },
-
-  build: {
-    sourcemap: true
   }
 })

@@ -5,15 +5,8 @@ from functools import lru_cache, wraps
 from threading import RLock
 
 from flask import g, jsonify, make_response, request
-from workos.types.user_management.session import (
-    AuthenticateWithSessionCookieSuccessResponse,
-)
 
-from config import (
-    COOKIE_PASSWORD,
-    WORKOS_CLIENT_ID,
-    WORKOS_ORGANIZATION_ID,
-)
+from config import COOKIE_PASSWORD, ENV, WORKOS_CLIENT_ID, WORKOS_ORGANIZATION_ID
 
 if not WORKOS_CLIENT_ID:
     from auth.mock import MockWorkOSClient as WorkOSClient
@@ -85,7 +78,7 @@ def with_auth(f):
 
 def _authenticate_session(
     session_cookie: str,
-) -> tuple[AuthenticateWithSessionCookieSuccessResponse, bool]:
+):
     """Authenticate and potentially refresh the session."""
     session = workos_client.user_management.load_sealed_session(
         sealed_session=session_cookie,
@@ -119,7 +112,7 @@ def _create_response_with_cookie(response, sealed_session):
     response.set_cookie(
         "wos_session",
         sealed_session,
-        secure=True,  # Only over HTTPS
+        secure=ENV == "production",  # Only over HTTPS
         httponly=True,  # Not accessible via JavaScript
         samesite="lax",  # CSRF protection
         domain=None,  # Current domain only

@@ -1,18 +1,18 @@
 import config  # noqa: F401, I001
 import logging
-
+import os
 from back.session import get_db_session
-from flask import Flask, g, jsonify, request
+from flask import Flask, g, jsonify, request, send_from_directory
 from flask_socketio import SocketIO
 from werkzeug.middleware.proxy_fix import ProxyFix
 import telemetry
+
 
 logger = logging.getLogger(__name__)
 
 socketio = SocketIO(
     cors_allowed_origins="*",
     async_mode="threading",
-    # We don't use websockets for now (until we have the need for it)
     transports=["polling"],
 )
 
@@ -27,10 +27,13 @@ if config.SENTRY_DSN:
 
 
 def create_app():
-    app = Flask(__name__)
+    # Create app
+    app = Flask(__name__, static_folder=config.STATIC_FOLDER)
     # trust 1 proxy in front of you for proto *and* host
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     app.json.sort_keys = False
+
+    socketio.init_app(app)
 
     # Global error handler for all routes
     @app.errorhandler(Exception)
@@ -65,11 +68,30 @@ def create_app():
     from billing.api import api as billing_api
     from chat.api import api as chat_api
 
-    app.register_blueprint(chat_api)
-    app.register_blueprint(back_api)
-    app.register_blueprint(query_api)
-    app.register_blueprint(auth_api)
-    app.register_blueprint(billing_api)
+    app.register_blueprint(chat_api, url_prefix="/api")
+    app.register_blueprint(back_api, url_prefix="/api")
+    app.register_blueprint(query_api, url_prefix="/api")
+    app.register_blueprint(auth_api, url_prefix="/api")
+    app.register_blueprint(billing_api, url_prefix="/api")
+
+    # serve SPA entry point
+    @app.route("/")
+    def index():
+        static_path = app.static_folder
+        if not os.path.exists(static_path):
+            return "Static folder does not exist!", 500
+
+        index_path = os.path.join(static_path, "index.html")
+        return app.send_static_file(index_path)
+
+    @app.route("/<path:path>")
+    def static_files(path):
+        """Serve anything that isn't under /api from the bundled static dir,
+        then fall back to index.html for SPA routes."""
+        try:
+            return send_from_directory(app.static_folder, path)
+        except Exception:
+            return app.send_static_file("index.html")
 
     @app.before_request
     def _open_db_session():
@@ -86,8 +108,6 @@ def create_app():
         else:
             session.rollback()
         session.close()
-
-    socketio.init_app(app)
 
     @socketio.on("ping")
     def handle_ping():
