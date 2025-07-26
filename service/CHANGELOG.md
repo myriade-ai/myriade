@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.29.0 (2025-07-26)
+
+### Features
+
+- Self-service auth
+  ([`6828962`](https://github.com/myriade-ai/myriade/commit/6828962d4fd43988c0788ad5162cfa4e5b179363))
+
+
 ## v0.28.0 (2025-07-24)
 
 ### Features
