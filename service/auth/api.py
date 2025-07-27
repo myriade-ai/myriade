@@ -101,6 +101,41 @@ def user():
     )
 
 
+@api.route("/auth/proxy/credits")
+@user_middleware
+def proxy_credits():
+    """Proxy credits request to auth service"""
+    session_cookie = request.cookies.get("session")
+    logger.info(f"Credits proxy - session cookie present: {bool(session_cookie)}")
+    logger.info(f"Credits proxy - INFRA_URL: {INFRA_URL}")
+
+    if not session_cookie:
+        return jsonify({"error": "No session cookie"}), 401
+
+    try:
+        # Forward request to auth proxy
+        headers = {"Authorization": f"Bearer {session_cookie}"}
+        logger.info(f"Credits proxy - making request to: {INFRA_URL}/ai/credits")
+        logger.info(
+            f"Credits proxy - auth header starts with: {headers['Authorization'][:50]}..."  # noqa: E501
+        )
+
+        response = requests.get(
+            f"{INFRA_URL}/ai/credits",
+            headers=headers,
+            timeout=10,
+        )
+        logger.info(f"Credits proxy - response status: {response.status_code}")
+        response.raise_for_status()
+        return jsonify(response.json())
+    except requests.RequestException as e:
+        logger.error(f"Credits proxy request failed: {str(e)}")
+        error_msg = "Failed to fetch credits from auth service"
+        if ENV != "production":
+            error_msg = f"Credits proxy error: {str(e)}"
+        return jsonify({"error": error_msg}), 500
+
+
 @api.route("/logout", methods=["POST"])
 def logout():
     if not request.cookies.get("session"):

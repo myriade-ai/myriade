@@ -330,10 +330,6 @@ class User(SerializerMixin, DefaultBase, Base):
     has_active_subscription: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
-    # free trial credits
-    credits: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=25, server_default="25"
-    )
 
 
 class UserOrganisation(SerializerMixin, DefaultBase, Base):

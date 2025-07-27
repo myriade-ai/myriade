@@ -21,6 +21,23 @@ export const getLoginUrl = async () => {
   return authorization_url
 }
 
+export const fetchCredits = async () => {
+  try {
+    // Fetch credits from proxy
+    const response = await axios.get('/api/auth/proxy/credits')
+    user.value.credits = response.data.credits_remaining || 0
+    return user.value.credits
+  } catch (error) {
+    console.error('Failed to fetch credits:', error)
+    user.value.credits = 0  
+    return 0
+  }
+}
+
+export const updateCredits = (newCredits: number) => {
+  user.value.credits = newCredits
+}
+
 export const fetchUser = async () => {
   try {
     const response = await axios.get('/api/user')
@@ -31,8 +48,10 @@ export const fetchUser = async () => {
     user.value.profilePictureUrl = response.data.profile_picture_url
     user.value.isAdmin = response.data.role === 'admin'
     user.value.inOrganization = response.data.organization_id !== null
-    user.value.credits = response.data.credits || 0
     user.value.hasActiveSubscription = response.data.has_active_subscription || false
+    
+    // Fetch credits from proxy
+    await fetchCredits()
   } catch (error) {
     console.error('Failed to fetch user:', error)
   }

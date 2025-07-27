@@ -16,7 +16,7 @@ api = Blueprint("chat_api", __name__)
 
 
 def check_subscription_required(session):
-    """Check if user has an active subscription or credits for the request."""
+    """Check if user has an active subscription for the request."""
     # Get user from session using flask session
     user_id = flask_session["user"].id
     user = session.query(User).filter(User.id == user_id).first()
@@ -25,36 +25,13 @@ def check_subscription_required(session):
     if user.has_active_subscription:
         return True
 
-    # Check if user has credits for free trial
-    if user.credits > 0:
-        return True
-
-    return False
+    # For free trial, all users have access (credits managed by proxy)
+    return True
 
 
 def consume_user_credit(session, conversation_id):
-    """Decrement user credits if they're using free trial."""
-    user_id = flask_session["user"].id
-    user = session.query(User).filter(User.id == user_id).first()
-
-    if not user or user.has_active_subscription:
-        return  # No need to consume credits for subscribed users
-
-    # Check if this is a public database (free to use)
-    if conversation_id:
-        try:
-            conversation = (
-                session.query(Conversation).filter_by(id=UUID(conversation_id)).first()
-            )
-            if conversation and conversation.database.public:
-                return  # No need to consume credits for public databases
-        except Exception:
-            pass
-
-    # Decrement credits if user has any
-    if user.credits > 0:
-        user.credits -= 1
-        session.commit()
+    """Credit consumption now handled by proxy - this is a no-op."""
+    pass
 
 
 def socket_auth_required(f):
