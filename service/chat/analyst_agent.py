@@ -1,14 +1,18 @@
 import datetime
+import logging
 import os
 
+import anthropic
 import nest_asyncio
 import yaml
 from autochat import Autochat, Message
 from autochat.chat import StopLoopException
+from flask_socketio import emit
 
 from chat.dbt_utils import DBT
 from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
+from chat.proxy_provider import ProxyProvider
 from chat.tools.database import DatabaseTool
 from chat.tools.echarts import EchartsTool
 from chat.tools.quality import SemanticCatalog
@@ -16,10 +20,12 @@ from chat.tools.workspace import WorkspaceTool
 from chat.utils import parse_answer_text
 from models import Chart, Conversation, ConversationMessage, Query
 
+logger = logging.getLogger(__name__)
+
 # Workaround because of eventlet doesn't support loop in loop ?
 nest_asyncio.apply()
 
-AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "anthropic")
+AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "proxy")
 
 
 def think(thought: str) -> None:
@@ -69,9 +75,18 @@ class DataAnalystAgent:
         self.session = session
         self.conversation = conversation
 
+        # Handle custom proxy provider
+
+        logger.info(f"AUTOCHAT_PROVIDER is set to: {AUTOCHAT_PROVIDER}")
+
+        if AUTOCHAT_PROVIDER == "proxy":
+            provider = ProxyProvider
+        else:
+            provider = AUTOCHAT_PROVIDER
+
         self.agent = Autochat.from_template(
             os.path.join(os.path.dirname(__file__), "..", "chat", "chat_template.txt"),
-            provider=AUTOCHAT_PROVIDER,
+            provider=provider,
             context=self.context,
             use_tools_only=True,
             model=model,
@@ -238,6 +253,16 @@ class DataAnalystAgent:
         except StopException:
             emit_status(self.conversation.id, STATUS.CLEAR)
         except Exception as e:
+            if isinstance(e, anthropic.APIStatusError) and e.status_code == 402:
+                # Custom error for subscription required
+                emit(
+                    "error",
+                    {
+                        "message": "SUBSCRIPTION_REQUIRED",
+                        "conversationId": str(self.conversation.id),
+                    },
+                )
+                return
             emit_status(self.conversation.id, STATUS.ERROR, e)
             import traceback
 

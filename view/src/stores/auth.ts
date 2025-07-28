@@ -9,8 +9,7 @@ export const user = ref({
   profilePictureUrl: null,
   isAdmin: false,
   inOrganization: false,
-  credits: 0,
-  hasActiveSubscription: false
+  credits: 0
 })
 
 export const isAuthenticated = computed(() => user.value.id !== null)
@@ -24,12 +23,12 @@ export const getLoginUrl = async () => {
 export const fetchCredits = async () => {
   try {
     // Fetch credits from proxy
-    const response = await axios.get('/api/auth/proxy/credits')
+    const response = await axios.get('/api/user/credits')
     user.value.credits = response.data.credits_remaining || 0
     return user.value.credits
   } catch (error) {
     console.error('Failed to fetch credits:', error)
-    user.value.credits = 0  
+    user.value.credits = 0
     return 0
   }
 }
@@ -48,8 +47,7 @@ export const fetchUser = async () => {
     user.value.profilePictureUrl = response.data.profile_picture_url
     user.value.isAdmin = response.data.role === 'admin'
     user.value.inOrganization = response.data.organization_id !== null
-    user.value.hasActiveSubscription = response.data.has_active_subscription || false
-    
+
     // Fetch credits from proxy
     await fetchCredits()
   } catch (error) {
@@ -60,7 +58,7 @@ export const fetchUser = async () => {
 export const logout = async () => {
   try {
     // We get the logout url from the server
-    const { data } = await axios.post('/api/logout')
+    const { data } = await axios.post('/api/auth/logout')
     const { logout_url } = data
     window.location.href = logout_url
   } catch (error) {

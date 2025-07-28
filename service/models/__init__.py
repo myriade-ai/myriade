@@ -326,10 +326,6 @@ class User(SerializerMixin, DefaultBase, Base):
     favorites: Mapped[List["UserFavorite"]] = relationship(
         "UserFavorite", back_populates="user", lazy="joined"
     )
-    # active subscription
-    has_active_subscription: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default="false"
-    )
 
 
 class UserOrganisation(SerializerMixin, DefaultBase, Base):

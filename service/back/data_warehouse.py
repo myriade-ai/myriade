@@ -291,7 +291,7 @@ class SQLDatabase(AbstractDatabase):
 
 class PostgresDatabase(SQLDatabase):
     def __init__(self, uri):
-        self.connect_args = {"connect_timeout": 5}
+        self.connect_args = {"connect_timeout": 10}
         super().__init__(uri, connect_args=self.connect_args)
 
 

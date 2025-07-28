@@ -5,6 +5,7 @@ import requests
 from flask import Blueprint, g, jsonify, make_response, redirect, request
 
 from auth.auth import _try_refresh_session
+from auth.infra_utils import make_authenticated_proxy_request
 from config import ENV, HOST, INFRA_URL
 from middleware import user_middleware
 
@@ -88,55 +89,7 @@ def auth_complete():
         return redirect(f"/auth-error?{error_params}")
 
 
-@api.route("/user")
-@user_middleware
-def user():
-    return jsonify(
-        {
-            **g.auth_user.user.__dict__,
-            **g.user.to_dict(),
-            "role": g.role,
-            "organization_id": g.organization_id,
-        }
-    )
-
-
-@api.route("/auth/proxy/credits")
-@user_middleware
-def proxy_credits():
-    """Proxy credits request to auth service"""
-    session_cookie = request.cookies.get("session")
-    logger.info(f"Credits proxy - session cookie present: {bool(session_cookie)}")
-    logger.info(f"Credits proxy - INFRA_URL: {INFRA_URL}")
-
-    if not session_cookie:
-        return jsonify({"error": "No session cookie"}), 401
-
-    try:
-        # Forward request to auth proxy
-        headers = {"Authorization": f"Bearer {session_cookie}"}
-        logger.info(f"Credits proxy - making request to: {INFRA_URL}/ai/credits")
-        logger.info(
-            f"Credits proxy - auth header starts with: {headers['Authorization'][:50]}..."  # noqa: E501
-        )
-
-        response = requests.get(
-            f"{INFRA_URL}/ai/credits",
-            headers=headers,
-            timeout=10,
-        )
-        logger.info(f"Credits proxy - response status: {response.status_code}")
-        response.raise_for_status()
-        return jsonify(response.json())
-    except requests.RequestException as e:
-        logger.error(f"Credits proxy request failed: {str(e)}")
-        error_msg = "Failed to fetch credits from auth service"
-        if ENV != "production":
-            error_msg = f"Credits proxy error: {str(e)}"
-        return jsonify({"error": error_msg}), 500
-
-
-@api.route("/logout", methods=["POST"])
+@api.route("/auth/logout", methods=["POST"])
 def logout():
     if not request.cookies.get("session"):
         return jsonify({"message": "No session cookie"}), 500
@@ -170,7 +123,7 @@ def logout():
 
         # For sealed sessions, we'll just clear the local cookie
         # Auth proxy handles session invalidation on their end
-        logout_url = f"{HOST}/login"
+        logout_url = f"{HOST}?logged-out=true"
 
         response = make_response(
             jsonify({"message": "Logged out successfully", "logout_url": logout_url})
@@ -239,3 +192,33 @@ def refresh():
     except Exception as e:
         logger.error(f"Session refresh exception: {str(e)}", exc_info=True)
         return jsonify({"message": f"Session refresh failed - {str(e)}"}), 500
+
+
+@api.route("/user")
+@user_middleware
+def user():
+    return jsonify(
+        {
+            **g.auth_user.user.__dict__,
+            **g.user.to_dict(),
+            "role": g.role,
+            "organization_id": g.organization_id,
+        }
+    )
+
+
+@api.route("/user/credits")
+@user_middleware
+def proxy_credits():
+    """Proxy credits request to auth service"""
+    try:
+        response = make_authenticated_proxy_request(
+            "/user/credits",
+            method="GET",
+            timeout=10,
+        )
+        response.raise_for_status()
+        return jsonify(response.json())
+    except requests.RequestException as e:
+        logger.error(f"Credits proxy request failed: {str(e)}")
+        return jsonify({"error": "Failed to fetch credits from auth service"}), 500

@@ -33,8 +33,7 @@ def make_authenticated_proxy_request(endpoint, method="GET", **kwargs):
 
         # Make request to proxy
         url = INFRA_URL + endpoint
-        response = requests.request(method, url, timeout=10, **kwargs)
-
+        response = requests.request(method, url, **kwargs)
         return response
 
     except Exception as e:

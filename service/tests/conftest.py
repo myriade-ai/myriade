@@ -53,7 +53,7 @@ def mock_auth():
 
     with (
         patch("auth.auth._authenticate_session") as mock_auth_session,
-        patch("auth.proxy_utils.get_organization_data") as mock_org,
+        patch("auth.infra_utils.get_organization_data") as mock_org,
     ):
         # Mock the session authentication to return our mock response
         mock_auth_session.return_value = (MockAuthResponse(), False)

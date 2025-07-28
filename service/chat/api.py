@@ -10,28 +10,16 @@ from auth.auth import UnauthorizedError, socket_auth
 from back.session import with_session
 from chat.analyst_agent import DataAnalystAgent
 from chat.lock import STATUS, clear_stop_flag, emit_status, set_stop_flag
-from models import Conversation, ConversationMessage, User
+from models import Conversation, ConversationMessage
 
 api = Blueprint("chat_api", __name__)
 
 
-def check_subscription_required(session):
-    """Check if user has an active subscription for the request."""
-    # Get user from session using flask session
-    user_id = flask_session["user"].id
-    user = session.query(User).filter(User.id == user_id).first()
+def get_last_credits_info():
+    """Get the credits remaining from the last AI call."""
+    from chat.proxy_provider import get_last_response_data
 
-    # If user has active subscription, allow access
-    if user.has_active_subscription:
-        return True
-
-    # For free trial, all users have access (credits managed by proxy)
-    return True
-
-
-def consume_user_credit(session, conversation_id):
-    """Credit consumption now handled by proxy - this is a no-op."""
-    pass
+    return get_last_response_data("credits_remaining")
 
 
 def socket_auth_required(f):
@@ -118,17 +106,6 @@ def handle_stop(session, conversation_id: str):
 @socket_auth_required
 @conversation_auth_required
 def handle_ask(session, conversation_id, question):
-    # Check subscription requirement
-    if not check_subscription_required(session):
-        emit(
-            "error",
-            {"message": "SUBSCRIPTION_REQUIRED", "conversationId": conversation_id},
-        )
-        return
-
-    # Consume credit if user is on free trial
-    consume_user_credit(session, conversation_id)
-
     # We reset stop flag if the user sent a new request
     clear_stop_flag(conversation_id)
 
@@ -149,7 +126,14 @@ def handle_ask(session, conversation_id, question):
             session.rollback()
             # We break the loop to avoid sending the message
             break
-        emit("response", message.to_dict())
+        response_data = message.to_dict()
+
+        # Include credits info if available from proxy
+        credits_remaining = get_last_credits_info()
+        if credits_remaining is not None:
+            response_data["credits_remaining"] = credits_remaining
+
+        emit("response", response_data)
 
 
 @socketio.on("query")
@@ -160,17 +144,6 @@ def handle_query(
     query,
     conversation_id=None,
 ):
-    # Check subscription requirement
-    if not check_subscription_required(session):
-        emit(
-            "error",
-            {"message": "SUBSCRIPTION_REQUIRED", "conversationId": conversation_id},
-        )
-        return
-
-    # Consume credit if user is on free trial
-    consume_user_credit(session, conversation_id)
-
     # We reset stop flag if the user sent a new request
     clear_stop_flag(conversation_id)
 
@@ -228,16 +201,6 @@ def handle_regenerate_from_message(
     If the message is from the assistant, delete it
     If the message is from the user, regenerate the conversation from the next message
     """
-    if not check_subscription_required(session):
-        emit(
-            "error",
-            {"message": "SUBSCRIPTION_REQUIRED", "conversationId": conversation_id},
-        )
-        return
-
-    # Consume credit if user is on free trial
-    consume_user_credit(session, conversation_id)
-
     # We reset stop flag if the user sent a new request
     clear_stop_flag(conversation_id)
 
@@ -254,7 +217,14 @@ def handle_regenerate_from_message(
             session.rollback()
             # We return to avoid sending the message
             return
-        emit("response", message.to_dict())
+        response_data = message.to_dict()
+
+        # Include credits info if available from proxy
+        credits_remaining = get_last_credits_info()
+        if credits_remaining is not None:
+            response_data["credits_remaining"] = credits_remaining
+
+        emit("response", response_data)
 
     # Clear all messages after the message_id, from the conversation
     selected_message = (
@@ -311,7 +281,14 @@ def handle_regenerate_from_message(
             session.rollback()
             # We return to avoid sending the message
             break
-        emit("response", message.to_dict())
+        response_data = message.to_dict()
+
+        # Include credits info if available from proxy
+        credits_remaining = get_last_credits_info()
+        if credits_remaining is not None:
+            response_data["credits_remaining"] = credits_remaining
+
+        emit("response", response_data)
 
 
 @socketio.on("connect")

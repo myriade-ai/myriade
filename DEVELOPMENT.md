@@ -26,6 +26,7 @@
    in `.env.dev` file:
 
    ```bash
+   AUTOCHAT_PROVIDER=anthropic
    AUTOCHAT_MODEL=claude-sonnet-4-20250514
    ANTHROPIC_API_KEY=<Your_Anthropic_API_Key>
    DATABASE_URL=postgresql://user:pass@localhost:5432/myriade
