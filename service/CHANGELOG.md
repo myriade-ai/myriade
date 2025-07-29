@@ -1,6 +1,16 @@
 # CHANGELOG
 
 
+## v0.30.0 (2025-07-29)
+
+### Features
+
+- Add support for subscription ([#56](https://github.com/myriade-ai/myriade/pull/56),
+  [`ae5cf24`](https://github.com/myriade-ai/myriade/commit/ae5cf24c21949cc1369de8e52b1180016d10a5da))
+
+* feat: add support for subscription * feat: add myriade ai proxy * fix: refresh
+
+
 ## v0.29.0 (2025-07-26)
 
 ### Features
