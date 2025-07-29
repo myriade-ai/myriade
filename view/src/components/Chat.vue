@@ -408,7 +408,8 @@ const aiSuggestions = ref([])
 
 watch(
   () => contextsStore.contextSelected,
-  async () => {
+  async (newVal, oldVal) => {
+    if (newVal?.id === oldVal?.id) return
     aiSuggestions.value = []
     if (!conversationId.value) {
       await fetchAISuggestions()
