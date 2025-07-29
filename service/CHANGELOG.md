@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.30.1 (2025-07-29)
+
+### Bug Fixes
+
+- Uuid
+  ([`40d7923`](https://github.com/myriade-ai/myriade/commit/40d79232f76b7732d1788ad66144dab42f23cc47))
+
+
 ## v0.30.0 (2025-07-29)
 
 ### Features
