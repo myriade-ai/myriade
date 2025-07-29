@@ -15,3 +15,6 @@ service/test.db
 *.ipynb
 build
 dist
+
+CLAUDE.md
+data

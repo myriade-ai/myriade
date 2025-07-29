@@ -15,7 +15,7 @@ dependencies = [
     "flask-socketio>=5.3.3",
     "psycopg2-binary>=2.9.7",
     "alembic>=1.11.2",
-    "autochat[all]==0.18.2",
+    "autochat[all]==0.19.0",
     "python-dotenv>=1.0.1",
     "syrupy>=4.8.2",
     "sentry-sdk[flask]>=2.23.1",
@@ -25,7 +25,6 @@ dependencies = [
     "eventlet>=0.39.1",
     "nest-asyncio>=1.6.0",
     "sqlglot>=26.16.2",
-    "stripe>=12.2.0",
 ]
 
 [project.optional-dependencies]

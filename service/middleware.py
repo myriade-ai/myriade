@@ -4,7 +4,7 @@ from functools import wraps
 from flask import g, jsonify, request
 
 from auth.auth import with_auth
-from auth.proxy_utils import get_organization_data
+from auth.infra_utils import get_organization_data
 from models import Database, Organisation, Query, User
 
 

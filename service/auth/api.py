@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 import requests
 from flask import Blueprint, g, jsonify, make_response, redirect, request
 
-from auth.auth import _try_refresh_session
+from auth.infra_utils import make_authenticated_proxy_request
 from config import ENV, HOST, INFRA_URL
 from middleware import user_middleware
 
@@ -88,20 +88,7 @@ def auth_complete():
         return redirect(f"/auth-error?{error_params}")
 
 
-@api.route("/user")
-@user_middleware
-def user():
-    return jsonify(
-        {
-            **g.auth_user.user.__dict__,
-            **g.user.to_dict(),
-            "role": g.role,
-            "organization_id": g.organization_id,
-        }
-    )
-
-
-@api.route("/logout", methods=["POST"])
+@api.route("/auth/logout", methods=["POST"])
 def logout():
     if not request.cookies.get("session"):
         return jsonify({"message": "No session cookie"}), 500
@@ -135,7 +122,7 @@ def logout():
 
         # For sealed sessions, we'll just clear the local cookie
         # Auth proxy handles session invalidation on their end
-        logout_url = f"{HOST}/login"
+        logout_url = f"{HOST}?logged-out=true"
 
         response = make_response(
             jsonify({"message": "Logged out successfully", "logout_url": logout_url})
@@ -163,44 +150,31 @@ def logout():
         return response
 
 
-# Expose api to debug refresh session
-@api.route("/auth/refresh", methods=["GET"])
-def refresh():
-    session_cookie = request.cookies.get("session")
-    if not session_cookie:
-        return jsonify({"message": "No session cookie"}), 500
+@api.route("/user")
+@user_middleware
+def user():
+    return jsonify(
+        {
+            **g.auth_user.user.__dict__,
+            **g.user.to_dict(),
+            "role": g.role,
+            "organization_id": g.organization_id,
+        }
+    )
 
+
+@api.route("/user/credits")
+@user_middleware
+def proxy_credits():
+    """Proxy credits request to auth service"""
     try:
-        refreshed_response = _try_refresh_session(session_cookie)
-        if refreshed_response:
-            # Convert SealedSessionAuthResponse to dictionary for JSON serialization
-            response_data = {
-                "authenticated": refreshed_response.authenticated,
-                "user": {
-                    "id": refreshed_response.user.id,
-                    "email": refreshed_response.user.email,
-                    "first_name": getattr(refreshed_response.user, "first_name", None),
-                    "last_name": getattr(refreshed_response.user, "last_name", None),
-                },
-                "organization_id": refreshed_response.organization_id,
-                "access_token": refreshed_response.access_token,
-                "refresh_token": refreshed_response.refresh_token,
-                "session_id": refreshed_response.session_id,
-                "role": refreshed_response.role,
-                "sealed_session": refreshed_response.sealed_session,
-            }
-            return jsonify(
-                {
-                    "message": "Session refreshed successfully",
-                    "refreshed_response": response_data,
-                }
-            )
-        else:
-            return jsonify(
-                {
-                    "message": "Session refresh failed - no refresh token or refresh unsuccessful"  # noqa: E501
-                }
-            ), 500
-    except Exception as e:
-        logger.error(f"Session refresh exception: {str(e)}", exc_info=True)
-        return jsonify({"message": f"Session refresh failed - {str(e)}"}), 500
+        response = make_authenticated_proxy_request(
+            "/user/credits",
+            method="GET",
+            timeout=10,
+        )
+        response.raise_for_status()
+        return jsonify(response.json())
+    except requests.RequestException as e:
+        logger.error(f"Credits proxy request failed: {str(e)}")
+        return jsonify({"error": "Failed to fetch credits from auth service"}), 500

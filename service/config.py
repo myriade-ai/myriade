@@ -27,9 +27,8 @@ if DATABASE_URL.startswith("sqlite:///") and ENV != "development":
         os.makedirs(parent)
 
 HOST = os.environ.get("HOST", "http://localhost:5173")
-STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 
-# Auth Proxy Configuration
+# Infra Configuration
 INFRA_URL = os.environ.get("INFRA_URL", "https://infra.myriade.ai")
 SENTRY_DSN = os.environ.get("SENTRY_DSN")
 

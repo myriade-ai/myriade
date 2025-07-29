@@ -63,30 +63,28 @@ Note: you can also use any other LLM provider (OpenAI, Gemini, etc.). Check the 
 ### Basic run with SQLite backend
 
 ```bash
-docker run -p 8080:8080 \
-  -v $(pwd)/data:/app/data \
-  -e ANTHROPIC_API_KEY=your_key_here
-  myriadeai/myriade:latest
+docker run -p 8080:8080 -v $(pwd)/data:/app/data myriadeai/myriade:latest
 ```
 
 This will create a SQLite database in the `data` folder.
 
-### Run with OpenAI provider
+### Run with PostgreSQL backend
+
+```bash
+docker run -p 8080:8080 \
+  -e DATABASE_URL=postgresql://user:pass@localhost:5432/myriade \
+  myriadeai/myriade:latest
+```
+
+### Run with your own provider key (OpenAI, Anthropic, etc.)
+
+Example with OpenAI.
 
 ```bash
 docker run -p 8080:8080 \
   -e AUTOCHAT_PROVIDER=openai \
   -e AUTOCHAT_MODEL=o4-mini \
   -e OPENAI_API_KEY=your_key_here \
-  myriadeai/myriade:latest
-```
-
-### Run with PostgreSQL backend
-
-```bash
-docker run -p 8080:8080 \
-  -e ANTHROPIC_API_KEY=your_key_here \
-  -e DATABASE_URL=postgresql://user:pass@localhost:5432/myriade \
   myriadeai/myriade:latest
 ```
 

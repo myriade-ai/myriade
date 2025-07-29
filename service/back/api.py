@@ -1,8 +1,11 @@
 import json
+import logging
 import os
 from typing import Any, cast
 from uuid import UUID
 
+import anthropic
+from autochat import Autochat
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
@@ -15,6 +18,7 @@ from back.utils import (
     create_database,
     merge_tables_metadata,
 )
+from chat.proxy_provider import ProxyProvider
 from middleware import admin_required, user_middleware
 from models import (
     Chart,
@@ -28,9 +32,10 @@ from models import (
 )
 from models.quality import BusinessEntity, Issue
 
+logger = logging.getLogger(__name__)
 api = Blueprint("back_api", __name__)
 
-AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "openai")
+AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "proxy")
 
 
 def extract_context(session: Session, context_id: str) -> tuple[UUID, UUID | None]:
@@ -331,10 +336,13 @@ def get_questions(context_id):
             + str(tables_metadata)
         )
 
-    from autochat import Autochat
+    if AUTOCHAT_PROVIDER == "proxy":
+        provider = ProxyProvider
+    else:
+        provider = AUTOCHAT_PROVIDER
 
     questionAssistant = Autochat(
-        provider=AUTOCHAT_PROVIDER,
+        provider=provider,
         context=json.dumps(context),
         use_tools_only=True,
     )
@@ -350,9 +358,16 @@ def get_questions(context_id):
         + "can ask based on the context (database schema, past conversations, etc)"
         + f"\nDo it in the user preferred language (Accept-Language: {user_language})"
     )
-    message = questionAssistant.ask(
-        prompt,
-    )
+    try:
+        message = questionAssistant.ask(
+            prompt,
+        )
+    except Exception as e:
+        logger.error(f"Error asking question: {e}")
+        if isinstance(e, anthropic.APIStatusError) and e.status_code == 402:
+            return jsonify({"message": "SUBSCRIPTION_REQUIRED"}), 402
+        return jsonify({"message": "Error asking question"}), 500
+
     response_dict = message.function_call["arguments"]
     response_values = list(response_dict.values())
     return jsonify(response_values)

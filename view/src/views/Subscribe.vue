@@ -135,7 +135,7 @@ const processPayment = async () => {
   isProcessingPayment.value = true
 
   try {
-    const { data } = await axios.post('/api/create-checkout-session')
+    const { data } = await axios.post('/api/billing/create-checkout-session')
     window.location.href = data.url // Redirect to Stripe Checkout
   } catch (error) {
     console.error('Payment processing error:', error)
