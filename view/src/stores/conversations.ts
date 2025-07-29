@@ -166,7 +166,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       if (conversationStatuses.value[conversationId]?.status === STATUS.PENDING) {
         setConversationStatus(conversationId, STATUS.CLEAR)
       }
-    }, 5000)
+    }, 10_000)
   }
 
   // 5) Send message over Socket.IO
