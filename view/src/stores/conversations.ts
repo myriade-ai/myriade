@@ -1,5 +1,6 @@
 import axios from '@/plugins/axios'
 import { isConnected, socket } from '@/plugins/socket'
+import { updateCredits } from '@/stores/auth'
 import { useContextsStore } from '@/stores/contexts'
 import type { AxiosResponse } from 'axios'
 import { defineStore } from 'pinia'
@@ -282,6 +283,12 @@ export const useConversationsStore = defineStore('conversations', () => {
     if (subscriptionRequired.value) {
       subscriptionRequired.value = false
     }
+
+    // Update credits if included in response
+    if (payload.credits_remaining !== undefined) {
+      updateCredits(payload.credits_remaining)
+    }
+
     receiveMessage(payload)
   })
 

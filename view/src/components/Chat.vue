@@ -149,9 +149,9 @@
                 Editor
               </button>
             </div>
-            <!-- Credits Display -->
+            <!-- Credits Display (if user has less than 50 credits, show the number of credits left)-->
             <div
-              v-if="!user?.hasActiveSubscription && user?.credits !== undefined"
+              v-if="user?.credits !== undefined && user.credits < 50"
               class="text-sm text-gray-500"
             >
               {{ user.credits }} credits left
@@ -423,7 +423,7 @@ const fetchAISuggestions = async () => {
   } catch (error: any) {
     console.error('Error fetching AI suggestions:', error)
     if (
-      error.response?.status === 403 &&
+      error.response?.status === 402 &&
       error.response?.data?.message?.includes('SUBSCRIPTION_REQUIRED')
     ) {
       conversationsStore.subscriptionRequired = true

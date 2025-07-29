@@ -1,79 +1,27 @@
-import json
 import logging
 
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, jsonify
 
-import config
+from auth.infra_utils import make_authenticated_proxy_request
+from config import HOST
 from middleware import user_middleware
-from models import User
 
 api = Blueprint("billing_api", __name__)
 logger = logging.getLogger(__name__)
 
 
-@api.route("/create-checkout-session", methods=["POST"])
+@api.route("/billing/create-checkout-session", methods=["POST"])
 @user_middleware
 def create_checkout_session():
-    import stripe
-
-    stripe.api_key = config.STRIPE_SECRET_KEY
-
-    subscription_url = request.referrer
-    scheme = "https" if config.ENV == "production" else "http"
-    host_url = scheme + "://" + config.HOST
-    prices = stripe.Price.list(
-        lookup_keys=["standard_monthly"],
-        expand=["data.product"],
+    """Get link to checkout session"""
+    response = make_authenticated_proxy_request(
+        "/billing/create-checkout-session",
+        method="POST",
+        timeout=5,
+        json={
+            "success_url": HOST,
+            "cancel_url": HOST,
+        },
     )
-
-    if not prices.data:
-        logger.error("No prices found with lookup_key 'standard_monthly'")
-        return jsonify({"error": "Product price not found"}), 400
-
-    price_id = prices.data[0].id
-
-    checkout_session = stripe.checkout.Session.create(
-        line_items=[
-            {
-                "price": price_id,
-                "quantity": 1,
-            },
-        ],
-        mode="subscription",
-        customer_email=g.user.email,
-        success_url=host_url,
-        cancel_url=subscription_url,
-    )
-    return jsonify({"url": checkout_session.url})
-
-
-@api.route("/webhook/stripe", methods=["POST"])
-def webhook_received():
-    # TODO: add webhook secret
-    request_data = json.loads(request.data)
-    event_type = request_data["type"]
-    event = request_data["data"]["object"]
-
-    print("event " + event_type)
-
-    if event_type == "checkout.session.completed":
-        print("🔔 Payment succeeded!")
-        g.session.query(User).filter_by(email=event["customer_email"]).update(
-            {"has_active_subscription": True}
-        )
-        g.session.flush()
-    elif event_type == "customer.subscription.trial_will_end":
-        print("Subscription trial will end")
-    elif event_type == "customer.subscription.created":
-        print("Subscription created %s", event["id"])
-    elif event_type == "customer.subscription.updated":
-        print("Subscription created %s", event["id"])
-    elif event_type == "customer.subscription.deleted":
-        # handle subscription canceled automatically based
-        # upon your subscription settings. Or if the user cancels it.
-        print("Subscription canceled: %s", event["id"])
-    elif event_type == "entitlements.active_entitlement_summary.updated":
-        # handle active entitlement summary updated
-        print("Active entitlement summary updated: %s", event["id"])
-
-    return jsonify({"status": "success"})
+    response.raise_for_status()
+    return jsonify({"url": response.json()["url"]})

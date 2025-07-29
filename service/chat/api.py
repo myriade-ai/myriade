@@ -10,51 +10,16 @@ from auth.auth import UnauthorizedError, socket_auth
 from back.session import with_session
 from chat.analyst_agent import DataAnalystAgent
 from chat.lock import STATUS, clear_stop_flag, emit_status, set_stop_flag
-from models import Conversation, ConversationMessage, User
+from models import Conversation, ConversationMessage
 
 api = Blueprint("chat_api", __name__)
 
 
-def check_subscription_required(session):
-    """Check if user has an active subscription or credits for the request."""
-    # Get user from session using flask session
-    user_id = flask_session["user"].id
-    user = session.query(User).filter(User.id == user_id).first()
+def get_last_credits_info():
+    """Get the credits remaining from the last AI call."""
+    from chat.proxy_provider import get_last_response_data
 
-    # If user has active subscription, allow access
-    if user.has_active_subscription:
-        return True
-
-    # Check if user has credits for free trial
-    if user.credits > 0:
-        return True
-
-    return False
-
-
-def consume_user_credit(session, conversation_id):
-    """Decrement user credits if they're using free trial."""
-    user_id = flask_session["user"].id
-    user = session.query(User).filter(User.id == user_id).first()
-
-    if not user or user.has_active_subscription:
-        return  # No need to consume credits for subscribed users
-
-    # Check if this is a public database (free to use)
-    if conversation_id:
-        try:
-            conversation = (
-                session.query(Conversation).filter_by(id=UUID(conversation_id)).first()
-            )
-            if conversation and conversation.database.public:
-                return  # No need to consume credits for public databases
-        except Exception:
-            pass
-
-    # Decrement credits if user has any
-    if user.credits > 0:
-        user.credits -= 1
-        session.commit()
+    return get_last_response_data("credits_remaining")
 
 
 def socket_auth_required(f):
@@ -67,6 +32,12 @@ def socket_auth_required(f):
             if "user" not in flask_session:
                 emit("error", {"message": "Authentication required"})
                 return
+
+            # Ensure sealed_session is available for AI proxy calls
+            if "sealed_session" not in flask_session:
+                emit("error", {"message": "Session data missing - please reconnect"})
+                return
+
         except Exception:
             emit("error", {"message": "Authentication failed"})
             return
@@ -141,17 +112,6 @@ def handle_stop(session, conversation_id: str):
 @socket_auth_required
 @conversation_auth_required
 def handle_ask(session, conversation_id, question):
-    # Check subscription requirement
-    if not check_subscription_required(session):
-        emit(
-            "error",
-            {"message": "SUBSCRIPTION_REQUIRED", "conversationId": conversation_id},
-        )
-        return
-
-    # Consume credit if user is on free trial
-    consume_user_credit(session, conversation_id)
-
     # We reset stop flag if the user sent a new request
     clear_stop_flag(conversation_id)
 
@@ -172,7 +132,14 @@ def handle_ask(session, conversation_id, question):
             session.rollback()
             # We break the loop to avoid sending the message
             break
-        emit("response", message.to_dict())
+        response_data = message.to_dict()
+
+        # Include credits info if available from proxy
+        credits_remaining = get_last_credits_info()
+        if credits_remaining is not None:
+            response_data["credits_remaining"] = credits_remaining
+
+        emit("response", response_data)
 
 
 @socketio.on("query")
@@ -183,17 +150,6 @@ def handle_query(
     query,
     conversation_id=None,
 ):
-    # Check subscription requirement
-    if not check_subscription_required(session):
-        emit(
-            "error",
-            {"message": "SUBSCRIPTION_REQUIRED", "conversationId": conversation_id},
-        )
-        return
-
-    # Consume credit if user is on free trial
-    consume_user_credit(session, conversation_id)
-
     # We reset stop flag if the user sent a new request
     clear_stop_flag(conversation_id)
 
@@ -251,16 +207,6 @@ def handle_regenerate_from_message(
     If the message is from the assistant, delete it
     If the message is from the user, regenerate the conversation from the next message
     """
-    if not check_subscription_required(session):
-        emit(
-            "error",
-            {"message": "SUBSCRIPTION_REQUIRED", "conversationId": conversation_id},
-        )
-        return
-
-    # Consume credit if user is on free trial
-    consume_user_credit(session, conversation_id)
-
     # We reset stop flag if the user sent a new request
     clear_stop_flag(conversation_id)
 
@@ -277,7 +223,14 @@ def handle_regenerate_from_message(
             session.rollback()
             # We return to avoid sending the message
             return
-        emit("response", message.to_dict())
+        response_data = message.to_dict()
+
+        # Include credits info if available from proxy
+        credits_remaining = get_last_credits_info()
+        if credits_remaining is not None:
+            response_data["credits_remaining"] = credits_remaining
+
+        emit("response", response_data)
 
     # Clear all messages after the message_id, from the conversation
     selected_message = (
@@ -334,7 +287,14 @@ def handle_regenerate_from_message(
             session.rollback()
             # We return to avoid sending the message
             break
-        emit("response", message.to_dict())
+        response_data = message.to_dict()
+
+        # Include credits info if available from proxy
+        credits_remaining = get_last_credits_info()
+        if credits_remaining is not None:
+            response_data["credits_remaining"] = credits_remaining
+
+        emit("response", response_data)
 
 
 @socketio.on("connect")
@@ -351,4 +311,5 @@ def on_connect():
         user=auth_response.user,
         role=auth_response.role,
         organization_id=auth_response.organization_id,
+        sealed_session=auth_response.sealed_session,
     )
