@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import uuid
 
 import anthropic
 import nest_asyncio
@@ -162,7 +163,7 @@ class DataAnalystAgent:
         Args:
             queryId: The id of the query to execute
         """  # noqa: E501
-        query = self.session.query(Query).filter_by(id=queryId).first()
+        query = self.session.query(Query).filter_by(id=uuid.UUID(queryId)).first()
         if not query:
             raise ValueError(f"Query with id {queryId} not found")
         # We update the message with the query id

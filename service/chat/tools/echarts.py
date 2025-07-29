@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import uuid
 
 from cairosvg import svg2png
 from PIL import Image
@@ -51,7 +52,9 @@ class EchartsTool:
         from_response.chartId = chart.id
         self.session.flush()
 
-        query = self.session.query(Query).filter(Query.id == query_id).first()
+        query = (
+            self.session.query(Query).filter(Query.id == uuid.UUID(query_id)).first()
+        )
         rows, _ = self.data_warehouse.query(query.sql, role="llm")
         chart_options = chart_options.copy()
         chart_options["dataset"] = {

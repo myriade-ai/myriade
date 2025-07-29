@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 
 import yaml
@@ -54,7 +55,7 @@ class SemanticCatalog:
                 Issue.status,
                 Issue.business_entity_id,
             )
-            .filter(Issue.id == issue_id)
+            .filter(Issue.id == uuid.UUID(issue_id))
             .filter(Issue.database_id == self.database_id)
             .first()
         )
@@ -168,7 +169,7 @@ class SemanticCatalog:
             description=description,
             severity=severity,
             scope=scope,
-            business_entity_id=business_entity_id,
+            business_entity_id=uuid.UUID(business_entity_id),
             database_id=self.database_id,
             # TODO: find a way to give message_id
             # message_id=self.message_id,
@@ -201,7 +202,9 @@ class SemanticCatalog:
             severity: The severity of the issue ("LOW", "MEDIUM", "HIGH", "CRITICAL").
             scope: The scope of the issue ("DATA", "BUSINESS", "BOTH", "UNKNOWN"). Data is for pipeline / warehouse, that can be fixed by data engineers with DBT. Business is for operations / process that impact the business.
         """  # noqa: E501
-        issue = self.session.query(Issue).filter(Issue.id == issue_id).first()
+        issue = (
+            self.session.query(Issue).filter(Issue.id == uuid.UUID(issue_id)).first()
+        )
         if not issue:
             raise ValueError(f"Issue '{issue_id}' not found.")
 
