@@ -32,6 +32,12 @@ def socket_auth_required(f):
             if "user" not in flask_session:
                 emit("error", {"message": "Authentication required"})
                 return
+
+            # Ensure sealed_session is available for AI proxy calls
+            if "sealed_session" not in flask_session:
+                emit("error", {"message": "Session data missing - please reconnect"})
+                return
+
         except Exception:
             emit("error", {"message": "Authentication failed"})
             return
@@ -305,4 +311,5 @@ def on_connect():
         user=auth_response.user,
         role=auth_response.role,
         organization_id=auth_response.organization_id,
+        sealed_session=auth_response.sealed_session,
     )

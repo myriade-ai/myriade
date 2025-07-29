@@ -5,8 +5,10 @@ from typing import Any, Dict, Optional
 import anthropic
 from autochat.base import AutochatBase
 from autochat.providers.anthropic import AnthropicProvider
-from flask import has_request_context, request
+from flask import g, has_request_context
+from flask import session as flask_session
 
+from auth.auth import UnauthorizedError, _authenticate_session
 from config import INFRA_URL
 
 logger = logging.getLogger(__name__)
@@ -54,17 +56,38 @@ class ProxyProvider(AnthropicProvider):
         super().__init__(chat, model)
         self.client.base_url = f"{INFRA_URL}/ai"
 
+    def _get_current_session(self):
+        """Get session cookie from current context"""
+        if hasattr(g, "sealed_session"):
+            return g.sealed_session  # HTTP context
+        else:
+            return flask_session.get("sealed_session")  # Socket context
+
     def _get_auth_headers(self) -> Dict[str, str]:
         """Get authentication headers from current session."""
         headers = {"Content-Type": "application/json"}
 
-        if not has_request_context():
-            raise Exception("No Flask request context available")
-
-        session_cookie = request.cookies.get("session")
+        # Always call _authenticate_session - it handles caching internally
+        session_cookie = self._get_current_session()
         if not session_cookie:
-            raise Exception("No session cookie found in request")
-        headers["Authorization"] = f"Bearer {session_cookie}"
+            raise Exception("No session cookie found")
+
+        try:
+            auth_response, is_refreshed = _authenticate_session(session_cookie)
+
+            # Update session in current context if refreshed
+            if is_refreshed:
+                if has_request_context():
+                    g.sealed_session = auth_response.sealed_session
+                else:
+                    flask_session["sealed_session"] = auth_response.sealed_session
+
+            # Use the current sealed session (refreshed or cached)
+            headers["Authorization"] = f"Bearer {auth_response.sealed_session}"
+
+        except UnauthorizedError as e:
+            raise Exception("Authentication failed") from e
+
         from anthropic._types import Omit
 
         headers["X-Api-Key"] = Omit()  # type: ignore

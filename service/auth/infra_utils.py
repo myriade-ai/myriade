@@ -3,7 +3,7 @@ Utility functions for making authenticated requests to the auth proxy
 """
 
 import requests
-from flask import request
+from flask import g
 
 from config import INFRA_URL
 
@@ -21,7 +21,7 @@ def make_authenticated_proxy_request(endpoint, method="GET", **kwargs):
         requests.Response object
     """
     # Get session cookie (sealed session)
-    session_cookie = request.cookies.get("session")
+    session_cookie = g.sealed_session
     if not session_cookie:
         raise ValueError("No session cookie found")
 
