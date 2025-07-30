@@ -3,6 +3,7 @@ import threading
 from typing import Any, Dict, Optional
 
 import anthropic
+from anthropic._types import Omit
 from autochat.base import AutochatBase
 from autochat.providers.anthropic import AnthropicProvider
 from flask import g, has_request_context
@@ -87,8 +88,6 @@ class ProxyProvider(AnthropicProvider):
 
         except UnauthorizedError as e:
             raise Exception("Authentication failed") from e
-
-        from anthropic._types import Omit
 
         headers["X-Api-Key"] = Omit()  # type: ignore
         return headers

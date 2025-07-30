@@ -1,4 +1,4 @@
-import { authGuard } from '@/auth'
+import { authGuard, redirectToWelcome } from '@/auth'
 import Control from '@/components/Control.vue'
 import { useQueryStore } from '@/stores/query'
 import { createRouter, createWebHistory } from 'vue-router'
@@ -12,6 +12,12 @@ const routes = [
     path: '/',
     name: 'NewChat',
     redirect: '/chat/new'
+  },
+  {
+    path: '/welcome',
+    name: 'Welcome',
+    component: loadView('WelcomePage'),
+    meta: { layout: 'empty' }
   },
   {
     path: '/setup',
@@ -120,5 +126,6 @@ const router = createRouter({
   routes: routes
 })
 router.beforeEach(authGuard)
+router.beforeEach(redirectToWelcome)
 
 export default router

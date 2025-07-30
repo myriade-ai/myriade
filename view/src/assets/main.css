@@ -123,5 +123,5 @@
 }
 
 .h-screen {
-  height: calc(100dvh - 4.1rem);
+  height: calc(100dvh - var(--header-height, 4.1rem) - var(--anonymous-bar-height, 0px));
 }
