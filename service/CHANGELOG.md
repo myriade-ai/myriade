@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v0.32.0 (2025-07-30)
+
+### Bug Fixes
+
+- Dev env var
+  ([`d943afc`](https://github.com/myriade-ai/myriade/commit/d943afc03b5f7ff407bf4908fddab49aad27a145))
+
+### Features
+
+- Add demo onboarding
+  ([`7526b3b`](https://github.com/myriade-ai/myriade/commit/7526b3bcf100a25db486ba5948876e6169d54fd6))
+
+- Switch to eventlet for optimization
+  ([`a3591e4`](https://github.com/myriade-ai/myriade/commit/a3591e4f898675143c4c043fa85493d1d9f04374))
+
+
 ## v0.31.0 (2025-07-30)
 
 ### Bug Fixes
