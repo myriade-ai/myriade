@@ -1,6 +1,24 @@
 # CHANGELOG
 
 
+## v0.31.0 (2025-07-30)
+
+### Bug Fixes
+
+- Avoid 3 query to questions
+  ([`4085092`](https://github.com/myriade-ai/myriade/commit/4085092ed00b642b8f89aa26e7c20c2ab52d85ac))
+
+### Documentation
+
+- Add info
+  ([`9ee70ed`](https://github.com/myriade-ai/myriade/commit/9ee70edc92f1ad0fec391775f2f87ec6db8b45bf))
+
+### Features
+
+- Allow for more time before server answer
+  ([`2c7a7ce`](https://github.com/myriade-ai/myriade/commit/2c7a7ce11776ed5109a4b674f003a4da8048bd5a))
+
+
 ## v0.30.1 (2025-07-29)
 
 ### Bug Fixes
