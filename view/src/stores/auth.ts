@@ -9,10 +9,19 @@ export const user = ref({
   profilePictureUrl: null,
   isAdmin: false,
   inOrganization: false,
-  credits: 0
+  credits: 0,
+  role: null
 })
 
 export const isAuthenticated = computed(() => user.value.id !== null)
+
+export const isAnonymous = computed(() => {
+  return user.value?.role === 'anonymous'
+})
+
+export const redirectToSignUp = async () => {
+  window.location.href = 'https://sign.myriade.ai/sign-up'
+}
 
 export const getLoginUrl = async () => {
   const response = await axios.get('/api/auth')
@@ -47,6 +56,7 @@ export const fetchUser = async () => {
     user.value.profilePictureUrl = response.data.profile_picture_url
     user.value.isAdmin = response.data.role === 'admin'
     user.value.inOrganization = response.data.organization_id !== null
+    user.value.role = response.data.role
 
     // Fetch credits from proxy
     await fetchCredits()

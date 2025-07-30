@@ -75,15 +75,13 @@ def auth_complete():
         return response
 
     except requests.RequestException as e:
+        logger.error(f"Failed to exchange token with auth service: {str(e)}")
         error_msg = "Failed to exchange token with auth service"
-        if ENV != "production":
-            error_msg = f"Token exchange failed: {str(e)}"
         error_params = urlencode({"error": error_msg})
         return redirect(f"/auth-error?{error_params}")
     except Exception as e:
+        logger.error(f"Authentication completion failed: {str(e)}")
         error_msg = "Authentication completion failed"
-        if ENV != "production":
-            error_msg = str(e)
         error_params = urlencode({"error": error_msg})
         return redirect(f"/auth-error?{error_params}")
 
