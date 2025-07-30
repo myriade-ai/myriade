@@ -133,14 +133,8 @@ def logout():
     except Exception as e:
         logger.error(f"Logout error: {str(e)}")
         # If anything fails, just clear the cookie
-        scheme = "https" if ENV == "production" else "http"
         response = make_response(
-            jsonify(
-                {
-                    "message": "Logged out (with errors)",
-                    "logout_url": f"{scheme}://{HOST}/",
-                }
-            )
+            jsonify({"message": "Logged out (with errors)", "logout_url": HOST})
         )
         response.delete_cookie(
             "session", path="/", domain=None, secure=ENV == "production", samesite="lax"

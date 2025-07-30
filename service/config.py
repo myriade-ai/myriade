@@ -9,7 +9,7 @@ dotenv_file = os.environ.get("DOTENV_FILE", here / ".env")
 STATIC_FOLDER = os.environ.get("STATIC_FOLDER", "../view/dist")
 load_dotenv(dotenv_file)
 
-ENV = os.environ.get("FLASK_ENV", "development")
+ENV = os.environ.get("FLASK_ENV", "production")
 
 # Export all environment variables needed by the application
 DATABASE_URL = os.environ["DATABASE_URL"]
