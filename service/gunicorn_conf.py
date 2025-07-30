@@ -1,7 +1,7 @@
 import os
 
 bind = "0.0.0.0:8080"
-worker_class = "sync"
+worker_class = "eventlet"
 # Single worker for shared memory state
 workers = 1
 # Multiple threads per worker for concurrency
