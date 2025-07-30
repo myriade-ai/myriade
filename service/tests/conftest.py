@@ -3,13 +3,18 @@ import socket
 from threading import Thread
 from unittest.mock import patch
 
+# Add eventlet monkey patching BEFORE any other imports that might use threading
+import eventlet
 import pytest
 import requests
 from sqlalchemy.orm import sessionmaker
 
+eventlet.monkey_patch()
+
 os.environ["DOTENV_FILE"] = ".env.test"
 
-from app import create_app  # noqa: E402
+# Now import your app modules after monkey patching
+from app import create_app, socketio  # noqa: E402
 from back.session import create_engine  # noqa: E402
 from config import DATABASE_URL  # noqa: E402
 from models import Base, Database  # noqa: E402
@@ -95,22 +100,25 @@ def app_server(session):
     port = sock.getsockname()[1]
     sock.close()
 
-    server = Thread(
-        target=app.run,
-        kwargs={
-            "host": "localhost",
-            "port": port,
-            "debug": False,
-            "use_reloader": False,
-        },
-        daemon=True,
-    )
+    def run_server():
+        socketio.run(
+            app,
+            host="localhost",
+            port=port,
+            debug=False,
+            use_reloader=False,
+            log_output=False,  # Reduce noise in tests
+        )
+
+    server = Thread(target=run_server, daemon=True)
     server.start()
 
-    yield f"http://localhost:{port}/api"
+    # Give the server a moment to start
+    import time
 
-    # Teardown (optional, as daemon threads exit with main thread)
-    # server.join(timeout=1) # Example of explicit teardown
+    time.sleep(0.5)
+
+    yield f"http://localhost:{port}/api"
 
 
 @pytest.fixture(scope="session")

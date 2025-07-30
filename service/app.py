@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 socketio = SocketIO(
     cors_allowed_origins="*",
-    async_mode="threading",
+    async_mode="eventlet",
     transports=["polling"],
 )
 
