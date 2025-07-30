@@ -32,7 +32,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       HOST: ${HOST:-http://localhost:8080}
       GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
-      AUTOCHAT_PROVIDER: ${PROVIDER:-anthropic}
+      AUTOCHAT_PROVIDER: ${PROVIDER:-proxy}
       AUTOCHAT_MODEL: ${MODEL:-claude-sonnet-4-20250514}
 
       # Optional integrations
