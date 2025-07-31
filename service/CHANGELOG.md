@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.32.1 (2025-07-31)
+
+### Bug Fixes
+
+- Switch to provider proxy
+  ([`b6b19ba`](https://github.com/myriade-ai/myriade/commit/b6b19bafd9c3452ef54d373937853d36be8281fb))
+
+
 ## v0.32.0 (2025-07-30)
 
 ### Bug Fixes
