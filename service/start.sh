@@ -38,8 +38,9 @@ if [ "$1" = "prod" ]; then
     echo "🌐 Myriade BI will be available at http://localhost:8080"
     exec uv run gunicorn wsgi:application --config gunicorn_conf.py
 else
-    # Development mode with Flask
-    export FLASK_APP=app.py
+    # Development mode with Socket.IO
     export FLASK_DEBUG=true
-    uv run flask run --host=0.0.0.0 --port=8080
+    echo "🚀 Starting server in development mode"
+    echo "🌐 Myriade BI will be available at http://localhost:8080"
+    uv run python main.py
 fi
