@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-100 py-8">
+  <div class="h-full bg-gray-100 py-8 overflow-y-auto">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Header Section -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">

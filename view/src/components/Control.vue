@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen">
+  <div class="flex h-full">
     <!-- Left Panel: Business Entities Grid -->
     <div class="flex-1 bg-gray-100 p-4 overflow-y-auto">
       <h2 class="text-xl font-semibold mb-3 inline-block">Business Entities</h2>
