@@ -1,18 +1,20 @@
 <template>
-  <BaseButton
-    class="float-right mt-1 ml-1 disabled:bg-gray-300"
-    @click="queryStore.updateQuery(selectedDatabase?.id)"
-    :disabled="!queryStore.queryIsModified || !queryStore.querySQL"
-  >
-    Save query</BaseButton
-  >
-
-  <input
-    type="text"
-    placeholder="Database used for X,Y and Z..."
-    class="block w-full max-w-lg rounded-md border-gray-300 shadow-xs focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-    v-model="queryStore.queryTitle"
-  />
+  <div class="flex items-center gap-2 justify-end">
+    <input
+      type="text"
+      placeholder="Database used for X,Y and Z..."
+      class="flex-1 rounded-md border-gray-300 shadow-xs focus:border-primary-500 focus:ring-primary-500"
+      v-model="queryStore.queryTitle"
+      :style="{ 'max-width': '540px' }"
+    />
+    <BaseButton
+      class="disabled:bg-gray-300"
+      @click="queryStore.updateQuery(selectedDatabase?.id)"
+      :disabled="!queryStore.queryIsModified || !queryStore.querySQL"
+    >
+      Save query
+    </BaseButton>
+  </div>
 
   <br />
   <div class="relative">
