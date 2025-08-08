@@ -1,12 +1,19 @@
 import { isAnonymous, logout, redirectToSignUp } from '@/stores/auth'
 import axios from 'axios'
 
+// Flag to prevent logout loop
+let isLoggingOut = false
+
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isLoggingOut) {
       console.log('ERROR: Unauthorized', error.response)
-      logout()
+      isLoggingOut = true
+      logout().finally(() => {
+        // Reset flag after logout completes (success or failure)
+        isLoggingOut = false
+      })
     } else if (error.response?.status === 402) {
       // Payment Required - no credits remaining
       if (isAnonymous.value) {
