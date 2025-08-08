@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 socketio = SocketIO(
     cors_allowed_origins="*",
-    async_mode="eventlet",
+    # We use eventlet in production, threading in development
+    async_mode="threading" if config.ENV == "development" else "eventlet",
     transports=["polling"],
 )
 
