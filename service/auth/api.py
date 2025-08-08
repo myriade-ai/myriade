@@ -16,7 +16,7 @@ api = Blueprint("auth", __name__)
 @api.route("/auth")
 def auth():
     # Use auth proxy service
-    callback_host = HOST
+    callback_host = HOST if HOST else request.url_root.rstrip("/")
 
     try:
         response = requests.get(
@@ -92,6 +92,7 @@ def logout():
         return jsonify({"message": "No session cookie"}), 500
 
     session_cookie = request.cookies["session"]
+    callback_host = HOST if HOST else request.url_root.rstrip("/")
 
     # Always clear session from validation cache first
     from auth.auth import _invalidate_session_cache
@@ -134,7 +135,7 @@ def logout():
                     f"{INFRA_URL}/auth/logout",
                     json={
                         "session_id": session_id,
-                        "return_to": f"{HOST}?logged-out=true",
+                        "return_to": f"{callback_host}?logged-out=true",
                     },
                     timeout=10,
                 )
@@ -142,20 +143,20 @@ def logout():
                 if logout_response.status_code == 200:
                     logout_data = logout_response.json()
                     logout_url = logout_data.get(
-                        "logout_url", f"{HOST}?logged-out=true"
+                        "logout_url", f"{callback_host}?logged-out=true"
                     )
                     logger.info("Successfully called proxy logout")
                 else:
                     logger.warning(
                         f"Proxy logout failed with status {logout_response.status_code}"
                     )
-                    logout_url = f"{HOST}?logged-out=true"
+                    logout_url = f"{callback_host}?logged-out=true"
             except Exception as proxy_error:
                 logger.error(f"Proxy logout request failed: {str(proxy_error)}")
-                logout_url = f"{HOST}?logged-out=true"
+                logout_url = f"{callback_host}?logged-out=true"
         else:
             logger.warning("No session_id found in session data, skipping proxy logout")
-            logout_url = f"{HOST}?logged-out=true"
+            logout_url = f"{callback_host}?logged-out=true"
 
         response = make_response(
             jsonify({"message": "Logged out successfully", "logout_url": logout_url})
@@ -169,7 +170,9 @@ def logout():
         logger.error(f"Logout error: {str(e)}")
         # If anything fails, just clear the cookie
         response = make_response(
-            jsonify({"message": "Logged out (with errors)", "logout_url": HOST})
+            jsonify(
+                {"message": "Logged out (with errors)", "logout_url": callback_host}
+            )
         )
         response.delete_cookie(
             "session", path="/", domain=None, secure=ENV == "production", samesite="lax"
