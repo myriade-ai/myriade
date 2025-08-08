@@ -99,7 +99,7 @@ def create_app():
             """Serve anything that isn't under /api from the bundled static dir,
             then fall back to index.html for SPA routes."""
             try:
-                return send_from_directory(app.static_folder, path)
+                return send_from_directory(app.static_folder, path, conditional=True)
             except Exception:
                 return app.send_static_file("index.html")
 
