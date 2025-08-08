@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.33.2 (2025-08-08)
+
+### Bug Fixes
+
+- Serve file
+  ([`ca39df8`](https://github.com/myriade-ai/myriade/commit/ca39df86533b557f91150c9dfd309474c9e029c9))
+
+
 ## v0.33.1 (2025-08-08)
 
 ### Bug Fixes
