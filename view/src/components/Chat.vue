@@ -1,8 +1,5 @@
 <template>
-  <div
-    ref="scrollContainer"
-    class="w-full h-screen flex justify-center px-2 lg:px-0 overflow-y-auto"
-  >
+  <div ref="scrollContainer" class="w-full h-screen flex justify-center px-2 lg:px-0 overflow-y-auto">
     <div class="flex flex-col w-full max-w-2xl h-full">
       <div class="flex flex-col flex-1">
         <div class="w-full lg:pt-4 pb-4">

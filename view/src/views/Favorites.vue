@@ -1,5 +1,6 @@
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="h-full overflow-y-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="py-10">
       <h1 class="text-3xl font-bold leading-tight text-gray-900">Favorites</h1>
       <p class="mt-2 text-sm text-gray-500">Your saved queries and charts</p>
@@ -129,6 +130,7 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
 </template>
 
