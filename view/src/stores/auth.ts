@@ -68,23 +68,32 @@ export const fetchUser = async () => {
 }
 
 export const logout = async () => {
-  try {
-    // Clear user state immediately
-    user.value = defaultUser
+  // Clear user state immediately
+  user.value = defaultUser
 
-    // We get the logout url from the server
+  // Always try proper logout first, handle failures gracefully
+  try {
     const { data } = await axios.post('/api/auth/logout')
     const { logout_url } = data
     if (logout_url) {
       window.location.href = logout_url
+      return
+    }
+  } catch (error) {
+    console.error('Logout failed:', error)
+  }
+
+  // If logout failed or no logout_url, get fresh auth URL
+  try {
+    const response = await axios.get('/api/auth')
+    const { authorization_url } = response.data
+    if (authorization_url) {
+      window.location.href = authorization_url
     } else {
-      // Fallback: redirect to login page for re-authentication
       window.location.href = '/login'
     }
   } catch (error) {
-    console.error('Logout failed, user is not logged in:', error)
-    // If logout fails, redirect directly to login page
-    // This avoids making another API call that could fail
+    console.error('Failed to get auth URL:', error)
     window.location.href = '/login'
   }
 }
