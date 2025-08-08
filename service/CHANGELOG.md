@@ -1,6 +1,52 @@
 # CHANGELOG
 
 
+## v0.33.0 (2025-08-08)
+
+### Bug Fixes
+
+- Add /login page in case of auth/logout error
+  ([`4bfd920`](https://github.com/myriade-ai/myriade/commit/4bfd920c463944d5ee5fe5c88aad5a768bb36587))
+
+- Add timeout
+  ([`81040be`](https://github.com/myriade-ai/myriade/commit/81040beb0821b855b972da4d036614547ca37676))
+
+- Clean socket io interaction & re-switch to threading in dev
+  ([`f5ba9f7`](https://github.com/myriade-ai/myriade/commit/f5ba9f7e84a9af8a84a999ec3ba2fe79e6dd1bad))
+
+- Improve editor rendering mobile
+  ([`0513500`](https://github.com/myriade-ai/myriade/commit/0513500c0253d545847431a593f6ff3fdbc3c90c))
+
+- Log format
+  ([`9ed7a5c`](https://github.com/myriade-ai/myriade/commit/9ed7a5c3be9208920f91b71ad9aa2b24fc7aee2d))
+
+- Logout
+  ([`7162002`](https://github.com/myriade-ai/myriade/commit/7162002007389c7883e05a25a45738b6881036e0))
+
+- Mobile rendering
+  ([`988604c`](https://github.com/myriade-ai/myriade/commit/988604c7d1f7bbc44b3ecad0b0748f4f6df22f12))
+
+- Page change
+  ([`a911bc8`](https://github.com/myriade-ai/myriade/commit/a911bc8768552f7c8b3b97fb7a8263332f224935))
+
+- Profile page rendering
+  ([`dcb3a14`](https://github.com/myriade-ai/myriade/commit/dcb3a14b69c845c1566e801da2360c2a55ce1691))
+
+- Remove deprecated tests
+  ([`c52e3d7`](https://github.com/myriade-ai/myriade/commit/c52e3d781cbc9625a00c476e6ab0724144764cd1))
+
+- Socket in dev mode
+  ([`c83a98f`](https://github.com/myriade-ai/myriade/commit/c83a98f58ec98e8c2174ae7db8528aede5dce4ab))
+
+### Features
+
+- Improve telemetry
+  ([`3c536ff`](https://github.com/myriade-ai/myriade/commit/3c536ff8fc2b80d94ee4619a7356b3c32915db96))
+
+- Use request host as default value for host
+  ([`36be433`](https://github.com/myriade-ai/myriade/commit/36be433aa77a2a91be24ee154a692709a07c4f39))
+
+
 ## v0.32.1 (2025-07-31)
 
 ### Bug Fixes
