@@ -26,7 +26,7 @@ if DATABASE_URL.startswith("sqlite:///") and ENV != "development":
     if parent and not os.path.exists(parent):
         os.makedirs(parent)
 
-HOST = os.environ.get("HOST", "http://localhost:5173")
+HOST = os.environ.get("HOST")
 
 # Infra Configuration
 INFRA_URL = os.environ.get("INFRA_URL", "https://infra.myriade.ai")
