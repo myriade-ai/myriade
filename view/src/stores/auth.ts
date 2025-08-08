@@ -1,7 +1,7 @@
 import axios from '@/plugins/axios'
 import { computed, ref } from 'vue'
 
-export const user = ref({
+export const defaultUser = {
   id: null,
   email: null,
   firstName: null,
@@ -11,7 +11,9 @@ export const user = ref({
   inOrganization: false,
   credits: 0,
   role: null
-})
+}
+
+export const user = ref(defaultUser)
 
 export const isAuthenticated = computed(() => user.value.id !== null)
 
@@ -67,6 +69,9 @@ export const fetchUser = async () => {
 
 export const logout = async () => {
   try {
+    // Clear user state immediately
+    user.value = defaultUser
+
     // We get the logout url from the server
     const { data } = await axios.post('/api/auth/logout')
     const { logout_url } = data

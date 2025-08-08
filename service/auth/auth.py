@@ -60,6 +60,12 @@ def _cleanup_expired_validation_cache():
         del _session_validation_cache[key]
 
 
+def _invalidate_session_cache(session_cookie):
+    """Remove specific session from validation cache"""
+    cache_key = hashlib.sha256(session_cookie.encode()).hexdigest()[:32]
+    _session_validation_cache.pop(cache_key, None)
+
+
 class UnauthorizedError(Exception):
     pass
 
