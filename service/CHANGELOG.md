@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.33.1 (2025-08-08)
+
+### Bug Fixes
+
+- Auth flow
+  ([`55e7685`](https://github.com/myriade-ai/myriade/commit/55e76858bf80b9924e3ffb32d620128f8108bbe8))
+
+
 ## v0.33.0 (2025-08-08)
 
 ### Bug Fixes
