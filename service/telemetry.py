@@ -72,12 +72,14 @@ def get_latest_version() -> Optional[str]:
 
 
 def get_db_backends() -> List[str]:
-    """Get list of database backends configured in the system."""
+    """Get list of database backends, excluding public databases."""
     backends = []
     try:
         session = get_db_session()
-        # Query unique database engines
-        result = session.execute(text("SELECT DISTINCT engine FROM database"))
+        # Query unique database engines, excluding public databases
+        result = session.execute(
+            text("SELECT engine FROM database WHERE public = FALSE")
+        )
         backends = [row[0] for row in result.fetchall()]
         session.close()
     except Exception as e:
@@ -104,6 +106,52 @@ def get_queries_today() -> int:
         return 0
 
 
+def get_total_assistant_messages() -> int:
+    """Get total count of assistant messages."""
+    try:
+        session = get_db_session()
+        result = session.execute(
+            text("SELECT COUNT(*) FROM conversation_message WHERE role = 'assistant'")
+        )
+        row = result.fetchone()
+        count = row[0] if row else 0
+        session.close()
+        return count
+    except Exception as e:
+        logger.error(f"Failed to get assistant messages count: {e}")
+        return 0
+
+
+def get_total_user_messages() -> int:
+    """Get total count of user messages."""
+    try:
+        session = get_db_session()
+        result = session.execute(
+            text("SELECT COUNT(*) FROM conversation_message WHERE role = 'user'")
+        )
+        row = result.fetchone()
+        count = row[0] if row else 0
+        session.close()
+        return count
+    except Exception as e:
+        logger.error(f"Failed to get user messages count: {e}")
+        return 0
+
+
+def get_total_users() -> int:
+    """Get total count of users."""
+    try:
+        session = get_db_session()
+        result = session.execute(text("SELECT COUNT(*) FROM user"))
+        row = result.fetchone()
+        count = row[0] if row else 0
+        session.close()
+        return count
+    except Exception as e:
+        logger.error(f"Failed to get users count: {e}")
+        return 0
+
+
 def collect_telemetry_data() -> Dict[str, Any]:
     """Collect all telemetry data."""
     return {
@@ -113,6 +161,9 @@ def collect_telemetry_data() -> Dict[str, Any]:
         "db_backends": get_db_backends(),
         "host_os": platform.system().lower(),
         "queries_today": get_queries_today(),
+        "total_assistant_messages": get_total_assistant_messages(),
+        "total_user_messages": get_total_user_messages(),
+        "total_users": get_total_users(),
         "timestamp": datetime.now().isoformat(),
     }
 
