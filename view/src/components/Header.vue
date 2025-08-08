@@ -97,8 +97,8 @@
         <DisclosureButton
           v-for="item in navigation"
           :key="item.name"
-          as="a"
-          :href="item.href"
+          as="button"
+          @click="router.push(item.href)"
           :class="[
             item.href == currentPath
               ? 'bg-primary-50 border-primary-500 text-primary-700'
@@ -137,8 +137,8 @@
           <DisclosureButton
             v-for="item in userNavigation"
             :key="item.name"
-            @click="item.click"
-            as="a"
+            as="button"
+            @click="router.push(item.href)"
             :class="[
               item.href == currentPath
                 ? 'bg-primary-50 border-primary-500 text-primary-700'
