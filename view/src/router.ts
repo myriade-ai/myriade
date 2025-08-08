@@ -20,6 +20,12 @@ const routes = [
     meta: { layout: 'empty' }
   },
   {
+    path: '/login',
+    name: 'Login',
+    component: loadView('Login'),
+    meta: { layout: 'empty', requiresGuest: true }
+  },
+  {
     path: '/setup',
     name: 'SetupFunnel',
     component: loadView('SetupFunnel'),

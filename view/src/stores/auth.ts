@@ -75,12 +75,16 @@ export const logout = async () => {
     // We get the logout url from the server
     const { data } = await axios.post('/api/auth/logout')
     const { logout_url } = data
-    window.location.href = logout_url
+    if (logout_url) {
+      window.location.href = logout_url
+    } else {
+      // Fallback: redirect to login page for re-authentication
+      window.location.href = '/login'
+    }
   } catch (error) {
     console.error('Logout failed, user is not logged in:', error)
-    // If logout fails, we redirect to the login page
-    const response = await axios.get('/api/auth')
-    const { authorization_url } = response.data
-    window.location.href = authorization_url
+    // If logout fails, redirect directly to login page
+    // This avoids making another API call that could fail
+    window.location.href = '/login'
   }
 }
