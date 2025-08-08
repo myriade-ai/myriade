@@ -32,5 +32,8 @@ HOST = os.environ.get("HOST")
 INFRA_URL = os.environ.get("INFRA_URL", "https://infra.myriade.ai")
 SENTRY_DSN = os.environ.get("SENTRY_DSN")
 
+# Logging Configuration
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+
 # JWT Configuration for auth tokens
 AUTH_CLIENT_ID = os.environ.get("AUTH_CLIENT_ID", "")

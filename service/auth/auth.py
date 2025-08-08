@@ -199,8 +199,6 @@ def _try_refresh_session(session_cookie: str):
         response = requests.post(
             f"{INFRA_URL}/auth/refresh", json=refresh_data, headers=headers, timeout=10
         )
-        print("refresh response", response.status_code, response.json())
-
         response.raise_for_status()
 
         # Refresh successful, get new session data

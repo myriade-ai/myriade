@@ -51,7 +51,7 @@ def get_current_version() -> str:
                     return line.strip().split("=")[1].strip().strip('"')
         return "unknown"
     except Exception as e:
-        logger.error(f"Failed to read version: {e}")
+        logger.error("Failed to read version", exc_info=True, extra={"error": str(e)})
         return "unknown"
 
 
@@ -67,7 +67,7 @@ def get_latest_version() -> Optional[str]:
             _telemetry_cache["last_check"] = datetime.now()
         return latest
     except Exception as e:
-        logger.warning(f"Failed to check latest version: {e}")
+        logger.warning("Failed to check latest version", extra={"error": str(e)})
         return _telemetry_cache.get("latest_version")
 
 
@@ -83,7 +83,9 @@ def get_db_backends() -> List[str]:
         backends = [row[0] for row in result.fetchall()]
         session.close()
     except Exception as e:
-        logger.error(f"Failed to get database backends: {e}")
+        logger.error(
+            "Failed to get database backends", exc_info=True, extra={"error": str(e)}
+        )
 
     return backends
 
@@ -102,7 +104,9 @@ def get_queries_today() -> int:
         session.close()
         return count
     except Exception as e:
-        logger.error(f"Failed to get queries count: {e}")
+        logger.error(
+            "Failed to get queries count", exc_info=True, extra={"error": str(e)}
+        )
         return 0
 
 
@@ -118,7 +122,11 @@ def get_total_assistant_messages() -> int:
         session.close()
         return count
     except Exception as e:
-        logger.error(f"Failed to get assistant messages count: {e}")
+        logger.error(
+            "Failed to get assistant messages count",
+            exc_info=True,
+            extra={"error": str(e)},
+        )
         return 0
 
 
@@ -134,7 +142,9 @@ def get_total_user_messages() -> int:
         session.close()
         return count
     except Exception as e:
-        logger.error(f"Failed to get user messages count: {e}")
+        logger.error(
+            "Failed to get user messages count", exc_info=True, extra={"error": str(e)}
+        )
         return 0
 
 
@@ -148,7 +158,9 @@ def get_total_users() -> int:
         session.close()
         return count
     except Exception as e:
-        logger.error(f"Failed to get users count: {e}")
+        logger.error(
+            "Failed to get users count", exc_info=True, extra={"error": str(e)}
+        )
         return 0
 
 
@@ -177,10 +189,14 @@ def send_telemetry_data(data: Dict[str, Any]) -> bool:
             timeout=10,
         )
     except Exception as e:
-        logger.error(f"Failed to send telemetry data: {e}")
+        logger.error(
+            "Failed to send telemetry data",
+            exc_info=True,
+            extra={"error": str(e), "data": data},
+        )
         return False
 
-    logger.info(f"Telemetry data sent: {data}")
+    logger.info("Telemetry data sent", extra={"data": data})
     return True
 
 
@@ -220,7 +236,9 @@ def start_telemetry_service():
             try:
                 check_version_and_telemetry()
             except Exception as e:
-                logger.error(f"Telemetry check failed: {e}")
+                logger.error(
+                    "Telemetry check failed", exc_info=True, extra={"error": str(e)}
+                )
 
     # Start telemetry in a background thread
     telemetry_thread = threading.Thread(target=telemetry_worker, daemon=True)

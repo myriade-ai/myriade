@@ -315,7 +315,6 @@ class SnowflakeDatabase(AbstractDatabase):
             columns = []
             result, _ = self.query(f"SHOW COLUMNS IN {schema}.{table_name}")
             for column in result:
-                print("column", column)
                 column["data_type"] = json.loads(column["data_type"])
                 columns.append(
                     {

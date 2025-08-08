@@ -1,11 +1,23 @@
 import config  # noqa: F401, I001
 import logging
+import logging.config
 from back.session import get_db_session
 from flask import Flask, g, jsonify, request, send_from_directory
 from flask_socketio import SocketIO
 from werkzeug.middleware.proxy_fix import ProxyFix
 import telemetry
 
+
+# Configure JSON logging
+from pythonjsonlogger import jsonlogger
+
+handler = logging.StreamHandler()
+formatter = jsonlogger.JsonFormatter(
+    "%(asctime)s %(name)s %(levelname)s %(message)s", timestamp=True
+)
+handler.setFormatter(formatter)
+
+logging.basicConfig(level=config.LOG_LEVEL, handlers=[handler])
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +54,17 @@ def create_app():
 
         # Log the error with context
         logger.error(
-            f"{error_type} occurred in {endpoint}: {str(e)}",
+            "Unhandled exception occurred",
             exc_info=True,
             extra={
+                "error_type": error_type,
                 "endpoint": endpoint,
                 "method": request.method,
                 "url": request.url,
                 "user_email": getattr(getattr(g, "user", None), "email", "anonymous"),
                 "user_agent": request.headers.get("User-Agent", ""),
                 "ip_address": request.remote_addr,
+                "error_message": str(e),
             },
         )
 
@@ -103,6 +117,26 @@ def create_app():
         else:
             session.rollback()
         session.close()
+
+    # Global SocketIO error handler
+    @socketio.on_error_default
+    def default_error_handler(e):
+        logger.error(
+            "SocketIO error occurred",
+            exc_info=True,
+            extra={
+                "error_type": e.__class__.__name__,
+                "error_message": str(e),
+                "user_email": getattr(getattr(g, "user", None), "email", "anonymous"),
+            },
+        )
+
+        # Send to Sentry if configured
+        if config.SENTRY_DSN:
+            sentry_sdk.capture_exception(e)
+
+        # Emit error to client
+        socketio.emit("error", {"message": "An error occurred processing your request"})
 
     @socketio.on("ping")
     def handle_ping():

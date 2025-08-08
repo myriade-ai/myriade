@@ -1,8 +1,11 @@
+import logging
 import time
 
 import pytest
 import socketio
 from socketio.exceptions import ConnectionError as SIOConnectionError
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -11,7 +14,10 @@ def socketio_client(app_server):
 
     client = socketio.Client(logger=True, engineio_logger=True)
 
-    print(f"Attempting to connect to {app_server} for namespace '/'")
+    logger.info(
+        "Attempting to connect to server",
+        extra={"server": app_server, "namespace": "/"},
+    )
     try:
         client.connect(
             app_server,
@@ -22,9 +28,11 @@ def socketio_client(app_server):
             wait_timeout=10,  # Increased timeout for namespace connection
             auth={},  # Add an empty auth dictionary
         )
-        print("Socket.IO client connection successful.")
+        logger.info("Socket.IO client connection successful")
     except SIOConnectionError as e:
-        print(f"Socket.IO client connection failed: {e}")
+        logger.error(
+            "Socket.IO client connection failed", exc_info=True, extra={"error": str(e)}
+        )
         # Brief pause to allow server logs to flush if running in parallel
         time.sleep(0.5)
         raise  # Re-raise the exception to fail the test
@@ -33,9 +41,9 @@ def socketio_client(app_server):
 
     # Always disconnect at the end of the test to free resources and avoid
     # interference with other tests.
-    print("Disconnecting Socket.IO client...")
+    logger.info("Disconnecting Socket.IO client")
     client.disconnect()
-    print("Socket.IO client disconnected.")
+    logger.info("Socket.IO client disconnected")
 
 
 # Note: The `snapshot` fixture parameter was removed because we no longer rely
@@ -47,7 +55,7 @@ def test_ping_pong(app_server, socketio_client):
 
     @socketio_client.on("pong")
     def on_pong(*args):
-        print(f"Received pong event with args: {args}")
+        logger.info("Received pong event", extra={"args": args})
         received_events.append({"name": "pong", "args": list(args), "namespace": "/"})
 
     socketio_client.emit("ping")

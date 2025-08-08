@@ -853,7 +853,7 @@ wheels = [
 
 [[package]]
 name = "myriade-service"
-version = "0.31.0"
+version = "0.32.0"
 source = { virtual = "." }
 dependencies = [
     { name = "alembic" },
@@ -866,6 +866,7 @@ dependencies = [
     { name = "nest-asyncio" },
     { name = "psycopg2-binary" },
     { name = "python-dotenv" },
+    { name = "python-json-logger" },
     { name = "pyyaml" },
     { name = "requests" },
     { name = "sentry-sdk", extra = ["flask"] },
@@ -915,6 +916,7 @@ requires-dist = [
     { name = "pymysql", marker = "extra == 'all'", specifier = ">=1.1.1" },
     { name = "pymysql", marker = "extra == 'mysql'", specifier = ">=1.1.1" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
+    { name = "python-json-logger", specifier = ">=2.0.7" },
     { name = "pyyaml", specifier = ">=6.0.1" },
     { name = "requests", specifier = ">=2.28.2" },
     { name = "sentry-sdk", extras = ["flask"], specifier = ">=2.23.1" },
@@ -1315,6 +1317,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ba/0b/67295279b66835f9fa7a491650efcd78b20321c127036eef62c11a31e028/python_engineio-4.12.2.tar.gz", hash = "sha256:e7e712ffe1be1f6a05ee5f951e72d434854a32fcfc7f6e4d9d3cae24ec70defa", size = 91677, upload-time = "2025-06-04T19:22:18.789Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0c/fa/df59acedf7bbb937f69174d00f921a7b93aa5a5f5c17d05296c814fff6fc/python_engineio-4.12.2-py3-none-any.whl", hash = "sha256:8218ab66950e179dfec4b4bbb30aecf3f5d86f5e58e6fc1aa7fde2c698b2804f", size = 59536, upload-time = "2025-06-04T19:22:16.916Z" },
+]
+
+[[package]]
+name = "python-json-logger"
+version = "3.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9e/de/d3144a0bceede957f961e975f3752760fbe390d57fbe194baf709d8f1f7b/python_json_logger-3.3.0.tar.gz", hash = "sha256:12b7e74b17775e7d565129296105bbe3910842d9d0eb083fc83a6a617aa8df84", size = 16642, upload-time = "2025-03-07T07:08:27.301Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/08/20/0f2523b9e50a8052bc6a8b732dfc8568abbdc42010aef03a2d750bdab3b2/python_json_logger-3.3.0-py3-none-any.whl", hash = "sha256:dd980fae8cffb24c13caf6e158d3d61c0d6d22342f932cb6e9deedab3d35eec7", size = 15163, upload-time = "2025-03-07T07:08:25.627Z" },
 ]
 
 [[package]]
