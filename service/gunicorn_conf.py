@@ -6,6 +6,8 @@ worker_class = "eventlet"
 workers = 1
 # Multiple threads per worker for concurrency
 threads = int(os.environ.get("GUNICORN_THREADS", 4))
+# 5 minutes timeout for long AI requests
+timeout = 300
 loglevel = "info"
 capture_output = True
 accesslog = "-"
