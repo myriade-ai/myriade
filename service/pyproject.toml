@@ -25,6 +25,7 @@ dependencies = [
     "eventlet>=0.39.1",
     "nest-asyncio>=1.6.0",
     "sqlglot>=26.16.2",
+    "python-json-logger>=2.0.7",
 ]
 
 [project.optional-dependencies]

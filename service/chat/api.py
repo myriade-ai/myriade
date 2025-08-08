@@ -1,3 +1,4 @@
+import logging
 from functools import wraps
 from uuid import UUID
 
@@ -13,6 +14,7 @@ from chat.lock import STATUS, clear_stop_flag, emit_status, set_stop_flag
 from models import Conversation, ConversationMessage
 
 api = Blueprint("chat_api", __name__)
+logger = logging.getLogger(__name__)
 
 
 def get_last_credits_info():
@@ -102,7 +104,10 @@ def conversation_auth_required(f):
 @socket_auth_required
 @conversation_auth_required
 def handle_stop(session, conversation_id: str):
-    print("Received stop signal for conversation_id", conversation_id)
+    logger.info(
+        "Received stop signal for conversation",
+        extra={"conversation_id": conversation_id},
+    )
     # Stop the query
     set_stop_flag(conversation_id)
     emit_status(conversation_id, STATUS.TO_STOP)
@@ -128,7 +133,9 @@ def handle_ask(session, conversation_id, question):
         try:
             session.commit()
         except Exception as e:
-            print(f"Error committing session: {e}")
+            logger.error(
+                "Error committing session", exc_info=True, extra={"error": str(e)}
+            )
             session.rollback()
             # We break the loop to avoid sending the message
             break
@@ -219,7 +226,9 @@ def handle_regenerate_from_message(
         try:
             session.commit()
         except Exception as e:
-            print(f"Error committing session: {e}")
+            logger.error(
+                "Error committing session", exc_info=True, extra={"error": str(e)}
+            )
             session.rollback()
             # We return to avoid sending the message
             return
@@ -263,7 +272,7 @@ def handle_regenerate_from_message(
         # Delete the messages
         session.commit()
     except Exception as e:
-        print(f"Error committing session: {e}")
+        logger.error("Error committing session", exc_info=True, extra={"error": str(e)})
         session.rollback()
         # We return to avoid sending the message
         return
@@ -283,7 +292,9 @@ def handle_regenerate_from_message(
         try:
             session.commit()
         except Exception as e:
-            print(f"Error committing session: {e}")
+            logger.error(
+                "Error committing session", exc_info=True, extra={"error": str(e)}
+            )
             session.rollback()
             # We return to avoid sending the message
             break

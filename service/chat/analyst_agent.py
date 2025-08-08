@@ -78,7 +78,9 @@ class DataAnalystAgent:
 
         # Handle custom proxy provider
 
-        logger.info(f"AUTOCHAT_PROVIDER is set to: {AUTOCHAT_PROVIDER}")
+        logger.info(
+            "AUTOCHAT_PROVIDER configured", extra={"provider": AUTOCHAT_PROVIDER}
+        )
 
         if AUTOCHAT_PROVIDER == "proxy":
             provider = ProxyProvider
