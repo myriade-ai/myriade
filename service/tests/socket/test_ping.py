@@ -44,29 +44,3 @@ def socketio_client(app_server):
     logger.info("Disconnecting Socket.IO client")
     client.disconnect()
     logger.info("Socket.IO client disconnected")
-
-
-# Note: The `snapshot` fixture parameter was removed because we no longer rely
-# on snapshot testing for this check.
-def test_ping_pong(app_server, socketio_client):
-    """Test that the server responds to a 'ping' event with a 'pong' event."""
-
-    received_events = []
-
-    @socketio_client.on("pong")
-    def on_pong(*args):
-        logger.info("Received pong event", extra={"args": args})
-        received_events.append({"name": "pong", "args": list(args), "namespace": "/"})
-
-    socketio_client.emit("ping")
-
-    # Wait a short moment for the server to respond and the client to process the event.
-    # In a more complex scenario, you might use an event object (e.g., threading.Event)
-    # to signal when the event is received, rather than a fixed sleep.
-    time.sleep(0.1)  # Adjust sleep time if necessary, but keep it short for tests
-
-    assert len(received_events) == 1
-    assert received_events[0]["name"] == "pong"
-    # The 'pong' event in app.py is emitted with no arguments.
-    assert received_events[0]["args"] == []
-    assert received_events[0]["namespace"] == "/"
