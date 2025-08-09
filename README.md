@@ -1,115 +1,115 @@
+# 🚀 Myriade – Your AI Data Copilot
+
 <div align="center">
-  <img align="center" width="128px" src="https://framerusercontent.com/images/1nUFUimyxNyoPcSeeeLogtx4CA.svg" />
-	<h1 align="center"><b>Myriade</b></h1>
-	<p align="center">
-		<a href="https://www.myriade.ai"><strong>Myriade</strong></a> is the secure AI analytics copilot for your database.
-    <br /><br />
-    Query any database in natural language, inspect every SQL the agent runs, and get instant, actionable insights.
-  </p>
+  <img width="128px" src="https://framerusercontent.com/images/1nUFUimyxNyoPcSeeeLogtx4CA.svg" />
 
-![output](https://github.com/user-attachments/assets/e4a20de4-8b1e-4ec2-a692-cfdd02dd0533)
+**Stop wrestling with SQL. Start getting answers.**
 
-👉👉👉 [Live Demo](https://demo.myriade.ai) 👈👈👈
+![Ask → Answer in seconds](https://github.com/user-attachments/assets/e4a20de4-8b1e-4ec2-a692-cfdd02dd0533)
+
+[🌐 Website](https://www.myriade.ai) • [⚡ Live Demo](https://demo.myriade.ai) • [📦 Self-host](#-quick-start)
 
 </div>
 
-## ✨ Why Myriade?
+---
 
-Traditional BI tools still require you to **think about tables, joins, and SQL** before you get to insight.
+## 💡 Why Myriade?
 
-Myriade removes all that friction with an **AI‑native chat interface** that reads your question, explores your database safely in read‑only mode, writes and refines SQL, analyses the result set, and surfaces the answer—all in seconds.
+Business data lives in tables.
+Insights live in your head.
+**Everything in between is slow.**
 
-- ⚡ **10× faster answers** – let the agent do the heavy lifting (schema exploration, SQL generation, result analysis, etc.).
-- 🔒 **Secure by design** – read‑only, limited previews, zero knowledge protection, ...
-- 🧠 **Beyond NL2SQL** – root‑cause analysis, anomaly detection, opportunity discovery, ...
-- 🏗️ **Extensible** – works with Postgres, MySQL, Snowflake, BigQuery & more to come.
+Traditional BI tools force you to:
 
-## 🔐 Security Model
+- Dig through table names.
+- Guess joins.
+- Write and debug SQL.
+- Re-run, re-fix, re-interpret.
 
-- **Local hosting** – Install Myriade on your own hardware.
-- **Read‑only** – Myriade never mutates your production data (opt‑in).
-- **Limited result preview** – the agent sees row samples & column stats, not full dumps.
-- **Zero‑Knowledge Protection** – encrypt sensitive data before sending it to the LLM (opt‑in, beta).
+**Myriade kills that friction.**
+Ask your question in plain English → Myriade **explores**, **writes SQL**, **fixes it**, **analyses the result**, and gives you the answer **in seconds**.
 
-## 📦 Features
+### What we value
 
-- **Simple set up** – Run Myriade locally in < 5 minutes.
-- **Natural‑language chat** – to query your data database.
-- **AI ↔️ DB trace viewer** – so you can inspect every query the agent runs.
-- **SQL editor** – take over and edit the SQL the agent generates.
-- **Prompt templates** ("Projects") – to tailor the agent to a domain or KPI set.
-- **Data Quality control panel** – (coming soon).
-
-## 💬 Usage Examples
-
-| Ask…                                                           | Myriade does…                                             |
-| -------------------------------------------------------------- | --------------------------------------------------------- |
-| _"Why did sales drop on 2025‑03‑10?"_                          | scans fact tables, runs cohort diffs, returns root causes |
-| _"Create a view of user_id, total_sales, last_product_bought"_ | generates SQL, saves the view, returns preview            |
-| _"What KPIs are missing in the store report?"_                 | reviews schema, suggests additional metrics               |
+- **Simplicity** – No setup. No training. Just ask.
+- **Speed** – Answers 10× faster than manual SQL.
+- **Value creation** – Clear insights so you can focus on what matters.
 
 ---
 
-## 🚀 Quick Start
+## ✨ What Myriade Does
 
-This will help you run Myriade locally, without the user management support.
+- **Ask Anything** – “Why did sales drop on March 10?” → you get causes, not just numbers.
+- **Analyze Beyond SQL** – anomaly detection, KPI gap analysis, opportunity spotting.
+- **Stay in Control** – inspect and edit every query that the AI generated.
+- **Plug & Play** – Postgres, MySQL, Snowflake, BigQuery & more.
 
-### Pre-requisites
+---
 
-At this time, we recommend using **Anthropic** to get the best results. Get an Anthropic API key if you don't have one [here](https://www.anthropic.com/).
+## 🔒 Secure by Design
 
-Note: you can also use any other LLM provider (OpenAI, Gemini, etc.). Check the [docker-compose.yml](./docker-compose.yml) file for the available environment variables.
+- **Read-only** – zero chance of accidental data changes.
+- **Limited result previews** – AI sees only samples/stats, never full dumps.
+- **Zero-Knowledge Protection** _(beta)_ – encrypt sensitive data before the AI sees it.
+- **Self-host or Cloud** – your choice.
 
-### Basic run with SQLite backend
+---
+
+## 🖼 How It Works
+
+1. **Ask** → “Create a view of `user_id`, `total_sales`, `last_product_bought`”
+2. **AI explores** → finds the right tables, joins, and filters. explore and iterate.
+3. **Answer delivered** → instant insight, exportable.
+4. **Inspect** → view what the AI did, edit, and run it.
+
+---
+
+## 💬 Examples
+
+| You Ask…                                         | Myriade Delivers…                                          |
+| ------------------------------------------------ | ---------------------------------------------------------- |
+| _“Why did signups drop last week?”_              | Detects change, runs cohort diffs, surfaces likely causes. |
+| _“What KPIs are missing from the store report?”_ | Reviews schema, suggests relevant new metrics.             |
+| _“Show total revenue by region, last 90 days”_   | Writes & runs SQL, charts the result.                      |
+
+---
+
+## 🚀 Quick Start (Self-host in 1 minute)
+
+**With Anthropic (default) and SQLite backend**:
 
 ```bash
 docker run -p 8080:8080 -v $(pwd)/data:/app/data myriadeai/myriade:latest
 ```
 
-This will create a SQLite database in the `data` folder.
+Open: [http://localhost:8080](http://localhost:8080)
 
-### Run with PostgreSQL backend
-
-```bash
-docker run -p 8080:8080 \
-  -e DATABASE_URL=postgresql://user:pass@localhost:5432/myriade \
-  myriadeai/myriade:latest
-```
-
-### Run with your own provider key (OpenAI, Anthropic, etc.)
-
-Example with OpenAI.
+**With OpenAI and PostgreSQL backend**:
 
 ```bash
 docker run -p 8080:8080 \
   -e AUTOCHAT_PROVIDER=openai \
-  -e AUTOCHAT_MODEL=o4-mini \
-  -e OPENAI_API_KEY=your_key_here \
+  -e AUTOCHAT_MODEL=o5-mini \
+  -e OPENAI_API_KEY=<your_key_here> \
   myriadeai/myriade:latest
 ```
 
-### Access the application
+> Supports OpenAI, Anthropic, Gemini & more.
+> [See full setup docs →](./DEVELOPMENT.md)
 
-Open your browser to: http://localhost:8080
+---
 
-### Environment variables
+## 🛠 Why Developers Love It
 
-- `ANTHROPIC_API_KEY` - Required for AI functionality
-- `DATABASE_URL` - Optional, for PostgreSQL backend
-- `HOST` - The public URL of your deployment (default: http://localhost:8080)
-- `GUNICORN_THREADS` - Optional, for Gunicorn threads (default: 4)
-- `AUTOCHAT_PROVIDER` - Optional, for AI provider (default: anthropic)
-- `AUTOCHAT_MODEL` - Optional, for AI model (default: claude-sonnet-4-20250514)
-- `OPENAI_API_KEY` - Optional, for OpenAI models
+- Full **AI ↔ DB trace viewer** – every query is transparent.
+- **SQL editor** – take over anytime.
+- **Prompt templates** – tailor Myriade for a specific domain/KPI set.
+- Extensible, self-hostable, no vendor lock-in.
 
-### Open the app
+---
 
-```bash
-http://localhost:8080
-```
+## 🌍 Get Started
 
-Connect your database & profit
-
-## Running for Development
-
-If you're a developer looking to modify Myriade or set up a local development environment, follow the instructions in [DEVELOPMENT.md](./DEVELOPMENT.md).
+- **Try the [Live Demo](https://demo.myriade.ai)** – no signup.
+- **Deploy locally** – [Quick Start](#-quick-start) above.
+- **Star us on GitHub** if you like the project ❤️
