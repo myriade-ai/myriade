@@ -1,29 +1,43 @@
-# Run Myriade in development
+# 🛠 Myriade – Development Setup
 
-## Tech Stack Overview
+> Build, run, and hack on your own AI data copilot.
 
-- Frontend: Vue3, Tailwind, Vite
-- Backend: Python with Flask, SQLAlchemy, Postgres
-  - Agent library: [Autochat](https://github.com/BenderV/autochat)
-- Database: Postgres (or SQLite)
+---
 
-## Setup
+## ⚙ Tech Stack
 
-### Prerequisites
+- **Frontend** – Vue 3, Tailwind CSS, Vite
+- **Backend** – Python (Flask, SQLAlchemy, Postgres)
 
-- [uv](https://docs.astral.sh/uv/) for Python
-- [yarn](https://yarnpkg.com/) for frontend
+  - AI Agent Library: [Autochat](https://github.com/BenderV/autochat)
 
-### Backend Setup (in [`/service`](/service) directory)
+- **Databases** – Postgres (recommended) or SQLite
 
-1. **Install Dependencies**:
+---
+
+## 📋 Prerequisites
+
+- [uv](https://docs.astral.sh/uv/) – Python package & env manager
+- [yarn](https://yarnpkg.com/) – Frontend package manager
+- PostgreSQL 14+ (or SQLite for quick local testing)
+- An API key for your LLM provider (Anthropic, OpenAI, Gemini, etc.)
+
+---
+
+## 🚀 Backend Setup
+
+**Location:** [`/service`](/service)
+
+1. **Install dependencies**
 
    ```bash
    uv sync
    ```
 
-2. **Set Environment Variables**:
-   in `.env.dev` file:
+2. **Configure environment variables**
+   Create `.env.dev` in `/service`:
+
+   **Example – Anthropic (default)**
 
    ```bash
    AUTOCHAT_PROVIDER=anthropic
@@ -32,7 +46,7 @@
    DATABASE_URL=postgresql://user:pass@localhost:5432/myriade
    ```
 
-   or to use another provider (e.g. OpenAI):
+   **Example – OpenAI**
 
    ```bash
    AUTOCHAT_PROVIDER=openai
@@ -41,40 +55,53 @@
    DATABASE_URL=postgresql://user:pass@localhost:5432/myriade
    ```
 
-3. **Run the Backend**:
+   **Tip:** You can also use SQLite for a zero-config local dev:
+
+   ```bash
+   DATABASE_URL=sqlite:///./data/dev.db
+   ```
+
+3. **Run the backend**
+
    ```bash
    bash start.sh dev
    ```
 
-### Frontend Setup (in [`/view`](/view) directory)
+---
 
-Install Dependencies
+## 💻 Frontend Setup
 
-```bash
-yarn
-```
+**Location:** [`/view`](/view)
 
-Run the front-end
+1. **Install dependencies**
 
-```bash
-yarn dev
-```
+   ```bash
+   yarn
+   ```
 
-After completing the steps, open your browser and visit: [http://localhost:5173](http://localhost:5173)
+2. **Run the dev server**
 
-## Telemetry
+   ```bash
+   yarn dev
+   ```
 
-See the [docs/telemetry.md](./docs/telemetry.md) file for details.
+3. Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-## License
+---
 
-Myriade is licensed under the [FAIR](https://fair.io) License.
+## 🔍 Telemetry
 
-In a nutshell:
+See [`docs/telemetry.md`](./docs/telemetry.md) for what we collect and why.
 
-- **Free to tinker**: read the code, run it anywhere, fork it, and submit PRs.
-- **Free to use in-house**: self-host Myriade for internal or personal projects with no strings attached.
-- **But no commercial free-riding**: for the first 24 months after each release you must not offer Myriade (or a derivative) as a service that competes with the official product.
-- **Automatic open-source switch**: exactly two years after a version ships, its licence flips to Apache-2.0, giving you full open-source freedoms—including commercial SaaS.
+---
 
-See the [LICENSE](./LICENSE) file for details.
+## 📜 License
+
+Myriade is licensed under the [FAIR License](https://fair.io):
+
+- ✅ **Free to tinker** – read the code, run it, fork it, submit PRs.
+- ✅ **Free to self-host** – personal or internal company use.
+- 🚫 **No SaaS competition** – for 24 months after release, you can’t offer Myriade (or a derivative) as a competing hosted service.
+- 🔄 **Open-source switch** – 2 years after each release, the license flips to Apache-2.0.
+
+See [`LICENSE`](./LICENSE) for full details.
