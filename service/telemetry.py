@@ -152,7 +152,7 @@ def get_total_users() -> int:
     """Get total count of users."""
     try:
         session = get_db_session()
-        result = session.execute(text("SELECT COUNT(*) FROM user"))
+        result = session.execute(text('SELECT COUNT(*) FROM "user"'))
         row = result.fetchone()
         count = row[0] if row else 0
         session.close()
