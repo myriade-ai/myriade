@@ -7,7 +7,7 @@
 
 ![Ask → Answer in seconds](https://github.com/user-attachments/assets/e4a20de4-8b1e-4ec2-a692-cfdd02dd0533)
 
-[🌐 Website](https://www.myriade.ai) • [⚡ Live Demo](https://demo.myriade.ai) • [📦 Self-host](#-quick-start)
+[🌐 Website](https://www.myriade.ai) • [⚡ Live Demo](https://demo.myriade.ai) • [📦 Self-host](#-quick-start-self-host-in-1-minute)
 
 </div>
 
@@ -111,5 +111,5 @@ docker run -p 8080:8080 \
 ## 🌍 Get Started
 
 - **Try the [Live Demo](https://demo.myriade.ai)** – no signup.
-- **Deploy locally** – [Quick Start](#-quick-start) above.
+- **Deploy locally** – [Quick Start](#-quick-start-self-host-in-1-minute) above.
 - **Star us on GitHub** if you like the project ❤️
