@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.33.3 (2025-08-09)
+
+### Bug Fixes
+
+- Telemetry user count
+  ([`e3e4780`](https://github.com/myriade-ai/myriade/commit/e3e47809281db0b6d0d17c3e7de08928541eae11))
+
+
 ## v0.33.2 (2025-08-08)
 
 ### Bug Fixes
