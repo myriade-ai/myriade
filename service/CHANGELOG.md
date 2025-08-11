@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.33.5 (2025-08-11)
+
+### Bug Fixes
+
+- Page redirect
+  ([`51527db`](https://github.com/myriade-ai/myriade/commit/51527db48137bd93919cfe4939afa8d127354b3d))
+
+
 ## v0.33.4 (2025-08-11)
 
 ### Bug Fixes
