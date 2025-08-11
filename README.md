@@ -1,7 +1,8 @@
-# 🚀 Myriade – Your AI Data Copilot
-
 <div align="center">
   <img width="128px" src="https://framerusercontent.com/images/1nUFUimyxNyoPcSeeeLogtx4CA.svg" />
+
+# 🚀 Myriade – Your AI Data Copilot
+
 
 **Ask your data. See the SQL. Self-host in one command.**
 
