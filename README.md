@@ -3,7 +3,7 @@
 <div align="center">
   <img width="128px" src="https://framerusercontent.com/images/1nUFUimyxNyoPcSeeeLogtx4CA.svg" />
 
-**Stop wrestling with SQL. Start getting answers.**
+**Ask your data. See the SQL. Self-host in one command.**
 
 ![myriade](https://github.com/user-attachments/assets/06147bb9-92c3-4ed6-8ed1-4604515f876b)
 
