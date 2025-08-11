@@ -1,6 +1,25 @@
 # CHANGELOG
 
 
+## v0.33.4 (2025-08-11)
+
+### Bug Fixes
+
+- Sentry config
+  ([`64e5002`](https://github.com/myriade-ai/myriade/commit/64e50029c78c61ca501f0db6e4eb35e4fe9fd1ec))
+
+### Documentation
+
+- Update
+  ([`d86be3f`](https://github.com/myriade-ai/myriade/commit/d86be3f6642a45ef6d8913d3e652d3d35a9298ec))
+
+- Update README.md
+  ([`7bdfcdd`](https://github.com/myriade-ai/myriade/commit/7bdfcddd9e093c7c350460358b8fc1b110b5fc9f))
+
+- Update README.md
+  ([`f26dba0`](https://github.com/myriade-ai/myriade/commit/f26dba00e7a860d631c29eedd0adc5ad64a78601))
+
+
 ## v0.33.3 (2025-08-09)
 
 ### Bug Fixes
