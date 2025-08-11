@@ -42,5 +42,8 @@ jobs:
           tags: |
             myriadeai/myriade:latest
             myriadeai/myriade:${{ steps.get_version.outputs.version }}
+          env: |
+            VITE_SENTRY_ENABLED=true
+            VITE_SENTRY_DSN=https://438a68f564fac7d4d7131e791d1e024e@o4508993570275328.ingest.de.sentry.io/4508993583644752
           secrets: |
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}

@@ -11,9 +11,15 @@ import { createMetaManager } from 'vue-meta'
 import Vue3TouchEvents, { type Vue3TouchEventsOptions } from 'vue3-touch-events'
 
 const app = createApp(App)
-if (import.meta.env.VITE_SENTRY_ENABLED) {
+const pinia = createPinia()
+pinia.use(piniaPluginPersistedState)
+app.use(pinia)
+app.use(router)
+
+if (import.meta.env.VITE_SENTRY_ENABLED === 'true') {
   Sentry.init({
     app,
+    dsn: import.meta.env.VITE_SENTRY_DSN,
     environment: import.meta.env.PROD ? 'production' : 'development',
     integrations: [
       Sentry.replayIntegration({
@@ -28,10 +34,6 @@ if (import.meta.env.VITE_SENTRY_ENABLED) {
   })
 }
 
-const pinia = createPinia()
-pinia.use(piniaPluginPersistedState)
-app.use(pinia)
-app.use(router)
 app.use<Vue3TouchEventsOptions>(Vue3TouchEvents, {
   disableClick: false
   // any other global options...
