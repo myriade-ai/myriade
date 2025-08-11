@@ -5,7 +5,8 @@
 
 **Stop wrestling with SQL. Start getting answers.**
 
-![Ask → Answer in seconds](https://github.com/user-attachments/assets/e4a20de4-8b1e-4ec2-a692-cfdd02dd0533)
+![myriade](https://github.com/user-attachments/assets/06147bb9-92c3-4ed6-8ed1-4604515f876b)
+
 
 [🌐 Website](https://www.myriade.ai) • [⚡ Live Demo](https://demo.myriade.ai) • [📦 Self-host](#-quick-start-self-host-in-1-minute)
 
