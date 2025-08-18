@@ -1,6 +1,6 @@
 <template>
-  <div class="p-4 sm:p-6 bg-gray-100 min-h-screen">
-    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">Issues</h1>
+  <div class="py-4 px-8 bg-gray-100 min-h-screen">
+    <h1 class="text-2xl font-bold text-gray-800 mb-4">Issues</h1>
 
     <!-- Search and Filters -->
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

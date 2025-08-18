@@ -1,7 +1,7 @@
 <template>
-  <div class="bg-white overflow-hidden sm:rounded-lg sm:shadow-sm cursor-pointer select-none">
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
     <div class="bg-white px-4 py-5 border-b border-gray-200 sm:px-6">
-      <h3 class="text-lg leading-6 font-medium text-gray-900">Database</h3>
+      <h3 class="text-2xl leading-6 font-medium text-gray-900">Database</h3>
     </div>
     <ul role="list" class="divide-y divide-gray-200">
       <div class="px-4 py-2" v-if="tables?.length === 0">
@@ -15,13 +15,15 @@
         @click="onClick(table.name)"
         @dblclick="onDblClick(table)"
       />
-      <input
-        type="text"
-        placeholder="search table"
-        class="block w-full max-w-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-        id="searchTables"
-        v-model="searchTablesInput"
-      />
+      <div class="px-4 py-2 bg-gray-50 border-b border-gray-200">
+        <input
+          type="text"
+          placeholder="Search table"
+          class="block w-full max-w-lg rounded-md border border-gray-300 focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          id="searchTables"
+          v-model="searchTablesInput"
+        />
+      </div>
       <DatabaseExplorerItems
         v-for="(table, ind) in filteredTables"
         :key="ind"
@@ -30,7 +32,7 @@
         @click="onClick(table.name)"
         @dblclick="onDblClick(table)"
       />
-      <div v-if="filteredTables.length == 0" class="block hover:bg-gray-50">
+      <div v-if="filteredTables.length == 0" class="block bg-white hover:bg-gray-50">
         <p class="px-4 py-4 sm:px-6">No tables</p>
       </div>
     </ul>

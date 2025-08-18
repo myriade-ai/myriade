@@ -1,17 +1,19 @@
 <template>
   <div class="flex h-screen">
     <!-- Left Panel: Business Entities Grid -->
-    <div class="flex-1 bg-gray-100 p-4 overflow-y-auto">
-      <h2 class="text-xl font-semibold mb-3 inline-block">Business Entities</h2>
-      <button
-        @click="startAutoScan"
-        class="mb-3 ml-3 px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-        :class="{
-          'opacity-50': store.entities.length > 0
-        }"
-      >
-        Scan auto
-      </button>
+    <div class="flex-1 bg-gray-100 py-4 px-8 overflow-y-auto">
+      <div class="flex items-center">
+        <h2 class="text-2xl font-semibold mb-3 inline-block">Business Entities</h2>
+        <button
+          @click="startAutoScan"
+          class="mb-3 ml-3 px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          :class="{
+            'opacity-50': store.entities.length > 0
+          }"
+        >
+          Scan auto
+        </button>
+      </div>
 
       <!-- Loading State -->
       <div v-if="store.loading" class="flex justify-center items-center h-32">

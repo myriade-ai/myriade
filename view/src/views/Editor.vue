@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-12 gap-4 px-4 mx-auto py-4">
+  <div class="grid grid-cols-12 gap-4 px-4 mx-auto py-4 bg-gray-100">
     <div class="col-span-3 hidden md:block">
       <DatabaseExplorer></DatabaseExplorer>
     </div>
