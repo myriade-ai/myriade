@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v0.34.0 (2025-08-18)
+
+### Documentation
+
+- Update README.md
+  ([`1be70cf`](https://github.com/myriade-ai/myriade/commit/1be70cfed53ae52ab335fa4273b2594561e06d75))
+
+- Update README.md
+  ([`4e59c41`](https://github.com/myriade-ai/myriade/commit/4e59c41c18ae80cd77fe47a368a606fb748e129d))
+
+### Features
+
+- **front**: Stantardize UI
+  ([`92f6d93`](https://github.com/myriade-ai/myriade/commit/92f6d93946d6a23deeb099e05292e29767f2b1bd))
+
+
 ## v0.33.5 (2025-08-11)
 
 ### Bug Fixes
