@@ -2,11 +2,12 @@ import axios from '@/plugins/axios'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-interface Chart {
+export interface Chart {
   id: string
   name: string
   description: string
   config: Record<string, any>
+  queryId: string
   is_favorite: boolean
 }
 

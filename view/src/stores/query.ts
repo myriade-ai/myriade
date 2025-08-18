@@ -6,6 +6,13 @@ import { defineStore } from 'pinia'
 import sqlPrettier from 'sql-prettier'
 import { computed, ref } from 'vue'
 
+export interface Query {
+  id: string | number
+  title?: string
+  sql?: string
+  rows?: Record<string, any>[]
+}
+
 export const useQueryStore = defineStore('query', () => {
   // Pull in anything needed from your Databases store
   const databasesStore = useDatabasesStore()
