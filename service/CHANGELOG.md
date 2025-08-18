@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.35.0 (2025-08-18)
+
+### Features
+
+- **front**: Stantardize title size
+  ([`cc54ee8`](https://github.com/myriade-ai/myriade/commit/cc54ee844cbe7ce565ed02463c6f2406c62ca713))
+
+
 ## v0.34.0 (2025-08-18)
 
 ### Documentation
