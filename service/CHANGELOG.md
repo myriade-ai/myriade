@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.36.0 (2025-08-19)
+
+### Features
+
+- Add MotherDuck data warehouse
+  ([`b900d92`](https://github.com/myriade-ai/myriade/commit/b900d92e3113d1318467db9dfd5279d58358928e))
+
+
 ## v0.35.0 (2025-08-18)
 
 ### Features
