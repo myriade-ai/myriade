@@ -1,7 +1,7 @@
 import json
 import sys
 import threading
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from urllib.parse import quote_plus
 
 import sqlalchemy
@@ -127,22 +127,25 @@ class AbstractDatabase(ABC):
     def __init__(self):
         pass
 
-    @abstractproperty
-    def dialect(self):
+    @property
+    @abstractmethod
+    def dialect(self) -> str:
         pass
 
     @abstractmethod
-    def load_metadata(self):
+    def load_metadata(self) -> list[dict]:
         pass
 
     @abstractmethod
-    def _query(self, query):
+    def _query(self, query) -> list[dict]:
         pass
 
-    def _query_count(self, sql):
+    def _query_count(self, sql) -> int | None:
         count_request = f"SELECT COUNT(*) FROM ({sql.replace(';', '')}) AS foo"
         result = self._query(count_request)
-        return result[0]["count"]
+        if result and len(result) > 0 and result[0] is not None:
+            return result[0].get("count")
+        return None
 
     def query(self, sql, role="llm"):
         # If privacy mode is enabled, attempt to rewrite the SQL so that the
@@ -212,7 +215,7 @@ class SQLDatabase(AbstractDatabase):
 
     @property
     def dialect(self):
-        # "postgresql", "mysql", "sqlite", "mssql"
+        # "postgresql", "mysql", "sqlite", "mssql", "motherduck"
         return self.engine.name
 
     def load_metadata(self):
@@ -476,6 +479,157 @@ class BigQueryDatabase(AbstractDatabase):
         return rows_list
 
 
+class MotherDuckDatabase(AbstractDatabase):
+    def __init__(self, **kwargs):
+        self.token = kwargs.get("token")
+        if not self.token:
+            raise ValueError("token is required for MotherDuck")
+
+        self.database_name = kwargs.get("database", "my_db")
+
+        try:
+            import duckdb
+        except ImportError as err:
+            raise ImportError("duckdb is required for MotherDuck support") from err
+
+        # Build connection string
+        connection_string = f"md:{self.database_name}?motherduck_token={self.token}"
+
+        try:
+            self.connection = duckdb.connect(connection_string)
+            self.metadata = []
+        except duckdb.Error as e:
+            raise ConnectionError(e, message=str(e)) from e
+
+    @property
+    def dialect(self):
+        return "motherduck"
+
+    def load_metadata(self):
+        """Load metadata from MotherDuck database"""
+        # Use DuckDB information schema queries
+        schemas_query = (
+            "SELECT schema_name FROM information_schema.schemata "
+            "WHERE schema_name NOT IN ('information_schema', 'main')"
+        )
+        schemas, _ = self.query(schemas_query)
+
+        if not schemas:
+            return []
+
+        for schema_row in schemas:
+            schema_name = schema_row["schema_name"]
+
+            # Get tables for each schema
+            tables_query = f"""
+                SELECT table_name, table_type
+                FROM information_schema.tables
+                WHERE table_schema = '{schema_name}'
+            """
+            tables, _ = self.query(tables_query)
+
+            if not tables:
+                continue
+
+            for table_row in tables:
+                table_name = table_row["table_name"]
+                is_view = table_row["table_type"] == "VIEW"
+
+                # Get columns for each table
+                columns_query = f"""
+                    SELECT column_name, data_type, is_nullable
+                    FROM information_schema.columns
+                    WHERE table_schema = '{schema_name}' AND table_name = '{table_name}'
+                    ORDER BY ordinal_position
+                """
+                columns, _ = self.query(columns_query)
+
+                formatted_columns = []
+                if not columns:
+                    continue
+                for col in columns:
+                    formatted_columns.append(
+                        {
+                            "name": col["column_name"],
+                            "type": col["data_type"],
+                            "nullable": col["is_nullable"] == "YES",
+                            "description": None,
+                        }
+                    )
+
+                self.metadata.append(
+                    {
+                        "name": table_name,
+                        "schema": schema_name,
+                        "is_view": is_view,
+                        "columns": formatted_columns,
+                        "description": None,
+                    }
+                )
+
+        return self.metadata
+
+    def _query(self, query):
+        """Execute query and return results with size management"""
+        # Reject safe mode explicitly to match Snowflake behavior
+        if getattr(self, "safe_mode", False):
+            raise Exception("Safe mode not supported for MotherDuck")
+
+        cursor = None
+        try:
+            # Use a cursor and fetch in batches to avoid loading all rows into memory
+            cursor = self.connection.cursor()
+            cursor.execute(query)
+
+            rows_list = []
+            total_size = 0
+
+            # Build column names once and handle case where description is None
+            if cursor.description:
+                column_names = [desc[0] for desc in cursor.description]
+            else:
+                # No description means no selectable columns (e.g., DDL/empty result)
+                # -> return empty list
+                return rows_list
+
+            batch_size = 1000
+            while True:
+                try:
+                    batch = cursor.fetchmany(batch_size)
+                except Exception:
+                    # Fallback: if fetchmany is not supported, consume all remaining rows  # noqa: E501
+                    batch = cursor.fetchall()
+
+                if not batch:
+                    break
+
+                for row in batch:
+                    # Convert row to dict using column names
+                    row_dict = dict(zip(column_names, row))
+                    row_size = sizeof(row_dict)
+
+                    if total_size + row_size > MAX_SIZE:
+                        # Return partial data when size limit is reached
+                        return rows_list
+
+                    rows_list.append(row_dict)
+                    total_size += row_size
+
+                if len(batch) < batch_size:
+                    break
+
+            return rows_list
+        except Exception as e:
+            raise e
+        finally:
+            # Ensure cursor is closed if supported
+            try:
+                if cursor is not None:
+                    cursor.close()
+            except Exception:
+                pass
+
+
 class DataWarehouseFactory:
     @staticmethod
     def create(dtype, **kwargs):
@@ -514,5 +668,7 @@ class DataWarehouseFactory:
             return BigQueryDatabase(**kwargs)
         elif dtype == "sqlite":
             return SQLDatabase("sqlite:///" + kwargs["filename"])
+        elif dtype == "motherduck":
+            return MotherDuckDatabase(**kwargs)
         else:
             raise ValueError(f"Unknown database type: {dtype}")
