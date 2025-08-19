@@ -43,7 +43,7 @@
       <div class="select">
         <select
           :value="modelValue"
-          @change="selectType(($event.target as HTMLSelectElement).value)"
+          @change="selectType(($event.target as HTMLSelectElement).value as Engine)"
           class="block w-full max-w-lg rounded-md border-gray-300 shadow-xs focus:border-primary-500 focus:ring-primary-500 sm:max-w-xs sm:text-sm"
         >
           <option v-for="dbType in availableTypes" :key="dbType.value" :value="dbType.value">
@@ -57,6 +57,7 @@
 
 <script setup lang="ts">
 import BaseField from '@/components/base/BaseField.vue'
+import type { Engine } from '@/stores/databases'
 import {
   CheckCircleIcon,
   CircleStackIcon,
@@ -67,7 +68,7 @@ import {
 import { computed } from 'vue'
 
 interface DatabaseType {
-  value: string
+  value: Engine
   name: string
   description: string
   icon: any
@@ -76,20 +77,20 @@ interface DatabaseType {
 }
 
 interface Props {
-  modelValue: string
+  modelValue: Engine | null
   layout?: 'cards' | 'dropdown'
   showTitle?: boolean
-  includedTypes?: string[]
+  includedTypes?: Engine[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
   layout: 'dropdown',
   showTitle: true,
-  includedTypes: () => ['postgres', 'mysql', 'snowflake', 'sqlite', 'bigquery']
+  includedTypes: () => ['postgres', 'mysql', 'snowflake', 'sqlite', 'bigquery', 'motherduck']
 })
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string]
+  'update:modelValue': [value: Engine]
 }>()
 
 const allDatabaseTypes: DatabaseType[] = [
@@ -132,6 +133,14 @@ const allDatabaseTypes: DatabaseType[] = [
     icon: CommandLineIcon,
     iconBg: 'bg-green-100',
     iconColor: 'text-green-600'
+  },
+  {
+    value: 'motherduck',
+    name: 'MotherDuck',
+    description: 'Serverless data warehouse',
+    icon: CommandLineIcon,
+    iconBg: 'bg-purple-100',
+    iconColor: 'text-purple-600'
   }
 ]
 
@@ -139,7 +148,7 @@ const availableTypes = computed(() => {
   return allDatabaseTypes.filter((type) => props.includedTypes.includes(type.value))
 })
 
-const selectType = (value: string) => {
+const selectType = (value: Engine) => {
   emit('update:modelValue', value)
 }
 </script>
