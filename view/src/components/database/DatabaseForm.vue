@@ -4,6 +4,7 @@
     <div class="max-w-lg" v-if="mode === 'edit'">
       <label class="block text-sm font-medium text-gray-700">Database Type</label>
       <div
+        v-if="database.engine"
         class="mt-1 text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-300"
       >
         {{ getDatabaseTypeName(database.engine) }}<br />
@@ -12,7 +13,7 @@
     </div>
 
     <!-- Connection Form -->
-    <div class="max-w-lg">
+    <div v-if="database.engine" class="max-w-lg">
       <DatabaseConnectionForm
         v-if="database.details"
         v-model="database.details"
@@ -116,7 +117,9 @@ import {
   getDatabaseTypeName,
   getDefaultDetailsForEngine,
   makeEmptyDatabase,
-  useDatabasesStore
+  useDatabasesStore,
+  type Database,
+  type Engine
 } from '@/stores/databases'
 import { Form } from 'vee-validate'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
@@ -126,7 +129,7 @@ import DatabaseConnectionForm from './DatabaseConnectionForm.vue'
 interface Props {
   mode: 'create' | 'edit'
   databaseId?: string | null
-  engine?: string | null
+  engine: Engine | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -144,7 +147,7 @@ const emit = defineEmits<{
 const databasesStore = useDatabasesStore()
 
 // State
-const database = reactive(makeEmptyDatabase())
+const database = reactive<Database>(makeEmptyDatabase())
 if (props.engine) {
   database.engine = props.engine
 }
@@ -169,7 +172,10 @@ const canTestConnection = computed(() => {
       return details.filename
     case 'bigquery':
       return details.project_id && details.service_account_json
+    case 'motherduck':
+      return details.token && details.database
     default:
+      database.engine satisfies never
       return false
   }
 })
@@ -287,7 +293,7 @@ const handleFileUpload = (event: any, key: 'dbt_catalog' | 'dbt_manifest') => {
   const reader = new FileReader()
   reader.onload = (e) => {
     try {
-      database.value[key] = JSON.parse(e.target?.result as string)
+      database[key] = JSON.parse(e.target?.result as string)
     } catch (error) {
       console.error(`Error parsing JSON for ${key}:`, error)
     }

@@ -138,8 +138,27 @@
       </div>
     </div>
 
+    <!-- MotherDuck Fields -->
+    <div v-if="engine === 'motherduck'" class="space-y-4">
+      <div class="text-sm text-gray-500" v-if="showEngineTitle">
+        <p>MotherDuck connection details</p>
+      </div>
+      <base-input
+        name="Token"
+        v-model="details.token"
+        rules="required"
+        placeholder="Enter your token"
+      />
+      <base-input
+        name="Database"
+        v-model="details.database"
+        rules="required"
+        placeholder="Enter your database name"
+      />
+    </div>
+
     <!-- Safe Mode Toggle -->
-    <div class="p-4 bg-gray-50 rounded-lg max-w-lg" v-if="engine !== 'snowflake'">
+    <div class="p-4 bg-gray-50 rounded-lg max-w-lg" v-if="!enginesWithoutSafeMode.includes(engine)">
       <h3 class="text-sm font-medium text-gray-900">Safe Mode (read-only)</h3>
       <p class="text-sm text-gray-500 mb-3">
         When enabled, prevents destructive operations like DROP, DELETE, and UPDATE statements
@@ -164,7 +183,7 @@ import BaseInput from '@/components/base/BaseInput.vue'
 import BaseInputPassword from '@/components/base/BaseInputPassword.vue'
 import BaseNotification from '@/components/base/BaseNotification.vue'
 import { useServerInfo } from '@/composables/useServerInfo'
-import { getDatabaseTypeName, getDefaultDetailsForEngine } from '@/stores/databases'
+import { getDatabaseTypeName, getDefaultDetailsForEngine, type Engine } from '@/stores/databases'
 import { CloudArrowUpIcon } from '@heroicons/vue/24/outline'
 import { computed, watch } from 'vue'
 
@@ -172,7 +191,7 @@ const { serverIp } = useServerInfo()
 
 interface Props {
   modelValue: Record<string, any> // this is *details* only
-  engine: string
+  engine: Engine
   layout?: 'stack' | 'grid'
   showEngineTitle?: boolean
   showNameField?: boolean
@@ -193,6 +212,8 @@ const shouldHideNetworkConfig = computed(() => {
   const host = details.value?.host?.trim()
   return !host || 'localhost'.startsWith(host) || '127.0.0.1'.startsWith(host)
 })
+
+const enginesWithoutSafeMode: Engine[] = ['snowflake', 'motherduck']
 
 // Watch for engine changes and reset details
 watch(

@@ -5,13 +5,13 @@
       <DatabaseTypeSelector
         v-model="selectedEngine"
         layout="cards"
-        :included-types="['postgres', 'mysql', 'snowflake', 'bigquery']"
+        :included-types="['postgres', 'mysql', 'snowflake', 'bigquery', 'motherduck']"
         @update:model-value="onDatabaseTypeSelected"
       />
     </div>
 
     <!-- Step 2: Connection Details -->
-    <div v-if="currentStep === 1" class="space-y-6">
+    <div v-if="currentStep === 1 && selectedEngine" class="space-y-6">
       <div class="text-center">
         <h2 class="text-2xl font-bold text-gray-900 mb-2">Database Connection Details</h2>
         <p class="text-gray-600">
@@ -64,7 +64,7 @@
 
 <script setup lang="ts">
 import BaseButton from '@/components/base/BaseButton.vue'
-import { getDatabaseTypeName } from '@/stores/databases'
+import { type Engine, getDatabaseTypeName } from '@/stores/databases'
 import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/vue/24/outline'
 import { CheckIcon } from '@heroicons/vue/24/solid'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -78,7 +78,7 @@ const emit = defineEmits<{
 
 // State
 const currentStep = ref(0)
-const selectedEngine = ref('')
+const selectedEngine = ref<Engine | null>(null)
 const isSaving = ref(false)
 const connectionTested = ref(false)
 const databaseForm = ref<InstanceType<typeof DatabaseForm> | null>(null)
@@ -87,7 +87,7 @@ const databaseForm = ref<InstanceType<typeof DatabaseForm> | null>(null)
 const canProceedToNextStep = computed(() => {
   switch (currentStep.value) {
     case 0:
-      return selectedEngine.value !== ''
+      return selectedEngine.value !== null
     case 1:
       return connectionTested.value
     default:
@@ -96,7 +96,7 @@ const canProceedToNextStep = computed(() => {
 })
 
 // Methods
-const onDatabaseTypeSelected = (engine: string) => {
+const onDatabaseTypeSelected = (engine: Engine) => {
   selectedEngine.value = engine
   // Update the database form's engine
   if (databaseForm.value && databaseForm.value.database) {

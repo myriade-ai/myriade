@@ -3,30 +3,34 @@ import axios from '@/plugins/axios'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+export type Engine = 'postgres' | 'mysql' | 'snowflake' | 'sqlite' | 'bigquery' | 'motherduck'
+
 export interface Database {
   id: string
   createdAt: Date
   name: string
-  engine: string
-  details: any
+  engine: Engine | null
+  details: Record<string, string | number | undefined | null> | null
   public: boolean
   safe_mode: boolean
-  dbt_catalog: any
-  dbt_manifest: any
+  dbt_catalog: unknown
+  dbt_manifest: unknown
 }
 
-export const makeEmptyDatabase = () => ({
-  id: '',
-  createdAt: new Date(),
-  name: '',
-  engine: '',
-  details: null,
-  safe_mode: false,
-  dbt_catalog: null,
-  dbt_manifest: null
-})
+export const makeEmptyDatabase = () =>
+  ({
+    id: '',
+    createdAt: new Date(),
+    name: '',
+    engine: null,
+    details: null,
+    safe_mode: false,
+    dbt_catalog: null,
+    dbt_manifest: null,
+    public: false
+  }) satisfies Database
 
-export const getDefaultDetailsForEngine = (engine: string) => {
+export const getDefaultDetailsForEngine = (engine: Engine) => {
   switch (engine) {
     case 'postgres':
       return { host: '', port: 5432, user: '', password: '', database: '' }
@@ -46,18 +50,22 @@ export const getDefaultDetailsForEngine = (engine: string) => {
       return { filename: '' }
     case 'bigquery':
       return { project_id: '', service_account_json: null }
+    case 'motherduck':
+      return { token: '', database: '' }
     default:
+      engine satisfies never
       throw new Error('Unsupported engine')
   }
 }
 
-export const getDatabaseTypeName = (engine: string) => {
-  const engineNames: Record<string, string> = {
+export const getDatabaseTypeName = (engine: Engine) => {
+  const engineNames: Record<Engine, string> = {
     postgres: 'PostgreSQL',
     mysql: 'MySQL',
     snowflake: 'Snowflake',
     sqlite: 'SQLite',
-    bigquery: 'BigQuery'
+    bigquery: 'BigQuery',
+    motherduck: 'MotherDuck'
   }
   return engineNames[engine] || engine
 }
