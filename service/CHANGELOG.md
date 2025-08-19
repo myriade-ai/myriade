@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.36.1 (2025-08-19)
+
+### Bug Fixes
+
+- Wrong count on base table display
+  ([`f9d9540`](https://github.com/myriade-ai/myriade/commit/f9d95403e7549fa9117cf9547e173b1951c0c93f))
+
+
 ## v0.36.0 (2025-08-19)
 
 ### Features
