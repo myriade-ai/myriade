@@ -46,7 +46,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^18.14.2",
+    "@types/tabulator-tables": "^6.2.10",
     "@vitejs/plugin-vue": "^5.2.3",
     "@vue/tsconfig": "^0.7.0",
     "eslint": "^9.22.0",

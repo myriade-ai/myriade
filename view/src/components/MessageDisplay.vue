@@ -104,7 +104,7 @@
         <div v-if="part.type === 'query'" :key="`query-${index}`">
           <BaseEditorPreview
             :queryId="part.query_id"
-            :databaseId="databaseSelectedId"
+            :databaseId="databaseSelectedId ?? undefined"
           ></BaseEditorPreview>
         </div>
         <div v-if="part.type === 'chart'" :key="`chart-${index}`">
@@ -116,7 +116,12 @@
           :read-only="true"
           :key="`sql-${index}`"
         ></BaseEditor>
-        <BaseTable v-if="part.type === 'json'" :data="part.content" :key="`json-${index}`" />
+        <BaseTable
+          v-if="part.type === 'json'"
+          :data="part.content"
+          :key="`json-${index}`"
+          :count="part.content.length"
+        />
         <!-- TODO: remove -->
         <Echart v-if="part.type === 'echarts'" :option="part.content" :key="`echarts-${index}`" />
       </template>
@@ -143,7 +148,7 @@
         <BaseEditorPreview
           v-else-if="props.message.functionCall?.name === 'submit'"
           :queryId="props.message.queryId"
-          :databaseId="databaseSelectedId"
+          :databaseId="databaseSelectedId ?? undefined"
         ></BaseEditorPreview>
         <pre v-else class="arguments">{{ props.message.functionCall?.arguments }}</pre>
       </div>
@@ -222,7 +227,7 @@ async function executeSql(sql: string) {
   try {
     const result = await axios.post('/api/query/_run', {
       query: sql,
-      databaseId: databaseSelectedId.value
+      databaseId: databaseSelectedId
     })
     console.log(result.data.rows)
     sqlResult.value = result.data.rows
@@ -232,15 +237,22 @@ async function executeSql(sql: string) {
   }
 }
 
-const parsedText = computed(() => {
+const parsedText = computed<
+  Array<{ type: string; content: any; query_id?: string; chart_id?: string }>
+>(() => {
   const regex = /```((?:sql|json|error|ya?ml-graph|echarts))\s*([\s\S]*?)\s*```/g
   let match
   let lastIndex = 0
-  const parts: Array<{ type: string; content: any }> = []
+  const parts: Array<{ type: string; content: any; query_id?: string; chart_id?: string }> = []
 
   // if content is a list, return it as is
   if (Array.isArray(props.message.content)) {
-    return props.message.content
+    return props.message.content as Array<{
+      type: string
+      content: any
+      query_id?: string
+      chart_id?: string
+    }>
   }
 
   while ((match = regex.exec(props.message.content)) !== null) {
