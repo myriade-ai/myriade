@@ -1,6 +1,17 @@
 # CHANGELOG
 
 
+## v0.36.2 (2025-08-20)
+
+### Bug Fixes
+
+- Prevent default behavior on enter key
+  ([`a660fa6`](https://github.com/myriade-ai/myriade/commit/a660fa6984b02cee1496c1ff8e2911d1b8631a0b))
+
+- Replace anchor tags with router-link for navigation
+  ([`13b6ad0`](https://github.com/myriade-ai/myriade/commit/13b6ad01c121ad6be7be62a2b5d56659732c8c09))
+
+
 ## v0.36.1 (2025-08-19)
 
 ### Bug Fixes
