@@ -84,7 +84,7 @@ def handle_query_by_id(query_id: uuid.UUID):
     return jsonify(response)
 
 
-@api.route("/query/<query_id>/results", methods=["GET"])
+@api.route("/query/<uuid:query_id>/results", methods=["GET"])
 @user_middleware
 @query_middleware
 def get_query_results_by_id(query_id):

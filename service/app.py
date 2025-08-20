@@ -1,15 +1,21 @@
-import config  # noqa: F401, I001
-import logging
-import logging.config
-from back.session import get_db_session
-from flask import Flask, g, jsonify, request, send_from_directory
-from flask_socketio import SocketIO
-from werkzeug.middleware.proxy_fix import ProxyFix
-import telemetry
+import eventlet
+
+# Apply eventlet monkey patch BEFORE any other imports
+# Use more aggressive patching to ensure all threading is covered
+eventlet.monkey_patch()
+
+
+import config  # noqa: E402, F401, I001
+import logging  # noqa: E402
+from back.session import get_db_session  # noqa: E402
+from flask import Flask, g, jsonify, request, send_from_directory  # noqa: E402
+from flask_socketio import SocketIO  # noqa: E402
+from werkzeug.middleware.proxy_fix import ProxyFix  # noqa: E402
+import telemetry  # noqa: E402
 
 
 # Configure JSON logging
-from pythonjsonlogger import jsonlogger
+from pythonjsonlogger import jsonlogger  # noqa: E402
 
 handler = logging.StreamHandler()
 formatter = jsonlogger.JsonFormatter(
@@ -23,9 +29,7 @@ logger = logging.getLogger(__name__)
 
 socketio = SocketIO(
     cors_allowed_origins="*",
-    # We use eventlet in production, threading in development
-    async_mode="threading" if config.ENV == "development" else "eventlet",
-    transports=["polling"],
+    async_mode="eventlet",
 )
 
 if config.SENTRY_DSN:

@@ -5,11 +5,9 @@ from enum import StrEnum
 from typing import List, Optional
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql import text
 
-from db import Base, DefaultBase, SerializerMixin
+from db import UUID, Base, DefaultBase, SerializerMixin
 
 
 class Status(StrEnum):
@@ -52,10 +50,9 @@ class Issue(SerializerMixin, Base, DefaultBase):
     __tablename__ = "issues"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUID(),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
-        default=uuid.uuid4,  # for sqlite
+        default=uuid.uuid4,
     )
     title: Mapped[str] = mapped_column(String(256), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
@@ -63,20 +60,20 @@ class Issue(SerializerMixin, Base, DefaultBase):
     severity: Mapped[Severity] = mapped_column(Enum(Severity), nullable=True)
     status: Mapped[Status] = mapped_column(Enum(Status), default=Status.OPEN)
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("database.id"), nullable=True
+        UUID(), ForeignKey("database.id"), nullable=True
     )
     database = relationship("Database", back_populates="issues")
     message_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("conversation_message.id"), nullable=True
+        UUID(), ForeignKey("conversation_message.id"), nullable=True
     )
     from_message = relationship("ConversationMessage", back_populates="issues")
     business_entity_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("business_entity.id"), nullable=True
+        UUID(), ForeignKey("business_entity.id"), nullable=True
     )
     business_entity = relationship("BusinessEntity", back_populates="issues")
 
     def __repr__(self) -> str:
-        return f"<{self.type}[{self.id[:8]}] {self.title!r}>"
+        return f"<Issue[{str(self.id)[:8]}] {self.title!r}>"
 
 
 @dataclass
@@ -86,10 +83,9 @@ class BusinessEntity(SerializerMixin, Base, DefaultBase):
     __tablename__ = "business_entity"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUID(),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
-        default=uuid.uuid4,  # for sqlite
+        default=uuid.uuid4,
     )
     name: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     definition: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -99,10 +95,10 @@ class BusinessEntity(SerializerMixin, Base, DefaultBase):
     review_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     report: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id"), nullable=False
     )
     review_conversation_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("conversation.id"), nullable=True
+        UUID(), ForeignKey("conversation.id"), nullable=True
     )
     issues: Mapped[List["Issue"]] = relationship(
         "Issue", back_populates="business_entity"

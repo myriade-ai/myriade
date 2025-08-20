@@ -1,15 +1,14 @@
 import datetime
 import logging
 import os
-import uuid
 
 import anthropic
 import nest_asyncio
 import yaml
 from autochat import Autochat, Message
 from autochat.chat import StopLoopException
-from flask_socketio import emit
 
+from app import socketio
 from chat.dbt_utils import DBT
 from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
@@ -117,7 +116,7 @@ class DataAnalystAgent:
             "echarts",
         )
         semantic_catalog = SemanticCatalog(
-            self.session, self.conversation.id, self.conversation.databaseId
+            self.session, str(self.conversation.id), str(self.conversation.databaseId)
         )
         self.agent.add_tool(semantic_catalog, "semantic_catalog")
         if (
@@ -134,8 +133,9 @@ class DataAnalystAgent:
             self.agent.add_tool(notes, "notes")
 
     def check_stop_flag(self):
-        if self.stop_flags.get(self.conversation.id):
-            del self.stop_flags[self.conversation.id]  # Remove the stop flag
+        conversation_id = str(self.conversation.id) if self.conversation else None
+        if conversation_id and self.stop_flags.get(conversation_id):
+            del self.stop_flags[conversation_id]  # Remove the stop flag
             raise StopException("Query stopped by user")
 
     @property
@@ -165,7 +165,7 @@ class DataAnalystAgent:
         Args:
             queryId: The id of the query to execute
         """  # noqa: E501
-        query = self.session.query(Query).filter_by(id=uuid.UUID(queryId)).first()
+        query = self.session.query(Query).filter_by(id=queryId).first()
         if not query:
             raise ValueError(f"Query with id {queryId} not found")
         # We update the message with the query id
@@ -244,7 +244,8 @@ class DataAnalystAgent:
                 # We re-emit the status in case the user has refreshed the page
                 emit_status(self.conversation.id, STATUS.RUNNING)
                 message = ConversationMessage.from_autochat_message(m)
-                message.conversationId = self.conversation.id
+                if self.conversation:
+                    message.conversationId = self.conversation.id
                 self.session.add(message)
                 try:
                     self.session.flush()
@@ -256,17 +257,27 @@ class DataAnalystAgent:
         except StopException:
             emit_status(self.conversation.id, STATUS.CLEAR)
         except Exception as e:
-            if isinstance(e, anthropic.APIStatusError) and e.status_code == 402:
-                # Custom error for subscription required
-                emit(
-                    "error",
-                    {
-                        "message": "SUBSCRIPTION_REQUIRED",
-                        "conversationId": str(self.conversation.id),
-                    },
+            # Handle database errors carefully
+            try:
+                if isinstance(e, anthropic.APIStatusError) and e.status_code == 402:
+                    # Custom error for subscription required
+
+                    socketio.emit(
+                        "error",
+                        {
+                            "message": "SUBSCRIPTION_REQUIRED",
+                            "conversationId": str(self.conversation.id),
+                        },
+                    )
+                    return
+                emit_status(self.conversation.id, STATUS.ERROR, e)
+            except Exception as status_error:
+                # If we can't emit status due to database issues, log it
+                logger.error(
+                    "Failed to emit error status",
+                    exc_info=True,
+                    extra={"original_error": str(e), "status_error": str(status_error)},
                 )
-                return
-            emit_status(self.conversation.id, STATUS.ERROR, e)
             import traceback
 
             traceback.print_exc()
