@@ -8,7 +8,9 @@
           <ComboboxInput
             class="w-full border-gray-300 rounded-md py-2 pl-3 pr-10 text-sm text-gray-900 focus:ring-0"
             @change="query = $event.target.value"
-            :displayValue="(items) => items.map((item) => item.label).join(', ')"
+            :displayValue="
+              (items) => (Array.isArray(items) ? items.map((i: Item) => i.label).join(', ') : '')
+            "
           />
           <ComboboxButton class="absolute inset-y-0 right-0 flex items-center pr-2">
             <ChevronUpDownIcon class="h-5 w-5 text-gray-400" aria-hidden="true" />
@@ -64,6 +66,7 @@
                         'absolute right-0 h-4 w-4 rounded-sm border-gray-300 focus:ring-primary-500',
                         isGroupSelected(group) ? 'text-gray-600' : 'text-primary-600'
                       ]"
+                      @click.prevent.stop
                     />
                   </div>
                 </li>
@@ -95,7 +98,7 @@ import { ChevronUpDownIcon } from '@heroicons/vue/20/solid'
 export interface Item {
   id: string
   label: string
-  [key: string]: any // For any additional properties
+  [key: string]: string | number | boolean | undefined
 }
 
 export interface Group {
