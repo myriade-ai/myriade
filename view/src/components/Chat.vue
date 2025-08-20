@@ -316,6 +316,8 @@ const editMode = ref<'text' | 'SQL'>('text')
 const showSubscriptionPrompt = computed(() => conversationsStore.subscriptionRequired)
 
 const handleEnter = (event: KeyboardEvent) => {
+  event.preventDefault()
+
   if (!event.shiftKey) {
     handleSendMessage()
   }
@@ -366,6 +368,7 @@ const clearInput = () => {
 const resizeTextarea = () => {
   // Wait for next tick to get the updated DOM.
   nextTick(() => {
+    if (!inputTextarea.value) return
     inputTextarea.value.style.height = 'auto'
     inputTextarea.value.style.height = inputTextarea.value.scrollHeight + 'px'
   })
@@ -426,7 +429,7 @@ watch(
 
 const fetchAISuggestions = async () => {
   try {
-    const response = await axios.get(`/api/contexts/${contextsStore.contextSelected.id}/questions`)
+    const response = await axios.get(`/api/contexts/${contextsStore.contextSelected?.id}/questions`)
     aiSuggestions.value = response.data
   } catch (error: any) {
     console.error('Error fetching AI suggestions:', error)
