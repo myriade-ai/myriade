@@ -1,6 +1,26 @@
 # CHANGELOG
 
 
+## v0.36.3 (2025-08-20)
+
+### Bug Fixes
+
+- Project creation ([#62](https://github.com/myriade-ai/myriade/pull/62),
+  [`0a623f9`](https://github.com/myriade-ai/myriade/commit/0a623f9babf8c512054d273e073550a1c6715f50))
+
+* fix: update project creation to handle databaseId correctly and return project as dictionary
+
+* fix: table selection in project creation
+
+* fix: add instructions to install charts tool package in backend setup
+
+---------
+
+Co-authored-by: Julian Jabin <julianjabin@MacBook-Pro-de-Julian.local>
+
+Co-authored-by: Benjamin <BenderV@users.noreply.github.com>
+
+
 ## v0.36.2 (2025-08-20)
 
 ### Bug Fixes
