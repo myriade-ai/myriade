@@ -34,6 +34,12 @@
    uv sync
    ```
 
+   Install the charts tool package inside the backend
+
+   ```bash
+   cd chat/tools/echarts-render && yarn install
+   ```
+
 2. **Configure environment variables**
    Create `.env.dev` in `/service`:
 
