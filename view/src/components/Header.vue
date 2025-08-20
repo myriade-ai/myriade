@@ -4,10 +4,10 @@
       <div class="flex justify-between h-16">
         <div class="flex text-xl font-bold">
           <div class="shrink-0 flex items-center">
-            <a href="/" class="flex items-center">
+            <router-link to="/" class="flex items-center">
               <img src="/logo.svg?v=3" class="h-10 w-auto hidden sm:inline" />
               <img src="/icon.svg?v=3" class="h-10 w-auto sm:hidden" />
-            </a>
+            </router-link>
           </div>
           <div class="hidden sm:-my-px sm:ml-6 sm:flex sm:space-x-8">
             <router-link
@@ -66,11 +66,12 @@
                   @click="item.click()"
                   v-slot="{ active }"
                 >
-                  <a
+                  <router-link
+                    :to="item.href"
                     :class="[active ? 'bg-gray-100' : '', 'block px-4 py-2 text-sm text-gray-700']"
                   >
                     {{ item.name }}
-                  </a>
+                  </router-link>
                 </MenuItem>
               </MenuItems>
             </transition>
