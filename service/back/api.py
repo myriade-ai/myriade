@@ -476,7 +476,10 @@ def create_project():
     if not all(field in data for field in required_fields):
         return jsonify({"error": "Missing required fields"}), 400
 
-    new_project = Project(**{field: data[field] for field in required_fields})
+    new_project = Project(
+        **{field: data[field] for field in required_fields if field != "databaseId"},
+        databaseId=UUID(data["databaseId"]),
+    )
     new_project.creatorId = g.user.id
     new_project.organisationId = g.organization_id
 
@@ -493,7 +496,7 @@ def create_project():
 
     g.session.add(new_project)
     g.session.flush()
-    return jsonify(new_project)
+    return jsonify(new_project.to_dict())
 
 
 @api.route("/projects/<uuid:project_id>", methods=["PUT"])
