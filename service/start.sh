@@ -17,6 +17,20 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
+# Run OS-specific setup only in dev or test environments
+if [ "$1" = "dev" ] || [ "$1" = "test" ]; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS - export Homebrew library paths for Cairo
+        export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export DYLD_LIBRARY_PATH="/opt/homebrew/lib:$DYLD_LIBRARY_PATH"
+        echo "🍎 Detected macOS - Setting up Homebrew Cairo paths"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        echo "🐧 Linux might work"
+    else
+        echo "⚠️  Unknown OS type: $OSTYPE - Using default paths"
+    fi
+fi
+
 # Set the environment file name
 if [ "$1" = "dev" ]; then
     export DOTENV_FILE=".env.dev"
