@@ -17,12 +17,10 @@ from sqlalchemy import (
     String,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql import text
 
 from chat.utils import parse_answer_text
-from db import JSONB, Base, DefaultBase, SerializerMixin
+from db import JSONB, UUID, Base, DefaultBase, SerializerMixin
 
 from .quality import (
     BusinessEntity,  # noqa: F401
@@ -57,10 +55,9 @@ class Database(SerializerMixin, DefaultBase, Base):
     __tablename__ = "database"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUID(),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),  # for postgres
-        default=uuid.uuid4,  # for sqlite
+        default=uuid.uuid4,
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String)
@@ -137,13 +134,12 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
     __tablename__ = "conversation_message"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUID(),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
-        default=uuid.uuid4,  # for sqlite
+        default=uuid.uuid4,
     )
     conversationId: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("conversation.id"), nullable=False
+        UUID(), ForeignKey("conversation.id"), nullable=False
     )
     role: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[Optional[str]] = mapped_column(String)
@@ -151,14 +147,14 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
     functionCall: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
     data: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
     queryId: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("query.id"), nullable=True
+        UUID(), ForeignKey("query.id"), nullable=True
     )
     reqId: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     functionCallId: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     image: Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True)
     isAnswer: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     chartId: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("chart.id"), nullable=True
+        UUID(), ForeignKey("chart.id"), nullable=True
     )
 
     conversation: Mapped["Conversation"] = relationship(back_populates="messages")
@@ -234,18 +230,17 @@ class Conversation(SerializerMixin, DefaultBase, Base):
     __tablename__ = "conversation"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUID(),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
-        default=uuid.uuid4,  # for sqlite
+        default=uuid.uuid4,
     )
     name: Mapped[Optional[str]] = mapped_column(String)
     ownerId: Mapped[Optional[str]] = mapped_column(String, ForeignKey("user.id"))
     projectId: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("project.id")
+        UUID(), ForeignKey("project.id")
     )
     databaseId: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id"), nullable=False
     )
 
     owner: Mapped[Optional["User"]] = relationship()
@@ -265,14 +260,13 @@ class Query(SerializerMixin, DefaultBase, Base):
     __tablename__ = "query"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUID(),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
-        default=uuid.uuid4,  # for sqlite
+        default=uuid.uuid4,
     )
     title: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     databaseId: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id"), nullable=False
     )
     sql: Mapped[Optional[str]] = mapped_column(String)
     # Optimal type to store large results
@@ -299,15 +293,12 @@ class Chart(SerializerMixin, DefaultBase, Base):
     __tablename__ = "chart"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUID(),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
-        default=uuid.uuid4,  # for sqlite
+        default=uuid.uuid4,
     )
     config: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
-    queryId: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("query.id")
-    )
+    queryId: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(), ForeignKey("query.id"))
     query: Mapped[Optional["Query"]] = relationship(back_populates="charts")
     conversation_messages: Mapped[List["ConversationMessage"]] = relationship(
         "ConversationMessage", back_populates="chart", lazy="joined"
@@ -345,13 +336,12 @@ class ProjectTables(SerializerMixin, DefaultBase, Base):
     __tablename__ = "project_tables"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUID(),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
-        default=uuid.uuid4,  # for sqlite
+        default=uuid.uuid4,
     )
     projectId: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("project.id"), nullable=False
+        UUID(), ForeignKey("project.id"), nullable=False
     )
     databaseName: Mapped[Optional[str]] = mapped_column(String)
     schemaName: Mapped[Optional[str]] = mapped_column(String)
@@ -365,10 +355,9 @@ class Project(SerializerMixin, DefaultBase, Base):
     __tablename__ = "project"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUID(),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
-        default=uuid.uuid4,  # for sqlite
+        default=uuid.uuid4,
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
@@ -379,7 +368,7 @@ class Project(SerializerMixin, DefaultBase, Base):
         String, ForeignKey("organisation.id")
     )
     databaseId: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id"), nullable=False
     )
 
     creator: Mapped["User"] = relationship()
@@ -407,15 +396,14 @@ class Note(SerializerMixin, DefaultBase, Base):
     __tablename__ = "note"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUID(),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
-        default=uuid.uuid4,  # for sqlite
+        default=uuid.uuid4,
     )
     title: Mapped[Optional[str]] = mapped_column(String)
     content: Mapped[Optional[str]] = mapped_column(String)
     projectId: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("project.id")
+        UUID(), ForeignKey("project.id")
     )
     project: Mapped[Optional["Project"]] = relationship(back_populates="notes")
 
@@ -427,17 +415,16 @@ class UserFavorite(SerializerMixin, DefaultBase, Base):
     __tablename__ = "user_favorite"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUID(),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
-        default=uuid.uuid4,  # for sqlite
+        default=uuid.uuid4,
     )
     user_id: Mapped[str] = mapped_column(String, ForeignKey("user.id"), nullable=False)
     query_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("query.id"), nullable=True
+        UUID(), ForeignKey("query.id"), nullable=True
     )
     chart_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("chart.id"), nullable=True
+        UUID(), ForeignKey("chart.id"), nullable=True
     )
 
     __table_args__ = (
@@ -471,8 +458,7 @@ class Metadata(SerializerMixin, DefaultBase, Base):
     __tablename__ = "metadata"
 
     instance_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        UUID(),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
-        default=uuid.uuid4,  # for sqlite
+        default=uuid.uuid4,
     )

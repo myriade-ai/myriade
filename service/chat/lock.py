@@ -1,6 +1,6 @@
 from threading import Lock
 
-from flask_socketio import emit
+from app import socketio
 
 conversation_stop_flags: dict[str, bool] = {}
 stop_flag_lock = Lock()
@@ -43,7 +43,7 @@ def clear_stop_flag(conversation_id: str) -> None:
 
 
 def emit_status(conversation_id, status, error=None):
-    emit(
+    socketio.emit(
         "status",
         {
             "conversation_id": str(conversation_id),

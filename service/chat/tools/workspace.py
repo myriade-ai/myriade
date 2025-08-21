@@ -1,10 +1,12 @@
+from uuid import UUID
+
 from sqlalchemy.orm import Session
 
 from models import Chart, ConversationMessage, Query
 
 
 class WorkspaceTool:
-    def __init__(self, session: Session, conversation_id: int):
+    def __init__(self, session: Session, conversation_id: UUID):
         self.session = session
         self.conversation_id = conversation_id
         self.conversation_queries = []
@@ -30,11 +32,9 @@ class WorkspaceTool:
         )
         context += "Charts:\n"
         for chart in self.conversation_charts:
-            # TODO: should display the chart image instead of the config?
             try:
-                title = chart.config["title"]["text"]
-                context += f"Chart {chart.id}: {title}\n"
-            except KeyError:
-                # We don't want to add broken Chart here
-                pass
+                title = chart.config["title"]["text"]  # type: ignore
+            except (AttributeError, KeyError, TypeError):
+                title = "Untitled"
+            context += f"Chart {chart.id}: {title}\n"
         return context

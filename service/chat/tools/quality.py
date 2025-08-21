@@ -12,7 +12,9 @@ from models.quality import BusinessEntity, Issue, IssueScope, Severity, Status
 class SemanticCatalog:
     """A catalog of business entities with their quality metrics."""
 
-    def __init__(self, session: Session, conversation_id: str, database_id: str):
+    def __init__(
+        self, session: Session, conversation_id: uuid.UUID, database_id: uuid.UUID
+    ):
         self.session = session
         self.conversation_id = conversation_id
         self.database_id = database_id
