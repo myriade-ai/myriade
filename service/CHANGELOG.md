@@ -1,6 +1,34 @@
 # CHANGELOG
 
 
+## v0.36.4 (2025-08-21)
+
+### Bug Fixes
+
+- Stop button not working ([#66](https://github.com/myriade-ai/myriade/pull/66),
+  [`6f4aeba`](https://github.com/myriade-ai/myriade/commit/6f4aeba8076fa3e508c2f95ae385aae72d9684bf))
+
+* refactor: enhance error handling in analyst agent * fix: stop button not working
+
+### Chores
+
+- Remove deprecated deploy script
+  ([`5255a50`](https://github.com/myriade-ai/myriade/commit/5255a504a4b0260a26db4b6b3527cd161ffa021b))
+
+### Refactoring
+
+- Use eventlet in dev and create custom UUID class to support pgsql/sqlite
+  ([#64](https://github.com/myriade-ai/myriade/pull/64),
+  [`3cc72c9`](https://github.com/myriade-ai/myriade/commit/3cc72c95eaea76c70d0d89a2ac5f355be14c1de4))
+
+* refactor: use eventlet in dev and create custom UUID class to support pgsql/sqlite * refactor:
+  enhance error handling in analyst agent
+
+---------
+
+Authored-by: Julian Jabin <julianjabin@MacBook-Pro-de-Julian.local>
+
+
 ## v0.36.3 (2025-08-20)
 
 ### Bug Fixes
