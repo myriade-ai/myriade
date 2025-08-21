@@ -10,7 +10,11 @@ from app import socketio
 from auth.auth import UnauthorizedError, socket_auth
 from back.session import with_session
 from chat.analyst_agent import DataAnalystAgent
-from chat.lock import STATUS, clear_stop_flag, emit_status, set_stop_flag
+from chat.lock import (
+    STATUS,
+    emit_status,
+    set_stop_flag,
+)
 from models import Conversation, ConversationMessage
 
 api = Blueprint("chat_api", __name__)
@@ -108,18 +112,15 @@ def handle_stop(session, conversation_id: str):
         "Received stop signal for conversation",
         extra={"conversation_id": conversation_id},
     )
-    # Stop the query
-    set_stop_flag(conversation_id)
-    emit_status(conversation_id, STATUS.TO_STOP)
+    # Stop the query - convert string to UUID for the lock functions
+    set_stop_flag(UUID(conversation_id))
+    emit_status(UUID(conversation_id), STATUS.TO_STOP)
 
 
 @socketio.on("ask")
 @socket_auth_required
 @conversation_auth_required
 def handle_ask(session, conversation_id, question):
-    # We reset stop flag if the user sent a new request
-    clear_stop_flag(conversation_id)
-
     conversation = (
         session.query(Conversation).filter_by(id=UUID(conversation_id)).first()
     )
@@ -155,14 +156,9 @@ def handle_ask(session, conversation_id, question):
 def handle_query(
     session,
     query,
-    conversation_id=None,
+    conversation_id: UUID | None = None,
 ):
-    # We reset stop flag if the user sent a new request
-    clear_stop_flag(conversation_id)
-
-    conversation = (
-        session.query(Conversation).filter_by(id=UUID(conversation_id)).first()
-    )
+    conversation = session.query(Conversation).filter_by(id=conversation_id).first()
     agent = DataAnalystAgent(
         session,
         conversation,
@@ -214,9 +210,6 @@ def handle_regenerate_from_message(
     If the message is from the assistant, delete it
     If the message is from the user, regenerate the conversation from the next message
     """
-    # We reset stop flag if the user sent a new request
-    clear_stop_flag(conversation_id)
-
     # if message_content is not None, it means the user has edited the message
     if message_content is not None:
         message = (
