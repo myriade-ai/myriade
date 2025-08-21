@@ -2,7 +2,6 @@ import datetime
 import logging
 import os
 
-import anthropic
 import nest_asyncio
 import yaml
 from autochat import Autochat, Message
@@ -116,7 +115,7 @@ class DataAnalystAgent:
             "echarts",
         )
         semantic_catalog = SemanticCatalog(
-            self.session, str(self.conversation.id), str(self.conversation.databaseId)
+            self.session, self.conversation.id, self.conversation.databaseId
         )
         self.agent.add_tool(semantic_catalog, "semantic_catalog")
         if (
@@ -257,9 +256,8 @@ class DataAnalystAgent:
         except StopException:
             emit_status(self.conversation.id, STATUS.CLEAR)
         except Exception as e:
-            # Handle database errors carefully
             try:
-                if isinstance(e, anthropic.APIStatusError) and e.status_code == 402:
+                if getattr(e, "status_code", None) == 402:
                     # Custom error for subscription required
 
                     socketio.emit(
@@ -272,12 +270,13 @@ class DataAnalystAgent:
                     return
                 emit_status(self.conversation.id, STATUS.ERROR, e)
             except Exception as status_error:
-                # If we can't emit status due to database issues, log it
+                # If we can't emit status due to database issues, log it and emit
                 logger.error(
                     "Failed to emit error status",
                     exc_info=True,
                     extra={"original_error": str(e), "status_error": str(status_error)},
                 )
+                emit_status(self.conversation.id, STATUS.ERROR, status_error)
             import traceback
 
             traceback.print_exc()

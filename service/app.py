@@ -1,7 +1,6 @@
 import eventlet
 
 # Apply eventlet monkey patch BEFORE any other imports
-# Use more aggressive patching to ensure all threading is covered
 eventlet.monkey_patch()
 
 
