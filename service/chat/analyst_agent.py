@@ -64,13 +64,9 @@ class DataAnalystAgent:
     def __init__(
         self,
         session,
-        conversation: Conversation = None,
-        stop_flags: dict[str, bool] = None,
+        conversation: Conversation,
         model=None,
     ):
-        if stop_flags is None:
-            stop_flags = {}
-        self.stop_flags = stop_flags
         self.session = session
         self.conversation = conversation
 
@@ -132,9 +128,9 @@ class DataAnalystAgent:
             self.agent.add_tool(notes, "notes")
 
     def check_stop_flag(self):
-        conversation_id = str(self.conversation.id) if self.conversation else None
-        if conversation_id and self.stop_flags.get(conversation_id):
-            del self.stop_flags[conversation_id]  # Remove the stop flag
+        from chat.lock import check_and_clear_stop_flag
+
+        if check_and_clear_stop_flag(self.conversation.id):
             raise StopException("Query stopped by user")
 
     @property
@@ -253,6 +249,11 @@ class DataAnalystAgent:
                     raise
                 yield message
             emit_status(self.conversation.id, STATUS.CLEAR)
+
+            # Clear any stop flag since the conversation completed normally
+            from chat.lock import clear_stop_flag
+
+            clear_stop_flag(self.conversation.id)
         except StopException:
             emit_status(self.conversation.id, STATUS.CLEAR)
         except Exception as e:

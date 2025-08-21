@@ -1,8 +1,9 @@
+import uuid
 from threading import Lock
 
 from app import socketio
 
-conversation_stop_flags: dict[str, bool] = {}
+conversation_stop_flags: dict[uuid.UUID, bool] = {}
 stop_flag_lock = Lock()
 
 
@@ -17,7 +18,7 @@ class STATUS:
     ERROR = "error"
 
 
-def check_and_clear_stop_flag(conversation_id: str) -> bool:
+def check_and_clear_stop_flag(conversation_id: uuid.UUID) -> bool:
     """Thread-safe check and clear of stop flag for a conversation.
 
     Returns:
@@ -30,13 +31,13 @@ def check_and_clear_stop_flag(conversation_id: str) -> bool:
         return False
 
 
-def set_stop_flag(conversation_id: str) -> None:
+def set_stop_flag(conversation_id: uuid.UUID) -> None:
     """Thread-safe setting of stop flag for a conversation."""
     with stop_flag_lock:
         conversation_stop_flags[conversation_id] = True
 
 
-def clear_stop_flag(conversation_id: str) -> None:
+def clear_stop_flag(conversation_id: uuid.UUID) -> None:
     """Thread-safe clearing of stop flag for a conversation."""
     with stop_flag_lock:
         conversation_stop_flags.pop(conversation_id, None)
