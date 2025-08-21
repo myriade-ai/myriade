@@ -8,7 +8,7 @@ from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.types import JSON, TypeDecorator
+from sqlalchemy.types import JSON, String, TypeDecorator
 
 Base = declarative_base()
 
@@ -41,6 +41,55 @@ class JSONB(TypeDecorator):
         if dialect.name == "postgresql":
             return dialect.type_descriptor(PG_JSONB())
         return dialect.type_descriptor(JSON())
+
+
+class UUID(TypeDecorator):
+    """Custom UUID type that uses native UUID for PostgreSQL and String for SQLite."""
+
+    impl = String
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+
+            return dialect.type_descriptor(PG_UUID(as_uuid=True))
+        else:
+            return dialect.type_descriptor(String(36))
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        elif dialect.name == "postgresql":
+            return value
+        else:
+            # For non-PostgreSQL (SQLite), convert UUID to string without hyphens
+            # This matches the existing data format in SQLite
+            if isinstance(value, uuid.UUID):
+                return str(value).replace("-", "")
+            elif isinstance(value, str):
+                # Normalize string UUIDs by removing hyphens
+                return value.replace("-", "")
+            return value
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        elif dialect.name == "postgresql":
+            return value
+        else:
+            # For non-PostgreSQL (SQLite), convert string back to UUID
+            if isinstance(value, str):
+                # Add hyphens back to create a valid UUID
+                if len(value) == 32 and "-" not in value:
+                    formatted_uuid = (
+                        f"{value[:8]}-{value[8:12]}-{value[12:16]}-"
+                        f"{value[16:20]}-{value[20:]}"
+                    )
+                    return uuid.UUID(formatted_uuid)
+                else:
+                    return uuid.UUID(value)
+            return value
 
 
 class SerializerMixin:
