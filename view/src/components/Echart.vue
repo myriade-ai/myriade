@@ -5,6 +5,7 @@
 <script setup lang="ts">
 import { useQueryStore } from '@/stores/query'
 import 'echarts'
+import type { ECBasicOption } from 'echarts/types/dist/shared'
 import { computed, onMounted, ref } from 'vue'
 import VChart from 'vue-echarts'
 
@@ -21,13 +22,18 @@ const props = defineProps({
 })
 
 // Create a computed property that watches the input option
-const chartOption = computed(() => {
+const chartOption = computed<ECBasicOption>(() => {
   return {
     ...props.option,
+    title: {
+      text: props.option.title.text || 'Chart',
+      top: 5
+    },
+    // Keep it empty, it looks better
+    grid: {},
     dataset: {
       source: rows.value
     },
-    grid: { containLabel: true },
     tooltip: { extraCssText: 'width:200px; white-space:pre-wrap;' }
   }
 })

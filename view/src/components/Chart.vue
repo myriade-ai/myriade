@@ -28,14 +28,25 @@ const props = defineProps({
   chartId: String
 })
 
-const chartOption = ref({})
+interface ChartConfig {
+  query_id?: string
+  [key: string]: unknown
+}
+
+const chartOption = ref<ChartConfig>({})
 const isChartFavorite = ref(false)
 
 const handleToggleChartFavorite = async () => {
-  isChartFavorite.value = await toggleChartFavorite(props.chartId)
+  if (props.chartId) {
+    isChartFavorite.value = await toggleChartFavorite(props.chartId)
+  }
 }
 
 onMounted(async () => {
+  if (!props.chartId) {
+    return
+  }
+
   const chart = await fetchChart(props.chartId)
   chart.config = { ...chart.config, query_id: chart.queryId }
   chartOption.value = chart.config
