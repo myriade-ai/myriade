@@ -1,6 +1,17 @@
 # CHANGELOG
 
 
+## v0.37.0 (2025-08-22)
+
+### Features
+
+- Update echarts to v6 ([#65](https://github.com/myriade-ai/myriade/pull/65),
+  [`b4ce47f`](https://github.com/myriade-ai/myriade/commit/b4ce47f1072f35d00f3bbb922a73ccdeb3ee397c))
+
+* refactor: use eventlet in dev and create custom UUID class to support pgsql/sqlite * refactor:
+  enhance error handling in analyst agent * feat: update echarts to v6 * fix: chart config type
+
+
 ## v0.36.4 (2025-08-21)
 
 ### Bug Fixes
