@@ -105,11 +105,21 @@ def get_conversation(conversation_id: UUID):
         .one()
     )
 
-    # Verify user owns this conversation
-    if conversation.ownerId != g.user.id:
+    # Verify user owns this conversation or that it's in the same organisation
+    user_owns_conversation = conversation.ownerId == g.user.id
+    user_in_same_org = (
+        g.organization_id is not None
+        and conversation.database.organisationId == g.organization_id
+    )
+
+    if not (user_owns_conversation or user_in_same_org):
         return jsonify({"error": "Access denied"}), 403
 
     if request.method == "PUT":
+        # Only allow updates if user owns the conversation
+        if not user_owns_conversation:
+            return jsonify({"error": "Cannot modify conversations you don't own"}), 403
+
         # Update conversation name
         conversation.name = request.json["name"]
         g.session.flush()
@@ -601,6 +611,13 @@ def get_chart(chart_id: UUID):
     chart = g.session.query(Chart).filter(Chart.id == chart_id).first()
     if not chart:
         return jsonify({"error": "Chart not found"}), 404
+
+    # Verify user has access to this chart
+    if (
+        chart.query.database.ownerId != g.user.id
+        and chart.query.database.organisationId != g.organization_id
+    ):
+        return jsonify({"error": "Access denied"}), 403
 
     chart_dict = chart.to_dict()
     # Add is_favorite to chart
