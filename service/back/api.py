@@ -586,6 +586,18 @@ def toggle_query_favorite(query_id: UUID):
     if not query:
         return jsonify({"error": "Query not found"}), 404
 
+    # Verify user has access to the query's database
+    database = g.session.query(Database).filter_by(id=query.databaseId).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
     favorite = (
         g.session.query(UserFavorite)
         .filter(UserFavorite.user_id == g.user.id, UserFavorite.query_id == query_id)
@@ -616,6 +628,7 @@ def get_chart(chart_id: UUID):
     if (
         chart.query.database.ownerId != g.user.id
         and chart.query.database.organisationId != g.organization_id
+        and not chart.query.database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -638,6 +651,14 @@ def toggle_chart_favorite(chart_id: UUID):
     chart = g.session.query(Chart).filter(Chart.id == chart_id).first()
     if not chart:
         return jsonify({"error": "Chart not found"}), 404
+
+    # Verify user has access to the chart's database via query relationship
+    if (
+        chart.query.database.ownerId != g.user.id
+        and chart.query.database.organisationId != g.organization_id
+        and not chart.query.database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
 
     favorite = (
         g.session.query(UserFavorite)
