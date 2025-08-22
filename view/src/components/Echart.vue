@@ -26,7 +26,7 @@ const chartOption = computed<ECBasicOption>(() => {
   return {
     ...props.option,
     title: {
-      text: props.option.title.text || 'Chart',
+      text: props.option.title.text || '',
       top: 5
     },
     // Keep it empty, it looks better
