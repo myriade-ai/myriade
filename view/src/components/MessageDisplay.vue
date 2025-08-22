@@ -107,7 +107,7 @@
             :databaseId="databaseSelectedId ?? undefined"
           ></BaseEditorPreview>
         </div>
-        <div v-if="part.type === 'chart'" :key="`chart-${index}`">
+        <div v-if="part.type === 'chart' && part.chart_id" :key="`chart-${index}`">
           <Chart :chartId="part.chart_id" />
         </div>
         <BaseEditor

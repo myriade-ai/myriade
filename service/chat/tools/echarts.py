@@ -24,7 +24,7 @@ class EchartsTool:
         from_response: ConversationMessage,
     ):
         """
-        Render a chart (using Echarts 4).
+        Render a chart (using Echarts 6).
         This is not shown to the user, but this will create a chart object
         That you can reference in the answer response.
         ---

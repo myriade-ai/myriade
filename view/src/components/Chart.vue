@@ -25,14 +25,24 @@ import { onMounted, ref } from 'vue'
 const { fetchChart, toggleChartFavorite } = useChartStore()
 
 const props = defineProps({
-  chartId: String
+  chartId: {
+    type: String,
+    required: true
+  }
 })
 
-const chartOption = ref({})
+interface ChartConfig {
+  query_id?: string
+  [key: string]: unknown
+}
+
+const chartOption = ref<ChartConfig>({})
 const isChartFavorite = ref(false)
 
 const handleToggleChartFavorite = async () => {
-  isChartFavorite.value = await toggleChartFavorite(props.chartId)
+  if (props.chartId) {
+    isChartFavorite.value = await toggleChartFavorite(props.chartId)
+  }
 }
 
 onMounted(async () => {

@@ -7,7 +7,7 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "echarts": "^5.4.3",
+    "echarts": "^6.0.0",
     "express": "^4.18.2",
     "body-parser": "^1.20.2"
   }
