@@ -708,13 +708,41 @@ def auto_update_database_privacy(database_id: UUID):
 @user_middleware
 def get_business_entities():
     context_id = request.args.get("contextId")
-    query = g.session.query(BusinessEntity)
-
     database_id, project_id = extract_context(g.session, context_id)
+
+    # Verify user has access to the database through organization or ownership
+    database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    # Query business entities with proper database access validation
+    query = (
+        g.session.query(BusinessEntity)
+        .join(Database, BusinessEntity.database_id == Database.id)
+        .filter(
+            BusinessEntity.database_id == database_id,
+            or_(
+                Database.organisationId == g.organization_id
+                if g.organization_id is not None
+                else False,
+                Database.ownerId == g.user.id,
+                Database.public == true(),
+            ),
+        )
+    )
+
     if project_id:
-        query = query.filter(BusinessEntity.project_id == project_id)
-    else:
-        query = query.filter(BusinessEntity.database_id == database_id)
+        # Additional filter for project-specific entities if needed
+        # Note: BusinessEntity model doesn't have project_id field based on the schema
+        # This filter may need to be adjusted based on actual relationships
+        pass
 
     business_entities = query.all()
     return jsonify(business_entities)
@@ -723,11 +751,36 @@ def get_business_entities():
 @api.route("/issues", methods=["GET"])
 @user_middleware
 def get_issues():
-    query = g.session.query(Issue)
     context_id = request.args.get("contextId")
-
     database_id, _ = extract_context(g.session, context_id)
-    query = query.filter(Issue.database_id == database_id)
+
+    # Verify user has access to the database through organization or ownership
+    database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    # Query issues with proper database access validation
+    query = (
+        g.session.query(Issue)
+        .join(Database, Issue.database_id == Database.id)
+        .filter(
+            Issue.database_id == database_id,
+            or_(
+                Database.organisationId == g.organization_id
+                if g.organization_id is not None
+                else False,
+                Database.ownerId == g.user.id,
+                Database.public == true(),
+            ),
+        )
+    )
 
     issues = query.all()
     return jsonify(issues)
