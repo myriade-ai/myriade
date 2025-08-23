@@ -1,6 +1,29 @@
 # CHANGELOG
 
 
+## v0.38.0 (2025-08-23)
+
+### Bug Fixes
+
+- Avoid sharing issues & business entities
+  ([`83f67ab`](https://github.com/myriade-ai/myriade/commit/83f67ab4c06f36d87b11696da16e92e7b183a53c))
+
+- Toggle favorites access
+  ([`e5c42ac`](https://github.com/myriade-ai/myriade/commit/e5c42acbad4eadc008b1078c1249126912373b56))
+
+### Features
+
+- Allow to share conversation in the same org
+  ([`ee20c1c`](https://github.com/myriade-ai/myriade/commit/ee20c1ce41ecd3263790f89bd1cc6ae5687684f4))
+
+### Refactoring
+
+- Use sharp to convert svg to png
+  ([`861e206`](https://github.com/myriade-ai/myriade/commit/861e206bd69d97b4ead849a09340c842aa8a1079))
+
+cairosvg was causing installation issues
+
+
 ## v0.37.0 (2025-08-22)
 
 ### Features
