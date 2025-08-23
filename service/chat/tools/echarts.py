@@ -3,7 +3,6 @@ import os
 import subprocess
 import uuid
 
-from cairosvg import svg2png
 from PIL import Image
 
 from chat.tools.chart_types import ChartOptions
@@ -33,6 +32,13 @@ class EchartsTool:
         Don't forget to Map from Data to Charts (series.encode) using the correct names
         Don't use specific color in the chart_options unless the user asked for it
         When creating bar charts with ECharts, make sure to set the correct axis types.
+
+        IMPORTANT: When using formatters with encoded data, use the {@column_name} syntax.
+        For example:
+        - For labels: "formatter": "{@nps_score}%"
+        - For tooltips: "formatter": "Mois: {@mois}<br/>Score NPS: {@nps_score}%"
+        - NOT: "formatter": "{c}%" (this will show [Object Object])
+
         Args:
             chart_options: The options of the chart. A dict, not a json dump
             query_id: The uuid of the query to execute
@@ -57,7 +63,7 @@ class EchartsTool:
         )
         rows, _ = self.data_warehouse.query(query.sql, role="llm")
         chart_options = chart_options.copy()
-        chart_options["dataset"] = {
+        chart_options["dataset"] = {  # type: ignore
             "source": rows,
         }
         json_str = json.dumps(chart_options, cls=JSONEncoder)  # Convert to string
@@ -72,18 +78,14 @@ class EchartsTool:
                 text=True,
                 check=True,
             )
-            render_path = os.path.join(current_dir, "echarts-render", "output.svg")
             output_path = os.path.join(current_dir, "echarts-render", "output.png")
             try:
-                with open(render_path, "r") as file:
-                    svg_content = file.read()
-                svg2png(bytestring=svg_content, write_to=output_path)
                 return Image.open(output_path)
             except FileNotFoundError:
-                return f"Error: Could not find output SVG file. \
+                return f"Error: Could not find output PNG file. \
                     Node.js output: {result.stdout}\nErrors: {result.stderr}"
             except Exception as e:
-                return f"Error reading SVG file: {str(e)}"
+                return f"Error reading PNG file: {str(e)}"
         except subprocess.CalledProcessError as e:
             return f"Error executing Node.js script: {e.stderr}"
         except Exception as e:

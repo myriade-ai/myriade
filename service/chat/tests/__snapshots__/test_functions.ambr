@@ -151,7 +151,7 @@
       }),
     }),
     dict({
-      'description': 'Render a chart (using Echarts 6). This is not shown to the user, but this will create a chart object That you can reference in the answer response. --- Provide the chart_options without the "dataset" parameter We will fill the dataset.source automatically with the SQL result Don\'t forget to Map from Data to Charts (series.encode) using the correct names Don\'t use specific color in the chart_options unless the user asked for it When creating bar charts with ECharts, make sure to set the correct axis types.',
+      'description': 'Render a chart (using Echarts 6). This is not shown to the user, but this will create a chart object That you can reference in the answer response. --- Provide the chart_options without the "dataset" parameter We will fill the dataset.source automatically with the SQL result Don\'t forget to Map from Data to Charts (series.encode) using the correct names Don\'t use specific color in the chart_options unless the user asked for it When creating bar charts with ECharts, make sure to set the correct axis types. IMPORTANT: When using formatters with encoded data, use the {@column_name} syntax. For example: - For labels: "formatter": "{@nps_score}%" - For tooltips: "formatter": "Mois: {@mois}<br/>Score NPS: {@nps_score}%" - NOT: "formatter": "{c}%" (this will show [Object Object])',
       'name': 'EchartsTool-echarts__preview_render',
       'parameters': dict({
         '$defs': dict({

@@ -1,6 +1,6 @@
 const echarts = require("echarts");
-const fs = require("fs");
 const path = require("path");
+const sharp = require("sharp")
 
 // Get the chart options from command line arguments
 const chartOptions = JSON.parse(process.argv[2]);
@@ -19,9 +19,20 @@ chart.setOption(chartOptions);
 // Get the SVG string
 const svgStr = chart.renderToSVGString();
 
-// Write to file
-fs.writeFileSync(path.join(__dirname, "output.svg"), svgStr, "utf-8");
-console.log("SVG chart has been generated as output.svg");
+const pngPath = path.join(__dirname, "output.png");
 
-// Dispose the chart
-chart.dispose();
+// Convert SVG to PNG using sharp
+sharp(Buffer.from(svgStr))
+  .png()
+  .toFile(pngPath)
+  .then(() => {
+    console.log("PNG chart has been generated as output.png");
+    // Dispose the chart
+    chart.dispose();
+  })
+  .catch(err => {
+    console.error("Error converting SVG to PNG:", err);
+    // Dispose the chart even if conversion fails
+    chart.dispose();
+    process.exit(1);
+  });
