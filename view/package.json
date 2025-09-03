@@ -25,8 +25,11 @@
     "@vueuse/core": "^13.0.0",
     "axios": "^1.8.2",
     "brace": "^0.11.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "echarts": "^6.0.0",
     "js-yaml": "^4.1.0",
+    "lucide-vue-next": "^0.542.0",
     "marked": "^14.0.0",
     "notiwind": "^2.1.0",
     "pinia": "^2.0.32",
@@ -35,7 +38,9 @@
     "socket.io-client": "^4.8.1",
     "sql-prettier": "^0.2.10",
     "tabulator-tables": "^5.4.4",
+    "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.5",
+    "tw-animate-css": "^1.3.8",
     "vee-validate": "^4.8.3",
     "vue": "^3.5.13",
     "vue-echarts": "^8.0.0-beta.1",
@@ -63,5 +68,6 @@
     "vite": "^6.3.5",
     "vue-eslint-parser": "^10.1.1",
     "vue-tsc": "^2.2.8"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
