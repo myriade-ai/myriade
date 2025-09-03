@@ -9,21 +9,38 @@
     <span class="hidden sm:inline ml-2">Add Database</span>
   </BaseButton>
   <div class="flex items-center">
-    <BaseSelector
-      :options="contextsStore.contexts"
-      v-model="contextsStore.contextSelectedId"
-      @update:modelValue="contextsStore.setSelectedContext"
-      class="w-48 h-10"
-      placeholder="Select context"
-      :disabled="disabled"
-    />
+    <Select v-model="contextsStore.contextSelectedId">
+      <SelectTrigger>
+        <SelectValue placeholder="Select a context" class="w-42" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          <SelectLabel>Contexts</SelectLabel>
+          <SelectItem
+            v-for="context in contextsStore.contexts"
+            :key="context.id"
+            :value="context.id"
+          >
+            {{ context.name }}
+          </SelectItem>
+        </SelectGroup>
+      </SelectContent>
+    </Select>
   </div>
 </template>
 
 <script setup lang="ts">
 import BaseButton from '@/components/base/BaseButton.vue'
-import BaseSelector from '@/components/base/BaseSelector.vue'
 import DatabaseIcon from '@/components/icons/DatabaseIcon.vue'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { useContextsStore } from '@/stores/contexts'
 import { useDatabasesStore } from '@/stores/databases'
 
@@ -32,10 +49,6 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const databasesStore = useDatabasesStore()
-
-defineProps<{
-  disabled?: boolean
-}>()
 
 const contextsStore = useContextsStore()
 

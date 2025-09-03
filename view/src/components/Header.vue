@@ -28,7 +28,7 @@
         </div>
         <div class="hidden sm:ml-6 sm:flex sm:items-center">
           <!-- Context Selection -->
-          <ContextSelection :disabled="false" />
+          <ContextSelection />
           <!-- Profile dropdown -->
           <Menu as="div" class="ml-3 relative z-1000">
             <div>
@@ -79,7 +79,7 @@
         </div>
         <div class="-mr-2 flex items-center sm:hidden">
           <!-- Context Selection -->
-          <ContextSelection :disabled="false" />
+          <ContextSelection />
 
           <!-- Mobile menu button -->
           <DisclosureButton

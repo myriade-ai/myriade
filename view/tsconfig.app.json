@@ -13,9 +13,9 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
 
-     /* Improve Build */
-     "importsNotUsedAsValues": "remove",
-     "preserveValueImports": false
+    /* Improve Build */
+    "importsNotUsedAsValues": "remove",
+    "preserveValueImports": false
   },
   "include": ["src/**/*.ts", "src/**/*.vue"]
 }
