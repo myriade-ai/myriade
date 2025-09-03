@@ -194,7 +194,8 @@ const navigation = computed(() => [
   { name: 'Editor', href: '/editor' },
   { name: 'Favorites', href: '/favorites' },
   { name: 'Control', href: '/control' },
-  { name: 'Issues', href: '/issues' }
+  { name: 'Issues', href: '/issues' },
+  { name: 'Quality', href: '/quality' }
 ])
 
 const userNavigation = computed(() => [

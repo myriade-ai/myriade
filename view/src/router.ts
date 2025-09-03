@@ -104,6 +104,11 @@ const routes = [
     component: loadView('ProjectEdit')
   },
   {
+    path: '/quality',
+    name: 'DataQuality',
+    component: loadView('DataQuality')
+  },
+  {
     path: '/user',
     name: 'User',
     component: loadView('User')
