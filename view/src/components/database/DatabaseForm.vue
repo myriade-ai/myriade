@@ -27,8 +27,8 @@
         :password-required="mode === 'create' && database.engine !== 'sqlite'"
         name-placeholder="My Database Connection"
         description-placeholder="Database used for X,Y and Z..."
-        :safe-mode="database.safe_mode"
-        @update:safe-mode="database.safe_mode = $event"
+        :write-mode="database.write_mode"
+        @update:write-mode="database.write_mode = $event"
         @update:name="database.name = $event"
       />
     </div>

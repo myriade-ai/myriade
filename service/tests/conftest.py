@@ -135,6 +135,7 @@ def test_db_id(app_server, session):
         "safe_mode": True,
         "dbt_catalog": None,
         "dbt_manifest": None,
+        "write_mode": "confirmation",
     }
 
     r = requests.post(

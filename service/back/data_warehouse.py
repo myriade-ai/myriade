@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from urllib.parse import quote_plus
 
 import sqlalchemy
+import sqlglot
 from sqlalchemy import text
 
 from back.privacy import encrypt_rows
@@ -21,6 +22,15 @@ class UnsafeQueryError(Exception):
     pass
 
 
+class WriteOperationError(Exception):
+    """Raised when a write operation is detected and requires user confirmation."""
+
+    def __init__(self, message: str, operation_type: str, query: str):
+        super().__init__(message)
+        self.operation_type = operation_type
+        self.query = query
+
+
 class ConnectionError(Exception):
     """Wrap driver-specific connection errors with a clean message."""
 
@@ -32,6 +42,66 @@ class ConnectionError(Exception):
 def sizeof(obj):
     # This function returns the size of an object in bytes
     return sys.getsizeof(obj)
+
+
+def detect_write_operations(sql: str) -> tuple[bool, str | None]:
+    """
+    Detect if SQL contains write operations using SQLGlot.
+
+    Args:
+        sql: The SQL query to analyze
+
+    Returns:
+        Tuple of (is_write_operation, operation_type)
+        operation_type can be: CREATE, DROP, INSERT, UPDATE, DELETE, ALTER, etc.
+    """
+    try:
+        # Parse the SQL statement
+        parsed = sqlglot.parse_one(sql, error_level=None)
+        if parsed is None:
+            return False, None
+
+        # Check for write operations
+        write_operations = {
+            "Create": "CREATE",
+            "Drop": "DROP",
+            "Insert": "INSERT",
+            "Update": "UPDATE",
+            "Delete": "DELETE",
+            "Alter": "ALTER",
+            "Truncate": "TRUNCATE",
+            "Merge": "MERGE",
+            "Replace": "REPLACE",
+            "Load": "LOAD",
+        }
+
+        operation_type = type(parsed).__name__
+        if operation_type in write_operations:
+            return True, write_operations[operation_type]
+
+        return False, None
+
+    except Exception:
+        # If parsing fails, err on the side of caution and assume it's a write operation
+        # Check for common write keywords as fallback
+        sql_upper = sql.upper().strip()
+        write_keywords = [
+            "CREATE",
+            "DROP",
+            "INSERT",
+            "UPDATE",
+            "DELETE",
+            "ALTER",
+            "TRUNCATE",
+            "MERGE",
+            "REPLACE",
+        ]
+
+        for keyword in write_keywords:
+            if sql_upper.startswith(keyword):
+                return True, keyword
+
+        return False, None
 
 
 class DataWarehouseRegistry:
@@ -118,7 +188,7 @@ class DataWarehouseRegistry:
 
 
 class AbstractDatabase(ABC):
-    safe_mode = False
+    write_mode = "confirmation"  # "read-only", "confirmation", "skip-confirmation"
     tables_metadata: list[dict] | None = (
         None  # populated by Database.create_data_warehouse()
     )
@@ -137,17 +207,39 @@ class AbstractDatabase(ABC):
         pass
 
     @abstractmethod
-    def _query(self, query) -> list[dict]:
+    def _query_unprotected(self, query) -> list[dict]:
         pass
 
     def _query_count(self, sql) -> int | None:
         count_request = f"SELECT COUNT(*) FROM ({sql.replace(';', '')}) AS foo"
-        result = self._query(count_request)
+        result = self._query_unprotected(count_request)
         if result and len(result) > 0 and result[0] is not None:
             return result[0].get("count")
         return None
 
-    def query(self, sql, role="llm"):
+    def query(self, sql, role="llm", skip_confirmation=False):
+        """Query with full write protection based on write_mode"""
+        # Check for write operations and apply protection
+        if not skip_confirmation:
+            is_write_operation, operation_type = detect_write_operations(sql)
+
+            # Handle different write modes
+            if self.write_mode == "read-only":
+                if is_write_operation:
+                    raise UnsafeQueryError(
+                        f"Write operation '{operation_type}' not allowed in read-only mode"  # noqa: E501
+                    )
+            elif self.write_mode == "confirmation" and is_write_operation:
+                raise WriteOperationError(
+                    f"Write operation '{operation_type}' requires user confirmation",
+                    operation_type or "UNKNOWN",
+                    sql,
+                )
+        # For skip-confirmation mode, proceed without restrictions
+        return self._query_with_privacy(sql, role)
+
+    def _query_with_privacy(self, sql, role="llm"):
+        """Handle privacy rules and execute query without write protection"""
         # If privacy mode is enabled, attempt to rewrite the SQL so that the
         # encryption happens in-database rather than post-processing.
         if self.tables_metadata:
@@ -172,8 +264,8 @@ class AbstractDatabase(ABC):
             if privacy_rules:
                 sql = rewrite_sql(sql, privacy_rules)
 
-        # self._query will handle safe_mode internally if applicable
-        rows = self._query(sql)
+        # Execute query without write protection
+        rows = self._query_unprotected(sql)
 
         # Size check and count estimation
         # Ensure rows is not empty before trying to sum sizes if sum can handle
@@ -247,49 +339,52 @@ class SQLDatabase(AbstractDatabase):
             # TODO add support for views
         return self.metadata
 
-    def _query(self, query) -> list[dict]:
+    def _query_unprotected(self, query) -> list[dict]:
         """
-        Run a query against the database
+        Run a query against the database without write protection
         Limit the result to MAX_SIZE (approx. 2MB)
-        If safe_mode is true, attempts to set the transaction to READ ONLY for
-        supported dialects.
         """
         with self.engine.connect() as connection:
-            transaction_object = None  # For SQLAlchemy Transaction object
+            result = connection.execute(text(query))
+
+            rows: list[dict] = []
+            total_size: int = 0
+
+            # Check if the result supports iteration (has rows)
             try:
-                if self.safe_mode and self.dialect in ["postgresql", "mysql", "mssql"]:
-                    # Explicitly begin a transaction so "SET TRANSACTION READ ONLY"
-                    # applies to it.
-                    transaction_object = connection.begin()
-                    connection.execute(text("SET TRANSACTION READ ONLY;"))
+                # For write operations, result.returns_rows will be False
+                if hasattr(result, "returns_rows") and not result.returns_rows:
+                    # This is a write operation - commit the transaction
+                    connection.commit()
 
-                result = connection.execute(text(query))
-
-                rows: list[dict] = []
-                total_size: int = 0
+                    return rows
 
                 for row_mapping in result:  # Iterate over SQLAlchemy Row objects
                     row_dict = dict(row_mapping._mapping)  # Convert to dict
                     row_size = sizeof(row_dict)
 
                     if total_size + row_size > MAX_SIZE:
-                        # Commit transaction if one was started, then return
-                        if transaction_object:
-                            transaction_object.commit()
                         # Return partial data
                         return rows
 
                     rows.append(row_dict)
                     total_size += row_size
 
-                # Commit transaction if one was started and all rows processed
-                if transaction_object:
-                    transaction_object.commit()
-                return rows
-            except Exception:
-                if transaction_object:
-                    transaction_object.rollback()
-                raise
+            except Exception as iter_error:
+                # Handle the case where result doesn't support iteration
+                error_msg = str(iter_error).lower()
+                if (
+                    "does not return rows" in error_msg
+                    or "closed automatically" in error_msg
+                ):
+                    # This is a successful write operation
+                    # For non-read-only mode, explicitly commit the connection
+                    connection.commit()
+                    return rows
+                # Re-raise other iteration errors
+                raise iter_error
+
+            return rows
 
 
 class PostgresDatabase(SQLDatabase):
@@ -339,18 +434,14 @@ class SnowflakeDatabase(AbstractDatabase):
 
         return self.metadata
 
-    def _query(self, query):
+    def _query_unprotected(self, query):
         """
-        Run a query against Snowflake.
+        Run a query against Snowflake without write protection.
         Limits the result to MAX_SIZE (approx. 2MB).
-        If safe_mode is true, throws an error.
         Correctly calculates data size based on sum of individual row sizes.
         """
         with self.connection.cursor() as cursor:
             try:
-                if self.safe_mode:
-                    raise Exception("Safe mode not supported for Snowflake")
-
                 cursor.execute(query)
 
                 column_names = [desc[0] for desc in cursor.description]
@@ -434,29 +525,14 @@ class BigQueryDatabase(AbstractDatabase):
 
         return self.metadata
 
-    def _query(self, query):
+    def _query_unprotected(self, query):
         """
-        Run a query against BigQuery.
+        Run a query against BigQuery without write protection.
         Limits the result to MAX_SIZE (approx. 2MB).
-        If safe_mode is true, uses dry_run to validate query safety.
         """
         from google.cloud import bigquery
 
         job_config = bigquery.QueryJobConfig()
-
-        if self.safe_mode:
-            # Use dry_run to validate the query without executing it
-            job_config.dry_run = True
-            job_config.use_query_cache = False
-
-            # Run dry run first to check if query is safe
-            dry_run_job = self.client.query(query, job_config=job_config)
-            if dry_run_job.state != "DONE":
-                raise UnsafeQueryError("Query failed dry run validation")
-
-            # Reset job config for actual execution
-            job_config.dry_run = False
-            job_config.use_query_cache = True
 
         # Execute the query
         query_job = self.client.query(query, job_config=job_config)
@@ -569,11 +645,8 @@ class MotherDuckDatabase(AbstractDatabase):
 
         return self.metadata
 
-    def _query(self, query):
+    def _query_unprotected(self, query):
         """Execute query and return results with size management"""
-        # Reject safe mode explicitly to match Snowflake behavior
-        if getattr(self, "safe_mode", False):
-            raise Exception("Safe mode not supported for MotherDuck")
 
         cursor = None
         try:
