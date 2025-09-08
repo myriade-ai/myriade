@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v0.39.0 (2025-09-08)
+
+### Chores
+
+- Format
+  ([`56f5b0d`](https://github.com/myriade-ai/myriade/commit/56f5b0d4d0873146381cb02b0f5f02660782efb4))
+
+### Features
+
+- Add base shadcn
+  ([`d040a1f`](https://github.com/myriade-ai/myriade/commit/d040a1fcb992626c6f9719a9661eb7588aa3bbb0))
+
+- Switch base selector
+  ([`444c8f9`](https://github.com/myriade-ai/myriade/commit/444c8f9a1da4541e630d6002d733c67599116801))
+
+
 ## v0.38.0 (2025-08-23)
 
 ### Bug Fixes
