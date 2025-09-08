@@ -1,10 +1,13 @@
 import json
+import uuid
+from datetime import datetime
 
 import yaml
-from autochat.chat import OUTPUT_SIZE_LIMIT
+from autochat.chat import OUTPUT_SIZE_LIMIT, StopLoopException
 from autochat.model import Message
 from autochat.utils import limit_data_size
 
+from back.data_warehouse import WriteOperationError
 from models import Database, Query
 
 RESULT_TEMPLATE = """Results {len_sample}/{len_total} rows:
@@ -39,8 +42,32 @@ def wrap_sql_result(rows, count):
 
 
 def wrap_sql_error(error):
-    execution_response = ERROR_TEMPLATE.format(error=str(error))
-    return execution_response, False
+    return ERROR_TEMPLATE.format(error=str(error))
+
+
+def cancel_query(session, query_id: uuid.UUID) -> Query:
+    """
+    Cancel a query
+
+    Args:
+        query_id: The ID of the query to cancel
+    Returns:
+        success
+    """
+    # Find the query
+    _query = session.query(Query).filter_by(id=query_id).first()
+    if not _query:
+        raise Exception("Query not found")
+
+    # Verify this is a pending confirmation or running query
+    if _query.status not in ["pending_confirmation"]:
+        raise Exception("Query cannot be cancelled in current state")
+
+    # Set status to cancelled
+    _query.status = "cancelled"
+    session.flush()
+
+    return _query
 
 
 class DatabaseTool:
@@ -116,13 +143,83 @@ class DatabaseTool:
 
         try:
             rows, count = self.data_warehouse.query(query, role="llm")
-            # We add the result
+            # We add the result and mark as completed
             _query.rows = rows
             _query.count = count
+            _query.status = "completed"
+            _query.completed_at = datetime.utcnow()
             result, _ = wrap_sql_result(rows, count)
+        except WriteOperationError as e:
+            # Handle write operation that requires confirmation
+            # Set query status to pending confirmation and store operation type
+            _query.status = "pending_confirmation"
+            _query.operation_type = e.operation_type
+            # Stop the agent execution and wait for user confirmation
+            raise StopLoopException("Waiting for write operation confirmation") from e
         except Exception as e:
             _query.exception = str(e)
-            result, _ = wrap_sql_error(e)
+            _query.status = "failed"
+            _query.completed_at = datetime.utcnow()
+            result = wrap_sql_error(e)
+        finally:
+            self.session.flush()
 
-        self.session.flush()
         return result
+
+    # Private method because it's used by the API not by the chatbot
+    def _execute_confirmed_query(self, query_id: uuid.UUID) -> tuple[str, bool]:
+        """
+        Execute a query.
+
+        Args:
+            query_id: The ID of the query to execute
+
+        Returns:
+            Tuple of (result_message, success)
+        """
+
+        try:
+            # Find the query
+            _query = self.session.query(Query).filter_by(id=query_id).first()
+            if not _query:
+                return "Query not found", False
+
+            # Verify this is a pending confirmation
+            if _query.status != "pending_confirmation":
+                return "Query is not pending confirmation", False
+
+            # Set status to running and start execution
+            _query.status = "running"
+            _query.started_at = datetime.utcnow()
+            self.session.flush()
+
+            # Execute the query using unprotected method to bypass write protection
+            rows, count = self.data_warehouse.query(
+                _query.sql, role="llm", skip_confirmation=True
+            )
+
+            # Update the query with results
+            _query.rows = rows
+            _query.count = count
+            _query.status = "completed"
+            _query.completed_at = datetime.utcnow()
+            _query.exception = None  # Clear the pending confirmation status
+
+            # For write operations, check if we got results or successful exec
+            if rows is None or (isinstance(rows, list) and len(rows) == 0):
+                # This is a write operation that doesn't return rows
+                result = f"✅ Query executed successfully ({count} rows)."
+                success = True
+            else:
+                # This returned actual data
+                result, success = wrap_sql_result(rows, count)
+            return result, success
+        except Exception as e:
+            # Update query with error
+            _query.exception = str(e)
+            _query.status = "failed"
+            _query.completed_at = datetime.utcnow()
+            self.session.flush()
+            return wrap_sql_error(e), False
+        finally:
+            self.session.flush()

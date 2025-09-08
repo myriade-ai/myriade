@@ -217,6 +217,7 @@ import { useRoute, useRouter } from 'vue-router'
 // Import sparkles from heroicons
 import { isConnected, socket } from '@/plugins/socket'
 import { STATUS, useConversationsStore } from '@/stores/conversations'
+import { useQueriesStore } from '@/stores/queries'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
 
@@ -224,6 +225,7 @@ const route = useRoute()
 const router = useRouter()
 
 const contextsStore = useContextsStore()
+const queriesStore = useQueriesStore()
 
 /** CONVERSATION LOGIC **/
 const conversationsStore = useConversationsStore()
@@ -301,9 +303,13 @@ const isPublicMessage = (message, index) => {
   const isFunctionAfterUser = isFunction && prevMessage?.role === 'user'
   const isFunctionAfterAnswer = isFunction && prevMessage?.isAnswer
   const isAnwser = message.isAnswer
-
-  return isUser || isFunctionAfterUser || isAnwser || isFunctionAfterAnswer
+  let hasWriteOperation = false
+  if (message.queryId) {
+    hasWriteOperation = queriesStore.getQuery(message.queryId)?.operationType !== null
+  }
+  return isUser || isFunctionAfterUser || isAnwser || isFunctionAfterAnswer || hasWriteOperation
 }
+
 /** END MESSAGE DISPLAY LOGIC **/
 
 /** HANDLE EVENTS **/

@@ -2,11 +2,11 @@ import axios from '@/plugins/axios'
 import { isConnected, socket } from '@/plugins/socket'
 import { updateCredits } from '@/stores/auth'
 import { useContextsStore } from '@/stores/contexts'
+import { useQueriesStore } from '@/stores/queries'
 import type { AxiosResponse } from 'axios'
 import { defineStore } from 'pinia'
 import sqlPrettier from 'sql-prettier'
 import { computed, ref, watch } from 'vue'
-
 // Example "Status" constants
 export const STATUS = {
   PENDING: 'pending',
@@ -38,6 +38,7 @@ export interface Message {
     name: string
     arguments: any
   }
+  queryId?: string
 }
 
 // A small type for tracking conversation status & errors
@@ -61,6 +62,8 @@ export const useConversationsStore = defineStore('conversations', () => {
 
   // Watch for context changes and fetch conversations
   const contextsStore = useContextsStore()
+  const queriesStore = useQueriesStore()
+
   watch(
     () => contextsStore.contextSelected,
     (newContext, oldContext) => {
@@ -139,6 +142,12 @@ export const useConversationsStore = defineStore('conversations', () => {
         messages: response.data.messages
       }
       conversations.value[conversationId] = newConv
+      // Fetch queries for the conversation
+      newConv.messages.forEach((message) => {
+        if (message.queryId) {
+          queriesStore.fetchQuery(message.queryId)
+        }
+      })
     } catch (error: any) {
       // Mark this conversation as error
       conversationStatuses.value[conversationId] = {
@@ -214,6 +223,11 @@ export const useConversationsStore = defineStore('conversations', () => {
     }
     // Possibly update updatedAt
     conversation.updatedAt = new Date()
+
+    // Fetch query if it exists
+    if (incomingMsg.queryId) {
+      queriesStore.fetchQuery(incomingMsg.queryId)
+    }
   }
 
   function regenerateFromMessage(messageId: string, messageContent?: string) {

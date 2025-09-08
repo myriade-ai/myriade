@@ -15,7 +15,8 @@ from chat.lock import (
     emit_status,
     set_stop_flag,
 )
-from models import Conversation, ConversationMessage
+from chat.tools.database import cancel_query
+from models import Conversation, ConversationMessage, Query
 
 api = Blueprint("chat_api", __name__)
 logger = logging.getLogger(__name__)
@@ -107,23 +108,21 @@ def conversation_auth_required(f):
 @socketio.on("stop")
 @socket_auth_required
 @conversation_auth_required
-def handle_stop(session, conversation_id: str):
+def handle_stop(session, conversation_id: UUID):
     logger.info(
         "Received stop signal for conversation",
         extra={"conversation_id": conversation_id},
     )
     # Stop the query - convert string to UUID for the lock functions
-    set_stop_flag(UUID(conversation_id))
-    emit_status(UUID(conversation_id), STATUS.TO_STOP)
+    set_stop_flag(conversation_id)
+    emit_status(conversation_id, STATUS.TO_STOP)
 
 
 @socketio.on("ask")
 @socket_auth_required
 @conversation_auth_required
-def handle_ask(session, conversation_id, question):
-    conversation = (
-        session.query(Conversation).filter_by(id=UUID(conversation_id)).first()
-    )
+def handle_ask(session, conversation_id: UUID, question: str):
+    conversation = session.query(Conversation).filter_by(id=conversation_id).first()
 
     agent = DataAnalystAgent(
         session,
@@ -178,24 +177,136 @@ def handle_query(
     emit("response", user_message.to_dict())
     # Run the SQL
     message = user_message.to_autochat_message()
-    content = agent.chatbot.tools["database"].sql_query(query, from_response=message)
+    content = agent.agent.tools["database"].sql_query(query, from_response=message)
     user_message.queryId = message.query_id
     # Update the message with the linked query
     session.add(user_message)
     session.flush()
+    # We re-emit the user message to update the query id
+    emit("response", user_message.to_dict())
 
     # Display the response
-    message = ConversationMessage(
+    result_message = ConversationMessage(
         role="function",
         name="sql_query",
         content=content,
         conversationId=agent.conversation.id,
         isAnswer=True,
     )
-    session.add(message)
+
+    session.add(result_message)
     session.flush()
-    emit("response", user_message.to_dict())
-    emit("response", message.to_dict())
+    emit("response", result_message.to_dict())
+
+
+@socketio.on("confirmWriteOperation")
+@socket_auth_required
+@conversation_auth_required
+def handle_confirm_write_operation(session, conversation_id: UUID, query_id: UUID):
+    """
+    Handle user approval of a write operation.
+    """
+    # Get conversation message from function call
+    functionCallMessage = (
+        session.query(ConversationMessage)
+        .filter_by(queryId=query_id, role="assistant")
+        .first()
+    )
+    if not functionCallMessage:
+        emit("error", {"message": "Operation message not found"})
+        return
+
+    conversation = (
+        session.query(Conversation)
+        .filter_by(id=functionCallMessage.conversationId)
+        .first()
+    )
+    agent = DataAnalystAgent(session, conversation)
+    database_tool = agent.agent.tools["database"]
+
+    # Execute the confirmed write operation
+    result, success = database_tool._execute_confirmed_query(query_id)
+
+    # Refresh the session to see the updated query
+    session.flush()  # Ensure all changes are written to the database
+    query = session.query(Query).filter_by(id=query_id).first()
+    session.refresh(query)  # Refresh the object from the database
+
+    emit("queryUpdated", query.to_dict())
+
+    # Create a response message with the result
+    response_message = ConversationMessage(
+        role="function",
+        name="sql_query",
+        content=result,
+        conversationId=conversation.id,
+        queryId=query_id,
+        functionCallId=functionCallMessage.functionCallId,
+    )
+    session.add(response_message)
+    session.flush()
+
+    emit("response", response_message.to_dict())
+
+    session.commit()
+    agent = DataAnalystAgent(session, conversation)
+    for message in agent._run_conversation():
+        # We need to commit the session to save the message
+        try:
+            session.commit()
+        except Exception as e:
+            logger.error(
+                "Error committing session", exc_info=True, extra={"error": str(e)}
+            )
+            session.rollback()
+            # We break the loop to avoid sending the message
+            break
+        response_data = message.to_dict()
+
+        # Include credits info if available from proxy
+        credits_remaining = get_last_credits_info()
+        if credits_remaining is not None:
+            response_data["credits_remaining"] = credits_remaining
+
+        emit("response", response_data)
+    session.commit()
+
+
+@socketio.on("rejectWriteOperation")
+@socket_auth_required
+@conversation_auth_required
+def handle_reject_write_operation(session, conversation_id: UUID, query_id: UUID):
+    """
+    Handle user cancellation of a write operation.
+    """
+    # Get conversation message from function call
+    functionCallMessage = (
+        session.query(ConversationMessage)
+        .filter_by(queryId=query_id, role="assistant")
+        .first()
+    )
+    conversation = (
+        session.query(Conversation)
+        .filter_by(id=functionCallMessage.conversationId)
+        .first()
+    )
+    # Cancel the write operation
+    query = cancel_query(session, query_id)
+    emit("queryUpdated", query.to_dict())
+
+    # Create a response message indicating cancellation
+    response_message = ConversationMessage(
+        role="function",
+        name="sql_query",
+        content="User didn't confirmed the write operation",
+        conversationId=conversation.id,
+        queryId=query_id,
+        functionCallId=functionCallMessage.functionCallId,
+    )
+    session.add(response_message)
+    session.flush()
+    emit("response", response_message.to_dict())
+    session.commit()
 
 
 @socketio.on("regenerateFromMessage")

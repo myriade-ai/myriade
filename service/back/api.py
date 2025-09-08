@@ -176,7 +176,7 @@ def create_database_route():
         organisation_id=g.organisation.id if g.organisation else None,
         owner_id=g.user.id,
         public=False,
-        safe_mode=data["safe_mode"],
+        write_mode=data["write_mode"],
         dbt_catalog=data["dbt_catalog"],
         dbt_manifest=data["dbt_manifest"],
     )
@@ -266,7 +266,7 @@ def update_database(database_id: UUID):
     database.tables_metadata = merged_metadata
     database.engine = data["engine"]
     database.details = data["details"]
-    database.safe_mode = data["safe_mode"]
+    database.write_mode = data["write_mode"]
     database.dbt_catalog = data["dbt_catalog"]
     database.dbt_manifest = data["dbt_manifest"]
 
