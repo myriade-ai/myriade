@@ -11,6 +11,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    Enum,
     ForeignKey,
     Integer,
     LargeBinary,
@@ -77,8 +78,11 @@ class Database(SerializerMixin, DefaultBase, Base):
     # organisation: Mapped[Optional["Organisation"]] = relationship()
     # owner: Mapped[Optional["User"]] = relationship()
 
-    safe_mode: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, server_default="true"
+    write_mode: Mapped[str] = mapped_column(
+        Enum("read-only", "confirmation", "skip-confirmation", name="write_mode_enum"),
+        nullable=False,
+        default="confirmation",
+        server_default="confirmation",
     )
 
     issues: Mapped[List[Issue]] = relationship(back_populates="database")
@@ -108,7 +112,7 @@ class Database(SerializerMixin, DefaultBase, Base):
             self.engine,
             **self.details,
         )
-        data_warehouse.safe_mode = self.safe_mode
+        data_warehouse.write_mode = self.write_mode
         # Pass tables metadata for privacy handling
         data_warehouse.tables_metadata = self.tables_metadata
         return data_warehouse
@@ -274,6 +278,26 @@ class Query(SerializerMixin, DefaultBase, Base):
     count: Mapped[Optional[int]] = mapped_column(Integer)
     exception: Mapped[Optional[str]] = mapped_column(String)
 
+    # Query execution lifecycle
+    status: Mapped[str] = mapped_column(
+        Enum(
+            "pending_confirmation",
+            "running",
+            "completed",
+            "cancelled",
+            "failed",
+            name="query_status_enum",
+        ),
+        nullable=False,
+        default="completed",  # Default for existing queries
+        server_default="completed",
+    )
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    operation_type: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )  # CREATE, INSERT, UPDATE, etc.
+
     database: Mapped["Database"] = relationship()
     conversation_messages: Mapped[List["ConversationMessage"]] = relationship(
         "ConversationMessage", back_populates="query", lazy="joined"
@@ -286,6 +310,21 @@ class Query(SerializerMixin, DefaultBase, Base):
     @property
     def is_cached(self):
         return self.rows is not None or self.exception is not None
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "title": self.title,
+            "databaseId": str(self.databaseId),
+            "sql": self.sql,
+            # "rows": self.rows,
+            # "count": self.count,
+            "exception": self.exception,
+            "status": self.status,
+            "startedAt": self.started_at.isoformat() if self.started_at else None,
+            "completedAt": self.completed_at.isoformat() if self.completed_at else None,
+            "operationType": self.operation_type,
+        }
 
 
 @dataclass

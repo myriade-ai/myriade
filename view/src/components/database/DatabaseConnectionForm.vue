@@ -157,23 +157,44 @@
       />
     </div>
 
-    <!-- Safe Mode Toggle -->
+    <!-- Write Mode Selection -->
     <div class="p-4 bg-gray-50 rounded-lg max-w-lg" v-if="!enginesWithoutSafeMode.includes(engine)">
-      <h3 class="text-sm font-medium text-gray-900">Safe Mode (read-only)</h3>
-      <p class="text-sm text-gray-500 mb-3">
-        When enabled, prevents destructive operations like DROP, DELETE, and UPDATE statements
+      <h3 class="text-sm font-medium text-gray-900">Write Operation Handling</h3>
+      <p class="text-sm text-gray-500 mb-4">
+        Choose how to handle write operations like CREATE, DROP, INSERT, UPDATE, DELETE
       </p>
-      <label class="relative inline-flex items-center cursor-pointer">
-        <input
-          type="checkbox"
-          :checked="safeMode"
-          @change="$emit('update:safeMode', ($event.target as HTMLInputElement).checked)"
-          class="sr-only peer"
-        />
-        <div
-          class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"
-        ></div>
-      </label>
+
+      <RadioGroup
+        :model-value="writeMode || 'confirmation'"
+        @update:model-value="$emit('update:writeMode', $event)"
+        class="space-y-3"
+      >
+        <div class="flex items-start space-x-3">
+          <RadioGroupItem value="read-only" id="read-only" class="mt-1" />
+          <label for="read-only" class="cursor-pointer flex-1">
+            <div class="text-sm font-medium text-gray-900">Read-only</div>
+            <div class="text-xs text-gray-500">Block all write operations entirely</div>
+          </label>
+        </div>
+
+        <div class="flex items-start space-x-3">
+          <RadioGroupItem value="confirmation" id="confirmation" class="mt-1" />
+          <label for="confirmation" class="cursor-pointer flex-1">
+            <div class="text-sm font-medium text-gray-900">Ask for confirmation</div>
+            <div class="text-xs text-gray-500">
+              Prompt user to confirm write operations (recommended)
+            </div>
+          </label>
+        </div>
+
+        <div class="flex items-start space-x-3">
+          <RadioGroupItem value="skip-confirmation" id="skip-confirmation" class="mt-1" />
+          <label for="skip-confirmation" class="cursor-pointer flex-1">
+            <div class="text-sm font-medium text-gray-900">Allow all operations</div>
+            <div class="text-xs text-gray-500">Execute all queries without confirmation</div>
+          </label>
+        </div>
+      </RadioGroup>
     </div>
   </div>
 </template>
@@ -182,12 +203,15 @@
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseInputPassword from '@/components/base/BaseInputPassword.vue'
 import BaseNotification from '@/components/base/BaseNotification.vue'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useServerInfo } from '@/composables/useServerInfo'
 import { getDatabaseTypeName, getDefaultDetailsForEngine, type Engine } from '@/stores/databases'
 import { CloudArrowUpIcon } from '@heroicons/vue/24/outline'
 import { computed, watch } from 'vue'
 
 const { serverIp } = useServerInfo()
+
+type WriteMode = 'read-only' | 'confirmation' | 'skip-confirmation'
 
 interface Props {
   modelValue: Record<string, any> // this is *details* only
@@ -201,10 +225,10 @@ interface Props {
   passwordRequired?: boolean
   namePlaceholder?: string
   descriptionPlaceholder?: string
-  safeMode?: boolean
+  writeMode?: WriteMode
 }
 const props = defineProps<Props>()
-defineEmits(['update:safeMode', 'update:name'])
+defineEmits(['update:writeMode', 'update:name'])
 const details = defineModel({ type: Object, required: true })
 
 // Check if we should show network configuration notification

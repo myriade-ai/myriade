@@ -152,16 +152,24 @@
         ></BaseEditorPreview>
         <pre v-else class="arguments">{{ props.message.functionCall?.arguments }}</pre>
       </div>
+      <AskQueryConfirmation
+        v-if="needsConfirmation && queryData && props.message.role === 'assistant'"
+        :queryId="queryData.id"
+        :operationType="queryData.operationType"
+        :status="queryData.status"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import axios from '@/plugins/axios'
+import { useQueriesStore } from '@/stores/queries'
 import yaml from 'js-yaml'
 import { computed, defineEmits, defineProps, onMounted, ref } from 'vue'
 
 // Components
+import AskQueryConfirmation from '@/components/AskQueryConfirmation.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
@@ -200,6 +208,11 @@ const sqlResult = ref<Array<Record<string, string | number | boolean | null>>>([
 const sqlCount = ref(0)
 const isEditing = ref(false)
 const editedContent = ref('')
+
+// Query confirmation using store
+const queriesStore = useQueriesStore()
+const queryData = computed(() => queriesStore.getQuery(props.message.queryId))
+const needsConfirmation = computed(() => queriesStore.needsConfirmation(props.message.queryId))
 
 const toggleEditMode = () => {
   isEditing.value = !isEditing.value

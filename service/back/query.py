@@ -22,7 +22,9 @@ def run_query():
     sql_query = request.json.get("query")
 
     try:
-        rows, count = g.data_warehouse.query(sql_query, role="users")
+        rows, count = g.data_warehouse.query(
+            sql_query, role="users", skip_confirmation=True
+        )
         return jsonify({"rows": rows, "count": count})
     except Exception as e:
         return jsonify({"message": str(e)}), 500
@@ -57,9 +59,6 @@ def handle_query_by_id(query_id: uuid.UUID):
     """
     Run or Update a query based on the request method
     """
-    # Get databaseId from query
-    databaseId = g.query.databaseId
-
     if request.method == "PUT":
         if not request.json:
             return jsonify({"message": "No JSON data provided"}), 400
@@ -74,14 +73,7 @@ def handle_query_by_id(query_id: uuid.UUID):
         .first()
     )
 
-    response = {
-        "databaseId": databaseId,
-        "title": g.query.title,
-        "sql": g.query.sql,
-        "is_favorite": favorite is not None,
-    }
-
-    return jsonify(response)
+    return jsonify({**g.query.to_dict(), "is_favorite": favorite is not None})
 
 
 @api.route("/query/<uuid:query_id>/results", methods=["GET"])
