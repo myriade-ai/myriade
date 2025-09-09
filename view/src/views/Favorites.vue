@@ -148,7 +148,7 @@ import Echart from '@/components/Echart.vue'
 import axios from '@/plugins/axios'
 import { useChartStore, type Chart } from '@/stores/chart'
 import { useContextsStore } from '@/stores/contexts'
-import type { Query } from '@/stores/query'
+import type { Query } from '@/composables/useQueryEditor'
 import { onMounted, ref } from 'vue'
 
 const { toggleChartFavorite } = useChartStore()

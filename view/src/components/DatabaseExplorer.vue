@@ -41,14 +41,14 @@
 
 <script setup lang="ts">
 import DatabaseExplorerItems from '@/components/DatabaseExplorerItems.vue'
+import { useQueryEditor } from '@/composables/useQueryEditor'
 import { useDatabasesStore } from '@/stores/databases'
-import { useQueryStore } from '@/stores/query'
 import type { Table } from '@/stores/tables'
 import { useSelectedDatabaseFromContext } from '@/useSelectedDatabaseFromContext'
 import { computed, ref, watchEffect } from 'vue'
 
 const databasesStore = useDatabasesStore()
-const queryStore = useQueryStore()
+const editor = useQueryEditor()
 const tables = ref<Table[]>([])
 const showTableKey = ref<string | null>(null)
 const { selectedDatabase } = useSelectedDatabaseFromContext()
@@ -87,7 +87,7 @@ function extractTables(sqlQuery: string) {
 }
 
 const extractedTables = computed(() => {
-  return extractTables(queryStore.querySQL)
+  return extractTables(editor.query.sql)
 })
 
 const isTableUsed = (table: Table) => {
@@ -141,8 +141,8 @@ const onClick = (key: string) => {
 }
 
 const onDblClick = (table: Table) => {
-  queryStore.querySQL = `SELECT * FROM "${table.schema}"."${table.name}";`
+  editor.query.sql = `SELECT * FROM "${table.schema}"."${table.name}";`
   searchTablesInput.value = '' // reset input
-  queryStore.runQuery(selectedDatabase.value?.id)
+  editor.runQuery()
 }
 </script>

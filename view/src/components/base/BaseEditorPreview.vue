@@ -20,11 +20,11 @@
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
 import axios from '@/plugins/axios'
-import { useQueryStore } from '@/stores/query'
+import { useQueryEditor } from '@/composables/useQueryEditor'
 import { StarIcon } from '@heroicons/vue/24/outline'
 import { StarIcon as StarIconSolid } from '@heroicons/vue/24/solid'
 import { defineProps, onMounted, ref } from 'vue'
-const { fetchQuery, fetchQueryResults } = useQueryStore()
+const { fetchQuery, fetchQueryResults } = useQueryEditor()
 
 const props = defineProps({
   queryId: String,
