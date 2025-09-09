@@ -4,15 +4,15 @@
       <DatabaseExplorer></DatabaseExplorer>
     </div>
     <div class="col-span-12 md:col-span-9">
-      <BaseQuery />
-      <BaseAlert v-if="queryStore.queryError">
+      <BaseQuery :editor="editor" />
+      <BaseAlert v-if="editor.error.value">
         <template #title> There is an error in the SQL execution 😔 </template>
-        {{ queryStore.queryError }}
+        {{ editor.error.value }}
       </BaseAlert>
       <BaseTable
-        v-if="queryStore.queryResults !== null"
-        :data="queryStore.queryResults"
-        :count="queryStore.queryCount"
+        v-if="editor.results.value !== null"
+        :data="editor.results.value"
+        :count="editor.count.value"
       />
     </div>
   </div>
@@ -23,7 +23,22 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseQuery from '@/components/base/BaseQuery.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
 import DatabaseExplorer from '@/components/DatabaseExplorer.vue'
-import { useQueryStore } from '@/stores/query'
+import { useQueryEditor } from '@/composables/useQueryEditor'
+import { useDatabasesStore } from '@/stores/databases'
+import { useSelectedDatabaseFromContext } from '@/useSelectedDatabaseFromContext'
+import { watchEffect } from 'vue'
 
-const queryStore = useQueryStore()
+const databasesStore = useDatabasesStore()
+
+const { selectedDatabase } = useSelectedDatabaseFromContext()
+
+databasesStore.fetchDatabases({ refresh: true })
+
+const editor = useQueryEditor()
+
+watchEffect(() => {
+  if (selectedDatabase.value?.id && editor.databaseId.value !== selectedDatabase.value.id) {
+    editor.databaseId.value = selectedDatabase.value.id
+  }
+})
 </script>
