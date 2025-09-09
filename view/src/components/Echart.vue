@@ -3,13 +3,13 @@
 </template>
 
 <script setup lang="ts">
-import { useQueryStore } from '@/stores/query'
+import { useQueryEditor } from '@/composables/useQueryEditor'
 import 'echarts'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
 import { computed, onMounted, ref } from 'vue'
 import VChart from 'vue-echarts'
 
-const { fetchQueryResults } = useQueryStore()
+const { fetchQueryResults } = useQueryEditor()
 
 const rows = ref([])
 
