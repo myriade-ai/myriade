@@ -1,20 +1,18 @@
 <!-- eslint-disable vue/no-mutating-props -->
 <template>
   <div class="flex items-center gap-2 justify-end">
-    <input
+    <Input
       type="text"
       placeholder="Database used for X,Y and Z..."
       class="flex-1 rounded-md border-gray-300 shadow-xs focus:border-primary-500 focus:ring-primary-500"
       v-model="props.editor.query.title"
-      :style="{ 'max-width': '540px' }"
     />
-    <BaseButton
-      class="disabled:bg-gray-300"
+    <Button
       @click="props.editor.updateQuery"
       :disabled="!editor.queryIsModified || !editor.query.sql"
     >
       Save query
-    </BaseButton>
+    </Button>
   </div>
 
   <br />
@@ -27,18 +25,18 @@
       aria-label="Run query"
       type="button"
     >
-      <ArrowPathIcon v-if="editor.loading.value" class="animate-reverse-spin h-6 w-6 text-white" />
-      <PlayIcon v-else class="h-6 w-6" />
+      <RotateCw v-if="editor.loading.value" class="animate-spin h-6 w-6 text-white" />
+      <Play v-else class="h-6 w-6" fill="currentColor" />
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import BaseButton from '@/components/base/BaseButton.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useQueryEditor } from '@/composables/useQueryEditor'
-import { ArrowPathIcon } from '@heroicons/vue/24/outline'
-import { PlayIcon } from '@heroicons/vue/24/solid'
+import { Play, RotateCw } from 'lucide-vue-next'
 import { defineProps } from 'vue'
 
 const props = defineProps({

@@ -3,7 +3,13 @@
     <!--  @click="onClick" v-on:dblclick="onDblClick" -->
     <div class="px-4 py-4 sm:px-6">
       <div class="flex items-center justify-between">
-        <div class="text-sm font-medium truncate text-gray-600">
+        <div
+          :class="
+            cn('text-sm truncate text-gray-600', {
+              'font-medium': props.isUsed
+            })
+          "
+        >
           {{ props.table.schema }}.{{ props.table.name }}
         </div>
       </div>
@@ -30,6 +36,7 @@
 </template>
 
 <script setup lang="ts">
+import { cn } from '@/lib/utils'
 import type { Table } from '@/stores/tables'
 import { defineProps } from 'vue'
 
@@ -39,6 +46,10 @@ const props = defineProps({
     required: true
   },
   showColumns: {
+    type: Boolean,
+    default: false
+  },
+  isUsed: {
     type: Boolean,
     default: false
   }
