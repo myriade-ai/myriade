@@ -1,6 +1,26 @@
 # CHANGELOG
 
 
+## v0.40.1 (2025-09-10)
+
+### Bug Fixes
+
+- Migration for SQLite
+  ([`54655b6`](https://github.com/myriade-ai/myriade/commit/54655b68f3c774eb99ed1ff02cebe795d1f2eda8))
+
+### Chores
+
+- Clean editors
+  ([`e970595`](https://github.com/myriade-ai/myriade/commit/e9705956ed73773db0c143b928787d27478062ee))
+
+resolve DEV-341
+
+- Remove config.ts
+  ([`ad65dca`](https://github.com/myriade-ai/myriade/commit/ad65dcab47034440943bf513c0900a586512bfa4))
+
+resolve DEV-343
+
+
 ## v0.40.0 (2025-09-10)
 
 ### Features
