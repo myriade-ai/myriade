@@ -143,7 +143,7 @@ const { isMobile } = useSidebar()
                 asChild
                 class="bg-primary text-white hover:text-white hover:bg-primary/70"
               >
-                <RouterLink to="chat/new">
+                <RouterLink to="/chat/new">
                   <SquarePen class="size-4" />
                   <span class="">New chat</span>
                 </RouterLink>
