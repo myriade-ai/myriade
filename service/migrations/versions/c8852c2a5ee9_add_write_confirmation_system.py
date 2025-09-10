@@ -11,6 +11,8 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
+from config import DATABASE_URL
+
 # revision identifiers, used by Alembic.
 revision: str = "c8852c2a5ee9"
 down_revision: Union[str, None] = "e0c32661a349"
@@ -37,14 +39,24 @@ def upgrade() -> None:
     )
 
     # Convert existing safe_mode values to write_mode values
-    op.execute("""
-        UPDATE database 
-        SET write_mode = CASE 
-            WHEN safe_mode = true THEN 'confirmation'
-            WHEN safe_mode = false THEN 'skip-confirmation'
-            ELSE 'confirmation'
-        END
-    """)
+    if DATABASE_URL.startswith("postgres"):
+        op.execute("""
+            UPDATE database 
+            SET write_mode = CASE 
+                WHEN safe_mode = true THEN 'confirmation'::write_mode_enum
+                WHEN safe_mode = false THEN 'skip-confirmation'::write_mode_enum
+                ELSE 'confirmation'::write_mode_enum
+            END
+        """)
+    else:  # SQLite
+        op.execute("""
+            UPDATE database 
+            SET write_mode = CASE 
+                WHEN safe_mode = true THEN 'confirmation'
+                WHEN safe_mode = false THEN 'skip-confirmation'
+                ELSE 'confirmation'
+            END
+        """)
 
     # Drop the old safe_mode column and unused user columns
     op.drop_column("database", "safe_mode")
