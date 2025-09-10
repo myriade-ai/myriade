@@ -1,7 +1,6 @@
 <template>
-  <div class="min-h-full">
+  <div>
     <AnonymousUserBar />
-    <Header />
     <div>
       <Suspense>
         <router-view />
@@ -11,6 +10,5 @@
 </template>
 
 <script setup lang="ts">
-import Header from '@/components/Header.vue'
 import AnonymousUserBar from '@/components/AnonymousUserBar.vue'
 </script>

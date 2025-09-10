@@ -1,5 +1,5 @@
 <template>
-  <div class="message-display px-4 py-4 my-2 rounded-lg bg-gray-100">
+  <div class="message-display px-4 py-4 my-1 rounded-lg bg-gray-100">
     <!-- if message.display = false, then show as light gray (internal message) -->
     <div>
       <span class="flex justify-between items-center w-full">

@@ -12,7 +12,7 @@
       <BaseTable
         v-if="editor.results.value !== null"
         :data="editor.results.value"
-        :count="editor.count.value"
+        :count="editor.count.value ?? 0"
       />
     </div>
   </div>
