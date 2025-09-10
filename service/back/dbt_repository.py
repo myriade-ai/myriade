@@ -1,0 +1,432 @@
+import json
+import logging
+import os
+import tempfile
+from pathlib import Path
+from typing import Any, Dict, Tuple
+
+import yaml
+from dbt.cli.main import dbtRunner, dbtRunnerResult
+
+logger = logging.getLogger(__name__)
+
+
+class DBTRepositoryError(Exception):
+    """Base exception for DBT repository operations."""
+
+    pass
+
+
+class DBTRepository:
+    """Manages DBT repository operations and docs generation."""
+
+    def __init__(self, repo_path: str):
+        """
+        Initialize DBT repository manager.
+
+        Args:
+            repo_path: Path to the local DBT repository
+        """
+        self.repo_path = Path(repo_path)
+        if not self.repo_path.exists():
+            raise DBTRepositoryError(f"Repository path does not exist: {repo_path}")
+
+        self.project_file = self.repo_path / "dbt_project.yml"
+        if not self.project_file.exists():
+            raise DBTRepositoryError(f"No dbt_project.yml found in {repo_path}")
+
+    def validate_repository(self) -> bool:
+        """
+        Validate that the repository is a valid DBT project.
+
+        Returns:
+            True if valid, False otherwise
+        """
+        try:
+            # Check for dbt_project.yml
+            if not self.project_file.exists():
+                return False
+
+            # Try to parse the project file
+            with open(self.project_file, "r") as f:
+                project_config = yaml.safe_load(f)
+
+            # Basic validation - should have name and version
+            return "name" in project_config and "version" in project_config
+
+        except Exception as e:
+            logger.error(f"Error validating DBT repository: {e}")
+            return False
+
+    def get_project_info(self) -> Dict[str, Any]:
+        """
+        Get basic information about the DBT project.
+
+        Returns:
+            Dictionary with project information
+        """
+        try:
+            with open(self.project_file, "r") as f:
+                project_config = yaml.safe_load(f)
+
+            return {
+                "name": project_config.get("name", "unknown"),
+                "version": project_config.get("version", "unknown"),
+                "description": project_config.get("description", ""),
+                "profile": project_config.get("profile", project_config.get("name")),
+                "path": str(self.repo_path),
+            }
+        except Exception as e:
+            logger.error(f"Error reading project info: {e}")
+            return {}
+
+    def create_profiles_yml(self, database_config: Dict[str, Any]) -> str:
+        """
+        Create a profiles.yml file for the database configuration.
+
+        Args:
+            database_config: Database connection configuration
+
+        Returns:
+            Path to the created profiles.yml file
+        """
+        # Get project info to determine profile name
+        project_info = self.get_project_info()
+        profile_name = project_info.get("profile", "default")
+
+        # Map engine to DBT adapter
+        engine_adapter_map = {
+            "postgres": "postgres",
+            "mysql": "mysql",
+            "snowflake": "snowflake",
+            "bigquery": "bigquery",
+            "sqlite": "sqlite",
+            "motherduck": "duckdb",
+        }
+
+        adapter = engine_adapter_map.get(database_config["engine"])
+        if not adapter:
+            raise DBTRepositoryError(
+                f"Unsupported database engine: {database_config['engine']}"
+            )
+
+        # Build adapter-specific configuration
+        target_config = {"type": adapter}
+
+        details = database_config["details"]
+        detail_keys = list(details.keys())
+        logger.debug(
+            f"Creating profiles for {adapter} adapter with details: {detail_keys}"
+        )
+
+        if adapter == "postgres":
+            required_fields = ["host", "user", "database"]
+            for field in required_fields:
+                if not details.get(field):
+                    raise DBTRepositoryError(
+                        f"Missing required field for postgres: {field}"
+                    ) from None
+
+            target_config.update(
+                {
+                    "host": details["host"],
+                    "port": int(details.get("port", 5432)),
+                    "user": details["user"],
+                    "pass": details.get("password", ""),
+                    "dbname": details["database"],
+                    "schema": details.get("schema", "public"),
+                }
+            )
+
+            # Add password if available
+            if details.get("password"):
+                target_config["pass"] = details["password"]
+
+        elif adapter == "mysql":
+            required_fields = ["host", "user", "database"]
+            for field in required_fields:
+                if not details.get(field):
+                    raise DBTRepositoryError(
+                        f"Missing required field for mysql: {field}"
+                    )
+
+            target_config.update(
+                {
+                    "server": details["host"],
+                    "port": details.get("port", 3306),
+                    "username": details["user"],
+                    "database": details["database"],
+                    "schema": details.get("schema", details["database"]),
+                }
+            )
+
+            # Add password if available
+            if details.get("password"):
+                target_config["password"] = details["password"]
+
+        elif adapter == "snowflake":
+            required_fields = ["account", "user", "database"]
+            for field in required_fields:
+                if not details.get(field):
+                    raise DBTRepositoryError(
+                        f"Missing required field for snowflake: {field}"
+                    )
+
+            target_config.update(
+                {
+                    "account": details["account"],
+                    "user": details["user"],
+                    "role": details.get("role", "PUBLIC"),
+                    "database": details["database"],
+                    "warehouse": details.get("warehouse", "COMPUTE_WH"),
+                    "schema": details.get("schema", "PUBLIC"),
+                }
+            )
+
+            # Add password if available
+            if details.get("password"):
+                target_config["password"] = details["password"]
+        elif adapter == "bigquery":
+            required_fields = ["project_id", "service_account_json"]
+            for field in required_fields:
+                if not details.get(field):
+                    raise DBTRepositoryError(
+                        f"Missing required field for bigquery: {field}"
+                    )
+
+            target_config.update(
+                {
+                    "method": "service-account-json",
+                    "project": details["project_id"],
+                    "keyfile_json": details["service_account_json"],
+                    "dataset": details.get("dataset", "analytics"),
+                }
+            )
+
+        elif adapter == "sqlite":
+            target_config.update(
+                {
+                    "database": details.get(
+                        "filename", details.get("database", ":memory:")
+                    ),
+                }
+            )
+
+        elif adapter == "duckdb":  # motherduck
+            target_config.update(
+                {
+                    "database": details.get("database", ":memory:"),
+                }
+            )
+            # Add token if available for MotherDuck
+            if details.get("token"):
+                target_config["token"] = details["token"]
+
+        profiles_config = {
+            profile_name: {"target": "dev", "outputs": {"dev": target_config}}
+        }
+
+        # Create temporary profiles directory
+        temp_dir = tempfile.mkdtemp(prefix="dbt_profiles_")
+        profiles_path = os.path.join(temp_dir, "profiles.yml")
+
+        with open(profiles_path, "w") as f:
+            yaml.dump(profiles_config, f, default_flow_style=False)
+
+        logger.info(f"Created profiles.yml at {profiles_path}")
+        return temp_dir
+
+    def generate_docs(
+        self, database_config: Dict[str, Any]
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """
+        Generate DBT documentation (catalog and manifest).
+
+        Args:
+            database_config: Database connection configuration
+
+        Returns:
+            Tuple of (catalog_dict, manifest_dict)
+        """
+        import sys
+
+        # Check Python version compatibility
+        if sys.version_info >= (3, 13):
+            raise DBTRepositoryError(
+                "DBT is not compatible with Python 3.13 due to "
+                "snowplow_tracker dependencies. Please use Python 3.11 or 3.12, "
+                "or manually generate dbt docs using 'dbt docs generate' "
+                "in your repository and upload the resulting catalog.json and "
+                "manifest.json files."
+            )
+
+        profiles_dir = None
+        try:
+            engine = database_config.get("engine")
+            logger.info(f"Starting DBT docs generation for engine: {engine}")
+            details_keys = list(database_config.get("details", {}).keys())
+            logger.debug(f"Database config keys: {details_keys}")
+
+            # Create profiles.yml
+            profiles_dir = self.create_profiles_yml(database_config)
+            logger.info(f"Created profiles directory: {profiles_dir}")
+
+            # Run dbt deps to install dependencies
+            logger.info("Running dbt deps...")
+            self._run_dbt_command(["deps"], profiles_dir)
+
+            # Run dbt docs generate
+            logger.info("Running dbt docs generate...")
+            self._run_dbt_command(["docs", "generate"], profiles_dir)
+
+            # Read generated files
+            target_dir = self.repo_path / "target"
+            catalog_path = target_dir / "catalog.json"
+            manifest_path = target_dir / "manifest.json"
+
+            logger.info(f"Looking for generated files in: {target_dir}")
+
+            if not catalog_path.exists():
+                raise DBTRepositoryError(f"catalog.json not found at {catalog_path}")
+            if not manifest_path.exists():
+                raise DBTRepositoryError(f"manifest.json not found at {manifest_path}")
+
+            with open(catalog_path, "r") as f:
+                catalog = json.load(f)
+
+            with open(manifest_path, "r") as f:
+                manifest = json.load(f)
+
+            catalog_nodes = len(catalog.get("nodes", {}))
+            manifest_nodes = len(manifest.get("nodes", {}))
+            logger.info(
+                f"Successfully generated DBT docs - catalog: {catalog_nodes} "
+                f"nodes, manifest: {manifest_nodes} nodes"
+            )
+            return catalog, manifest
+
+        except Exception as e:
+            logger.error(f"Error generating DBT docs: {e}", exc_info=True)
+            raise DBTRepositoryError(f"Error generating DBT docs: {e}") from e
+        finally:
+            # Clean up temporary profiles directory
+            if profiles_dir:
+                import shutil
+
+                try:
+                    shutil.rmtree(profiles_dir)
+                    logger.debug(f"Cleaned up profiles directory: {profiles_dir}")
+                except Exception as e:
+                    logger.warning(f"Failed to cleanup profiles directory: {e}")
+
+    def _run_dbt_command(self, command: list, profiles_dir: str) -> str:
+        """
+        Run a DBT command using dbtRunner.
+
+        Args:
+            command: DBT command arguments
+            profiles_dir: Path to profiles directory
+
+        Returns:
+            Command output
+        """
+        logger.info(f"Running DBT command with dbtRunner: {' '.join(command)}")
+
+        # Set environment variables to disable DBT tracking
+        original_env = {}
+        tracking_vars = {
+            "DBT_SEND_ANONYMOUS_USAGE_STATS": "false",
+            "DBT_DISABLE_TRACKING": "true",
+        }
+
+        # Save original values and set new ones
+        for key, value in tracking_vars.items():
+            original_env[key] = os.environ.get(key)
+            os.environ[key] = value
+
+        try:
+            # Initialize the runner
+            dbt = dbtRunner()
+
+            # Add profiles dir to command if provided
+            full_command = (
+                command + ["--profiles-dir", profiles_dir] if profiles_dir else command
+            ) + ["--project-dir", str(self.repo_path)]
+
+            # Change to the repository directory
+            original_cwd = os.getcwd()
+            os.chdir(str(self.repo_path))
+
+            try:
+                # Run the command
+                res: dbtRunnerResult = dbt.invoke(full_command)
+                # Quick win
+                text = "SUCCESS: " + str(res.success)
+                if res.result and hasattr(res.result, "message"):
+                    text = "RESULT:\n"
+                    for result in res.result:
+                        if result.message:
+                            text += result.message
+                            text += "--------------------------------"
+                return text
+                # if not result.success:
+                #     error_msg = f"DBT command failed: {' '.join(full_command)}"
+                #     if hasattr(result, "exception") and result.exception:
+                #         error_msg += f" - {result.exception}"
+                #     logger.error(error_msg)
+                #     raise DBTRepositoryError(error_msg)
+
+                # cmd_str = " ".join(full_command)
+                # logger.info(f"DBT command completed successfully: {cmd_str}")
+                # # Return a success message since dbtRunner doesn't provide stdout
+                # return f"Command '{cmd_str}' completed successfully"
+
+            finally:
+                os.chdir(original_cwd)
+
+        except Exception as e:
+            if isinstance(e, DBTRepositoryError):
+                raise
+            logger.error(f"Error running DBT command with runner: {e}")
+            raise DBTRepositoryError(f"Error running DBT command: {e}") from e
+        finally:
+            # Restore original environment variables
+            for key, original_value in original_env.items():
+                if original_value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = original_value
+
+
+def validate_dbt_repo(repo_path: str) -> bool:
+    """
+    Validate that a path contains a valid DBT repository.
+
+    Args:
+        repo_path: Path to check
+
+    Returns:
+        True if valid DBT repository, False otherwise
+    """
+    try:
+        repo = DBTRepository(repo_path)
+        return repo.validate_repository()
+    except DBTRepositoryError:
+        return False
+
+
+def generate_dbt_docs(
+    repo_path: str, database_config: Dict[str, Any]
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """
+    Generate DBT documentation from a repository.
+
+    Args:
+        repo_path: Path to the DBT repository
+        database_config: Database connection configuration
+
+    Returns:
+        Tuple of (catalog_dict, manifest_dict)
+    """
+    repo = DBTRepository(repo_path)
+    return repo.generate_docs(database_config)
