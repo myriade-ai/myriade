@@ -1,7 +1,7 @@
 <template>
-  <div class="grid grid-cols-12 gap-4 px-4 mx-auto py-4 bg-gray-100">
-    <div class="col-span-3 hidden md:block">
-      <DatabaseExplorer></DatabaseExplorer>
+  <div class="grid grid-cols-12 gap-4 px-4 mx-auto py-4 bg-sidebar/50 h-screen overflow-y-scroll">
+    <div class="col-span-3 hidden md:block h-full overflow-y-auto">
+      <DatabaseExplorer />
     </div>
     <div class="col-span-12 md:col-span-9">
       <BaseQuery :editor="editor" />

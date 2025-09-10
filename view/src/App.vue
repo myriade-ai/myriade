@@ -11,6 +11,12 @@
           <Separator orientation="vertical" class="mr-2 h-4" />
           <h1 v-if="route.name === 'IssuesPage'" class="text-xl">Issues</h1>
           <h1 v-if="route.name === 'ProjectList'" class="text-xl">Projects</h1>
+          <div v-if="route.name === 'Editor'" class="flex gap-2 items-baseline">
+            <h1 class="text-xl">Editor</h1>
+            <p class="text-sm text-gray-500">
+              Write and run SQL queries — save them and visualize the results.
+            </p>
+          </div>
           <div v-if="route.name === 'Favorites'" class="flex gap-2 items-baseline">
             <h1 class="text-xl">Favorites</h1>
             <p class="text-sm text-gray-500">Your saved queries and charts</p>
