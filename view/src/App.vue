@@ -3,7 +3,19 @@
     <metainfo>
       <template v-slot:title="{ content }">{{ content }}</template>
     </metainfo>
-    <component :is="layout"> </component>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset class="w-full">
+        <header class="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger class="-ml-1" />
+          <Separator orientation="vertical" class="mr-2 h-4" />
+          <p v-if="route.name === 'IssuesPage'" class="text-2xl">Issues</p>
+        </header>
+        <div class="flex-1">
+          <component :is="layout"> </component>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   </div>
   <div v-else class="initial-loading" />
   <NotificationGroup>
@@ -27,8 +39,8 @@
           >
             <BaseNotification
               :color="notification.type === 'error' ? 'red' : 'green'"
-              :title="notification.title as string"
-              :message="notification.text as string"
+              :title="String(notification.title)"
+              :message="String(notification.text)"
             />
           </div>
         </Notification>
@@ -44,6 +56,8 @@ import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 
 import { useMeta } from 'vue-meta'
 import { useRoute } from 'vue-router'
+import { SidebarProvider, SidebarTrigger } from './components/ui/sidebar'
+import AppSidebar from './components/AppSidebar.vue'
 
 useMeta({
   title: 'Myriade',

@@ -21,7 +21,7 @@
         <p class="mt-1 text-sm text-gray-500">Get started by creating a new project.</p>
       </div>
       <ul role="list" class="divide-y divide-gray-200">
-        <li v-for="project in projectsStore.sortedProjects" :key="project.id" class="py-4">
+        <li v-for="project in projectsStore.sortedProjects" :key="project.id!" class="py-4">
           <div class="flex items-center space-x-4">
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-medium text-gray-900">

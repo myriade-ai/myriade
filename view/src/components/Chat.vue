@@ -1,11 +1,8 @@
 <template>
-  <div
-    ref="scrollContainer"
-    class="w-full h-screen flex justify-center px-2 lg:px-0 overflow-y-auto"
-  >
+  <div ref="scrollContainer" class="flex justify-center px-2 lg:px-0 h-screen">
     <div class="flex flex-col w-full max-w-2xl h-full">
       <div class="flex flex-col flex-1">
-        <div class="w-full lg:pt-4 pb-4">
+        <div class="w-full lg:pt-4">
           <ul class="list-none">
             <template v-for="(group, index) in messageGroups" :key="index">
               <li v-for="message in group.publicMessages" :key="message.id">
@@ -163,7 +160,7 @@
               <SendButtonWithStatus :status="sendStatus" @clicked="handleSendMessage" />
             </div>
           </div>
-          <div class="w-full flex py-1 relative" v-else>
+          <div class="w-full flex py-1" v-else>
             <textarea
               @input="resizeTextarea"
               @keydown.enter="handleEnter"
@@ -435,6 +432,7 @@ watch(
 
 const fetchAISuggestions = async () => {
   try {
+    if (!contextsStore.contextSelected) return
     const response = await axios.get(`/api/contexts/${contextsStore.contextSelected?.id}/questions`)
     aiSuggestions.value = response.data
   } catch (error: any) {
