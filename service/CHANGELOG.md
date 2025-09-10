@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.40.2 (2025-09-10)
+
+### Bug Fixes
+
+- Migration
+  ([`da8898e`](https://github.com/myriade-ai/myriade/commit/da8898e412a3a99d4b3892c27fd9bd6c6f27ca05))
+
+### Refactoring
+
+- Shadcn components
+  ([`cf0a908`](https://github.com/myriade-ai/myriade/commit/cf0a9081666116befc945a9f9fbaeb37804295e2))
+
+
 ## v0.40.1 (2025-09-10)
 
 ### Bug Fixes
