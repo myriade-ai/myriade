@@ -40,9 +40,9 @@ def upgrade() -> None:
     op.execute("""
         UPDATE database 
         SET write_mode = CASE 
-            WHEN safe_mode = true THEN 'confirmation'::write_mode_enum
-            WHEN safe_mode = false THEN 'skip-confirmation'::write_mode_enum
-            ELSE 'confirmation'::write_mode_enum
+            WHEN safe_mode = true THEN 'confirmation'
+            WHEN safe_mode = false THEN 'skip-confirmation'
+            ELSE 'confirmation'
         END
     """)
 
