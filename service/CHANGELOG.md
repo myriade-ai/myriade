@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.40.0 (2025-09-10)
+
+### Features
+
+- Add confirmation
+  ([`71acb4d`](https://github.com/myriade-ai/myriade/commit/71acb4de73949244213d158ab0c62bfc52063462))
+
+
 ## v0.39.0 (2025-09-08)
 
 ### Chores
