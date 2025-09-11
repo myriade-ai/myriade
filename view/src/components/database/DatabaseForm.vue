@@ -34,7 +34,7 @@
     </div>
 
     <!-- Test Connection Button (for create mode) -->
-    <BaseButton
+    <Button
       v-if="mode === 'create' && connectionStatus?.type !== 'success'"
       :is-loading="isTestingConnection"
       :disabled="!canTestConnection || isTestingConnection"
@@ -42,7 +42,7 @@
     >
       <template #loading>Testing Connection...</template>
       Test Connection
-    </BaseButton>
+    </Button>
 
     <!-- Connection Status Alert -->
     <ConnectionStatusAlert
@@ -111,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import BaseButton from '@/components/base/BaseButton.vue'
+import { Button } from '@/components/ui/button'
 import axios from '@/plugins/axios'
 import {
   getDatabaseTypeName,
