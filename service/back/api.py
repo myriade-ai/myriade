@@ -704,7 +704,20 @@ def get_favorites():
         .filter(UserFavorite.user_id == g.user.id, Query.databaseId == database_id)
         .all()
     )
-    queries = [query.to_dict() for query in query_favorites]
+    # print each query as dict
+    print(
+        "🚀 ~ file: api.py:407 ~ get_favorites ~ query_favorites:",
+        [q.to_dict() for q in query_favorites],
+    )
+
+    # Include rows and count for favorite queries since they're needed in the UI
+    queries = []
+    for query in query_favorites:
+        query_dict = query.to_dict()
+        query_dict["rows"] = query.rows
+        query_dict["count"] = query.count
+        queries.append(query_dict)
+
     charts = [chart.to_dict() for chart in chart_favorites]
     return jsonify({"queries": queries, "charts": charts})
 

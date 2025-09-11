@@ -5,11 +5,22 @@
     </metainfo>
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset class="w-full">
+      <SidebarInset class="min-w-0 w-full">
         <header class="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger class="-ml-1" />
           <Separator orientation="vertical" class="mr-2 h-4" />
-          <p v-if="route.name === 'IssuesPage'" class="text-2xl">Issues</p>
+          <h1 v-if="route.name === 'IssuesPage'" class="text-xl">Issues</h1>
+          <h1 v-if="route.name === 'ProjectList'" class="text-xl">Projects</h1>
+          <div v-if="route.name === 'Editor'" class="flex gap-2 items-baseline">
+            <h1 class="text-xl">Editor</h1>
+            <p class="text-sm text-gray-500">
+              Write and run SQL queries — save them and visualize the results.
+            </p>
+          </div>
+          <div v-if="route.name === 'Favorites'" class="flex gap-2 items-baseline">
+            <h1 class="text-xl">Favorites</h1>
+            <p class="text-sm text-gray-500">Your saved queries and charts</p>
+          </div>
         </header>
         <div class="flex-1">
           <component :is="layout"> </component>
@@ -56,8 +67,8 @@ import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 
 import { useMeta } from 'vue-meta'
 import { useRoute } from 'vue-router'
-import { SidebarProvider, SidebarTrigger } from './components/ui/sidebar'
 import AppSidebar from './components/AppSidebar.vue'
+import { SidebarProvider, SidebarTrigger } from './components/ui/sidebar'
 
 useMeta({
   title: 'Myriade',
@@ -82,6 +93,7 @@ const layout = computed(() => {
   if (route.name === undefined) {
     return '' // Empty so we don't have flickering
   }
+
   return route.meta.layout === 'empty' ? emptyLayout : defaultLayout
 })
 </script>

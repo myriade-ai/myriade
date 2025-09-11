@@ -27,27 +27,32 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar
 } from '@/components/ui/sidebar'
-import { user, logout } from '@/stores/auth'
+import { logout, user } from '@/stores/auth'
 import { useContextsStore } from '@/stores/contexts'
 import { useConversationsStore } from '@/stores/conversations'
 import {
   CalendarCog,
+  ChevronsUpDown,
   DatabaseZap,
+  Edit,
   FilePenLine,
   FolderHeart,
   HatGlasses,
   Inbox,
   LogOut,
+  MoreHorizontal,
   ShieldCheck,
   SquarePen,
+  Trash2,
   UserRoundPen
 } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { computed, nextTick, ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 const items: { title: string; url: string; icon: typeof SquarePen; disabled?: boolean }[] = [
   {
@@ -81,6 +86,18 @@ const items: { title: string; url: string; icon: typeof SquarePen; disabled?: bo
 
 const store = useConversationsStore()
 const contextsStore = useContextsStore()
+const router = useRouter()
+
+const editingConversationId = ref<string | null>(null)
+const nameInputs = ref<{ [convId: string]: HTMLInputElement }>({})
+
+function setNameInputRef(id: string) {
+  return (el: unknown) => {
+    if (el && el instanceof HTMLInputElement) {
+      nameInputs.value[id] = el
+    }
+  }
+}
 
 const projects = computed(() => contextsStore.contexts.filter((c) => c.type === 'project'))
 const databases = computed(() => contextsStore.contexts.filter((c) => c.type === 'database'))
@@ -102,6 +119,35 @@ const userInfo = computed(() => {
 const userInitials = computed(() => userInfo.value.userInitials)
 const fullName = computed(() => userInfo.value.fullName)
 const { isMobile } = useSidebar()
+function startEditConversation(conversationId: string) {
+  editingConversationId.value = conversationId
+  nextTick(() => {
+    const el = nameInputs.value[conversationId]
+    if (el) {
+      el.focus()
+      el.select()
+    }
+  })
+}
+
+function stopEditConversation() {
+  editingConversationId.value = null
+}
+
+async function handleRenameConversation(conversationId: string, newName: string) {
+  if (newName.trim()) {
+    await store.renameConversation(conversationId, newName.trim())
+  }
+  stopEditConversation()
+}
+
+async function handleDeleteConversation(conversationId: string) {
+  await store.deleteConversation(conversationId)
+  // If that conversation was active, redirect away
+  if (route.params.id === conversationId) {
+    router.push({ path: '/chat/new' })
+  }
+}
 </script>
 
 <template>
@@ -143,12 +189,13 @@ const { isMobile } = useSidebar()
                 asChild
                 class="bg-primary text-white hover:text-white hover:bg-primary/70"
               >
-                <RouterLink to="chat/new">
+                <RouterLink to="/chat/new">
                   <SquarePen class="size-4" />
                   <span class="">New chat</span>
                 </RouterLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
+
             <SidebarMenuItem
               v-for="item in items.filter(({ disabled }) => !disabled)"
               :key="item.title"
@@ -168,11 +215,56 @@ const { isMobile } = useSidebar()
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem v-for="conversation in sortedGroup" :key="conversation.id">
-              <SidebarMenuButton asChild :isActive="isActive(conversation.id)">
+              <SidebarMenuButton
+                v-if="editingConversationId !== conversation.id"
+                asChild
+                :isActive="isActive(conversation.id)"
+              >
                 <RouterLink :to="`/chat/${conversation.id}`">
-                  <span class="text-primary">{{ conversation.name }}</span>
+                  <span class="text-primary">{{ conversation.name || 'Unnamed...' }}</span>
                 </RouterLink>
               </SidebarMenuButton>
+              <div
+                v-else
+                class="flex h-8 w-full items-center gap-2 overflow-hidden rounded-md px-1.5 text-sm font-medium outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground"
+              >
+                <input
+                  :ref="setNameInputRef(conversation.id)"
+                  v-model="conversation.name"
+                  class="flex-1 bg-transparent border-none outline-none text-primary"
+                  placeholder="Unnamed..."
+                  @keydown.enter="
+                    handleRenameConversation(conversation.id, conversation.name || '')
+                  "
+                  @blur="handleRenameConversation(conversation.id, conversation.name || '')"
+                />
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                  <SidebarMenuAction show-on-hover>
+                    <MoreHorizontal />
+                    <span class="sr-only">More</span>
+                  </SidebarMenuAction>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  class="w-56 rounded-lg"
+                  :side="isMobile ? 'bottom' : 'right'"
+                  :align="isMobile ? 'end' : 'start'"
+                  v-on:close-auto-focus.prevent
+                >
+                  <DropdownMenuItem @click.stop.prevent="startEditConversation(conversation.id)">
+                    <Edit class="text-muted-foreground" />
+                    <span>Edit</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    class="text-destructive focus:text-destructive"
+                    @click="handleDeleteConversation(conversation.id)"
+                  >
+                    <Trash2 class="text-destructive" />
+                    <span>Delete</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>
