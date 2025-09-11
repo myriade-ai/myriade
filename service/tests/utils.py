@@ -8,7 +8,7 @@ VOLATILE_KEYS = {
 # Keys for which we only want to snapshot their child keys (schema), not values.
 SCHEMA_ONLY_KEYS = {"tables_metadata"}
 MAX_STRING_LEN = 100
-MAX_LIST_DICT_ITEMS = 10
+MAX_LIST_DICT_ITEMS = 20
 
 
 def normalise_json(obj, parent_key=None):
