@@ -1,6 +1,27 @@
 # CHANGELOG
 
 
+## v0.41.0 (2025-09-11)
+
+### Bug Fixes
+
+- Tests snapshots
+  ([`38ed35e`](https://github.com/myriade-ai/myriade/commit/38ed35e5e949d81739167c066b279b2cd83eaa1d))
+
+### Features
+
+- Edit/delete chats
+  ([`a071741`](https://github.com/myriade-ai/myriade/commit/a0717418f1b79e81bcf65949f6917b7276c3f26e))
+
+### Refactoring
+
+- Editor
+  ([`e718f52`](https://github.com/myriade-ai/myriade/commit/e718f52fb06f54b3f147fb402d693409d33abd04))
+
+- Favorites pages
+  ([`01d9e9f`](https://github.com/myriade-ai/myriade/commit/01d9e9f81fd505e330719290581481639c38eaca))
+
+
 ## v0.40.2 (2025-09-10)
 
 ### Bug Fixes
