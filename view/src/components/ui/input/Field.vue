@@ -3,6 +3,8 @@ import type { HTMLAttributes } from 'vue'
 import { cn } from '@/lib/utils'
 import { useField } from 'vee-validate'
 import { computed } from 'vue'
+import Label from '@/components/ui/label/Label.vue'
+import Input from './Input.vue'
 
 const props = defineProps<{
   defaultValue?: string | number
@@ -19,6 +21,7 @@ const emits = defineEmits<{
   (e: 'update:modelValue', payload: string | number): void
 }>()
 
+// Use vee-validate's useField if name is provided, otherwise use regular v-model
 const fieldResult = props.name
   ? useField(props.name, props.rules, {
       initialValue: props.defaultValue
@@ -49,23 +52,20 @@ const inputId = computed(
 </script>
 
 <template>
-  <input
-    :id="inputId"
-    :name="name"
-    :type="type || 'text'"
-    v-model="modelValue"
-    :placeholder="placeholder"
-    @blur="handleBlur"
-    data-slot="input"
-    :class="
-      cn(
-        'file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
-        'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
-        'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
-        errorMessage && 'border-destructive',
-        name && 'mt-1',
-        props.class
-      )
-    "
-  />
+  <div class="space-y-2">
+    <Label v-if="name" :for="inputId" :class="cn('text-sm font-medium leading-none')">
+      {{ name }}
+    </Label>
+    <Input
+      :id="inputId"
+      :name="name"
+      :type="type || 'text'"
+      v-model="modelValue"
+      :placeholder="placeholder"
+      @blur="handleBlur"
+    />
+    <p v-if="errorMessage" class="text-sm text-destructive">
+      {{ errorMessage }}
+    </p>
+  </div>
 </template>
