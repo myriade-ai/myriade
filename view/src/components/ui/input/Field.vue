@@ -1,10 +1,24 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
 import { cn } from '@/lib/utils'
-import { useField } from 'vee-validate'
+import { configure, defineRule, useField } from 'vee-validate'
 import { computed } from 'vue'
 import Label from '@/components/ui/label/Label.vue'
 import Input from './Input.vue'
+import { localize } from '@vee-validate/i18n'
+import { required } from '@vee-validate/rules'
+
+configure({
+  generateMessage: localize({
+    en: {
+      messages: {
+        required: 'this field is required'
+      }
+    }
+  })
+})
+
+defineRule('required', required)
 
 const props = defineProps<{
   defaultValue?: string | number
@@ -24,7 +38,7 @@ const emits = defineEmits<{
 // Use vee-validate's useField if name is provided, otherwise use regular v-model
 const fieldResult = props.name
   ? useField(props.name, props.rules, {
-      initialValue: props.defaultValue
+      initialValue: props.modelValue || props.defaultValue
     })
   : null
 
@@ -63,6 +77,7 @@ const inputId = computed(
       v-model="modelValue"
       :placeholder="placeholder"
       @blur="handleBlur"
+      :class="cn(errorMessage && 'border-destructive')"
     />
     <p v-if="errorMessage" class="text-sm text-destructive">
       {{ errorMessage }}

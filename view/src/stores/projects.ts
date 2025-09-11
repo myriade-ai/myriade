@@ -2,13 +2,13 @@ import axios from '@/plugins/axios'
 import { defineStore } from 'pinia'
 import { computed, ref, type WritableComputedRef } from 'vue'
 
-interface ProjectTable {
+export interface ProjectTable {
   databaseName: string | null
   schemaName: string | null
   tableName: string | null
 }
 
-interface Project {
+export interface Project {
   id: string | null
   name: string
   description: string
