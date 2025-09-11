@@ -181,7 +181,7 @@ async function handleDeleteConversation(conversationId: string) {
     </SidebarHeader>
     <SidebarContent>
       <SidebarGroup>
-        <SidebarGroupLabel>Myriad</SidebarGroupLabel>
+        <SidebarGroupLabel>Myriade</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>

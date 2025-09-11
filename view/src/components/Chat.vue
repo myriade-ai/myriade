@@ -1,5 +1,9 @@
 <template>
-  <div ref="scrollContainer" class="flex justify-center px-2 lg:px-0 h-screen">
+  <div
+    ref="scrollContainer"
+    class="flex justify-center px-2 lg:px-0 h-screen"
+    v-touch:swipe.right="toggleSidebar"
+  >
     <div class="flex flex-col w-full max-w-2xl h-full">
       <div class="flex flex-col flex-1">
         <div class="w-full lg:pt-4">
@@ -217,9 +221,11 @@ import { STATUS, useConversationsStore } from '@/stores/conversations'
 import { useQueriesStore } from '@/stores/queries'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
+import { useSidebar } from './ui/sidebar'
 
 const route = useRoute()
 const router = useRouter()
+const { toggleSidebar } = useSidebar()
 
 const contextsStore = useContextsStore()
 const queriesStore = useQueriesStore()

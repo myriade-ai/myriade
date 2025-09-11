@@ -1,4 +1,5 @@
 interface Column {
+  id: string
   name: string
   type: string
   description: string

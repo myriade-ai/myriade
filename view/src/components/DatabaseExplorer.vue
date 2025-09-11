@@ -17,7 +17,7 @@
           @dblclick="onDblClick(table)"
           :isUsed="true"
         />
-        <div class="px-4 py-2 bg-gray-50 rounded-t-md">
+        <div class="px-4 py-2 bg-gray-50">
           <Input
             type="text"
             placeholder="Search table"
