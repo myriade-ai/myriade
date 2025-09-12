@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.41.1 (2025-09-12)
+
+### Bug Fixes
+
+- Improvements
+  ([`dc1a756`](https://github.com/myriade-ai/myriade/commit/dc1a756c50ea9217015509da33f27175c60c9589))
+
+
 ## v0.41.0 (2025-09-11)
 
 ### Bug Fixes
