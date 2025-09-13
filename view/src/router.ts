@@ -2,6 +2,7 @@ import { authGuard, redirectToWelcome } from '@/auth'
 import Control from '@/components/Control.vue'
 import { useQueryEditor } from '@/composables/useQueryEditor'
 import { createRouter, createWebHistory } from 'vue-router'
+import { useContextsStore } from './stores/contexts'
 
 function loadView(view: string) {
   return () => import(`./views/${view}.vue`)
@@ -101,7 +102,12 @@ const routes = [
   {
     path: '/projects/:id',
     name: 'ProjectEdit',
-    component: loadView('ProjectEdit')
+    component: loadView('ProjectEdit'),
+    beforeEnter: async (to) => {
+      const contextsStore = useContextsStore()
+      await contextsStore.initializeContexts()
+      return true
+    }
   },
   {
     path: '/user',

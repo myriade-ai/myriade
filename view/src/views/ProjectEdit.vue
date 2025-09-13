@@ -1,56 +1,55 @@
 <template>
   <div class="min-h-screen bg-sidebar/50">
     <Form @submit="clickSave" class="max-w-7xl mx-auto px-4 py-4">
+      <div class="mb-4 p-4 border-l-4 border-yellow-500 bg-yellow-50">
+        <div class="flex items-start gap-3">
+          <LightBulbIcon class="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+          <div class="text-sm text-gray-700">
+            <div class="font-medium text-yellow-800 mb-2">When to create a project?</div>
+            <ul class="space-y-1 text-gray-600">
+              <li>
+                • When you lots of tables, and you want to focus on a specific subset of tables
+              </li>
+              <li>
+                • When you want to analyze a specific business domain that needs context explanation
+              </li>
+              <li>• When you want to analyze the same business problem or metrics repeatedly</li>
+            </ul>
+          </div>
+        </div>
+      </div>
       <!-- Project Name -->
       <div class="mb-6">
-        <Field name="Name" v-model="project.name" rules="required" />
+        <Field
+          name="Name"
+          v-model="project.name"
+          rules="required"
+          placeholder="eg. 'Company Financial Performance'"
+        />
       </div>
 
       <!-- Project Description -->
       <div class="mb-6">
         <div class="mb-4">
-          <Label for="description" class="text-lg font-semibold">Project Description</Label>
+          <Label for="description">Project Description</Label>
           <p class="text-sm text-gray-600 mt-1">
-            This description helps the Agent understand your project context and provide better
-            assistance.
+            Provide clear context, as you would to new hire. <br />
           </p>
         </div>
-
-        <div class="mb-4 p-4 border-l-4 border-blue-500 bg-blue-50">
-          <div class="flex items-start gap-3">
-            <LightBulbIcon class="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div class="text-sm text-gray-700">
-              <div class="font-medium text-blue-800 mb-2">When to create a project:</div>
-              <ul class="space-y-1 text-gray-600">
-                <li>• Focusing on a specific subset of tables</li>
-                <li>• Managing complex business domains that need context explanation</li>
-                <li>• Repeatedly analyzing the same business problem or metrics</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
         <Textarea
           name="Description"
           v-model="project.description"
-          placeholder="Example:
-
-      Financial Performance Analysis Project
-
-      This project focuses on analyzing quarterly financial performance using our ERP database. We work with accounting, sales, and procurement tables to track revenue trends, cost optimization, and profitability by business unit.
-
-      Key business context:
-      - Revenue recognition follows a subscription model with monthly recurring billing
-      - Cost centers are organized by department with shared infrastructure costs
-      - We need to track EBITDA margins and compare against industry benchmarks
-
-      Regular analysis includes monthly P&L reviews, quarterly board reporting, and annual budget planning."
+          placeholder="What is your objective?
+What are the business rules?
+What are the key metrics?
+What to be aware of?
+"
           class="h-96 bg-white"
         />
       </div>
 
       <!-- Database Selection -->
-      <div class="mb-6">
+      <div class="mb-6" v-if="false">
         <base-field name="Database">
           <VField
             name="databaseId"
@@ -71,22 +70,27 @@
       </div>
 
       <!-- Tables Selection -->
-      <div v-if="selectedDatabase" class="mb-6">
+      <div v-if="selectedDatabase && !isLoading" class="mb-6">
         <label class="block text-gray-700 text-sm font-medium mb-2" for="tables">
           Tables linked to this project
         </label>
         <DatabaseTableSelector :groups="groups" v-model="selectedItems" />
       </div>
 
+      <!-- Loading indicator -->
+      <div v-if="isLoading" class="mb-6 text-center py-8">
+        <div class="text-gray-600">Loading database schema...</div>
+      </div>
+
       <BaseAlert class="mt-5" v-if="apiError">
         <template #title> There is an error 😔 </template>{{ apiError }}
       </BaseAlert>
 
-      <div class="fixed bottom-6 right-6 flex space-x-2 z-50">
-        <Button v-if="!isNew" @click.prevent="clickDelete" type="button" variant="secondary">
+      <div class="bottom-6 right-6 flex space-x-2 z-50 py-4 float-right">
+        <Button variant="destructive" v-if="!isNew" @click="clickDelete" class="cursor-pointer">
           Delete
         </Button>
-        <Button type="submit"> Save </Button>
+        <Button @click="clickSave" class="cursor-pointer"> Save </Button>
       </div>
     </Form>
   </div>
@@ -101,34 +105,42 @@ import { Button } from '@/components/ui/button'
 import Field from '@/components/ui/input/Field.vue'
 import Label from '@/components/ui/label/Label.vue'
 import { Textarea } from '@/components/ui/textarea'
+import { useContextsStore } from '@/stores/contexts'
 import { useDatabasesStore } from '@/stores/databases'
 import type { Project, ProjectTable } from '@/stores/projects'
 import { useProjectsStore } from '@/stores/projects'
 import { LightBulbIcon } from '@heroicons/vue/24/outline'
 import { ErrorMessage, Form, Field as VField } from 'vee-validate'
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const { createProject, updateProject, deleteProject, fetchProjectById } = useProjectsStore()
+const contextsStore = useContextsStore()
 const databasesStore = useDatabasesStore()
-await databasesStore.fetchDatabases({ refresh: false })
 
 const route = useRoute()
 const router = useRouter()
 const apiError = ref<string | null>(null)
-
 const selectedItems = ref<Item[]>([])
 const groups = ref<Group[]>([])
+const tables = ref<TableData[]>([])
+const isLoading = ref(true)
+
+const selectedDatabaseId = computed(() => contextsStore.getSelectedContextDatabaseId())
+const selectedDatabase = computed(() => {
+  if (!databasesStore.databases || !selectedDatabaseId.value) {
+    return null
+  }
+  return databasesStore.databases.find((db) => db.id === selectedDatabaseId.value)
+})
 
 const project = ref({
   id: null,
   name: '',
   description: '',
-  databaseId: null,
+  databaseId: selectedDatabaseId.value,
   tables: []
 } as Project)
-
-const tables = ref<TableData[]>([])
 
 const clickDelete = async () => {
   if (project.value.id && (await deleteProject(project.value.id))) {
@@ -157,18 +169,16 @@ const clickSave = async () => {
   }
 }
 
-const selectedDatabase = computed(() => {
-  if (!databasesStore.databases) {
-    return null
-  }
-  return databasesStore.databases.find((db) => db.id === project.value.databaseId)
-})
-
 const fetchDatabaseSchema = async () => {
-  if (project.value.databaseId) {
+  const databaseId = selectedDatabaseId.value
+  if (!databaseId) {
+    console.warn('No database ID available for schema fetch')
+    return
+  }
+
+  try {
     // Fetch schema (fetchDatabaseTables) and tables for the selected database
-    // and update the groups and tables state
-    const fetchedTables = await databasesStore.fetchDatabaseTables(project.value.databaseId)
+    const fetchedTables = await databasesStore.fetchDatabaseTables(databaseId)
 
     // Transform the fetched tables to match our TableData interface
     const tableData: TableData[] = (fetchedTables as FetchedTable[]).map((table) => ({
@@ -192,6 +202,9 @@ const fetchDatabaseSchema = async () => {
     })
     // 3. update selectedItems
     selectedItems.value = filteredItems
+  } catch (error) {
+    console.error('Error fetching database schema:', error)
+    apiError.value = 'Failed to load database schema'
   }
 }
 
@@ -256,7 +269,6 @@ function projectTablesFromSelectedItems(selectedItems: Item[]): ProjectTable[] {
   // Take id of items and return project tables
   return selectedItems.map((item) => {
     return {
-      databaseName: selectedDatabase.value?.name as string,
       schemaName: item.id.split('.')[0],
       tableName: item.id.split('.')[1]
     }
@@ -273,9 +285,40 @@ watch(
 )
 
 const isNew = computed(() => route.params.id === 'new')
-if (!isNew.value) {
-  const projectId = Array.isArray(route.params.id) ? route.params.id[0] : route.params.id
-  project.value = await fetchProjectById(projectId)
-  await fetchDatabaseSchema()
+
+// Initialize component data
+const initializeComponent = async () => {
+  try {
+    isLoading.value = true
+
+    if (!isNew.value) {
+      const projectId = Array.isArray(route.params.id) ? route.params.id[0] : route.params.id
+      project.value = await fetchProjectById(projectId)
+    }
+
+    // Always fetch database schema if we have a selected database
+    await fetchDatabaseSchema()
+  } catch (error) {
+    console.error('Error initializing component:', error)
+    apiError.value = 'Failed to initialize project data'
+  } finally {
+    isLoading.value = false
+  }
 }
+
+// Watch for database ID changes and refetch schema
+watch(
+  selectedDatabaseId,
+  async (newDatabaseId) => {
+    if (newDatabaseId) {
+      // Update project's database ID when context changes
+      project.value.databaseId = newDatabaseId
+      await fetchDatabaseSchema()
+    }
+  },
+  { immediate: false }
+)
+
+// Initialize when component mounts
+initializeComponent()
 </script>
