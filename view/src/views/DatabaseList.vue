@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-7xl mx-auto px-4">
+  <div class="mx-auto px-4">
     <div class="mt-6 flow-root">
       <ul role="list" class="-my-5 divide-y divide-gray-200">
         <li v-for="database in databasesStore.sortedDatabases" :key="database.id" class="py-4">

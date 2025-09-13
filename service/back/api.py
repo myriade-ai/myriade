@@ -176,7 +176,7 @@ def create_database_route():
         organisation_id=g.organisation.id if g.organisation else None,
         owner_id=g.user.id,
         public=False,
-        safe_mode=data["safe_mode"],
+        write_mode=data["write_mode"],
         dbt_catalog=data["dbt_catalog"],
         dbt_manifest=data["dbt_manifest"],
     )
@@ -266,7 +266,7 @@ def update_database(database_id: UUID):
     database.tables_metadata = merged_metadata
     database.engine = data["engine"]
     database.details = data["details"]
-    database.safe_mode = data["safe_mode"]
+    database.write_mode = data["write_mode"]
     database.dbt_catalog = data["dbt_catalog"]
     database.dbt_manifest = data["dbt_manifest"]
 
@@ -704,7 +704,20 @@ def get_favorites():
         .filter(UserFavorite.user_id == g.user.id, Query.databaseId == database_id)
         .all()
     )
-    queries = [query.to_dict() for query in query_favorites]
+    # print each query as dict
+    print(
+        "🚀 ~ file: api.py:407 ~ get_favorites ~ query_favorites:",
+        [q.to_dict() for q in query_favorites],
+    )
+
+    # Include rows and count for favorite queries since they're needed in the UI
+    queries = []
+    for query in query_favorites:
+        query_dict = query.to_dict()
+        query_dict["rows"] = query.rows
+        query_dict["count"] = query.count
+        queries.append(query_dict)
+
     charts = [chart.to_dict() for chart in chart_favorites]
     return jsonify({"queries": queries, "charts": charts})
 

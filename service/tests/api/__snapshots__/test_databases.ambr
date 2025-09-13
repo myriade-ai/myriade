@@ -2,7 +2,8 @@
 # name: test_list_databases
   list([
     dict({
-      '<truncated_items_5>': '...',
+      'dbt_catalog': None,
+      'dbt_manifest': None,
       'description': 'ephemeral test db',
       'details': dict({
         'filename': ':memory:',
@@ -15,6 +16,7 @@
       'public': False,
       'tables_metadata': list([
       ]),
+      'write_mode': 'confirmation',
     }),
   ])
 # ---

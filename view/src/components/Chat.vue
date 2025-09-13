@@ -1,11 +1,12 @@
 <template>
   <div
     ref="scrollContainer"
-    class="w-full h-screen flex justify-center px-2 lg:px-0 overflow-y-auto"
+    class="flex justify-center px-2 lg:px-0 h-screen"
+    v-touch:swipe.right="toggleSidebar"
   >
     <div class="flex flex-col w-full max-w-2xl h-full">
       <div class="flex flex-col flex-1">
-        <div class="w-full lg:pt-4 pb-4">
+        <div class="w-full lg:pt-4">
           <ul class="list-none">
             <template v-for="(group, index) in messageGroups" :key="index">
               <li v-for="message in group.publicMessages" :key="message.id">
@@ -163,7 +164,7 @@
               <SendButtonWithStatus :status="sendStatus" @clicked="handleSendMessage" />
             </div>
           </div>
-          <div class="w-full flex py-1 relative" v-else>
+          <div class="w-full flex py-1" v-else>
             <textarea
               @input="resizeTextarea"
               @keydown.enter="handleEnter"
@@ -217,13 +218,17 @@ import { useRoute, useRouter } from 'vue-router'
 // Import sparkles from heroicons
 import { isConnected, socket } from '@/plugins/socket'
 import { STATUS, useConversationsStore } from '@/stores/conversations'
+import { useQueriesStore } from '@/stores/queries'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
+import { useSidebar } from './ui/sidebar'
 
 const route = useRoute()
 const router = useRouter()
+const { toggleSidebar } = useSidebar()
 
 const contextsStore = useContextsStore()
+const queriesStore = useQueriesStore()
 
 /** CONVERSATION LOGIC **/
 const conversationsStore = useConversationsStore()
@@ -301,9 +306,13 @@ const isPublicMessage = (message, index) => {
   const isFunctionAfterUser = isFunction && prevMessage?.role === 'user'
   const isFunctionAfterAnswer = isFunction && prevMessage?.isAnswer
   const isAnwser = message.isAnswer
-
-  return isUser || isFunctionAfterUser || isAnwser || isFunctionAfterAnswer
+  let hasWriteOperation = false
+  if (message.queryId) {
+    hasWriteOperation = queriesStore.getQuery(message.queryId)?.operationType !== null
+  }
+  return isUser || isFunctionAfterUser || isAnwser || isFunctionAfterAnswer || hasWriteOperation
 }
+
 /** END MESSAGE DISPLAY LOGIC **/
 
 /** HANDLE EVENTS **/
@@ -429,6 +438,7 @@ watch(
 
 const fetchAISuggestions = async () => {
   try {
+    if (!contextsStore.contextSelected) return
     const response = await axios.get(`/api/contexts/${contextsStore.contextSelected?.id}/questions`)
     aiSuggestions.value = response.data
   } catch (error: any) {

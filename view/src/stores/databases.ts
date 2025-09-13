@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 export type Engine = 'postgres' | 'mysql' | 'snowflake' | 'sqlite' | 'bigquery' | 'motherduck'
+export type WriteMode = 'read-only' | 'confirmation' | 'skip-confirmation'
 
 export interface Database {
   id: string
@@ -12,7 +13,7 @@ export interface Database {
   engine: Engine | null
   details: Record<string, string | number | undefined | null> | null
   public: boolean
-  safe_mode: boolean
+  write_mode: WriteMode
   dbt_catalog: unknown
   dbt_manifest: unknown
 }
@@ -24,7 +25,7 @@ export const makeEmptyDatabase = () =>
     name: '',
     engine: null,
     details: null,
-    safe_mode: false,
+    write_mode: 'confirmation' as WriteMode,
     dbt_catalog: null,
     dbt_manifest: null,
     public: false

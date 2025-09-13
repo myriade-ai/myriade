@@ -1,12 +1,11 @@
 <template>
   <div class="space-y-6">
-    <!-- Basic Information -->
-    <base-input
+    <Field
       v-if="showNameField"
-      name="Connection Name"
-      :model-value="nameValue || ''"
-      :rules="nameRequired ? 'required' : ''"
+      :v-model="nameValue"
       placeholder="A nice name for your connection, like 'My Production Database'"
+      :rules="nameRequired ? 'required' : ''"
+      name="Connection Name"
       @update:model-value="$emit('update:name', $event)"
     />
 
@@ -16,7 +15,7 @@
         <p>{{ getDatabaseTypeName(engine) }} connection details</p>
       </div>
       <div :class="layout === 'grid' ? 'grid grid-cols-1' : 'space-y-4'">
-        <base-input name="Host" v-model="details.host" rules="required" placeholder="localhost" />
+        <Field name="Host" v-model="details.host" rules="required" placeholder="localhost" />
         <!-- Information box for IP whitelisting -->
         <BaseNotification
           v-if="!shouldHideNetworkConfig"
@@ -25,27 +24,23 @@
           :message="`If necessary, please whitelist the following IP in your cloud-database network rules: ${serverIp}`"
           class="bg-warning-50"
         />
-        <base-input
+        <Field
           name="Port"
           v-model="details.port"
           type="number"
           :placeholder="engine === 'postgres' ? '5432' : '3306'"
         />
       </div>
-      <div :class="layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'">
-        <base-input
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Field
           :name="layout === 'grid' ? 'Username' : 'User'"
           v-model="details.user"
           :rules="userRequired ? 'required' : ''"
+          class="w-full"
         />
-        <base-input-password
-          name="Password"
-          v-model="details.password"
-          placeholder="Enter password"
-          :rules="passwordRequired ? 'required' : ''"
-        />
+        <InputPassword name="Password" v-model="details.password" placeholder="Enter password" />
       </div>
-      <base-input
+      <Field
         :name="layout === 'grid' ? 'Database Name' : 'Database'"
         v-model="details.database"
         rules="required"
@@ -57,7 +52,7 @@
       <div class="text-sm text-gray-500" v-if="showEngineTitle">
         <p>SQLite connection details</p>
       </div>
-      <base-input
+      <Field
         name="Path"
         v-model="details.filename"
         rules="required"
@@ -70,19 +65,19 @@
       <div class="text-sm text-gray-500" v-if="showEngineTitle">
         <p>Snowflake connection details</p>
       </div>
-      <base-input
+      <Field
         name="Account Identifier"
         v-model="details.account"
         rules="required"
         placeholder="ORGANIZATION-ACCOUNT"
       />
       <div :class="layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'">
-        <base-input
+        <Field
           :name="layout === 'grid' ? 'Username' : 'User'"
           v-model="details.user"
           rules="required"
         />
-        <base-input-password
+        <InputPassword
           name="Password"
           v-model="details.password"
           placeholder="Enter password"
@@ -90,12 +85,12 @@
         />
       </div>
       <div :class="layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'">
-        <base-input name="Database" v-model="details.database" rules="required" />
-        <base-input name="Schema" v-model="details.schema" placeholder="PUBLIC" />
+        <Field name="Database" v-model="details.database" rules="required" />
+        <Field name="Schema" v-model="details.schema" placeholder="PUBLIC" />
       </div>
       <div :class="layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'">
-        <base-input name="Warehouse" v-model="details.warehouse" placeholder="COMPUTE_WH" />
-        <base-input name="Role" v-model="details.role" placeholder="ACCOUNTADMIN" />
+        <Field name="Warehouse" v-model="details.warehouse" placeholder="COMPUTE_WH" />
+        <Field name="Role" v-model="details.role" placeholder="ACCOUNTADMIN" />
       </div>
     </div>
 
@@ -104,7 +99,7 @@
       <div class="text-sm text-gray-500" v-if="showEngineTitle">
         <p>BigQuery connection details</p>
       </div>
-      <base-input
+      <Field
         name="Project ID"
         v-model="details.project_id"
         rules="required"
@@ -143,13 +138,8 @@
       <div class="text-sm text-gray-500" v-if="showEngineTitle">
         <p>MotherDuck connection details</p>
       </div>
-      <base-input
-        name="Token"
-        v-model="details.token"
-        rules="required"
-        placeholder="Enter your token"
-      />
-      <base-input
+      <Field name="Token" v-model="details.token" rules="required" placeholder="Enter your token" />
+      <Field
         name="Database"
         v-model="details.database"
         rules="required"
@@ -157,37 +147,61 @@
       />
     </div>
 
-    <!-- Safe Mode Toggle -->
+    <!-- Write Mode Selection -->
     <div class="p-4 bg-gray-50 rounded-lg max-w-lg" v-if="!enginesWithoutSafeMode.includes(engine)">
-      <h3 class="text-sm font-medium text-gray-900">Safe Mode (read-only)</h3>
-      <p class="text-sm text-gray-500 mb-3">
-        When enabled, prevents destructive operations like DROP, DELETE, and UPDATE statements
+      <h3 class="text-sm font-medium text-gray-900">Write Operation Handling</h3>
+      <p class="text-sm text-gray-500 mb-4">
+        Choose how to handle write operations like CREATE, DROP, INSERT, UPDATE, DELETE
       </p>
-      <label class="relative inline-flex items-center cursor-pointer">
-        <input
-          type="checkbox"
-          :checked="safeMode"
-          @change="$emit('update:safeMode', ($event.target as HTMLInputElement).checked)"
-          class="sr-only peer"
-        />
-        <div
-          class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"
-        ></div>
-      </label>
+
+      <RadioGroup
+        :model-value="writeMode || 'confirmation'"
+        @update:model-value="$emit('update:writeMode', $event)"
+        class="space-y-3"
+      >
+        <div class="flex items-start space-x-3">
+          <RadioGroupItem value="read-only" id="read-only" class="mt-1" />
+          <label for="read-only" class="cursor-pointer flex-1">
+            <div class="text-sm font-medium text-gray-900">Read-only</div>
+            <div class="text-xs text-gray-500">Block all write operations entirely</div>
+          </label>
+        </div>
+
+        <div class="flex items-start space-x-3">
+          <RadioGroupItem value="confirmation" id="confirmation" class="mt-1" />
+          <label for="confirmation" class="cursor-pointer flex-1">
+            <div class="text-sm font-medium text-gray-900">Ask for confirmation</div>
+            <div class="text-xs text-gray-500">
+              Prompt user to confirm write operations (recommended)
+            </div>
+          </label>
+        </div>
+
+        <div class="flex items-start space-x-3">
+          <RadioGroupItem value="skip-confirmation" id="skip-confirmation" class="mt-1" />
+          <label for="skip-confirmation" class="cursor-pointer flex-1">
+            <div class="text-sm font-medium text-gray-900">Allow all operations</div>
+            <div class="text-xs text-gray-500">Execute all queries without confirmation</div>
+          </label>
+        </div>
+      </RadioGroup>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import BaseInput from '@/components/base/BaseInput.vue'
-import BaseInputPassword from '@/components/base/BaseInputPassword.vue'
 import BaseNotification from '@/components/base/BaseNotification.vue'
+import Field from '@/components/ui/input/Field.vue'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useServerInfo } from '@/composables/useServerInfo'
 import { getDatabaseTypeName, getDefaultDetailsForEngine, type Engine } from '@/stores/databases'
 import { CloudArrowUpIcon } from '@heroicons/vue/24/outline'
 import { computed, watch } from 'vue'
+import InputPassword from '../ui/input/InputPassword.vue'
 
 const { serverIp } = useServerInfo()
+
+type WriteMode = 'read-only' | 'confirmation' | 'skip-confirmation'
 
 interface Props {
   modelValue: Record<string, any> // this is *details* only
@@ -201,10 +215,10 @@ interface Props {
   passwordRequired?: boolean
   namePlaceholder?: string
   descriptionPlaceholder?: string
-  safeMode?: boolean
+  writeMode?: WriteMode
 }
 const props = defineProps<Props>()
-defineEmits(['update:safeMode', 'update:name'])
+defineEmits(['update:writeMode', 'update:name'])
 const details = defineModel({ type: Object, required: true })
 
 // Check if we should show network configuration notification

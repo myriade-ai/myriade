@@ -1,9 +1,6 @@
 <template>
-  <div class="overflow-y-auto bg-gray-100 h-screen">
-    <div class="max-w-7xl py-4 px-8">
-      <h1 class="text-2xl font-bold leading-tight text-gray-900">Favorites</h1>
-      <p class="mt-2 text-sm text-gray-500">Your saved queries and charts</p>
-
+  <div class="overflow-y-auto h-screen bg-sidebar/50">
+    <div class="px-8">
       <div v-if="loading" class="mt-4 text-center">
         <p>Loading...</p>
       </div>
@@ -12,40 +9,66 @@
         <p>{{ error }}</p>
       </div>
 
-      <div v-else class="space-y-6 mt-6">
-        <!-- Saved Queries Section -->
-        <div>
-          <div class="flex items-center justify-between w-1/2">
-            <h2 class="text-xl font-semibold text-gray-900">Saved Queries</h2>
-            <div v-if="queries.length === 0" class="mr-2 text-center text-gray-500">
-              <p>No saved queries</p>
-            </div>
-          </div>
-
+      <div v-else class="space-y-6 my-4">
+        <div v-if="combinedItems.length === 0" class="text-center py-8">
           <div
-            v-if="queries.length > 0"
-            class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2"
+            class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary-100"
           >
-            <div
-              v-for="query in queries"
-              :key="query.id"
-              class="bg-white overflow-hidden shadow rounded-lg"
+            <Heart class="h-6 w-6 text-primary-600" />
+          </div>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No favorites yet</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            Create a chat to save your favorite queries and charts for quick access later!
+          </p>
+          <div class="mt-6">
+            <RouterLink
+              to="/chat/new"
+              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
-              <div class="px-4 py-5 sm:p-6">
+              <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              Create your first favorite
+            </RouterLink>
+          </div>
+        </div>
+
+        <div
+          v-if="combinedItems.length > 0"
+          class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2"
+        >
+          <Card
+            v-for="item in combinedItems"
+            :key="`${item.type}-${item.data.id}`"
+            class="overflow-hidden gap-0 h-fit"
+          >
+            <!-- Query Card -->
+            <template v-if="item.type === 'query'">
+              <CardContent>
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">Query</div>
+                </div>
                 <h3 class="text-lg font-medium text-gray-900 truncate">
-                  {{ query.title || 'Untitled Query' }}
+                  {{ item.data.title || 'Untitled Query' }}
                 </h3>
-                <div class="mt-2 max-h-20 overflow-hidden text-sm text-gray-500">
-                  {{ truncateSql(query.sql) }}
+                <div
+                  class="mt-2 max-h-60 overflow-hidden text-sm text-gray-500 text-ellipsis line-clamp-3"
+                >
+                  {{ item.data.sql }}
                 </div>
                 <!-- Add query result preview -->
                 <div class="mt-2 border rounded p-2 bg-gray-50 overflow-auto max-h-40">
-                  <div v-if="query.rows && query.rows.length > 0" class="text-xs">
+                  <div v-if="item.data.rows && item.data.rows.length > 0" class="text-xs">
                     <table class="min-w-full divide-y divide-gray-200">
                       <thead class="bg-gray-100">
                         <tr>
                           <th
-                            v-for="(_, key) in query.rows[0]"
+                            v-for="(_, key) in item.data.rows[0]"
                             :key="key"
                             class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                           >
@@ -54,7 +77,7 @@
                         </tr>
                       </thead>
                       <tbody class="bg-white divide-y divide-gray-200">
-                        <tr v-for="(row, i) in query.rows.slice(0, 3)" :key="i">
+                        <tr v-for="(row, i) in item.data.rows.slice(0, 3)" :key="i">
                           <td
                             v-for="(value, key) in row"
                             :key="key"
@@ -66,77 +89,65 @@
                       </tbody>
                     </table>
                     <div
-                      v-if="query.rows.length > 3"
+                      v-if="item.data.rows.length > 3"
                       class="text-center text-xs mt-1 text-gray-500"
                     >
-                      + {{ query.rows.length - 3 }} more rows
+                      + {{ item.data.rows.length - 3 }} more rows
                     </div>
                   </div>
                   <div v-else class="text-xs text-gray-500">No results available</div>
                 </div>
-                <div class="mt-4 flex justify-between">
-                  <a
-                    :href="`/query/${query.id}`"
-                    class="text-sm font-medium text-primary-600 hover:text-primary-500"
-                  >
-                    View Query
-                  </a>
-                  <button
-                    @click="unfavoriteQuery(query.id)"
-                    class="text-sm text-error-600 hover:text-error-500"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+              </CardContent>
 
-        <!-- Saved Charts Section -->
-        <div>
-          <div class="flex items-center justify-between w-1/2">
-            <h2 class="text-xl font-semibold text-gray-900">Saved Charts</h2>
-            <div v-if="charts.length === 0" class="mr-2 text-center text-gray-500">
-              <p>No saved charts</p>
-            </div>
-          </div>
-          <div
-            v-if="charts.length > 0"
-            class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2"
-          >
-            <div
-              v-for="chart in charts"
-              :key="chart.id"
-              class="bg-white overflow-hidden shadow rounded-lg"
-            >
-              <div class="px-4 py-5 sm:p-6">
+              <CardFooter class="justify-between mt-2">
+                <Button
+                  class="text-sm font-medium text-primary-600 hover:text-primary-500"
+                  variant="link"
+                  asChild
+                >
+                  <RouterLink :to="`/query/${item.data.id}`"> View Query </RouterLink>
+                </Button>
+
+                <Button @click="unfavoriteQuery(item.data.id)" variant="ghost_destructive">
+                  Remove
+                </Button>
+              </CardFooter>
+            </template>
+
+            <!-- Chart Card -->
+            <template v-else-if="item.type === 'chart'">
+              <CardContent>
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                    Chart
+                  </div>
+                </div>
                 <h3 class="text-lg font-medium text-gray-900 truncate">
-                  {{ getChartTitle(chart) }}
+                  {{ getChartTitle(item.data) }}
                 </h3>
                 <div class="mt-2">
                   <Echart
-                    :option="{ ...chart.config, query_id: chart.queryId }"
+                    :option="{ ...item.data.config, query_id: item.data.queryId }"
                     style="height: 200px; width: 100%"
                   />
                 </div>
-                <div class="mt-4 flex justify-between">
-                  <a
-                    :href="`/query/${chart.queryId}`"
-                    class="text-sm font-medium text-primary-600 hover:text-primary-500"
-                  >
-                    View Query
-                  </a>
-                  <button
-                    @click="unfavoriteChart(chart.id)"
-                    class="text-sm text-error-600 hover:text-error-500"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+              </CardContent>
+
+              <CardFooter class="justify-between">
+                <Button
+                  class="text-sm font-medium text-primary-600 hover:text-primary-500"
+                  variant="link"
+                  asChild
+                >
+                  <RouterLink :to="`/query/${item.data.queryId}`"> View Query </RouterLink>
+                </Button>
+
+                <Button @click="unfavoriteChart(item.data.id)" variant="ghost_destructive">
+                  Remove
+                </Button>
+              </CardFooter>
+            </template>
+          </Card>
         </div>
       </div>
     </div>
@@ -145,11 +156,15 @@
 
 <script setup lang="ts">
 import Echart from '@/components/Echart.vue'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import type { Query } from '@/composables/useQueryEditor'
 import axios from '@/plugins/axios'
 import { useChartStore, type Chart } from '@/stores/chart'
 import { useContextsStore } from '@/stores/contexts'
-import type { Query } from '@/stores/query'
-import { onMounted, ref } from 'vue'
+import { Heart } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 
 const { toggleChartFavorite } = useChartStore()
 const { contextSelected } = useContextsStore()
@@ -159,6 +174,23 @@ const queries = ref<Query[]>([])
 const charts = ref<Chart[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
+
+// Combined items for mixed display
+const combinedItems = computed(() => {
+  const queryItems = queries.value.map((query) => ({
+    type: 'query' as const,
+    data: query,
+    id: `query-${query.id}`
+  }))
+
+  const chartItems = charts.value.map((chart) => ({
+    type: 'chart' as const,
+    data: chart,
+    id: `chart-${chart.id}`
+  }))
+
+  return [...queryItems, ...chartItems]
+})
 
 // Fetch workspace items on mount
 onMounted(async () => {
@@ -176,11 +208,6 @@ onMounted(async () => {
 })
 
 // Helper functions
-const truncateSql = (sql?: string) => {
-  if (!sql) return ''
-  return sql.length > 100 ? `${sql.substring(0, 100)}...` : sql
-}
-
 const getChartTitle = (chart: Chart) => {
   if (!chart.config) return 'Untitled Chart'
   return chart.config.title?.text || 'Untitled Chart'

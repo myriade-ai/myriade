@@ -12,7 +12,7 @@ def create_database(
     engine: str,
     details: dict,
     public: bool,
-    safe_mode: bool = False,
+    write_mode: str = "confirmation",
     owner_id: str | None = None,
     organisation_id: str | None = None,
     dbt_catalog: dict | None = None,
@@ -27,7 +27,7 @@ def create_database(
         organisationId=organisation_id,
         ownerId=owner_id,
         public=public,
-        safe_mode=safe_mode,
+        write_mode=write_mode,
         dbt_catalog=dbt_catalog,
         dbt_manifest=dbt_manifest,
     )

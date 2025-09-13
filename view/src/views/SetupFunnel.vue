@@ -9,7 +9,7 @@
         class="absolute top-8 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors duration-200"
         aria-label="Close setup"
       >
-        <XMarkIcon class="w-6 h-6" />
+        <X class="w-6 h-6" />
       </button>
 
       <div class="text-center">
@@ -36,7 +36,7 @@
                   class="flex items-center justify-center w-8 h-8 rounded-full border-2"
                   :class="getStepIconClasses(index)"
                 >
-                  <CheckIcon
+                  <CircleCheck
                     v-if="index < currentStep"
                     class="w-5 h-5 text-white"
                     aria-hidden="true"
@@ -80,8 +80,8 @@
 import DatabaseSetupForm from '@/components/database/DatabaseSetupForm.vue'
 import router from '@/router'
 import { useDatabasesStore } from '@/stores/databases'
-import { CheckIcon, XMarkIcon } from '@heroicons/vue/24/outline'
-import { computed, onMounted, ref } from 'vue'
+import { CircleCheck, X } from 'lucide-vue-next'
+import { computed, nextTick, onMounted, ref } from 'vue'
 
 // Steps configuration
 const steps = [
@@ -120,8 +120,9 @@ const getStepIconClasses = (index: number) => {
   return 'bg-white border-gray-300'
 }
 
-const closeFunnel = () => {
-  router.push({ name: 'DatabaseList' })
+const closeFunnel = async () => {
+  await nextTick()
+  router.replace({ name: 'DatabaseList' })
 }
 
 const onDatabaseSaved = () => {

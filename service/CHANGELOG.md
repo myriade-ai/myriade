@@ -1,6 +1,92 @@
 # CHANGELOG
 
 
+## v0.41.1 (2025-09-12)
+
+### Bug Fixes
+
+- Improvements
+  ([`dc1a756`](https://github.com/myriade-ai/myriade/commit/dc1a756c50ea9217015509da33f27175c60c9589))
+
+
+## v0.41.0 (2025-09-11)
+
+### Bug Fixes
+
+- Tests snapshots
+  ([`38ed35e`](https://github.com/myriade-ai/myriade/commit/38ed35e5e949d81739167c066b279b2cd83eaa1d))
+
+### Features
+
+- Edit/delete chats
+  ([`a071741`](https://github.com/myriade-ai/myriade/commit/a0717418f1b79e81bcf65949f6917b7276c3f26e))
+
+### Refactoring
+
+- Editor
+  ([`e718f52`](https://github.com/myriade-ai/myriade/commit/e718f52fb06f54b3f147fb402d693409d33abd04))
+
+- Favorites pages
+  ([`01d9e9f`](https://github.com/myriade-ai/myriade/commit/01d9e9f81fd505e330719290581481639c38eaca))
+
+
+## v0.40.2 (2025-09-10)
+
+### Bug Fixes
+
+- Migration
+  ([`da8898e`](https://github.com/myriade-ai/myriade/commit/da8898e412a3a99d4b3892c27fd9bd6c6f27ca05))
+
+### Refactoring
+
+- Shadcn components
+  ([`cf0a908`](https://github.com/myriade-ai/myriade/commit/cf0a9081666116befc945a9f9fbaeb37804295e2))
+
+
+## v0.40.1 (2025-09-10)
+
+### Bug Fixes
+
+- Migration for SQLite
+  ([`54655b6`](https://github.com/myriade-ai/myriade/commit/54655b68f3c774eb99ed1ff02cebe795d1f2eda8))
+
+### Chores
+
+- Clean editors
+  ([`e970595`](https://github.com/myriade-ai/myriade/commit/e9705956ed73773db0c143b928787d27478062ee))
+
+resolve DEV-341
+
+- Remove config.ts
+  ([`ad65dca`](https://github.com/myriade-ai/myriade/commit/ad65dcab47034440943bf513c0900a586512bfa4))
+
+resolve DEV-343
+
+
+## v0.40.0 (2025-09-10)
+
+### Features
+
+- Add confirmation
+  ([`71acb4d`](https://github.com/myriade-ai/myriade/commit/71acb4de73949244213d158ab0c62bfc52063462))
+
+
+## v0.39.0 (2025-09-08)
+
+### Chores
+
+- Format
+  ([`56f5b0d`](https://github.com/myriade-ai/myriade/commit/56f5b0d4d0873146381cb02b0f5f02660782efb4))
+
+### Features
+
+- Add base shadcn
+  ([`d040a1f`](https://github.com/myriade-ai/myriade/commit/d040a1fcb992626c6f9719a9661eb7588aa3bbb0))
+
+- Switch base selector
+  ([`444c8f9`](https://github.com/myriade-ai/myriade/commit/444c8f9a1da4541e630d6002d733c67599116801))
+
+
 ## v0.38.0 (2025-08-23)
 
 ### Bug Fixes
