@@ -10,7 +10,12 @@
           <SidebarTrigger class="-ml-1" />
           <Separator orientation="vertical" class="mr-2 h-4" />
           <h1 v-if="route.name === 'IssuesPage'" class="text-xl">Issues</h1>
-          <h1 v-if="route.name === 'ProjectList'" class="text-xl">Projects</h1>
+          <div v-if="route.name === 'ProjectList'" class="flex gap-2 items-baseline">
+            <h1 class="text-xl">Projects</h1>
+            <p class="hidden md:block text-sm text-gray-500">
+              Manage your projects, helping you building the right queries and charts.
+            </p>
+          </div>
           <div v-if="route.name === 'Editor'" class="flex gap-2 items-baseline">
             <h1 class="text-xl">Editor</h1>
             <p class="hidden md:block text-sm text-gray-500">

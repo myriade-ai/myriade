@@ -1,12 +1,11 @@
 <template>
   <div class="space-y-6">
-    <!-- Basic Information -->
-    <base-input
+    <Field
       v-if="showNameField"
-      name="Connection Name"
-      :model-value="nameValue || ''"
-      :rules="nameRequired ? 'required' : ''"
+      :v-model="nameValue"
       placeholder="A nice name for your connection, like 'My Production Database'"
+      :rules="nameRequired ? 'required' : ''"
+      name="Connection Name"
       @update:model-value="$emit('update:name', $event)"
     />
 
@@ -16,7 +15,7 @@
         <p>{{ getDatabaseTypeName(engine) }} connection details</p>
       </div>
       <div :class="layout === 'grid' ? 'grid grid-cols-1' : 'space-y-4'">
-        <base-input name="Host" v-model="details.host" rules="required" placeholder="localhost" />
+        <Field name="Host" v-model="details.host" rules="required" placeholder="localhost" />
         <!-- Information box for IP whitelisting -->
         <BaseNotification
           v-if="!shouldHideNetworkConfig"
@@ -25,27 +24,23 @@
           :message="`If necessary, please whitelist the following IP in your cloud-database network rules: ${serverIp}`"
           class="bg-warning-50"
         />
-        <base-input
+        <Field
           name="Port"
           v-model="details.port"
           type="number"
           :placeholder="engine === 'postgres' ? '5432' : '3306'"
         />
       </div>
-      <div :class="layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'">
-        <base-input
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Field
           :name="layout === 'grid' ? 'Username' : 'User'"
           v-model="details.user"
           :rules="userRequired ? 'required' : ''"
+          class="w-full"
         />
-        <base-input-password
-          name="Password"
-          v-model="details.password"
-          placeholder="Enter password"
-          :rules="passwordRequired ? 'required' : ''"
-        />
+        <InputPassword name="Password" v-model="details.password" placeholder="Enter password" />
       </div>
-      <base-input
+      <Field
         :name="layout === 'grid' ? 'Database Name' : 'Database'"
         v-model="details.database"
         rules="required"
@@ -57,7 +52,7 @@
       <div class="text-sm text-gray-500" v-if="showEngineTitle">
         <p>SQLite connection details</p>
       </div>
-      <base-input
+      <Field
         name="Path"
         v-model="details.filename"
         rules="required"
@@ -70,19 +65,19 @@
       <div class="text-sm text-gray-500" v-if="showEngineTitle">
         <p>Snowflake connection details</p>
       </div>
-      <base-input
+      <Field
         name="Account Identifier"
         v-model="details.account"
         rules="required"
         placeholder="ORGANIZATION-ACCOUNT"
       />
       <div :class="layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'">
-        <base-input
+        <Field
           :name="layout === 'grid' ? 'Username' : 'User'"
           v-model="details.user"
           rules="required"
         />
-        <base-input-password
+        <InputPassword
           name="Password"
           v-model="details.password"
           placeholder="Enter password"
@@ -90,12 +85,12 @@
         />
       </div>
       <div :class="layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'">
-        <base-input name="Database" v-model="details.database" rules="required" />
-        <base-input name="Schema" v-model="details.schema" placeholder="PUBLIC" />
+        <Field name="Database" v-model="details.database" rules="required" />
+        <Field name="Schema" v-model="details.schema" placeholder="PUBLIC" />
       </div>
       <div :class="layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'">
-        <base-input name="Warehouse" v-model="details.warehouse" placeholder="COMPUTE_WH" />
-        <base-input name="Role" v-model="details.role" placeholder="ACCOUNTADMIN" />
+        <Field name="Warehouse" v-model="details.warehouse" placeholder="COMPUTE_WH" />
+        <Field name="Role" v-model="details.role" placeholder="ACCOUNTADMIN" />
       </div>
     </div>
 
@@ -104,7 +99,7 @@
       <div class="text-sm text-gray-500" v-if="showEngineTitle">
         <p>BigQuery connection details</p>
       </div>
-      <base-input
+      <Field
         name="Project ID"
         v-model="details.project_id"
         rules="required"
@@ -143,13 +138,8 @@
       <div class="text-sm text-gray-500" v-if="showEngineTitle">
         <p>MotherDuck connection details</p>
       </div>
-      <base-input
-        name="Token"
-        v-model="details.token"
-        rules="required"
-        placeholder="Enter your token"
-      />
-      <base-input
+      <Field name="Token" v-model="details.token" rules="required" placeholder="Enter your token" />
+      <Field
         name="Database"
         v-model="details.database"
         rules="required"
@@ -200,14 +190,14 @@
 </template>
 
 <script setup lang="ts">
-import BaseInput from '@/components/base/BaseInput.vue'
-import BaseInputPassword from '@/components/base/BaseInputPassword.vue'
 import BaseNotification from '@/components/base/BaseNotification.vue'
+import Field from '@/components/ui/input/Field.vue'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useServerInfo } from '@/composables/useServerInfo'
 import { getDatabaseTypeName, getDefaultDetailsForEngine, type Engine } from '@/stores/databases'
 import { CloudArrowUpIcon } from '@heroicons/vue/24/outline'
 import { computed, watch } from 'vue'
+import InputPassword from '../ui/input/InputPassword.vue'
 
 const { serverIp } = useServerInfo()
 
