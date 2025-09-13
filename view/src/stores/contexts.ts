@@ -69,12 +69,36 @@ export const useContextsStore = defineStore('contexts', () => {
     contextSelectedId.value = context?.id || null
   }
 
+  function getSelectedContextDatabaseId(): string {
+    const contextId = contextSelectedId.value
+    if (!contextId) {
+      throw new Error('No context selected')
+    }
+    // if contextId is a project, return the databaseId linked to the project
+    if (contextId.startsWith('project-')) {
+      const databaseId = projectsStore.projects.find(
+        (project: any) => project.id === contextId
+      )?.databaseId
+      if (!databaseId) {
+        throw new Error(`Project with id ${contextId} does not have a databaseId`)
+      }
+      return databaseId
+    }
+    // if contextId is a database, return the contextId
+    if (contextId.startsWith('database-')) {
+      return contextId.replace('database-', '')
+    }
+    // if contextId is not a project or database, return null
+    throw new Error(`Invalid contextId: ${contextId}`)
+  }
+
   return {
     // State
     contextSelectedId,
     // Getters
     contexts,
     contextSelected, // Returns the full context object based on selected ID
+    getSelectedContextDatabaseId,
     // Actions
     initializeContexts,
     setSelectedContext,

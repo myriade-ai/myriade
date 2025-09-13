@@ -97,6 +97,12 @@
           </div>
         </div>
       </div>
+      <div
+        v-if="filteredGroups.length === 0"
+        class="text-center py-4 border border-gray-200 bg-gray-200 rounded-lg shadow-sm overflow-hidden"
+      >
+        <div class="text-sm text-gray-500">No tables found</div>
+      </div>
     </div>
 
     <!-- Selection Summary -->
