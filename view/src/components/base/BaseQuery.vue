@@ -4,7 +4,6 @@
     <Input
       type="text"
       placeholder="Database used for X,Y and Z..."
-      class="flex-1 rounded-md border-gray-300 shadow-xs focus:border-primary-500 focus:ring-primary-500"
       v-model="props.editor.query.title"
     />
     <Button

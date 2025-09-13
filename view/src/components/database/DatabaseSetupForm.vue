@@ -32,38 +32,34 @@
 
     <!-- Navigation Buttons -->
     <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
-      <BaseButton
-        v-if="currentStep > 0"
-        @click="previousStep"
-        color="secondary"
-        class="text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-      >
+      <Button v-if="currentStep > 0" @click="previousStep" variant="secondary">
         <ArrowLeftIcon class="w-4 h-4 mr-2" />
         Previous
-      </BaseButton>
+      </Button>
       <div v-else></div>
 
-      <BaseButton v-if="currentStep < 1" @click="nextStep" :disabled="!canProceedToNextStep">
+      <Button size="lg" v-if="currentStep < 1" @click="nextStep" :disabled="!canProceedToNextStep">
         Continue
         <ArrowRightIcon class="w-4 h-4 ml-2" />
-      </BaseButton>
+      </Button>
 
-      <BaseButton
+      <Button
         v-else
         :is-loading="isSaving"
         @click="saveDatabase"
         :disabled="!canProceedToNextStep || isSaving"
+        size="lg"
       >
         <template #loading>Saving...</template>
         Complete Setup
         <CheckIcon class="w-4 h-4 ml-2" v-if="!isSaving" />
-      </BaseButton>
+      </Button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import BaseButton from '@/components/base/BaseButton.vue'
+import { Button } from '@/components/ui/button'
 import { type Engine, getDatabaseTypeName } from '@/stores/databases'
 import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/vue/24/outline'
 import { CheckIcon } from '@heroicons/vue/24/solid'

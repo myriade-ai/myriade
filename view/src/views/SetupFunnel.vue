@@ -81,7 +81,7 @@ import DatabaseSetupForm from '@/components/database/DatabaseSetupForm.vue'
 import router from '@/router'
 import { useDatabasesStore } from '@/stores/databases'
 import { CircleCheck, X } from 'lucide-vue-next'
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 
 // Steps configuration
 const steps = [
@@ -120,8 +120,9 @@ const getStepIconClasses = (index: number) => {
   return 'bg-white border-gray-300'
 }
 
-const closeFunnel = () => {
-  router.push({ name: 'DatabaseList' })
+const closeFunnel = async () => {
+  await nextTick()
+  router.replace({ name: 'DatabaseList' })
 }
 
 const onDatabaseSaved = () => {
