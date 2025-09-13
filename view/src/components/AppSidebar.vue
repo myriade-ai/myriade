@@ -54,7 +54,13 @@ import {
 import { computed, nextTick, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
-const items: { title: string; url: string; icon: typeof SquarePen; disabled?: boolean }[] = [
+const navItems: { title: string; url: string; icon: typeof SquarePen; disabled?: boolean }[] = [
+  {
+    title: 'New chat',
+    url: '/chat/new',
+    icon: SquarePen,
+    disabled: false
+  },
   {
     title: 'Control',
     url: '/control',
@@ -107,7 +113,7 @@ const sortedGroup = computed(() => {
 })
 const route = useRoute()
 const isActive = (id: string) => {
-  return route.params.id === id
+  return route.params.id === id || route.path === id
 }
 const userInfo = computed(() => {
   if (!user.value?.firstName || !user.value?.lastName) return { userInitials: '??', fullName: '??' }
@@ -184,23 +190,11 @@ async function handleDeleteConversation(conversationId: string) {
         <SidebarGroupLabel>Myriade</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                class="bg-primary text-white hover:text-white hover:bg-primary/70"
-              >
-                <RouterLink to="/chat/new">
-                  <SquarePen class="size-4" />
-                  <span class="">New chat</span>
-                </RouterLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
             <SidebarMenuItem
-              v-for="item in items.filter(({ disabled }) => !disabled)"
+              v-for="item in navItems.filter(({ disabled }) => !disabled)"
               :key="item.title"
             >
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild :isActive="isActive(item.url)">
                 <RouterLink :to="item.url">
                   <component :is="item.icon" />
                   <span class="text-primary">{{ item.title }}</span>
