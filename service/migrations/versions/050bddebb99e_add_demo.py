@@ -8,8 +8,7 @@ Create Date: 2025-07-24 11:49:45.296326
 
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
-from back.data_warehouse import DataWarehouseFactory
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
@@ -22,8 +21,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
-from typing import Sequence, Union
-
+from back.data_warehouse import DataWarehouseFactory
 
 # Create migration-specific metadata and base class
 migration_metadata = MetaData()
