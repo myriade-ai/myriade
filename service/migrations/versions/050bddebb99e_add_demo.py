@@ -6,13 +6,107 @@ Create Date: 2025-07-24 11:49:45.296326
 
 """
 
-from typing import Sequence, Union
+import uuid
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    MetaData,
+    String,
+    func,
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
-# Type imports
+from back.data_warehouse import DataWarehouseFactory
+
+# Create migration-specific metadata and base class
+migration_metadata = MetaData()
+
+
+class MigrationBase(DeclarativeBase):
+    metadata = migration_metadata
+
+
+@dataclass
+class Database(MigrationBase):
+    __tablename__ = "database"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        sa.UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String)
+    engine: Mapped[str] = mapped_column(String, nullable=False, name="engine")
+    details: Mapped[Dict[Any, Any]] = mapped_column(sa.JSON, nullable=False)
+    organisationId: Mapped[Optional[str]] = mapped_column(String)
+    ownerId: Mapped[Optional[str]] = mapped_column(String)
+    public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    memory: Mapped[Optional[str]] = mapped_column(String)
+    tables_metadata: Mapped[Optional[List[Dict[Any, Any]]]] = mapped_column(sa.JSON)
+    dbt_catalog: Mapped[Optional[Dict[Any, Any]]] = mapped_column(sa.JSON)
+    dbt_manifest: Mapped[Optional[Dict[Any, Any]]] = mapped_column(sa.JSON)
+    safe_mode: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    # Add timestamps for compatibility
+    createdAt: Mapped[Optional[sa.DateTime]] = mapped_column(
+        DateTime, nullable=True, server_default=func.now()
+    )
+    updatedAt: Mapped[Optional[sa.DateTime]] = mapped_column(
+        DateTime, nullable=True, server_default=func.now()
+    )
+
+    def create_data_warehouse(self):
+        data_warehouse = DataWarehouseFactory.create(
+            self.engine,
+            **self.details,
+        )
+        # For migrations, we don't need write_mode
+        return data_warehouse
+
+
+def create_database(
+    name: str,
+    description: str,
+    engine: str,
+    details: dict,
+    public: bool,
+    safe_mode: bool = False,
+    owner_id: str | None = None,
+    organisation_id: str | None = None,
+    dbt_catalog: dict | None = None,
+    dbt_manifest: dict | None = None,
+):
+    # Create a new database
+    database = Database(
+        name=name,
+        description=description,
+        engine=engine,
+        details=details,
+        organisationId=organisation_id,
+        ownerId=owner_id,
+        public=public,
+        safe_mode=safe_mode,
+        dbt_catalog=dbt_catalog,
+        dbt_manifest=dbt_manifest,
+    )
+
+    try:
+        data_warehouse = DataWarehouseFactory.create(engine, **details)
+        updated_tables_metadata = data_warehouse.load_metadata()
+        database.tables_metadata = updated_tables_metadata
+    except Exception:
+        # If metadata loading fails, continue without it
+        database.tables_metadata = None
+
+    return database
+
 
 # revision identifiers, used by Alembic.
 revision: str = "050bddebb99e"
@@ -22,9 +116,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Import here to avoid module loading issues during migration
-    from back.utils import create_database
-
     # Get the current connection from Alembic
     connection = op.get_bind()
 
