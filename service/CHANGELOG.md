@@ -1,6 +1,33 @@
 # CHANGELOG
 
 
+## v0.41.2 (2025-09-15)
+
+### Bug Fixes
+
+- Migrations write_mode ([#80](https://github.com/myriade-ai/myriade/pull/80),
+  [`ef61c12`](https://github.com/myriade-ai/myriade/commit/ef61c12b8147e0828123815b63e240729bbb2456))
+
+- Pages with emptyLayout are shown with defaultLayout
+  ([#81](https://github.com/myriade-ai/myriade/pull/81),
+  [`36cd25f`](https://github.com/myriade-ai/myriade/commit/36cd25f2f905c59977504d9a13363f2b6ede7bdc))
+
+### Chores
+
+- Improve navbar UX
+  ([`c341bcc`](https://github.com/myriade-ai/myriade/commit/c341bcc9868f85aeeb0b4ee0ae740140f4c23cae))
+
+- Improve projectEdit
+  ([`d4d4a3e`](https://github.com/myriade-ai/myriade/commit/d4d4a3ede75e1e9a99b4a45f2549071ac78b50ef))
+
+### Refactoring
+
+- Project & databases ([#79](https://github.com/myriade-ai/myriade/pull/79),
+  [`c933030`](https://github.com/myriade-ai/myriade/commit/c9330300af6e665d3926ac71566ba8ea2cfb37c8))
+
+* fix: improvements * refactor: database * refactor: project
+
+
 ## v0.41.1 (2025-09-12)
 
 ### Bug Fixes
