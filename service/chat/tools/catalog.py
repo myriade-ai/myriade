@@ -208,88 +208,93 @@ class CatalogTool:
 
         return yaml.dump(results)
 
-    def read_asset(self, asset_id: str, type: str = "asset") -> str:
+    def read_asset(self, asset_id: str) -> str:
         """
-        Get detailed information about a specific asset or term
+        Get detailed information about a specific asset
         Args:
-            asset_id: UUID of the asset or term
-            type: "asset" or "term"
+            asset_id: UUID of the asset
         """
-        if type.lower() == "term":
-            term = (
-                self.session.query(Term)
-                .filter(
-                    Term.id == uuid.UUID(asset_id),
-                    Term.database_id == self.database.id,
-                )
-                .first()
+        asset = (
+            self.session.query(Asset)
+            .filter(
+                Asset.id == uuid.UUID(asset_id),
+                Asset.database_id == self.database.id,
             )
+            .first()
+        )
 
-            if not term:
-                raise ValueError(f"Term with id {asset_id} not found")
+        if not asset:
+            raise ValueError(f"Asset with id {asset_id} not found")
 
-            result = {
-                "id": str(term.id),
-                "name": term.name,
-                "type": "TERM",
-                "definition": term.definition,
-                "synonyms": term.synonyms,
-                "business_domains": term.business_domains,
-                "created_at": term.createdAt.isoformat(),
-            }
+        result = {
+            "id": str(asset.id),
+            "urn": asset.urn,
+            "name": asset.name,
+            "description": asset.description,
+            "type": asset.type,
+            "tags": asset.tags,
+            "created_at": asset.createdAt.isoformat(),
+        }
 
-            return yaml.dump(result)
-        else:
-            asset = (
-                self.session.query(Asset)
-                .filter(
-                    Asset.id == uuid.UUID(asset_id),
-                    Asset.database_id == self.database.id,
-                )
-                .first()
+        # Add type-specific details
+        if asset.type == "TABLE" and asset.table_facet:
+            facet = asset.table_facet
+            result.update(
+                {
+                    "schema": facet.schema,
+                    "table_name": facet.table_name,
+                }
             )
-
-            if not asset:
-                raise ValueError(f"Asset with id {asset_id} not found")
-
-            result = {
-                "id": str(asset.id),
-                "urn": asset.urn,
-                "name": asset.name,
-                "description": asset.description,
-                "type": asset.type,
-                "tags": asset.tags,
-                "created_at": asset.createdAt.isoformat(),
-            }
-
-            # Add type-specific details
-            if asset.type == "TABLE" and asset.table_facet:
-                facet = asset.table_facet
-                result.update(
-                    {
-                        "schema": facet.schema,
-                        "table_name": facet.table_name,
-                    }
-                )
-                # Add sample data for table assets
+            # Add sample data for table assets
+            if facet.table_name and facet.schema:
                 sample_data = self.data_warehouse.get_sample_data(
                     facet.table_name, facet.schema
                 )
                 if sample_data:
                     result["sample_data"] = sample_data
 
-            elif asset.type == "COLUMN" and asset.column_facet:
-                facet = asset.column_facet
-                result.update(
-                    {
-                        "parent_table_asset_id": str(facet.parent_table_asset_id),
-                        "column_name": facet.column_name,
-                        "ordinal": facet.ordinal,
-                        "data_type": facet.data_type,
-                    }
-                )
+        elif asset.type == "COLUMN" and asset.column_facet:
+            facet = asset.column_facet
+            result.update(
+                {
+                    "parent_table_asset_id": str(facet.parent_table_asset_id),
+                    "column_name": facet.column_name,
+                    "ordinal": facet.ordinal,
+                    "data_type": facet.data_type,
+                }
+            )
 
-            return yaml.dump(result)
+        return yaml.dump(result)
+
+    def read_term(self, term_id: str) -> str:
+        """
+        Get detailed information about a specific term
+        Args:
+            term_id: UUID of the term
+        """
+        term = (
+            self.session.query(Term)
+            .filter(
+                Term.id == uuid.UUID(term_id),
+                Term.database_id == self.database.id,
+            )
+            .first()
+        )
+
+        if not term:
+            raise ValueError(f"Term with id {term_id} not found")
+
+        result = {
+            "id": str(term.id),
+            "name": term.name,
+            "type": "TERM",
+            "definition": term.definition,
+            "synonyms": term.synonyms,
+            "business_domains": term.business_domains,
+            "created_at": term.createdAt.isoformat(),
+        }
+
+        return yaml.dump(result)
 
     def update_asset(
         self,
