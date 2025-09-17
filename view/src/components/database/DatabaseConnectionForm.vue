@@ -1,12 +1,11 @@
 <template>
   <div class="space-y-6">
     <Field
-      v-if="showNameField"
-      :v-model="nameValue"
+      name="Connection Name"
+      :model-value="nameValue"
+      @update:model-value="$emit('update:name', $event)"
       placeholder="A nice name for your connection, like 'My Production Database'"
       :rules="nameRequired ? 'required' : ''"
-      name="Connection Name"
-      @update:model-value="$emit('update:name', $event)"
     />
 
     <!-- PostgreSQL/MySQL Fields -->
