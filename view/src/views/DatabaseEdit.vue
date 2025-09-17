@@ -1,5 +1,10 @@
 <template>
-  <div class="mx-auto px-4">
+  <div>
+    <PageHeader
+      title="Database"
+      subtitle="Manage your database connections and options."
+    />
+    <div class="mx-auto px-4">
     <nav class="flex items-center justify-between px-4 sm:px-0">
       <div class="-mt-px flex w-0 flex-1">
         <a
@@ -33,12 +38,14 @@
         <BaseButton :is-loading="isSaving" @click="clickSave"> Save </BaseButton>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import BaseButton from '@/components/base/BaseButton.vue'
 import DatabaseForm from '@/components/database/DatabaseForm.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import router from '@/router'
 import { useDatabasesStore } from '@/stores/databases'
 import { ArrowLeftIcon } from '@heroicons/vue/24/solid'

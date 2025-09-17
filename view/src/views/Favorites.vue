@@ -1,5 +1,10 @@
 <template>
-  <div class="overflow-y-auto h-screen bg-sidebar/50">
+  <div>
+    <PageHeader
+      title="Favorites"
+      subtitle="Your saved queries and charts"
+    />
+    <div class="overflow-y-auto h-screen bg-sidebar/50">
     <div class="px-8">
       <div v-if="loading" class="mt-4 text-center">
         <p>Loading...</p>
@@ -151,11 +156,13 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import Echart from '@/components/Echart.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import type { Query } from '@/composables/useQueryEditor'

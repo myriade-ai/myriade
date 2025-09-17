@@ -1,7 +1,8 @@
 import hashlib
 import random
 import string
-from typing import Dict, List
+from re import error, search
+from typing import Any, Dict, List
 
 from back.session import with_session
 from models import SensitiveDataMapping
@@ -120,3 +121,42 @@ def encrypt_rows(rows: List[dict]) -> List[dict]:
         rows[i][key] = f"ENCRYPTED:{encrypted}"
 
     return rows
+
+
+def apply_privacy_patterns_to_metadata(
+    metadata: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Return the *same* list of tables with LLM privacy updated using PRIVACY_PATTERNS.
+
+    For every column whose name matches one of the regexes in ``PRIVACY_PATTERNS`` and
+    whose current LLM privacy is *not* one of ("Masked", "Redacted", "Encrypted"), we
+    set it to ``Encrypted``.
+
+    The function mutates the provided ``metadata`` list in place and also returns it
+    for convenience so callers can do::
+
+        database.tables_metadata = apply_privacy_patterns_to_metadata(metadata)
+    """
+
+    for table in metadata:
+        for column in table.get("columns", []):
+            col_name: str = column.get("name", "")
+            privacy_map: Dict[str, str] = column.get("privacy", {}) or {}
+
+            llm_setting = privacy_map.get("llm")
+            # Skip if already protected
+            if llm_setting in {"Masked", "Redacted", "Encrypted"}:
+                continue
+
+            for pattern in PRIVACY_PATTERNS.values():
+                try:
+                    if search(pattern, col_name):
+                        privacy_map["llm"] = "Encrypted"
+                        column["privacy"] = privacy_map
+                        # No need to test further patterns for this column
+                        break
+                except error:
+                    # Malformed regex should never happen, but ignore if it does
+                    continue
+
+    return metadata

@@ -1,5 +1,7 @@
 <template>
-  <div class="px-4 pt-4">
+  <div>
+    <PageHeader title="Issues" />
+    <div class="px-4 pt-4">
     <!-- Search and Filters -->
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div class="relative flex-grow max-w-md">
@@ -672,11 +674,13 @@
       <h3 class="mt-2 text-sm font-medium text-gray-900">No Issues Found</h3>
       <p class="mt-1 text-sm text-gray-500">There are currently no issues to display.</p>
     </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useQualityStore, type Issue } from '../stores/quality'
 

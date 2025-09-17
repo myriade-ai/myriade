@@ -14,8 +14,6 @@
       'organisationId': 'mock',
       'ownerId': 'admin',
       'public': False,
-      'tables_metadata': list([
-      ]),
       'write_mode': 'confirmation',
     }),
   ])

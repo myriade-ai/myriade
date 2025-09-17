@@ -15,6 +15,12 @@
     'SemanticCatalog-semantic_catalog__read_issue',
     'SemanticCatalog-semantic_catalog__update_entity',
     'SemanticCatalog-semantic_catalog__update_issue',
+    'CatalogTool-catalog__list_assets',
+    'CatalogTool-catalog__read_asset',
+    'CatalogTool-catalog__read_term',
+    'CatalogTool-catalog__search_assets',
+    'CatalogTool-catalog__update_asset',
+    'CatalogTool-catalog__upsert_term',
     'DBT-dbt__fetch_model',
     'DBT-dbt__fetch_model_list',
     'DBT-dbt__search_models',
@@ -852,6 +858,215 @@
       }),
     }),
     dict({
+      'description': 'List catalog assets and terms with optional filtering',
+      'name': 'CatalogTool-catalog__list_assets',
+      'parameters': dict({
+        'properties': dict({
+          'asset_type': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by type ("TABLE", "COLUMN", "TERM").',
+            'title': 'Asset Type',
+          }),
+          'limit': dict({
+            'default': 10,
+            'description': 'Maximum number of results',
+            'title': 'Limit',
+            'type': 'integer',
+          }),
+        }),
+        'title': 'Input for `list_assets`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Get detailed information about a specific asset',
+      'name': 'CatalogTool-catalog__read_asset',
+      'parameters': dict({
+        'properties': dict({
+          'asset_id': dict({
+            'description': 'UUID of the asset',
+            'title': 'Asset Id',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'asset_id',
+        ]),
+        'title': 'Input for `read_asset`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Get detailed information about a specific term',
+      'name': 'CatalogTool-catalog__read_term',
+      'parameters': dict({
+        'properties': dict({
+          'term_id': dict({
+            'description': 'UUID of the term',
+            'title': 'Term Id',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'term_id',
+        ]),
+        'title': 'Input for `read_term`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Search assets and terms by name, description, urn, tags, or definition. The search is case-insensitive and matches partial strings. Returns first 50 matches.',
+      'name': 'CatalogTool-catalog__search_assets',
+      'parameters': dict({
+        'properties': dict({
+          'asset_type': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by type ("TABLE", "COLUMN", "TERM").',
+            'title': 'Asset Type',
+          }),
+          'text': dict({
+            'description': 'Search query',
+            'title': 'Text',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'text',
+        ]),
+        'title': 'Input for `search_assets`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Update properties of a catalog asset',
+      'name': 'CatalogTool-catalog__update_asset',
+      'parameters': dict({
+        'properties': dict({
+          'asset_id': dict({
+            'description': 'UUID of the asset to update',
+            'title': 'Asset Id',
+            'type': 'string',
+          }),
+          'description': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'New description for the asset',
+            'title': 'Description',
+          }),
+          'tags': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'New tags for the asset',
+            'title': 'Tags',
+          }),
+        }),
+        'required': list([
+          'asset_id',
+        ]),
+        'title': 'Input for `update_asset`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Create or update a business glossary term',
+      'name': 'CatalogTool-catalog__upsert_term',
+      'parameters': dict({
+        'properties': dict({
+          'business_domains': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'List of business domains this term belongs to',
+            'title': 'Business Domains',
+          }),
+          'definition': dict({
+            'description': 'Term definition',
+            'title': 'Definition',
+            'type': 'string',
+          }),
+          'id': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Optional term ID for direct updates. If provided, updates the',
+            'title': 'Id',
+          }),
+          'name': dict({
+            'description': 'Term name',
+            'title': 'Name',
+            'type': 'string',
+          }),
+          'synonyms': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'List of synonymous terms',
+            'title': 'Synonyms',
+          }),
+        }),
+        'required': list([
+          'name',
+          'definition',
+        ]),
+        'title': 'Input for `upsert_term`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': 'Fetch all model details from the DBT catalog.',
       'name': 'DBT-dbt__fetch_model',
       'parameters': dict({
@@ -982,6 +1197,7 @@
 # ---
 # name: test_tools
   dict({
+    'catalog': 'CatalogTool',
     'database': 'DatabaseTool',
     'dbt': 'DBT',
     'echarts': 'EchartsTool',

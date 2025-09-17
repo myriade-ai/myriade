@@ -1,9 +1,10 @@
-import re
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
+from uuid import UUID
 
-from back.data_warehouse import DataWarehouseFactory
-from back.privacy import PRIVACY_PATTERNS
+from flask import g
+
 from models import Database
+from models.catalog import Asset, ColumnFacet, TableFacet
 
 
 def create_database(
@@ -31,12 +32,8 @@ def create_database(
         dbt_catalog=dbt_catalog,
         dbt_manifest=dbt_manifest,
     )
-    data_warehouse = DataWarehouseFactory.create(engine, **details)
-    updated_tables_metadata = data_warehouse.load_metadata()
-    # Merge with none (fresh create); adds empty privacy maps, then auto privacy scan
-    merged_metadata = cast(Any, merge_tables_metadata(None, updated_tables_metadata))  # type: ignore[attr-defined]
-    database.tables_metadata = merged_metadata
-
+    # After database creation, we'll sync initial metadata to catalog
+    # This happens in the API layer after the database is persisted
     return database
 
 
@@ -79,40 +76,197 @@ def merge_tables_metadata(
     return merged
 
 
-def apply_privacy_patterns_to_metadata(
-    metadata: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    """Return the *same* list of tables with LLM privacy updated using PRIVACY_PATTERNS.
+def get_tables_metadata_from_catalog(database_id: UUID) -> List[Dict[str, Any]]:
+    """Get tables metadata from catalog in the same format as the old
+    tables_metadata field"""
+    try:
+        # Get all table and column assets for this database
+        tables_data = (
+            g.session.query(Asset, TableFacet)
+            .join(TableFacet, Asset.id == TableFacet.asset_id)
+            .filter(Asset.database_id == database_id, Asset.type == "TABLE")
+            .all()
+        )
 
-    For every column whose name matches one of the regexes in ``PRIVACY_PATTERNS`` and
-    whose current LLM privacy is *not* one of ("Masked", "Redacted", "Encrypted"), we
-    set it to ``Encrypted``.
+        columns_data = (
+            g.session.query(Asset, ColumnFacet, TableFacet)
+            .join(ColumnFacet, Asset.id == ColumnFacet.asset_id)
+            .join(TableFacet, ColumnFacet.parent_table_asset_id == TableFacet.asset_id)
+            .filter(Asset.database_id == database_id, Asset.type == "COLUMN")
+            .order_by(ColumnFacet.ordinal)
+            .all()
+        )
 
-    The function mutates the provided ``metadata`` list in place and also returns it
-    for convenience so callers can do::
+        # Group columns by table
+        tables_map = {}
+        for asset, table_facet in tables_data:
+            table_key = (table_facet.schema, table_facet.table_name)
+            tables_map[table_key] = {
+                "name": table_facet.table_name,
+                "schema": table_facet.schema,
+                "description": asset.description,
+                "columns": [],
+                "is_view": False,  # Default, could be enhanced later
+            }
 
-        database.tables_metadata = apply_privacy_patterns_to_metadata(metadata)
+        # Add columns to their tables
+        for asset, column_facet, table_facet in columns_data:
+            table_key = (table_facet.schema, table_facet.table_name)
+            if table_key in tables_map:
+                column_info = {
+                    "name": column_facet.column_name,
+                    "type": column_facet.data_type,
+                    "description": asset.description,
+                    "privacy": column_facet.privacy or {},
+                }
+                tables_map[table_key]["columns"].append(column_info)
+
+        return list(tables_map.values())
+
+    except Exception:
+        # If catalog is not available or fails, return empty list
+        return []
+
+
+def sync_database_metadata_to_assets(
+    database_id: UUID,
+    tables_metadata: List[Dict[str, Any]],
+):
     """
+    Sync catalog with database metadata (tables/columns)
+    This method creates catalog assets from the database's tables_metadata
+    using facet-based models
+    """
+    if not tables_metadata:
+        return "No database metadata available to sync"
 
-    for table in metadata:
-        for column in table.get("columns", []):
-            col_name: str = column.get("name", "")
-            privacy_map: Dict[str, str] = column.get("privacy", {}) or {}
+    synced_count = 0
 
-            llm_setting = privacy_map.get("llm")
-            # Skip if already protected
-            if llm_setting in {"Masked", "Redacted", "Encrypted"}:
-                continue
+    for table_meta in tables_metadata:
+        schema_name = table_meta.get("schema")
+        table_name = table_meta.get("name")
 
-            for pattern in PRIVACY_PATTERNS.values():
-                try:
-                    if re.search(pattern, col_name):
-                        privacy_map["llm"] = "Encrypted"
-                        column["privacy"] = privacy_map
-                        # No need to test further patterns for this column
-                        break
-                except re.error:
-                    # Malformed regex should never happen, but ignore if it does
-                    continue
+        # Generate URN for table
+        table_urn = f"urn:table:{database_id}:{schema_name}:{table_name}"
 
-    return metadata
+        # Check if table asset already exists
+        table_asset = (
+            g.session.query(Asset)
+            .filter(
+                Asset.database_id == database_id,
+                Asset.urn == table_urn,
+            )
+            .first()
+        )
+
+        if not table_asset:
+            # Create new table asset
+            table_asset = Asset(
+                name=table_name,
+                urn=table_urn,
+                type="TABLE",
+                description=table_meta.get("description"),
+                database_id=database_id,
+            )
+            g.session.add(table_asset)
+            g.session.flush()  # Get the ID
+
+            # Create table facet
+            table_facet = TableFacet(
+                asset_id=table_asset.id,
+                schema=schema_name,
+                table_name=table_name,
+            )
+            g.session.add(table_facet)
+            synced_count += 1
+
+        # Create/update column assets
+        for i, column in enumerate(table_meta.get("columns", [])):
+            column_name = column.get("name")
+
+            # Generate URN for column
+            column_urn = (
+                f"urn:column:{database_id}:{schema_name}:{table_name}:{column_name}"
+            )
+
+            column_asset = (
+                g.session.query(Asset)
+                .filter(
+                    Asset.database_id == database_id,
+                    Asset.urn == column_urn,
+                )
+                .first()
+            )
+
+            if not column_asset:
+                # Create new column asset
+                column_asset = Asset(
+                    name=column_name,
+                    urn=column_urn,
+                    type="COLUMN",
+                    description=column.get("description"),
+                    database_id=database_id,
+                )
+                g.session.add(column_asset)
+                g.session.flush()  # Get the ID
+
+                # Create column facet
+                column_facet = ColumnFacet(
+                    asset_id=column_asset.id,
+                    parent_table_asset_id=table_asset.id,
+                    column_name=column_name,
+                    ordinal=i,
+                    data_type=column.get("type"),
+                    privacy=column.get("privacy"),
+                )
+                g.session.add(column_facet)
+                synced_count += 1
+
+    return {
+        "synced_count": synced_count,
+    }
+
+
+def update_catalog_privacy(database_id: UUID, tables_metadata: List[Dict[str, Any]]):
+    """
+    Update privacy settings in catalog for existing assets
+    This method updates column facets with new privacy information
+    """
+    if not tables_metadata:
+        return
+
+    for table_meta in tables_metadata:
+        schema_name = table_meta.get("schema")
+        table_name = table_meta.get("name")
+
+        # Update column privacy settings
+        for column in table_meta.get("columns", []):
+            column_name = column.get("name")
+            privacy_settings = column.get("privacy", {})
+
+            # Generate URN for column
+            column_urn = (
+                f"urn:column:{database_id}:{schema_name}:{table_name}:{column_name}"
+            )
+
+            # Find existing column asset
+            column_asset = (
+                g.session.query(Asset)
+                .filter(
+                    Asset.database_id == database_id,
+                    Asset.urn == column_urn,
+                    Asset.type == "COLUMN",
+                )
+                .first()
+            )
+
+            if column_asset:
+                # Update column facet privacy settings
+                column_facet = (
+                    g.session.query(ColumnFacet)
+                    .filter(ColumnFacet.asset_id == column_asset.id)
+                    .first()
+                )
+
+                if column_facet:
+                    column_facet.privacy = privacy_settings
