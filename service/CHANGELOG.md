@@ -1,6 +1,18 @@
 # CHANGELOG
 
 
+## v0.42.0 (2025-09-17)
+
+### Features
+
+- Catalog ([#84](https://github.com/myriade-ai/myriade/pull/84),
+  [`6f458e0`](https://github.com/myriade-ai/myriade/commit/6f458e03c5ace9bc3aeffd453263dad7a9cb04ee))
+
+* fix: migrations write_mode * feat: implement data catalog tools * feat: upgrade sidebar (#85) *
+  feat: refactor data sampling methods * fix: migration * fix: add read_term * fix: update snapshots
+  * fix: format
+
+
 ## v0.41.3 (2025-09-17)
 
 ### Bug Fixes
