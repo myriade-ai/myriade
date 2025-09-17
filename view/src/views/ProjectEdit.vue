@@ -87,10 +87,16 @@ What to be aware of?
       </BaseAlert>
 
       <div class="bottom-6 right-6 flex space-x-2 z-50 py-4 float-right">
-        <Button variant="destructive" v-if="!isNew" @click="clickDelete" class="cursor-pointer">
+        <Button
+          variant="destructive"
+          v-if="!isNew"
+          @click="clickDelete"
+          type="button"
+          class="cursor-pointer"
+        >
           Delete
         </Button>
-        <Button @click="clickSave" class="cursor-pointer"> Save </Button>
+        <Button type="submit" class="cursor-pointer"> Save </Button>
       </div>
     </Form>
   </div>
@@ -107,7 +113,7 @@ import Label from '@/components/ui/label/Label.vue'
 import { Textarea } from '@/components/ui/textarea'
 import { useContextsStore } from '@/stores/contexts'
 import { useDatabasesStore } from '@/stores/databases'
-import type { Project, ProjectTable } from '@/stores/projects'
+import type { Project } from '@/stores/projects'
 import { useProjectsStore } from '@/stores/projects'
 import { LightBulbIcon } from '@heroicons/vue/24/outline'
 import { ErrorMessage, Form, Field as VField } from 'vee-validate'
@@ -191,17 +197,11 @@ const fetchDatabaseSchema = async () => {
     tables.value = tableData
     groups.value = transformTablesToGroups(tableData)
 
-    // update selectedItems with project.tables
-    // 1. extract items from groups
-    const items = groups.value.flatMap((group) => group.items)
-    // 2. filter items by project.tables
-    const filteredItems = items.filter((item) => {
-      return project.value.tables.some((table) => {
-        return `${table.schemaName}.${table.tableName}` === item.id
-      })
-    })
-    // 3. update selectedItems
-    selectedItems.value = filteredItems
+    selectedItems.value = groups.value
+      .flatMap((group) => group.items)
+      .filter((item) =>
+        project.value.tables.some((table) => `${table.schemaName}.${table.tableName}` === item.id)
+      )
   } catch (error) {
     console.error('Error fetching database schema:', error)
     apiError.value = 'Failed to load database schema'
@@ -225,6 +225,11 @@ interface FetchedTable {
   schema: string
   columns?: TableColumn[]
   description?: string
+}
+
+interface ProjectTable {
+  schemaName: string
+  tableName: string
 }
 
 function transformTablesToGroups(tables: TableData[]) {
@@ -265,21 +270,15 @@ function transformTablesToGroups(tables: TableData[]) {
   return Object.values(schemaGroups)
 }
 
-function projectTablesFromSelectedItems(selectedItems: Item[]): ProjectTable[] {
-  // Take id of items and return project tables
-  return selectedItems.map((item) => {
-    return {
-      schemaName: item.id.split('.')[0],
-      tableName: item.id.split('.')[1]
-    }
-  })
-}
-
-// on selectedItems change, update project.tables
 watch(
   selectedItems,
-  (newVal) => {
-    project.value.tables = projectTablesFromSelectedItems(newVal)
+  (newSelectedItems) => {
+    project.value.tables = newSelectedItems.map(
+      (item): ProjectTable => ({
+        schemaName: item.id.split('.')[0],
+        tableName: item.id.split('.')[1]
+      })
+    )
   },
   { deep: true }
 )
