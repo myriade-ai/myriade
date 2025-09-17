@@ -3,9 +3,9 @@ import threading
 from typing import Any, Dict, Optional
 
 import anthropic
+from agentlys.base import AgentlysBase
+from agentlys.providers.anthropic import AnthropicProvider
 from anthropic._types import Omit
-from autochat.base import AutochatBase
-from autochat.providers.anthropic import AnthropicProvider
 from flask import g, has_request_context
 from flask import session as flask_session
 
@@ -49,9 +49,9 @@ anthropic.resources.Messages.create = patched_create
 
 
 class ProxyProvider(AnthropicProvider):
-    """Custom autochat provider that routes requests through our AI proxy."""
+    """Custom agentlys provider that routes requests through our AI proxy."""
 
-    def __init__(self, chat: AutochatBase, model: str):
+    def __init__(self, chat: AgentlysBase, model: str):
         self.model = model
         self.chat = chat
         super().__init__(chat, model)

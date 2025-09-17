@@ -5,7 +5,7 @@ from datetime import datetime
 from io import BytesIO
 from typing import Any, Dict, List, Optional
 
-from autochat.model import Message as AutoChatMessage
+from agentlys.model import Message as AgentlysMessage
 from PIL import Image as PILImage
 from sqlalchemy import (
     Boolean,
@@ -198,8 +198,8 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
             "isAnswer": self.isAnswer,
         }
 
-    def to_autochat_message(self) -> AutoChatMessage:
-        message = AutoChatMessage(
+    def to_agentlys_message(self) -> AgentlysMessage:
+        message = AgentlysMessage(
             role=self.role,  # type: ignore[assignment]
             name=self.name,
             content=self.content,
@@ -211,7 +211,7 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
         return message
 
     @classmethod
-    def from_autochat_message(cls, message: AutoChatMessage):
+    def from_agentlys_message(cls, message: AgentlysMessage):
         kwargs = format_to_camel_case(**message.__dict__)
         kwargs["functionCall"] = message.function_call
         kwargs["functionCallId"] = message.function_call_id

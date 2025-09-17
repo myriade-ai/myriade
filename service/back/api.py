@@ -4,7 +4,7 @@ import os
 from uuid import UUID
 
 import anthropic
-from autochat import Autochat
+from agentlys import Agentlys
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
@@ -36,7 +36,7 @@ from models.quality import BusinessEntity, Issue
 logger = logging.getLogger(__name__)
 api = Blueprint("back_api", __name__)
 
-AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "proxy")
+AGENTLYS_PROVIDER = os.getenv("AGENTLYS_PROVIDER", "proxy")
 
 
 def extract_context(session: Session, context_id: str) -> tuple[UUID, UUID | None]:
@@ -355,12 +355,12 @@ def get_questions(context_id):
             + str(tables_metadata)
         )
 
-    if AUTOCHAT_PROVIDER == "proxy":
+    if AGENTLYS_PROVIDER == "proxy":
         provider = ProxyProvider
     else:
-        provider = AUTOCHAT_PROVIDER
+        provider = AGENTLYS_PROVIDER
 
-    questionAssistant = Autochat(
+    questionAssistant = Agentlys(
         provider=provider,
         context=json.dumps(context),
         use_tools_only=True,
