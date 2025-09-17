@@ -1,5 +1,10 @@
 <template>
-  <div class="px-6 py-4 bg-sidebar/50 w-full min-h-screen">
+  <div>
+    <PageHeader
+      title="Projects"
+      subtitle="Manage your projects, so you can work on specific problems/topics."
+    />
+    <div class="px-6 py-4 bg-sidebar/50 w-full min-h-screen">
     <div class="max-w-4xl mx-auto">
       <div class="flex items-center gap-4 mb-6">
         <div class="flex-1">
@@ -89,6 +94,7 @@
         </Card>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
@@ -96,6 +102,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectsStore } from '@/stores/projects'
+import PageHeader from '@/components/PageHeader.vue'
 import { useDatabasesStore, type Database, type Engine } from '@/stores/databases'
 import { PlusIcon } from '@heroicons/vue/20/solid'
 import Button from '@/components/ui/button/Button.vue'

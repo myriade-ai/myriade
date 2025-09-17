@@ -3,7 +3,5 @@ import Chat from '@/components/Chat.vue'
 </script>
 
 <template>
-  <div>
-    <Chat />
-  </div>
+  <Chat />
 </template>

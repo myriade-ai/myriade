@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-from typing import Any, cast
 from uuid import UUID
 
 import anthropic
@@ -14,9 +13,11 @@ from sqlalchemy.sql.expression import true
 import telemetry
 from back.data_warehouse import ConnectionError, DataWarehouseFactory
 from back.utils import (
-    apply_privacy_patterns_to_metadata,
     create_database,
+    get_tables_metadata_from_catalog,
     merge_tables_metadata,
+    sync_database_metadata_to_assets,
+    update_catalog_privacy,
 )
 from chat.proxy_provider import ProxyProvider
 from middleware import admin_required, user_middleware
@@ -155,6 +156,7 @@ def delete_conversation(conversation_id: UUID):
 @user_middleware
 @admin_required
 def create_database_route():
+    """Create a new database and sync its metadata to the catalog."""
     data = request.get_json()
 
     try:
@@ -183,6 +185,11 @@ def create_database_route():
 
     g.session.add(database)
     g.session.flush()
+
+    data_warehouse = database.create_data_warehouse()
+    initial_metadata = data_warehouse.load_metadata()
+    if initial_metadata:
+        sync_database_metadata_to_assets(database.id, initial_metadata)
 
     return jsonify(database.to_dict())
 
@@ -259,19 +266,22 @@ def update_database(database_id: UUID):
     except ConnectionError as e:
         return jsonify({"success": False, "message": str(e)}), 400
 
-    new_meta = data_warehouse.load_metadata()
-    merged_metadata = cast(
-        Any, merge_tables_metadata(database.tables_metadata, new_meta)
-    )  # type: ignore[attr-defined]
-    database.tables_metadata = merged_metadata
+    # Update database fields
     database.engine = data["engine"]
     database.details = data["details"]
     database.write_mode = data["write_mode"]
     database.dbt_catalog = data["dbt_catalog"]
     database.dbt_manifest = data["dbt_manifest"]
 
-    # Persist the updated metadata (re-assign to mark field as modified)
-    database.tables_metadata = database.tables_metadata  # type: ignore[attr-defined]
+    # Load new metadata and merge with existing privacy settings from catalog
+    new_meta = data_warehouse.load_metadata()
+    existing_catalog_meta = get_tables_metadata_from_catalog(database.id)
+    merged_metadata = merge_tables_metadata(existing_catalog_meta, new_meta)
+
+    # Sync the merged metadata to catalog
+    if merged_metadata:
+        sync_database_metadata_to_assets(database.id, merged_metadata)
+
     g.session.flush()
 
     return jsonify(database.to_dict())
@@ -308,8 +318,7 @@ def get_questions(context_id):
     database_id, project_id = extract_context(g.session, context_id)
     database = g.session.query(Database).filter_by(id=database_id).first()
 
-    # If project, filter database.tables_metadata with project.tables
-    tables_metadata = database.tables_metadata
+    tables_metadata = get_tables_metadata_from_catalog(database.id)
 
     if project_id:
         project = g.session.query(Project).filter_by(id=project_id).first()
@@ -400,7 +409,7 @@ def get_schema(database_id: UUID):
     ):
         return jsonify({"error": "Access denied"}), 403
 
-    return jsonify(database.tables_metadata)
+    return jsonify(get_tables_metadata_from_catalog(database.id))
 
 
 @api.route("/server-info", methods=["GET"])
@@ -571,8 +580,8 @@ def update_database_privacy(database_id: UUID):
     if not isinstance(payload, list):
         return jsonify({"error": "Invalid payload"}), 400
 
-    # Persist the whole tables_metadata JSON (list of tables with columns + privacy)
-    database.tables_metadata = payload
+    # Update privacy configuration in catalog
+    update_catalog_privacy(database.id, payload)
     g.session.flush()
 
     return jsonify({"success": True})
@@ -720,39 +729,6 @@ def get_favorites():
 
     charts = [chart.to_dict() for chart in chart_favorites]
     return jsonify({"queries": queries, "charts": charts})
-
-
-@api.route("/databases/<uuid:database_id>/privacy/auto", methods=["POST"])
-@user_middleware
-def auto_update_database_privacy(database_id: UUID):
-    """Auto-detect sensitive columns based on PRIVACY_PATTERNS and update privacy maps.
-
-    For every column whose name matches one of the regexes defined in
-    PRIVACY_PATTERNS and that currently has *no* specific LLM privacy setting
-    (or is marked as Visible/Default), set the LLM provider privacy to
-    "Encrypted". The updated `tables_metadata` JSON structure is then
-    persisted back to the database row.
-    """
-
-    database = g.session.query(Database).filter_by(id=database_id).first()
-    if not database:
-        return jsonify({"error": "Database not found"}), 404
-
-    # Verify user has access (owner or organisation match)
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
-        return jsonify({"error": "Access denied"}), 403
-
-    if not database.tables_metadata:
-        return jsonify({"error": "No metadata found for this database"}), 400
-
-    # Apply the same logic used at creation/update time
-    apply_privacy_patterns_to_metadata(database.tables_metadata)
-
-    # Persist the updated metadata (re-assign to mark field as modified)
-    database.tables_metadata = database.tables_metadata  # type: ignore[attr-defined]
-    g.session.flush()
-
-    return jsonify({"success": True, "tables_metadata": database.tables_metadata})
 
 
 @api.route("/business-entities", methods=["GET"])
