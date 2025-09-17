@@ -1,5 +1,10 @@
 <template>
-  <div class="mx-auto px-4">
+  <div>
+    <PageHeader
+      title="Database"
+      subtitle="Manage your database connections and options."
+    />
+    <div class="mx-auto px-4">
     <div class="mt-6 flow-root">
       <ul role="list" class="-my-5 divide-y divide-gray-200">
         <li v-for="database in databasesStore.sortedDatabases" :key="database.id" class="py-4">
@@ -40,12 +45,14 @@
         Add Database
       </BaseButton>
     </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import BaseButton from '@/components/base/BaseButton.vue'
 import DatabaseIcon from '@/components/icons/DatabaseIcon.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useDatabasesStore } from '@/stores/databases'
 import { useRouter } from 'vue-router'
 
