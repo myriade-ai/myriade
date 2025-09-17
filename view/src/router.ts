@@ -49,11 +49,6 @@ const routes = [
     component: loadView('Editor')
   },
   {
-    path: '/upload',
-    name: 'Upload',
-    component: loadView('Upload')
-  },
-  {
     path: '/query/:id',
     name: 'Query',
     component: loadView('Editor'),
