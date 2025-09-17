@@ -189,9 +189,7 @@ class DataWarehouseRegistry:
 
 class AbstractDatabase(ABC):
     write_mode = "confirmation"  # "read-only", "confirmation", "skip-confirmation"
-    tables_metadata: list[dict] | None = (
-        None  # populated by Database.create_data_warehouse()
-    )
+    tables_metadata: list[dict] | None = None
 
     @abstractmethod
     def __init__(self):
@@ -209,6 +207,71 @@ class AbstractDatabase(ABC):
     @abstractmethod
     def _query_unprotected(self, query) -> list[dict]:
         pass
+
+    def get_sample_data(self, asset, limit: int = 10) -> dict | None:
+        """
+        Get sample data from a table asset
+        Args:
+            asset: The catalog asset to sample (must be a table asset with table_facet)
+            limit: Number of sample rows to retrieve (max: 20)
+        """
+        # Only sample data for table assets
+        if asset.type != "TABLE" or not asset.table_facet:
+            return {
+                "error": (
+                    f"Cannot sample data: asset '{asset.name}' is not a table asset "
+                    f"or missing table facet"
+                )
+            }
+
+        facet = asset.table_facet
+        schema_name = facet.schema
+        table_name = facet.table_name
+
+        if not schema_name or not table_name:
+            return {
+                "error": (
+                    f"Cannot sample data: missing schema or table information "
+                    f"for asset '{asset.name}'"
+                )
+            }
+
+        safe_limit = min(limit, 20)
+
+        try:
+            # Build the sample query
+            sample_query = f'''
+            SELECT *
+            FROM "{schema_name}"."{table_name}"
+            ORDER BY RANDOM()
+            LIMIT {safe_limit}
+            '''
+
+            # Execute the query using the database's unprotected method
+            rows = self._query_unprotected(sample_query.strip())
+
+            # Convert rows to list of dictionaries for better YAML output
+            columns = list(rows[0].keys()) if rows else []
+            sample_data = [dict(row) for row in rows[:safe_limit]]
+
+            sample_result = {
+                "sample_query": sample_query.strip(),
+                "sample_size": len(sample_data),
+                "columns": columns,
+                "data": sample_data,
+                "note": f"Sample shows first {safe_limit} rows from table"
+            }
+
+            return sample_result
+
+        except Exception as e:
+            return {
+                "error": f"Failed to sample data: {str(e)}",
+                "note": (
+                    "Data sampling failed. This may be due to database "
+                    "connectivity issues, permissions, or query syntax."
+                )
+            }
 
     def _query_count(self, sql) -> int | None:
         count_request = f"SELECT COUNT(*) FROM ({sql.replace(';', '')}) AS foo"
@@ -553,6 +616,66 @@ class BigQueryDatabase(AbstractDatabase):
             total_size += row_size
 
         return rows_list
+
+    def get_sample_data(self, asset, limit: int = 10) -> dict | None:
+        """BigQuery-specific implementation using RAND() instead of RANDOM()"""
+        # Only sample data for table assets
+        if asset.type != "TABLE" or not asset.table_facet:
+            return {
+                "error": (
+                    f"Cannot sample data: asset '{asset.name}' is not a table asset "
+                    f"or missing table facet"
+                )
+            }
+
+        facet = asset.table_facet
+        schema_name = facet.schema
+        table_name = facet.table_name
+
+        if not schema_name or not table_name:
+            return {
+                "error": (
+                    f"Cannot sample data: missing schema or table information "
+                    f"for asset '{asset.name}'"
+                )
+            }
+
+        safe_limit = min(limit, 20)
+
+        try:
+            # BigQuery uses backticks and RAND() instead of RANDOM()
+            sample_query = f'''
+            SELECT *
+            FROM `{schema_name}.{table_name}`
+            ORDER BY RAND()
+            LIMIT {safe_limit}
+            '''
+
+            # Execute the query using the database's unprotected method
+            rows = self._query_unprotected(sample_query.strip())
+
+            # Convert rows to list of dictionaries for better YAML output
+            columns = list(rows[0].keys()) if rows else []
+            sample_data = [dict(row) for row in rows[:safe_limit]]
+
+            sample_result = {
+                "sample_query": sample_query.strip(),
+                "sample_size": len(sample_data),
+                "columns": columns,
+                "data": sample_data,
+                "note": f"Sample shows first {safe_limit} rows from table"
+            }
+
+            return sample_result
+
+        except Exception as e:
+            return {
+                "error": f"Failed to sample data: {str(e)}",
+                "note": (
+                    "Data sampling failed. This may be due to database "
+                    "connectivity issues, permissions, or query syntax."
+                )
+            }
 
 
 class MotherDuckDatabase(AbstractDatabase):

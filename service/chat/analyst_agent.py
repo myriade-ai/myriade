@@ -8,10 +8,12 @@ from autochat import Autochat, Message
 from autochat.chat import StopLoopException
 
 from app import socketio
+from back.utils import get_tables_metadata_from_catalog
 from chat.dbt_utils import DBT
 from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
 from chat.proxy_provider import ProxyProvider
+from chat.tools.catalog import CatalogTool
 from chat.tools.database import DatabaseTool
 from chat.tools.echarts import EchartsTool
 from chat.tools.quality import SemanticCatalog
@@ -95,8 +97,12 @@ class DataAnalystAgent:
             visible to the user. Use it to answer the user.",
         )
 
+        tables_metadata = get_tables_metadata_from_catalog(
+            self.conversation.database.id
+        )
         self.agent.add_tool(
-            DatabaseTool(self.session, self.conversation.database), "database"
+            DatabaseTool(self.session, self.conversation.database, tables_metadata),
+            "database",
         )
         self.agent.add_function(think)
         self.agent.add_function(get_date)
@@ -114,6 +120,8 @@ class DataAnalystAgent:
             self.session, self.conversation.id, self.conversation.databaseId
         )
         self.agent.add_tool(semantic_catalog, "semantic_catalog")
+        catalog_tool = CatalogTool(self.session, self.conversation.database)
+        self.agent.add_tool(catalog_tool, "catalog")
         if (
             self.conversation.database.dbt_catalog
             and self.conversation.database.dbt_manifest
