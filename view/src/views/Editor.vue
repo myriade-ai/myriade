@@ -1,5 +1,10 @@
 <template>
-  <div class="grid grid-cols-12 gap-4 px-4 mx-auto py-4 bg-sidebar/50 h-screen overflow-y-scroll">
+  <div>
+    <PageHeader
+      title="Editor"
+      subtitle="Write and run SQL queries — save them and visualize the results."
+    />
+    <div class="grid grid-cols-12 gap-4 px-4 mx-auto py-4 bg-sidebar/50 h-screen overflow-y-scroll">
     <div class="col-span-3 hidden md:block h-full overflow-y-auto">
       <DatabaseExplorer />
     </div>
@@ -15,11 +20,13 @@
         :count="editor.count.value ?? 0"
       />
     </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import BaseAlert from '@/components/base/BaseAlert.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import BaseQuery from '@/components/base/BaseQuery.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
 import DatabaseExplorer from '@/components/DatabaseExplorer.vue'
