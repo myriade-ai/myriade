@@ -3,11 +3,9 @@
 
 # 🚀 Myriade – Your AI Data Copilot
 
-
 **Ask your data. See the SQL. Self-host in one command.**
 
 ![myriade](https://github.com/user-attachments/assets/06147bb9-92c3-4ed6-8ed1-4604515f876b)
-
 
 [🌐 Website](https://www.myriade.ai) • [⚡ Live Demo](https://demo.myriade.ai) • [📦 Self-host](#-quick-start-self-host-in-1-minute)
 
@@ -78,7 +76,7 @@ Ask your question in plain English → Myriade **explores**, **writes SQL**, **f
 
 ## 🚀 Quick Start (Self-host in 1 minute)
 
-**With Anthropic (default) and SQLite backend**:
+**With SQLite backend**:
 
 ```bash
 docker run -p 8080:8080 -v $(pwd)/data:/app/data myriadeai/myriade:latest
@@ -86,18 +84,14 @@ docker run -p 8080:8080 -v $(pwd)/data:/app/data myriadeai/myriade:latest
 
 Open: [http://localhost:8080](http://localhost:8080)
 
-**With OpenAI and PostgreSQL backend**:
+**With PostgreSQL backend**:
 
 ```bash
 docker run -p 8080:8080 \
   -e DATABASE_URL=postgresql://user:pass@localhost:5432/myriade
-  -e AGENTLYS_PROVIDER=openai \
-  -e AGENTLYS_MODEL=o5-mini \
-  -e OPENAI_API_KEY=<your_key_here> \
   myriadeai/myriade:latest
 ```
 
-> Supports OpenAI, Anthropic, Gemini & more.
 > [See full setup docs →](./DEVELOPMENT.md)
 
 ---
