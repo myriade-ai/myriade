@@ -1,6 +1,29 @@
 # CHANGELOG
 
 
+## v0.41.3 (2025-09-17)
+
+### Bug Fixes
+
+- Connection field name ([#86](https://github.com/myriade-ai/myriade/pull/86),
+  [`0c0edef`](https://github.com/myriade-ai/myriade/commit/0c0edef9ee444ce2530c8f4078d38c0eca74b763))
+
+### Build System
+
+- **deps**: Bump form-data ([#52](https://github.com/myriade-ai/myriade/pull/52),
+  [`0786e34`](https://github.com/myriade-ai/myriade/commit/0786e34792d6cf66b90a233ae10787bfe2add5fa))
+
+--- updated-dependencies: - dependency-name: form-data dependency-version: 4.0.4
+
+dependency-type: indirect
+
+dependency-group: npm_and_yarn ...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+
+
 ## v0.41.2 (2025-09-15)
 
 ### Bug Fixes
