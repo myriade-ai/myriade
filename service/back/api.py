@@ -16,7 +16,7 @@ from back.utils import (
     create_database,
     get_tables_metadata_from_catalog,
     merge_tables_metadata,
-    sync_database_metadata,
+    sync_database_metadata_to_assets,
     update_catalog_privacy,
 )
 from chat.proxy_provider import ProxyProvider
@@ -189,7 +189,7 @@ def create_database_route():
     data_warehouse = database.create_data_warehouse()
     initial_metadata = data_warehouse.load_metadata()
     if initial_metadata:
-        sync_database_metadata(database.id, initial_metadata)
+        sync_database_metadata_to_assets(database.id, initial_metadata)
 
     return jsonify(database.to_dict())
 
@@ -280,7 +280,7 @@ def update_database(database_id: UUID):
 
     # Sync the merged metadata to catalog
     if merged_metadata:
-        sync_database_metadata(database.id, merged_metadata)
+        sync_database_metadata_to_assets(database.id, merged_metadata)
 
     g.session.flush()
 

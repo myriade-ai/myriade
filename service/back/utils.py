@@ -128,7 +128,7 @@ def get_tables_metadata_from_catalog(database_id: UUID) -> List[Dict[str, Any]]:
         return []
 
 
-def sync_database_metadata(
+def sync_database_metadata_to_assets(
     database_id: UUID,
     tables_metadata: List[Dict[str, Any]],
 ):

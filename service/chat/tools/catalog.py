@@ -1,11 +1,18 @@
 import uuid
+from enum import Enum
 from typing import List, Optional
 
 import yaml
 from sqlalchemy.orm import Session
 
 from models import Database
-from models.catalog import Asset, ColumnFacet, TableFacet, Term
+from models.catalog import Asset, Term
+
+
+class AssetType(Enum):
+    TABLE = "TABLE"
+    COLUMN = "COLUMN"
+    TERM = "TERM"
 
 
 class CatalogTool:
@@ -37,18 +44,19 @@ class CatalogTool:
         }
         return yaml.dump(context)
 
+    # TODO: Add Delete Asset function
+
     def list_assets(
         self,
         asset_type: Optional[str] = None,
         limit: int = 10,
-        include_terms: bool = True,
     ) -> str:
         """
         List catalog assets and terms with optional filtering
         Args:
-            asset_type: Filter by type ("TABLE", "COLUMN", "TERM")
+            asset_type: Filter by type ("TABLE", "COLUMN", "TERM").
+                       If None, returns only assets (no terms)
             limit: Maximum number of results
-            include_terms: Whether to include business glossary terms
         """
         results = []
 
@@ -60,19 +68,7 @@ class CatalogTool:
             terms = terms_query.limit(limit).all()
 
             for term in terms:
-                term_dict = {
-                    "id": str(term.id),
-                    "name": term.name,
-                    "type": "TERM",
-                    "definition": (
-                        term.definition[:100] + "..."
-                        if term.definition and len(term.definition) > 100
-                        else term.definition
-                    ),
-                    "synonyms": term.synonyms,
-                    "business_domains": term.business_domains,
-                }
-                results.append(term_dict)
+                results.append(term.llm())
         else:
             # Handle assets
             query = self.session.query(Asset).filter(
@@ -120,62 +116,25 @@ class CatalogTool:
 
                 results.append(asset_dict)
 
-            # Add terms if requested and no specific asset type filter
-            if include_terms and not asset_type:
-                terms_query = self.session.query(Term).filter(
-                    Term.database_id == self.database.id
-                )
-                remaining_limit = max(0, limit - len(results))
-                terms = terms_query.limit(remaining_limit).all()
-
-                for term in terms:
-                    term_dict = {
-                        "id": str(term.id),
-                        "name": term.name,
-                        "type": "TERM",
-                        "definition": (
-                            term.definition[:100] + "..."
-                            if term.definition and len(term.definition) > 100
-                            else term.definition
-                        ),
-                        "synonyms": term.synonyms,
-                        "business_domains": term.business_domains,
-                    }
-                    results.append(term_dict)
-
         return yaml.dump({"assets": results})
 
-    def search_assets(self, text: str, type: Optional[str] = None) -> str:
+    def search_assets(self, text: str, asset_type: Optional[str] = None) -> str:
         """
         Search assets and terms by name, description, urn, tags, or definition.
         The search is case-insensitive and matches partial strings.
         Returns first 50 matches.
         Args:
             text: Search query
-            type: Filter by type ("asset" or "term"). If not specified, searches both.
+            asset_type: Filter by type ("TABLE", "COLUMN", "TERM").
+                       If None, searches both assets and terms
         """
         limit = 50
 
         assets = []
         terms = []
 
-        # Search based on type filter
-        if type is None or type.lower() == "asset":
-            # Search in assets
-            assets_query = (
-                self.session.query(Asset)
-                .filter(Asset.database_id == self.database.id)
-                .filter(
-                    Asset.name.ilike(f"%{text}%")
-                    | Asset.description.ilike(f"%{text}%")
-                    | Asset.urn.ilike(f"%{text}%")
-                )
-                .limit(limit)
-            )
-            assets = assets_query.all()
-
-        if type is None or type.lower() == "term":
-            # Search in terms
+        # Handle terms separately
+        if asset_type == "TERM":
             terms_query = (
                 self.session.query(Term)
                 .filter(Term.database_id == self.database.id)
@@ -185,6 +144,35 @@ class CatalogTool:
                 .limit(limit)
             )
             terms = terms_query.all()
+        else:
+            # Handle assets
+            assets_query = (
+                self.session.query(Asset)
+                .filter(Asset.database_id == self.database.id)
+                .filter(
+                    Asset.name.ilike(f"%{text}%")
+                    | Asset.description.ilike(f"%{text}%")
+                    | Asset.urn.ilike(f"%{text}%")
+                )
+            )
+
+            if asset_type:
+                assets_query = assets_query.filter(Asset.type == asset_type.upper())
+
+            assets = assets_query.limit(limit).all()
+
+            # If no specific asset type filter, also search terms
+            if asset_type is None:
+                terms_query = (
+                    self.session.query(Term)
+                    .filter(Term.database_id == self.database.id)
+                    .filter(
+                        Term.name.ilike(f"%{text}%")
+                        | Term.definition.ilike(f"%{text}%")
+                    )
+                    .limit(limit)
+                )
+                terms = terms_query.all()
 
         results = {
             "assets": [
@@ -284,7 +272,9 @@ class CatalogTool:
                     }
                 )
                 # Add sample data for table assets
-                sample_data = self.data_warehouse.get_sample_data(asset)
+                sample_data = self.data_warehouse.get_sample_data(
+                    facet.table_name, facet.schema
+                )
                 if sample_data:
                     result["sample_data"] = sample_data
 
@@ -326,8 +316,7 @@ class CatalogTool:
         if not asset:
             raise ValueError(f"Asset with id {asset_id} not found")
 
-        # Track what was updated
-        updates = []
+        updates: list[str] = []
 
         if description is not None:
             asset.description = description
@@ -342,154 +331,13 @@ class CatalogTool:
 
         self.session.flush()
 
-        return f"Updated {', '.join(updates)} for '{asset.name}'"
-
-    def create_table_asset(
-        self,
-        name: str,
-        urn: str,
-        schema: str,
-        table_name: str,
-        description: Optional[str] = None,
-        tags: Optional[list] = None,
-    ) -> str:
-        """
-        Create a catalog asset for a table
-        Args:
-            name: Display name for the table asset
-            urn: Unique resource name for the table
-            schema: Schema name
-            table_name: Table name
-            description: Description of the table
-            tags: Tags for the table
-        """
-        # Check if asset already exists with this URN
-        existing_asset = (
-            self.session.query(Asset)
-            .filter(
-                Asset.database_id == self.database.id,
-                Asset.urn == urn,
-            )
-            .first()
+        return yaml.dump(
+            {
+                "message": f"Updated asset '{asset.name}'",
+                "asset_id": str(asset.id),
+                "updates": updates,
+            }
         )
-
-        if existing_asset:
-            return f"Asset already exists with URN '{urn}'"
-
-        # Create new table asset
-        table_asset = Asset(
-            name=name,
-            urn=urn,
-            type="TABLE",
-            description=description,
-            database_id=self.database.id,
-            tags=tags or [],
-        )
-
-        self.session.add(table_asset)
-        self.session.flush()
-
-        # Create table facet
-        table_facet = TableFacet(
-            asset_id=table_asset.id,
-            schema=schema,
-            table_name=table_name,
-        )
-
-        self.session.add(table_facet)
-        self.session.flush()
-
-        result = {
-            "message": f"Created table asset '{name}'",
-            "asset_id": str(table_asset.id),
-            "urn": urn,
-        }
-
-        return yaml.dump(result)
-
-    def create_column_asset(
-        self,
-        name: str,
-        urn: str,
-        column_name: str,
-        parent_table_asset_id: str,
-        data_type: Optional[str] = None,
-        ordinal: Optional[int] = None,
-        description: Optional[str] = None,
-        tags: Optional[list] = None,
-    ) -> str:
-        """
-        Create a catalog asset for a column
-        Args:
-            name: Display name for the column asset
-            urn: Unique resource name for the column
-            column_name: Column name
-            parent_table_asset_id: UUID of the parent table asset
-            data_type: Data type of the column
-            ordinal: Position of column in table
-            description: Description of the column
-            tags: Tags for the column
-        """
-        # Verify parent table asset exists
-        parent_table = (
-            self.session.query(Asset)
-            .filter(
-                Asset.id == uuid.UUID(parent_table_asset_id),
-                Asset.database_id == self.database.id,
-                Asset.type == "TABLE",
-            )
-            .first()
-        )
-        if not parent_table:
-            raise ValueError(
-                f"Parent table asset with id {parent_table_asset_id} not found"
-            )
-
-        # Check if asset already exists with this URN
-        existing_asset = (
-            self.session.query(Asset)
-            .filter(
-                Asset.database_id == self.database.id,
-                Asset.urn == urn,
-            )
-            .first()
-        )
-
-        if existing_asset:
-            return f"Asset already exists with URN '{urn}'"
-
-        # Create new column asset
-        column_asset = Asset(
-            name=name,
-            urn=urn,
-            type="COLUMN",
-            description=description,
-            database_id=self.database.id,
-            tags=tags or [],
-        )
-
-        self.session.add(column_asset)
-        self.session.flush()
-
-        # Create column facet
-        column_facet = ColumnFacet(
-            asset_id=column_asset.id,
-            parent_table_asset_id=uuid.UUID(parent_table_asset_id),
-            column_name=column_name,
-            ordinal=ordinal,
-            data_type=data_type,
-        )
-
-        self.session.add(column_facet)
-        self.session.flush()
-
-        result = {
-            "message": f"Created column asset '{name}'",
-            "asset_id": str(column_asset.id),
-            "urn": urn,
-        }
-
-        return yaml.dump(result)
 
     def upsert_term(
         self,
@@ -497,6 +345,7 @@ class CatalogTool:
         definition: str,
         synonyms: Optional[list] = None,
         business_domains: Optional[list] = None,
+        id: Optional[str] = None,
     ) -> str:
         """
         Create or update a business glossary term
@@ -505,20 +354,41 @@ class CatalogTool:
             definition: Term definition
             synonyms: List of synonymous terms
             business_domains: List of business domains this term belongs to
+            id: Optional term ID for direct updates. If provided, updates the
+                specific term by ID
         """
-        # Check if term already exists with this name
-        existing_term = (
-            self.session.query(Term)
-            .filter(
-                Term.database_id == self.database.id,
-                Term.name.ilike(name),
+        existing_term = None
+
+        if id:
+            # Look up term by ID if provided
+            existing_term = (
+                self.session.query(Term)
+                .filter(
+                    Term.database_id == self.database.id,
+                    Term.id == uuid.UUID(id),
+                )
+                .first()
             )
-            .first()
-        )
+            if not existing_term:
+                raise ValueError(f"Term with id {id} not found")
+        else:
+            # Check if term already exists with this name
+            existing_term = (
+                self.session.query(Term)
+                .filter(
+                    Term.database_id == self.database.id,
+                    Term.name.ilike(name),
+                )
+                .first()
+            )
 
         if existing_term:
             # Update existing term
             updates = []
+            if existing_term.name != name:
+                existing_term.name = name
+                updates.append("name")
+
             if existing_term.definition != definition:
                 existing_term.definition = definition
                 updates.append("definition")
@@ -577,4 +447,3 @@ class CatalogTool:
             .filter(Asset.database_id == self.database.id)
             .all()
         )
-

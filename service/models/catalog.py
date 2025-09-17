@@ -41,6 +41,8 @@ class Asset(SerializerMixin, DefaultBase, Base):
         foreign_keys="ColumnFacet.asset_id",
     )
 
+    # TODO: Add soft delete
+
     # Relationships
     database: Mapped["Database"] = relationship("Database")
     creator: Mapped[Optional["User"]] = relationship("User", foreign_keys=[created_by])
@@ -106,3 +108,18 @@ class Term(SerializerMixin, DefaultBase, Base):
 
     # Relationships
     database: Mapped["Database"] = relationship("Database")
+
+    def llm(self) -> dict:
+        """Convert term to dictionary representation"""
+        definition = self.definition
+        if len(definition) > 100:
+            definition = definition[:100] + "..."
+
+        return {
+            "id": str(self.id),
+            "name": self.name,
+            "type": "TERM",
+            "definition": definition,
+            "synonyms": self.synonyms,
+            "business_domains": self.business_domains,
+        }
