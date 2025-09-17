@@ -91,8 +91,8 @@ Open: [http://localhost:8080](http://localhost:8080)
 ```bash
 docker run -p 8080:8080 \
   -e DATABASE_URL=postgresql://user:pass@localhost:5432/myriade
-  -e AUTOCHAT_PROVIDER=openai \
-  -e AUTOCHAT_MODEL=o5-mini \
+  -e AGENTLYS_PROVIDER=openai \
+  -e AGENTLYS_MODEL=o5-mini \
   -e OPENAI_API_KEY=<your_key_here> \
   myriadeai/myriade:latest
 ```

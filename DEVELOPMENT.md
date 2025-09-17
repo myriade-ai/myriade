@@ -9,7 +9,7 @@
 - **Frontend** – Vue 3, Tailwind CSS, Vite
 - **Backend** – Python (Flask, SQLAlchemy, Postgres)
 
-  - AI Agent Library: [Autochat](https://github.com/BenderV/autochat)
+  - AI Agent Library: [Agentlys](https://github.com/myriade-ai/agentlys)
 
 - **Databases** – Postgres (recommended) or SQLite
 
@@ -46,8 +46,8 @@
    **Example – Anthropic (default)**
 
    ```bash
-   AUTOCHAT_PROVIDER=anthropic
-   AUTOCHAT_MODEL=claude-sonnet-4-20250514
+   AGENTLYS_PROVIDER=anthropic
+   AGENTLYS_MODEL=claude-sonnet-4-20250514
    ANTHROPIC_API_KEY=<Your_Anthropic_API_Key>
    DATABASE_URL=postgresql://user:pass@localhost:5432/myriade
    ```
@@ -55,8 +55,8 @@
    **Example – OpenAI**
 
    ```bash
-   AUTOCHAT_PROVIDER=openai
-   AUTOCHAT_MODEL=o4-mini
+   AGENTLYS_PROVIDER=openai
+   AGENTLYS_MODEL=o4-mini
    OPENAI_API_KEY=<Your_OpenAI_API_Key>
    DATABASE_URL=postgresql://user:pass@localhost:5432/myriade
    ```

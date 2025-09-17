@@ -176,7 +176,7 @@ def handle_query(
     session.add(user_message)
     emit("response", user_message.to_dict())
     # Run the SQL
-    message = user_message.to_autochat_message()
+    message = user_message.to_agentlys_message()
     content = agent.agent.tools["database"].sql_query(query, from_response=message)
     user_message.queryId = message.query_id
     # Update the message with the linked query
