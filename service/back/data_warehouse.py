@@ -220,21 +220,19 @@ class AbstractDatabase(ABC):
         """
         if not schema_name or not table_name:
             return {
-                "error": (
-                    "Cannot sample data: missing schema or table information"
-                )
+                "error": ("Cannot sample data: missing schema or table information")
             }
 
         safe_limit = min(limit, 20)
 
         try:
             # Build the sample query
-            sample_query = f'''
+            sample_query = f"""
             SELECT *
             FROM "{schema_name}"."{table_name}"
             ORDER BY RANDOM()
             LIMIT {safe_limit}
-            '''
+            """
 
             # Execute the query using the database's unprotected method
             rows = self._query_unprotected(sample_query.strip())
@@ -444,9 +442,7 @@ class SQLDatabase(AbstractDatabase):
         """SQL database implementation using RAND() for MySQL, RANDOM() for others"""
         if not schema_name or not table_name:
             return {
-                "error": (
-                    "Cannot sample data: missing schema or table information"
-                )
+                "error": ("Cannot sample data: missing schema or table information")
             }
 
         safe_limit = min(limit, 20)
@@ -463,12 +459,12 @@ class SQLDatabase(AbstractDatabase):
                 """
             else:
                 # PostgreSQL, SQLite, and others use RANDOM()
-                sample_query = f'''
+                sample_query = f"""
                 SELECT *
                 FROM "{schema_name}"."{table_name}"
                 ORDER BY RANDOM()
                 LIMIT {safe_limit}
-                '''
+                """
 
             # Execute the query using the database's unprotected method
             rows = self._query_unprotected(sample_query.strip())
@@ -670,9 +666,7 @@ class BigQueryDatabase(AbstractDatabase):
         """BigQuery-specific implementation using RAND() instead of RANDOM()"""
         if not schema_name or not table_name:
             return {
-                "error": (
-                    "Cannot sample data: missing schema or table information"
-                )
+                "error": ("Cannot sample data: missing schema or table information")
             }
 
         safe_limit = min(limit, 20)
