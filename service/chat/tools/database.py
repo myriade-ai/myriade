@@ -4,9 +4,9 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import yaml
-from autochat.chat import OUTPUT_SIZE_LIMIT, StopLoopException
-from autochat.model import Message
-from autochat.utils import limit_data_size
+from agentlys.chat import OUTPUT_SIZE_LIMIT, StopLoopException
+from agentlys.model import Message
+from agentlys.utils import limit_data_size
 
 from back.data_warehouse import WriteOperationError
 from models import Database, Query

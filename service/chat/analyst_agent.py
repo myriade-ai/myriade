@@ -4,8 +4,8 @@ import os
 
 import nest_asyncio
 import yaml
-from autochat import Autochat, Message
-from autochat.chat import StopLoopException
+from agentlys import Agentlys, Message
+from agentlys.chat import StopLoopException
 
 from app import socketio
 from back.utils import get_tables_metadata_from_catalog
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Workaround because of eventlet doesn't support loop in loop ?
 nest_asyncio.apply()
 
-AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "proxy")
+AGENTLYS_PROVIDER = os.getenv("AGENTLYS_PROVIDER", "proxy")
 
 
 def think(thought: str) -> None:
@@ -75,15 +75,15 @@ class DataAnalystAgent:
         # Handle custom proxy provider
 
         logger.info(
-            "AUTOCHAT_PROVIDER configured", extra={"provider": AUTOCHAT_PROVIDER}
+            "AGENTLYS_PROVIDER configured", extra={"provider": AGENTLYS_PROVIDER}
         )
 
-        if AUTOCHAT_PROVIDER == "proxy":
+        if AGENTLYS_PROVIDER == "proxy":
             provider = ProxyProvider
         else:
-            provider = AUTOCHAT_PROVIDER
+            provider = AGENTLYS_PROVIDER
 
-        self.agent = Autochat.from_template(
+        self.agent = Agentlys.from_template(
             os.path.join(os.path.dirname(__file__), "..", "chat", "chat_template.txt"),
             provider=provider,
             context=self.context,
@@ -240,13 +240,13 @@ class DataAnalystAgent:
                 .order_by(ConversationMessage.createdAt)
                 .all()
             )
-            autochat_messages = [m.to_autochat_message() for m in messages]
-            self.agent.load_messages(autochat_messages)
+            agentlys_messages = [m.to_agentlys_message() for m in messages]
+            self.agent.load_messages(agentlys_messages)
             for m in self.agent.run_conversation():
                 self.check_stop_flag()
                 # We re-emit the status in case the user has refreshed the page
                 emit_status(self.conversation.id, STATUS.RUNNING)
-                message = ConversationMessage.from_autochat_message(m)
+                message = ConversationMessage.from_agentlys_message(m)
                 if self.conversation:
                     message.conversationId = self.conversation.id
                 self.session.add(message)
