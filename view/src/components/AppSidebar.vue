@@ -53,7 +53,7 @@ import {
   Trash2,
   UserRoundPen
 } from 'lucide-vue-next'
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 const navItems: { title: string; url: string; icon: typeof SquarePen; disabled?: boolean }[] = [
@@ -95,6 +95,10 @@ const navItems: { title: string; url: string; icon: typeof SquarePen; disabled?:
 const store = useConversationsStore()
 const contextsStore = useContextsStore()
 const router = useRouter()
+
+onMounted(() => {
+  contextsStore.initializeContexts()
+})
 
 const editingConversationId = ref<string | null>(null)
 const nameInputs = ref<{ [convId: string]: HTMLInputElement }>({})
