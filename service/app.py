@@ -1,3 +1,5 @@
+import atexit
+
 import eventlet
 
 # Apply eventlet monkey patch BEFORE any other imports
@@ -11,6 +13,7 @@ from flask import Flask, g, jsonify, request, send_from_directory  # noqa: E402
 from flask_socketio import SocketIO  # noqa: E402
 from werkzeug.middleware.proxy_fix import ProxyFix  # noqa: E402
 import telemetry  # noqa: E402
+import scheduler  # noqa: E402
 
 
 # Configure JSON logging
@@ -148,5 +151,11 @@ def create_app():
 
     # Start telemetry service for version checking and usage analytics
     telemetry.start_telemetry_service()
+
+    # Start background scheduler for periodic tasks
+    scheduler.start_scheduler(app)
+
+    # Register scheduler shutdown on app exit
+    atexit.register(scheduler.stop_scheduler)
 
     return app
