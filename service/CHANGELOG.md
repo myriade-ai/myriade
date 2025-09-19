@@ -1,6 +1,23 @@
 # CHANGELOG
 
 
+## v0.42.1 (2025-09-19)
+
+### Bug Fixes
+
+- Ensure contexts are initialized on component mount
+  ([#90](https://github.com/myriade-ai/myriade/pull/90),
+  [`c278126`](https://github.com/myriade-ai/myriade/commit/c278126303e6b8745decf503c548701e692ce93d))
+
+### Refactoring
+
+- Cleanup deadcode ([#87](https://github.com/myriade-ai/myriade/pull/87),
+  [`cab19d2`](https://github.com/myriade-ai/myriade/commit/cab19d2bd562cf86e91dd002f669ab53b3ee9580))
+
+- Use agentlys ([#88](https://github.com/myriade-ai/myriade/pull/88),
+  [`be99b3c`](https://github.com/myriade-ai/myriade/commit/be99b3c6471006a6659a6ef92582a4320d2147ce))
+
+
 ## v0.42.0 (2025-09-17)
 
 ### Features
