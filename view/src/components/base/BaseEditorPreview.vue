@@ -1,16 +1,16 @@
 <template>
   <div>
     <!-- Query favorite button -->
-    <button
+    <Button
       v-if="props.queryId"
-      class="text-primary-500 hover:text-primary-700 flex items-center float-right"
+      class="flex items-center float-right"
       title="Save query to workspace"
+      variant="ghost"
+      size="icon"
       @click="toggleQueryFavorite"
     >
-      <StarIconSolid v-if="isQueryFavorite" class="h-4 w-4 text-yellow-500" />
-      <StarIcon v-else class="h-4 w-4" />
-      <span class="ml-1 hidden lg:inline">{{ isQueryFavorite ? 'saved' : 'save' }}</span>
-    </button>
+      <Star :class="isQueryFavorite ? 'text-yellow-500 fill-yellow-500' : ''" />
+    </Button>
     <BaseEditor :modelValue="sqlQuery" :readOnly="true" />
     <BaseTable :data="rows" :count="count" />
   </div>
@@ -19,11 +19,11 @@
 <script lang="ts" setup>
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
-import axios from '@/plugins/axios'
 import { useQueryEditor } from '@/composables/useQueryEditor'
-import { StarIcon } from '@heroicons/vue/24/outline'
-import { StarIcon as StarIconSolid } from '@heroicons/vue/24/solid'
+import axios from '@/plugins/axios'
+import { Star } from 'lucide-vue-next'
 import { defineProps, onMounted, ref } from 'vue'
+import { Button } from '../ui/button'
 const { fetchQuery, fetchQueryResults } = useQueryEditor()
 
 const props = defineProps({

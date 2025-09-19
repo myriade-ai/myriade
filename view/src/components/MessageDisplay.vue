@@ -1,163 +1,131 @@
 <template>
-  <div class="message-display px-4 py-4 my-1 rounded-lg bg-gray-100">
-    <!-- if message.display = false, then show as light gray (internal message) -->
-    <div>
-      <span class="flex justify-between items-center w-full">
-        <span class="font-bold">{{ props.message.role }}</span>
-
-        <span></span>
-        <!-- Empty span to push content to the right -->
-        <span class="flex items-center space-x-2 font-normal">
-          <!-- Edit button for user messages -->
-          <span v-if="props.message.role === 'user'" class="flex items-center space-x-2">
-            <button
-              class="text-primary-500 hover:text-primary-700 flex items-center"
-              @click="toggleEditMode"
-              title="Edit message"
-            >
-              <PencilSquareIcon class="h-4 w-4" />
-              <span class="ml-1 hidden lg:inline">edit message</span>
-            </button>
-          </span>
-
-          <!-- Edit inline button for SQL queries -->
-          <span v-if="props.message.queryId" class="flex items-center space-x-2">
-            <span v-if="props.message.role === 'user'" class="text-gray-400 mx-2">|</span>
-            <button
-              class="text-primary-500 hover:text-primary-700 flex items-center"
-              @click="editInline"
-              title="Edit inline"
-            >
-              <PencilSquareIcon class="h-4 w-4" />
-              <span class="ml-1 hidden lg:inline">edit inline</span>
-            </button>
-            <span class="text-gray-400 mx-2">|</span>
-            <a
-              :href="`/query/${props.message.queryId}`"
-              class="text-primary-500 hover:text-primary-700 flex items-center"
-              target="_blank"
-              title="Edit in new tab"
-            >
-              <PencilIcon class="h-4 w-4" />
-              <span class="ml-1 hidden lg:inline">edit</span>
-            </a>
-          </span>
-          <span
-            v-if="
-              (props.message.queryId || props.message.role === 'user') &&
-              props.message.role !== 'function'
-            "
-            class="text-gray-400 mx-2"
-            >|</span
+  <div
+    :class="
+      cn(
+        'my-2',
+        props.message.role === 'user'
+          ? cn('bg-gray-100 rounded-lg p-4', isEditing ? 'w-full' : 'max-w-3/4 ml-auto')
+          : 'w-full p-2'
+      )
+    "
+  >
+    <!-- Message header with role and actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+      <span class="font-bold text-sm text-gray-600" :v-if="props.message.role !== 'user'">{{
+        props.message.role
+      }}</span>
+      <div class="flex items-center font-normal flex-wrap justify-end">
+        <!-- Edit button for user messages -->
+        <span v-if="props.message.role === 'user'" class="flex items-center">
+          <Button
+            @click="toggleEditMode"
+            title="Edit message"
+            variant="ghost"
+            class="text-primary-600 hover:text-primary-800 p-0 px-0"
           >
-          <button
-            v-if="props.message.role !== 'function'"
-            class="text-primary-500 hover:text-primary-700 flex items-center"
-            title="Regenerate from this message"
-            @click="() => emit('regenerateFromMessage', props.message.id)"
-          >
-            <ArrowPathIcon class="h-4 w-4" />
-            <span class="ml-1 hidden lg:inline">regenerate</span>
-          </button>
+            <SquarePen class="h-3 w-3 sm:h-4 sm:w-4" />
+          </Button>
         </span>
-      </span>
-    </div>
 
-    <!-- Edit mode for user messages -->
-    <div v-if="isEditing && props.message.role === 'user'" class="mt-2 mb-2">
-      <textarea
-        v-model="editedContent"
-        class="w-full border border-gray-300 rounded-sm py-2 px-3"
-        rows="4"
-      ></textarea>
-      <div class="flex justify-end mt-2">
-        <button
-          @click="cancelEdit"
-          class="mr-2 px-3 py-1 text-sm text-gray-700 bg-gray-200 rounded-sm hover:bg-gray-300"
+        <!-- Edit inline button for SQL queries -->
+        <span v-if="props.message.queryId" class="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            class="text-primary-600 hover:text-primary-800 hover:bg-gray-200 p-1"
+            @click="editInline"
+            title="Edit inline"
+          >
+            <SquarePen class="h-3 w-3 sm:h-4 sm:w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            class="text-primary-600 hover:text-primary-800 hover:bg-gray-200 p-1"
+            @click="editInNewTab"
+            title="Edit in new tab"
+          >
+            <Pencil class="h-3 w-3 sm:h-4 sm:w-4" />
+          </Button>
+        </span>
+
+        <Button
+          v-if="props.message.role !== 'function'"
+          variant="ghost"
+          size="sm"
+          class="text-primary-600 hover:text-primary-800 p-1"
+          title="Regenerate from this message"
+          @click="() => emit('regenerateFromMessage', props.message.id)"
         >
-          Cancel
-        </button>
-        <button
-          @click="saveEdit"
-          class="px-3 py-1 text-sm text-white bg-primary-500 rounded-sm hover:bg-primary-600"
-        >
-          Send
-        </button>
+          <RotateCcw class="h-3 w-3 sm:h-4 sm:w-4" />
+        </Button>
       </div>
     </div>
 
-    <!-- Normal display mode -->
-    <div v-else>
-      <template v-for="(part, index) in parsedText">
-        <MarkdownDisplay
-          v-if="part.type === 'text'"
-          :key="`text-${index}`"
-          :content="part.content"
-        ></MarkdownDisplay>
-        <div
-          style="white-space: pre-wrap; background-color: #db282873; padding: 0.6rem"
-          v-if="part.type === 'error'"
-          :key="`error-${index}`"
-        >
-          {{ part.content }}
-        </div>
-        <div v-if="part.type === 'query'" :key="`query-${index}`">
-          <BaseEditorPreview
-            :queryId="part.query_id"
-            :databaseId="databaseSelectedId ?? undefined"
-          ></BaseEditorPreview>
-        </div>
-        <div v-if="part.type === 'chart' && part.chart_id" :key="`chart-${index}`">
-          <Chart :chartId="part.chart_id" />
-        </div>
-        <BaseEditor
-          v-if="part.type === 'sql'"
-          :modelValue="part.content"
-          :read-only="true"
-          :key="`sql-${index}`"
-        ></BaseEditor>
-        <BaseTable
-          v-if="part.type === 'json'"
-          :data="part.content"
-          :key="`json-${index}`"
-          :count="part.content.length"
+    <!-- Message content -->
+    <div class="w-full overflow-y-hidden">
+      <!-- Edit mode for user messages -->
+      <div v-if="isEditing && props.message.role === 'user'" class="mt-2 mb-2">
+        <Textarea
+          v-model="editedContent"
+          class="w-full border border-gray-300 rounded-sm py-2 px-3 resize-none"
+          rows="4"
         />
-        <!-- TODO: remove -->
-        <Echart v-if="part.type === 'echarts'" :option="part.content" :key="`echarts-${index}`" />
-      </template>
+        <div class="flex flex-col sm:flex-row justify-end mt-2 gap-2">
+          <Button @click="cancelEdit" variant="secondary" size="sm"> Cancel </Button>
+          <Button @click="saveEdit" size="sm"> Send </Button>
+        </div>
+      </div>
 
-      <div v-if="props.message.image">
-        <img :src="`data:image/png;base64,${props.message.image}`" />
-      </div>
-      <div v-if="props.message.functionCall">
-        <b>> {{ props.message.functionCall?.name }} </b>
-        <p v-if="props.message.functionCall?.name === 'memory_search'">
-          Search: "{{ props.message.functionCall?.arguments?.search }}"
-        </p>
-        <p v-else-if="props.message.functionCall?.name === 'think'" class="text-sm text-gray-500">
-          <MarkdownDisplay :content="props.message.functionCall?.arguments?.thought" />
-        </p>
-        <p v-else-if="props.message.functionCall?.name === 'ask_user'">
-          {{ props.message.functionCall?.arguments?.question }}
-        </p>
-        <BaseEditor
-          v-else-if="props.message.functionCall?.name.endsWith('sql_query')"
-          :modelValue="props.message.functionCall?.arguments?.query"
-          :read-only="true"
-        ></BaseEditor>
-        <BaseEditorPreview
-          v-else-if="props.message.functionCall?.name === 'submit'"
+      <!-- Normal display mode -->
+      <div v-else class="w-full overflow-hidden">
+        <template v-for="(part, index) in parsedText">
+          <div v-if="part.type === 'text'" :key="`text-${index}`" class="w-full">
+            <MarkdownDisplay :content="part.content"></MarkdownDisplay>
+          </div>
+          <div
+            v-if="part.type === 'error'"
+            :key="`error-${index}`"
+            class="w-full overflow-x-auto p-2 sm:p-3 bg-red-100 border border-red-300 rounded text-sm"
+            style="white-space: pre-wrap"
+          >
+            {{ part.content }}
+          </div>
+          <div v-if="part.type === 'query'" :key="`query-${index}`" class="w-full overflow-hidden">
+            <BaseEditorPreview
+              :queryId="part.query_id"
+              :databaseId="databaseSelectedId ?? undefined"
+            ></BaseEditorPreview>
+          </div>
+          <div v-if="part.type === 'chart' && part.chart_id" :key="`chart-${index}`" class="w-full">
+            <Chart :chartId="part.chart_id" />
+          </div>
+          <div v-if="part.type === 'sql'" :key="`sql-${index}`" class="w-full overflow-hidden">
+            <BaseEditor :modelValue="part.content" :read-only="true"></BaseEditor>
+          </div>
+          <div v-if="part.type === 'json'" :key="`json-${index}`" class="w-full overflow-x-auto">
+            <BaseTable :data="part.content" :count="part.content.length" />
+          </div>
+          <!-- TODO: remove -->
+          <Echart v-if="part.type === 'echarts'" :option="part.content" :key="`echarts-${index}`" />
+        </template>
+
+        <div v-if="props.message.image" class="w-full">
+          <img :src="`data:image/png;base64,${props.message.image}`" class="max-w-full h-auto" />
+        </div>
+        <FunctionCallRenderer
+          v-if="props.message.functionCall"
+          :functionCall="props.message.functionCall as FunctionCall"
           :queryId="props.message.queryId"
-          :databaseId="databaseSelectedId ?? undefined"
-        ></BaseEditorPreview>
-        <pre v-else class="arguments">{{ props.message.functionCall?.arguments }}</pre>
+          :databaseSelectedId="databaseSelectedId"
+        />
+        <AskQueryConfirmation
+          v-if="needsConfirmation && queryData && props.message.role === 'assistant'"
+          :queryId="queryData.id"
+          :operationType="queryData.operationType"
+          :status="queryData.status"
+        />
       </div>
-      <AskQueryConfirmation
-        v-if="needsConfirmation && queryData && props.message.role === 'assistant'"
-        :queryId="queryData.id"
-        :operationType="queryData.operationType"
-        :status="queryData.status"
-      />
     </div>
   </div>
 </template>
@@ -175,17 +143,19 @@ import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
 import Chart from '@/components/Chart.vue'
 import Echart from '@/components/Echart.vue'
+import { FunctionCallRenderer } from '@/components/functionCallRenderers'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
-import { ArrowPathIcon, PencilIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 // Store
+import { cn } from '@/lib/utils'
 import { useDatabasesStore } from '@/stores/databases'
+import type { FunctionCall } from '@/types/functionCalls'
+import { Pencil, RotateCcw, SquarePen } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Button } from './ui/button'
+import { Textarea } from './ui/textarea'
 
 const { databaseSelectedId } = useDatabasesStore()
-
-interface FunctionCall {
-  name: string
-  arguments: any
-}
+const router = useRouter()
 
 interface Message {
   content: string
@@ -232,7 +202,19 @@ const cancelEdit = () => {
 
 // Methods
 function editInline() {
-  emit('editInlineClick', props.message.functionCall?.arguments?.query)
+  // Type assertion since we know this is called only for SQL queries
+  const sqlCall = props.message.functionCall as any
+  emit('editInlineClick', sqlCall?.arguments?.query)
+}
+
+function editInNewTab() {
+  if (props.message.queryId) {
+    const routeData = router.resolve({
+      name: 'Query',
+      params: { id: props.message.queryId }
+    })
+    window.open(routeData.href, '_blank')
+  }
 }
 
 // TODO: move to store
@@ -326,10 +308,6 @@ onMounted(() => {
 </script>
 
 <style>
-.message-display {
-  border: 1px solid #e5e7eb;
-  overflow: hidden;
-}
 .sql-code {
   border: 1px solid #e5e7eb;
   border-radius: 4px;
@@ -342,6 +320,8 @@ onMounted(() => {
   font-family: monospace;
   white-space: pre-wrap;
   word-wrap: break-word;
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 .message-display :deep(h1) {
@@ -373,5 +353,31 @@ onMounted(() => {
   padding: 0.2em 0.4em;
   border-radius: 3px;
   font-family: monospace;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+.message-display :deep(pre) {
+  overflow-x: auto;
+  max-width: 100%;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message-display :deep(table) {
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .message-display :deep(h1) {
+    font-size: 1.3em;
+  }
+
+  .message-display :deep(h2) {
+    font-size: 1.2em;
+  }
 }
 </style>

@@ -148,7 +148,7 @@ export const useConversationsStore = defineStore('conversations', () => {
           queriesStore.fetchQuery(message.queryId)
         }
       })
-    } catch (error: any) {
+    } catch {
       // Mark this conversation as error
       conversationStatuses.value[conversationId] = {
         status: STATUS.ERROR,
