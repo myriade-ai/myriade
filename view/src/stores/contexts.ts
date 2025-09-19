@@ -43,20 +43,36 @@ export const useContextsStore = defineStore('contexts', () => {
   })
 
   // Actions
+  let initializationPromise: Promise<void> | null = null
+
   async function initializeContexts() {
-    // Fetch data if not already loaded (Pinia might handle this internally if stores are already used)
-    // Consider adding checks or using existing store state to see if fetch is needed
-    await projectsStore.fetchProjects({ refresh: false }) // Avoid refreshing if data might already be there
-    await databasesStore.fetchDatabases({ refresh: false })
-
-    // Update selected context only if it's null/invalid or doesn't exist in the new list
-    const currentSelectionValid = contexts.value.some(
-      (context) => context.id === contextSelectedId.value
-    )
-
-    if ((!contextSelectedId.value || !currentSelectionValid) && contexts.value.length > 0) {
-      contextSelectedId.value = contexts.value[0].id
+    // Return existing promise if initialization is already in progress
+    if (initializationPromise) {
+      return initializationPromise
     }
+
+    initializationPromise = (async () => {
+      try {
+        // Fetch data if not already loaded (Pinia might handle this internally if stores are already used)
+        // Consider adding checks or using existing store state to see if fetch is needed
+        await projectsStore.fetchProjects({ refresh: false }) // Avoid refreshing if data might already be there
+        await databasesStore.fetchDatabases({ refresh: false })
+
+        // Update selected context only if it's null/invalid or doesn't exist in the new list
+        const currentSelectionValid = contexts.value.some(
+          (context) => context.id === contextSelectedId.value
+        )
+
+        if ((!contextSelectedId.value || !currentSelectionValid) && contexts.value.length > 0) {
+          contextSelectedId.value = contexts.value[0].id
+        }
+      } finally {
+        // Reset the promise after completion (success or failure)
+        initializationPromise = null
+      }
+    })()
+
+    return initializationPromise
   }
 
   // Function to manually set the selected context by ID
