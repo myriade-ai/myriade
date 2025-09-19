@@ -5,14 +5,12 @@ import router from '@/router'
 import * as Sentry from '@sentry/vue'
 import Notifications from 'notiwind'
 import { createPinia } from 'pinia'
-import piniaPluginPersistedState from 'pinia-plugin-persistedstate'
 import { createApp } from 'vue'
 import { createMetaManager } from 'vue-meta'
 import Vue3TouchEvents, { type Vue3TouchEventsOptions } from 'vue3-touch-events'
 
 const app = createApp(App)
 const pinia = createPinia()
-pinia.use(piniaPluginPersistedState)
 app.use(pinia)
 app.use(router)
 
