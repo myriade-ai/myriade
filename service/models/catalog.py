@@ -2,7 +2,7 @@ import uuid
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db import JSONB, UUID, Base, DefaultBase, SerializerMixin
@@ -60,8 +60,6 @@ class TableFacet(SerializerMixin, Base):
     asset: Mapped[Asset] = relationship(back_populates="table_facet")
     schema: Mapped[Optional[str]] = mapped_column(String)
     table_name: Mapped[Optional[str]] = mapped_column(String)
-
-    __table_args__ = (UniqueConstraint("schema", "table_name"),)
 
 
 @dataclass
