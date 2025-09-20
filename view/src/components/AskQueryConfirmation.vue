@@ -70,9 +70,15 @@ const handleConfirm = async () => {
   }
 }
 
+const emit = defineEmits<{
+  rejected: []
+}>()
+
 const handleReject = async () => {
   try {
     socket.emit('rejectWriteOperation', conversationId.value, props.queryId)
+    // Emit event to parent component to focus input
+    emit('rejected')
   } catch (err: any) {
     console.error('Failed to reject operation:', err)
   }
