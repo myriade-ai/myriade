@@ -35,6 +35,28 @@
             </Button>
           </div>
         </template>
+
+        <!-- Running State -->
+        <template v-else-if="status === 'running'">
+          <h4 class="text-sm font-medium text-blue-800 mb-2">
+            Query is Running...
+          </h4>
+          <p class="text-sm text-blue-700 mb-3">
+            Your query is currently executing. You can cancel it if needed.
+          </p>
+
+          <div class="flex gap-2 mt-3">
+            <Button
+              variant="destructive"
+              @click="handleCancel"
+              :disabled="isProcessing"
+              :is-loading="isProcessing"
+            >
+              <template #loading>Cancelling...</template>
+              Cancel Query
+            </Button>
+          </div>
+        </template>
       </div>
     </div>
   </div>
@@ -43,6 +65,7 @@
 <script setup lang="ts">
 import Button from '@/components/ui/button/Button.vue'
 import { socket } from '@/plugins/socket'
+import { useQueriesStore } from '@/stores/queries'
 import type { QueryData } from '@/stores/queries'
 import { ClockIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { computed, ref } from 'vue'
@@ -57,6 +80,7 @@ const conversationId = computed(() =>
 )
 const props = defineProps<Props>()
 
+const queriesStore = useQueriesStore()
 const isProcessing = ref(false)
 
 const handleConfirm = async () => {
@@ -75,6 +99,18 @@ const handleReject = async () => {
     socket.emit('rejectWriteOperation', conversationId.value, props.queryId)
   } catch (err: any) {
     console.error('Failed to reject operation:', err)
+  }
+}
+
+const handleCancel = async () => {
+  try {
+    isProcessing.value = true
+    // Use WebSocket for real-time cancellation
+    queriesStore.cancelQueryViaSocket(props.queryId)
+  } catch (err: any) {
+    console.error('Failed to cancel query:', err)
+  } finally {
+    isProcessing.value = false
   }
 }
 </script>

@@ -1,7 +1,9 @@
 import uuid
+from datetime import datetime
 
 from flask import Blueprint, g, jsonify, request
 
+from back.data_warehouse import QueryCancellationRegistry
 from middleware import database_middleware, query_middleware, user_middleware
 from models import Query, UserFavorite
 
@@ -94,3 +96,29 @@ def get_query_results_by_id(query_id):
     if g.query.exception:
         return jsonify({"message": g.query.exception}), 500
     return jsonify({"rows": g.query.rows, "count": g.query.count})
+
+
+@api.route("/query/<uuid:query_id>/cancel", methods=["POST"])
+@user_middleware
+@query_middleware
+def cancel_query(query_id: uuid.UUID):
+    """
+    Cancel a running query
+    """
+    # Check if query is currently running
+    if g.query.status != "running":
+        return jsonify({"message": "Query is not currently running"}), 400
+    
+    # Attempt to cancel the query
+    success = QueryCancellationRegistry.cancel_query(query_id)
+    
+    if success:
+        # Update query status in database
+        g.query.status = "cancelled"
+        g.query.completed_at = datetime.utcnow()
+        g.query.exception = "Query cancelled by user request"
+        g.session.flush()
+        
+        return jsonify({"message": "Query cancelled successfully"})
+    else:
+        return jsonify({"message": "Query not found or could not be cancelled"}), 404
