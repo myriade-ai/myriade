@@ -435,20 +435,32 @@ onMounted(async () => {
   if (!conversationId.value) {
     // New conversation
     await fetchAISuggestions()
+    scrollToBottom()
   } else {
     // Existing conversation
-    conversationsStore.fetchMessages(conversationId.value)
+    await conversationsStore.fetchMessages(conversationId.value)
+    scrollToBottom()
   }
-
-  scrollToBottom()
 })
 
 // If route changes (user navigates to a different ID)
 watch(
   () => conversationId.value,
-  (newVal) => {
+  async (newVal) => {
     if (newVal !== null && newVal !== undefined && newVal !== '') {
-      conversationsStore.fetchMessages(newVal)
+      await conversationsStore.fetchMessages(newVal)
+      scrollToBottom()
+    }
+  }
+)
+
+// Watch for messages changes to auto-scroll when messages are loaded
+watch(
+  () => messages.value.length,
+  (newLength, oldLength) => {
+    // Only scroll if messages were added (not removed)
+    if (newLength > (oldLength || 0)) {
+      nextTick(() => scrollToBottom())
     }
   }
 )
