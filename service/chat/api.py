@@ -199,6 +199,44 @@ def handle_query(
     emit("response", result_message.to_dict())
 
 
+@socketio.on("cancelQuery")
+@socket_auth_required
+@conversation_auth_required
+def handle_cancel_query(session, conversation_id: UUID, query_id: UUID):
+    """
+    Handle query cancellation request via WebSocket.
+    """
+    from back.data_warehouse import QueryCancellationRegistry
+    from datetime import datetime
+    
+    # Find the query
+    query = session.query(Query).filter_by(id=query_id).first()
+    if not query:
+        emit("error", {"message": "Query not found"})
+        return
+    
+    # Check if query is running
+    if query.status != "running":
+        emit("error", {"message": "Query is not currently running"})
+        return
+    
+    # Attempt to cancel the query
+    success = QueryCancellationRegistry.cancel_query(query_id)
+    
+    if success:
+        # Update query status in database
+        query.status = "cancelled"
+        query.completed_at = datetime.utcnow()
+        query.exception = "Query cancelled by user request"
+        session.flush()
+        
+        # Emit query update to client
+        emit("queryUpdated", query.to_dict())
+        emit("queryCancelled", {"queryId": str(query_id), "message": "Query cancelled successfully"})
+    else:
+        emit("error", {"message": "Query could not be cancelled"})
+
+
 @socketio.on("confirmWriteOperation")
 @socket_auth_required
 @conversation_auth_required

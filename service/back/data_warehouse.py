@@ -1,6 +1,7 @@
 import json
 import sys
 import threading
+import uuid
 from abc import ABC, abstractmethod
 from urllib.parse import quote_plus
 
@@ -37,6 +38,67 @@ class ConnectionError(Exception):
     def __init__(self, original: Exception, *, message: str | None = None):
         self.original = original  # keep a reference if you ever need it
         super().__init__(message or str(original))
+
+
+class QueryCancelledException(Exception):
+    """Raised when a query is cancelled by user request."""
+    pass
+
+
+class QueryCancellationRegistry:
+    """Registry to track running queries and enable cancellation."""
+    _running_queries = {}
+    _lock = threading.Lock()
+
+    @classmethod
+    def register_query(cls, query_id: uuid.UUID, connection, cursor=None):
+        """Register a running query with its connection and cursor."""
+        with cls._lock:
+            cls._running_queries[str(query_id)] = {
+                'connection': connection,
+                'cursor': cursor,
+                'cancelled': False
+            }
+
+    @classmethod
+    def unregister_query(cls, query_id: uuid.UUID):
+        """Unregister a query when it completes."""
+        with cls._lock:
+            cls._running_queries.pop(str(query_id), None)
+
+    @classmethod
+    def cancel_query(cls, query_id: uuid.UUID) -> bool:
+        """Cancel a running query. Returns True if query was found and cancelled."""
+        with cls._lock:
+            query_info = cls._running_queries.get(str(query_id))
+            if not query_info:
+                return False
+            
+            query_info['cancelled'] = True
+            
+            # Try to cancel the database operation
+            try:
+                if query_info['cursor']:
+                    # For databases that support cursor cancellation
+                    query_info['cursor'].cancel()
+                elif hasattr(query_info['connection'], 'cancel'):
+                    # For databases that support connection cancellation
+                    query_info['connection'].cancel()
+                else:
+                    # Close the connection as last resort
+                    query_info['connection'].close()
+                return True
+            except Exception:
+                # Even if cancellation fails at database level, 
+                # we mark it as cancelled to stop processing
+                return True
+
+    @classmethod
+    def is_cancelled(cls, query_id: uuid.UUID) -> bool:
+        """Check if a query has been cancelled."""
+        with cls._lock:
+            query_info = cls._running_queries.get(str(query_id))
+            return query_info and query_info.get('cancelled', False)
 
 
 def sizeof(obj):
@@ -205,7 +267,7 @@ class AbstractDatabase(ABC):
         pass
 
     @abstractmethod
-    def _query_unprotected(self, query) -> list[dict]:
+    def _query_unprotected(self, query, query_id=None) -> list[dict]:
         pass
 
     def get_sample_data(
@@ -267,7 +329,7 @@ class AbstractDatabase(ABC):
             return result[0].get("count")
         return None
 
-    def query(self, sql, role="llm", skip_confirmation=False):
+    def query(self, sql, role="llm", skip_confirmation=False, query_id=None):
         """Query with full write protection based on write_mode"""
         # Check for write operations and apply protection
         if not skip_confirmation:
@@ -286,9 +348,9 @@ class AbstractDatabase(ABC):
                     sql,
                 )
         # For skip-confirmation mode, proceed without restrictions
-        return self._query_with_privacy(sql, role)
+        return self._query_with_privacy(sql, role, query_id)
 
-    def _query_with_privacy(self, sql, role="llm"):
+    def _query_with_privacy(self, sql, role="llm", query_id=None):
         """Handle privacy rules and execute query without write protection"""
         # If privacy mode is enabled, attempt to rewrite the SQL so that the
         # encryption happens in-database rather than post-processing.
@@ -315,7 +377,7 @@ class AbstractDatabase(ABC):
                 sql = rewrite_sql(sql, privacy_rules)
 
         # Execute query without write protection
-        rows = self._query_unprotected(sql)
+        rows = self._query_unprotected(sql, query_id)
 
         # Size check and count estimation
         # Ensure rows is not empty before trying to sum sizes if sum can handle
@@ -389,52 +451,68 @@ class SQLDatabase(AbstractDatabase):
             # TODO add support for views
         return self.metadata
 
-    def _query_unprotected(self, query) -> list[dict]:
+    def _query_unprotected(self, query, query_id=None) -> list[dict]:
         """
         Run a query against the database without write protection
         Limit the result to MAX_SIZE (approx. 2MB)
         """
         with self.engine.connect() as connection:
-            result = connection.execute(text(query))
-
-            rows: list[dict] = []
-            total_size: int = 0
-
-            # Check if the result supports iteration (has rows)
+            # Register query for cancellation if query_id provided
+            if query_id:
+                QueryCancellationRegistry.register_query(query_id, connection)
+            
             try:
-                # For write operations, result.returns_rows will be False
-                if hasattr(result, "returns_rows") and not result.returns_rows:
-                    # This is a write operation - commit the transaction
-                    connection.commit()
+                # Check for cancellation before execution
+                if query_id and QueryCancellationRegistry.is_cancelled(query_id):
+                    raise QueryCancelledException(f"Query {query_id} was cancelled")
+                
+                result = connection.execute(text(query))
 
-                    return rows
+                rows: list[dict] = []
+                total_size: int = 0
 
-                for row_mapping in result:  # Iterate over SQLAlchemy Row objects
-                    row_dict = dict(row_mapping._mapping)  # Convert to dict
-                    row_size = sizeof(row_dict)
-
-                    if total_size + row_size > MAX_SIZE:
-                        # Return partial data
+                # Check if the result supports iteration (has rows)
+                try:
+                    # For write operations, result.returns_rows will be False
+                    if hasattr(result, "returns_rows") and not result.returns_rows:
+                        # This is a write operation - commit the transaction
+                        connection.commit()
                         return rows
 
-                    rows.append(row_dict)
-                    total_size += row_size
+                    for row_mapping in result:  # Iterate over SQLAlchemy Row objects
+                        # Check for cancellation during result processing
+                        if query_id and QueryCancellationRegistry.is_cancelled(query_id):
+                            raise QueryCancelledException(f"Query {query_id} was cancelled")
+                            
+                        row_dict = dict(row_mapping._mapping)  # Convert to dict
+                        row_size = sizeof(row_dict)
 
-            except Exception as iter_error:
-                # Handle the case where result doesn't support iteration
-                error_msg = str(iter_error).lower()
-                if (
-                    "does not return rows" in error_msg
-                    or "closed automatically" in error_msg
-                ):
-                    # This is a successful write operation
-                    # For non-read-only mode, explicitly commit the connection
-                    connection.commit()
-                    return rows
-                # Re-raise other iteration errors
-                raise iter_error
+                        if total_size + row_size > MAX_SIZE:
+                            # Return partial data
+                            return rows
 
-            return rows
+                        rows.append(row_dict)
+                        total_size += row_size
+
+                except Exception as iter_error:
+                    # Handle the case where result doesn't support iteration
+                    error_msg = str(iter_error).lower()
+                    if (
+                        "does not return rows" in error_msg
+                        or "closed automatically" in error_msg
+                    ):
+                        # This is a successful write operation
+                        # For non-read-only mode, explicitly commit the connection
+                        connection.commit()
+                        return rows
+                    # Re-raise other iteration errors
+                    raise iter_error
+
+                return rows
+            finally:
+                # Always unregister the query when done
+                if query_id:
+                    QueryCancellationRegistry.unregister_query(query_id)
 
     def get_sample_data(
         self, table_name: str, schema_name: str, limit: int = 10
@@ -540,14 +618,22 @@ class SnowflakeDatabase(AbstractDatabase):
 
         return self.metadata
 
-    def _query_unprotected(self, query):
+    def _query_unprotected(self, query, query_id=None):
         """
         Run a query against Snowflake without write protection.
         Limits the result to MAX_SIZE (approx. 2MB).
         Correctly calculates data size based on sum of individual row sizes.
         """
         with self.connection.cursor() as cursor:
+            # Register query for cancellation if query_id provided
+            if query_id:
+                QueryCancellationRegistry.register_query(query_id, self.connection, cursor)
+            
             try:
+                # Check for cancellation before execution
+                if query_id and QueryCancellationRegistry.is_cancelled(query_id):
+                    raise QueryCancelledException(f"Query {query_id} was cancelled")
+                
                 cursor.execute(query)
 
                 column_names = [desc[0] for desc in cursor.description]
@@ -555,6 +641,10 @@ class SnowflakeDatabase(AbstractDatabase):
                 total_size: int = 0
 
                 while True:
+                    # Check for cancellation during result processing
+                    if query_id and QueryCancellationRegistry.is_cancelled(query_id):
+                        raise QueryCancelledException(f"Query {query_id} was cancelled")
+                    
                     fetched_batch_tuples = cursor.fetchmany(1000)
                     if not fetched_batch_tuples:
                         break  # No more rows to fetch
@@ -576,6 +666,10 @@ class SnowflakeDatabase(AbstractDatabase):
                 return rows_list
             except Exception as e:
                 raise e
+            finally:
+                # Always unregister the query when done
+                if query_id:
+                    QueryCancellationRegistry.unregister_query(query_id)
 
 
 class BigQueryDatabase(AbstractDatabase):
@@ -631,7 +725,7 @@ class BigQueryDatabase(AbstractDatabase):
 
         return self.metadata
 
-    def _query_unprotected(self, query):
+    def _query_unprotected(self, query, query_id=None):
         """
         Run a query against BigQuery without write protection.
         Limits the result to MAX_SIZE (approx. 2MB).
@@ -642,23 +736,42 @@ class BigQueryDatabase(AbstractDatabase):
 
         # Execute the query
         query_job = self.client.query(query, job_config=job_config)
+        
+        # Register query for cancellation if query_id provided
+        if query_id:
+            QueryCancellationRegistry.register_query(query_id, query_job)
+        
+        try:
+            # Check for cancellation before processing results
+            if query_id and QueryCancellationRegistry.is_cancelled(query_id):
+                query_job.cancel()
+                raise QueryCancelledException(f"Query {query_id} was cancelled")
 
-        rows_list: list[dict] = []
-        total_size: int = 0
+            rows_list: list[dict] = []
+            total_size: int = 0
 
-        # Iterate through results in batches
-        for row in query_job:
-            row_dict = dict(row)
-            row_size = sizeof(row_dict)
+            # Iterate through results in batches
+            for row in query_job:
+                # Check for cancellation during result processing
+                if query_id and QueryCancellationRegistry.is_cancelled(query_id):
+                    query_job.cancel()
+                    raise QueryCancelledException(f"Query {query_id} was cancelled")
+                
+                row_dict = dict(row)
+                row_size = sizeof(row_dict)
 
-            if total_size + row_size > MAX_SIZE:
-                # Return partial data when size limit is reached
-                return rows_list
+                if total_size + row_size > MAX_SIZE:
+                    # Return partial data when size limit is reached
+                    return rows_list
 
-            rows_list.append(row_dict)
-            total_size += row_size
+                rows_list.append(row_dict)
+                total_size += row_size
 
-        return rows_list
+            return rows_list
+        finally:
+            # Always unregister the query when done
+            if query_id:
+                QueryCancellationRegistry.unregister_query(query_id)
 
     def get_sample_data(
         self, table_name: str, schema_name: str, limit: int = 10
@@ -797,13 +910,22 @@ class MotherDuckDatabase(AbstractDatabase):
 
         return self.metadata
 
-    def _query_unprotected(self, query):
+    def _query_unprotected(self, query, query_id=None):
         """Execute query and return results with size management"""
 
         cursor = None
         try:
             # Use a cursor and fetch in batches to avoid loading all rows into memory
             cursor = self.connection.cursor()
+            
+            # Register query for cancellation if query_id provided
+            if query_id:
+                QueryCancellationRegistry.register_query(query_id, self.connection, cursor)
+            
+            # Check for cancellation before execution
+            if query_id and QueryCancellationRegistry.is_cancelled(query_id):
+                raise QueryCancelledException(f"Query {query_id} was cancelled")
+            
             cursor.execute(query)
 
             rows_list = []
@@ -819,6 +941,10 @@ class MotherDuckDatabase(AbstractDatabase):
 
             batch_size = 1000
             while True:
+                # Check for cancellation during result processing
+                if query_id and QueryCancellationRegistry.is_cancelled(query_id):
+                    raise QueryCancelledException(f"Query {query_id} was cancelled")
+                
                 try:
                     batch = cursor.fetchmany(batch_size)
                 except Exception:
@@ -847,6 +973,9 @@ class MotherDuckDatabase(AbstractDatabase):
         except Exception as e:
             raise e
         finally:
+            # Always unregister the query when done
+            if query_id:
+                QueryCancellationRegistry.unregister_query(query_id)
             # Ensure cursor is closed if supported
             try:
                 if cursor is not None:

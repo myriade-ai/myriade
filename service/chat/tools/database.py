@@ -8,7 +8,7 @@ from agentlys.chat import OUTPUT_SIZE_LIMIT, StopLoopException
 from agentlys.model import Message
 from agentlys.utils import limit_data_size
 
-from back.data_warehouse import WriteOperationError
+from back.data_warehouse import WriteOperationError, QueryCancelledException
 from models import Database, Query
 
 RESULT_TEMPLATE = """Results {len_sample}/{len_total} rows:
@@ -151,7 +151,7 @@ class DatabaseTool:
             from_response.query_id = _query.id  # type: ignore
 
         try:
-            rows, count = self.data_warehouse.query(query, role="llm")
+            rows, count = self.data_warehouse.query(query, role="llm", query_id=_query.id)
             # We add the result and mark as completed
             _query.rows = rows
             _query.count = count
@@ -165,6 +165,12 @@ class DatabaseTool:
             _query.operation_type = e.operation_type
             # Stop the agent execution and wait for user confirmation
             raise StopLoopException("Waiting for write operation confirmation") from e
+        except QueryCancelledException as e:
+            # Handle query cancellation
+            _query.exception = str(e)
+            _query.status = "cancelled"
+            _query.completed_at = datetime.utcnow()
+            result = f"❌ Query was cancelled by user request."
         except Exception as e:
             _query.exception = str(e)
             _query.status = "failed"
@@ -204,7 +210,7 @@ class DatabaseTool:
 
             # Execute the query using unprotected method to bypass write protection
             rows, count = self.data_warehouse.query(
-                _query.sql, role="llm", skip_confirmation=True
+                _query.sql, role="llm", skip_confirmation=True, query_id=_query.id
             )
 
             # Update the query with results
@@ -223,6 +229,13 @@ class DatabaseTool:
                 # This returned actual data
                 result, success = wrap_sql_result(rows, count)
             return result, success
+        except QueryCancelledException as e:
+            # Handle query cancellation
+            _query.exception = str(e)
+            _query.status = "cancelled"
+            _query.completed_at = datetime.utcnow()
+            result = f"❌ Query was cancelled by user request."
+            return result, False
         except Exception as e:
             # Update query with error
             _query.exception = str(e)
