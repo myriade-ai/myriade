@@ -51,5 +51,4 @@ const router = useRouter()
 const databasesStore = useDatabasesStore()
 
 const contextsStore = useContextsStore()
-
 </script>
