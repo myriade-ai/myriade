@@ -91,6 +91,30 @@ def create_app():
     app.register_blueprint(auth_api, url_prefix="/api")
     app.register_blueprint(billing_api, url_prefix="/api")
 
+    # Health check endpoint for monitoring and load balancers
+    @app.route("/health")
+    def health_check():
+        """Simple health check endpoint for monitoring services"""
+        try:
+            # Test database connection
+            session = get_db_session()
+            session.execute("SELECT 1")
+            session.close()
+            
+            return jsonify({
+                "status": "healthy",
+                "timestamp": telemetry.get_current_timestamp(),
+                "version": "0.42.1",
+                "environment": config.ENV
+            }), 200
+        except Exception as e:
+            logger.error("Health check failed", exc_info=True)
+            return jsonify({
+                "status": "unhealthy",
+                "error": str(e),
+                "timestamp": telemetry.get_current_timestamp()
+            }), 503
+
     if config.ENV != "development":
         # serve SPA entry point
         @app.route("/")

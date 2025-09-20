@@ -13,6 +13,14 @@
 
 ---
 
+## 🌟 New: Review Apps with Fly.io
+
+Myriade now supports automatic preview environments for every pull request! Each PR gets its own isolated environment deployed to Fly.io, making it easy to test changes before merging.
+
+**[📖 Setup Guide](docs/fly-review-apps.md)** • **[🚀 Quick Setup Script](scripts/setup-fly-review-apps.sh)**
+
+---
+
 ## 💡 Why Myriade?
 
 Business data lives in tables.

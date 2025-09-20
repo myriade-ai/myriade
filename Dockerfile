@@ -54,6 +54,9 @@ RUN mkdir -p /var/log/gunicorn
 # Copy environment file for Docker
 COPY .env.docker .env
 
+# Copy fly.io environment file (will be used when deployed to fly.io)
+COPY .env.fly .env.fly
+
 # Set static folder path for single container
 ENV STATIC_FOLDER=./static
 
@@ -61,4 +64,5 @@ ENV STATIC_FOLDER=./static
 EXPOSE 8080
 
 # Run the application
-CMD ["bash", "start.sh", "prod"]
+# Use fly.io script when deployed to fly.io, otherwise use regular script
+CMD ["bash", "-c", "if [ -n \"$FLY_APP_NAME\" ]; then exec ./start-fly.sh; else exec ./start.sh prod; fi"]
