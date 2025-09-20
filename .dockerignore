@@ -1,65 +1,62 @@
 # Git
-.git/
+.git
 .gitignore
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-.venv/
-service/.venv/
-service/__pycache__/
-service/.pytest_cache/
-service/.ruff_cache/
-.pytest_cache/
-.ruff_cache/
-*.egg-info/
+# Documentation
+README.md
+docs/
+*.md
 
-# Node.js
+# Development files
+.env.dev
+.env.test
+docker-compose.yml
+docker-compose.*.yml
+
+# Dependencies and build artifacts
 node_modules/
 view/node_modules/
 view/dist/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+service/__pycache__/
+service/.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+.Python
 
-# Development files
-.DS_Store
+# IDE and editor files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Test and development artifacts
-service/test.db
-service/test.ipynb
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
 *.log
+logs/
+/var/log/
 
-# Cache directories
-.cache/
-.npm/
-.yarn/
+# Test files
+tests/
+*test*
+pytest.ini
+.coverage
 
-# IDE and editor files
-.claude/
-.ipynb_checkpoints/
+# Development tools
+.pre-commit-config.yaml
+.ruff_cache/
 
-# CI/CD
-.github/
+# Temporary files
+tmp/
+temp/
+*.tmp
 
-# Documentation (if not needed in container)
-*.md
-docs/
-
-# Environment files (except the one we specifically copy)
-.env*
-!.env.docker
-
-# AI/ML directories (not needed in container)
-ai/
-
-# Database
+# Local data
+data/
 *.db
+*.sqlite
