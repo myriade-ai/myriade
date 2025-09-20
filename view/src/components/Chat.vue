@@ -16,6 +16,7 @@
                     :message="message"
                     @editInlineClick="editInline"
                     @regenerateFromMessage="conversationsStore.regenerateFromMessage"
+                    @rejected="focusInput"
                   />
                 </li>
                 <li v-if="group.internalMessages.length > 0" class="flex justify-center">
@@ -50,6 +51,7 @@
                       :message="message"
                       @editInlineClick="editInline"
                       @regenerateFromMessage="conversationsStore.regenerateFromMessage"
+                      @rejected="focusInput"
                       class="bg-gray-300"
                       style="border: 1px solid rgb(205 205 205)"
                     />
@@ -161,7 +163,7 @@
               </div>
             </div>
             <div class="w-full flex py-1 relative" v-if="editMode == 'SQL'">
-              <BaseEditor v-model="inputSQL" @run-query="handleSendMessage" />
+              <BaseEditor ref="inputEditor" v-model="inputSQL" @run-query="handleSendMessage" />
               <div v-if="inputSQL.trim().length > 0" class="text-gray-300 hover:text-white">
                 <SendButtonWithStatus :status="sendStatus" @clicked="handleSendMessage" />
               </div>
@@ -321,6 +323,7 @@ const isPublicMessage = (message, index) => {
 
 /** HANDLE EVENTS **/
 const inputTextarea = ref<HTMLTextAreaElement | null>(null)
+const inputEditor = ref<any>(null)
 const inputText = ref('')
 const inputSQL = ref('')
 const editMode = ref<'text' | 'SQL'>('text')
@@ -390,6 +393,26 @@ const resizeTextarea = () => {
 const editInline = (query: string) => {
   inputSQL.value = query
   editMode.value = 'SQL'
+}
+
+const focusInput = () => {
+  // Focus the input textarea after a short delay to ensure the UI has updated
+  nextTick(() => {
+    if (editMode.value === 'text') {
+      inputTextarea.value?.focus()
+    } else if (editMode.value === 'SQL' && inputEditor.value) {
+      // For Ace editor, we need to access the editor instance
+      try {
+        // The v-ace-editor component exposes the editor instance
+        const aceEditor = inputEditor.value.$refs?.aceEditor?.editor || inputEditor.value.editor
+        if (aceEditor && aceEditor.focus) {
+          aceEditor.focus()
+        }
+      } catch (error) {
+        console.warn('Could not focus SQL editor:', error)
+      }
+    }
+  })
 }
 
 /** END HANDLE EVENTS */
