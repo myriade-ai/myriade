@@ -5,7 +5,6 @@
     'DatabaseTool-database__sql_query',
     'think',
     'get_date',
-    'submit',
     'answer',
     'ask_user',
     'EchartsTool-echarts__preview_render',
@@ -100,24 +99,6 @@
         'properties': dict({
         }),
         'title': 'Input for `get_date`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': 'Give the final response from the user demand/query',
-      'name': 'submit',
-      'parameters': dict({
-        'properties': dict({
-          'queryId': dict({
-            'description': 'The id of the query to execute',
-            'title': 'Queryid',
-            'type': 'string',
-          }),
-        }),
-        'required': list([
-          'queryId',
-        ]),
-        'title': 'Input for `submit`',
         'type': 'object',
       }),
     }),

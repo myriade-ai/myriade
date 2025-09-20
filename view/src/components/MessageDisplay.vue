@@ -145,11 +145,6 @@
           :modelValue="props.message.functionCall?.arguments?.query"
           :read-only="true"
         ></BaseEditor>
-        <BaseEditorPreview
-          v-else-if="props.message.functionCall?.name === 'submit'"
-          :queryId="props.message.queryId"
-          :databaseId="databaseSelectedId ?? undefined"
-        ></BaseEditorPreview>
         <pre v-else class="arguments">{{ props.message.functionCall?.arguments }}</pre>
       </div>
       <AskQueryConfirmation
