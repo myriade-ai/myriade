@@ -92,9 +92,8 @@ export const useContextsStore = defineStore('contexts', () => {
     }
     // if contextId is a project, return the databaseId linked to the project
     if (contextId.startsWith('project-')) {
-      const databaseId = projectsStore.projects.find(
-        (project: any) => project.id === contextId
-      )?.databaseId
+      const databaseId = projectsStore.projects.find((project: any) => project.id === contextId)
+        ?.databaseId
       if (!databaseId) {
         throw new Error(`Project with id ${contextId} does not have a databaseId`)
       }
