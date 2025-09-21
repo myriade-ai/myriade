@@ -83,7 +83,6 @@ def upgrade() -> None:
         sa.Column(
             "id",
             sa.UUID(),
-            server_default=sa.text("(gen_random_uuid())"),
             nullable=False,
         ),
         sa.Column("name", sa.String(), nullable=False),
@@ -156,7 +155,6 @@ def upgrade() -> None:
         sa.Column(
             "id",
             sa.UUID(),
-            server_default=sa.text("(gen_random_uuid())"),
             nullable=False,
         ),
         sa.Column("name", sa.String(), nullable=False),
@@ -195,7 +193,6 @@ def upgrade() -> None:
         sa.Column(
             "id",
             sa.UUID(),
-            server_default=sa.text("(gen_random_uuid())"),
             nullable=False,
         ),
         sa.Column("title", sa.String(), nullable=True),
@@ -227,7 +224,6 @@ def upgrade() -> None:
         sa.Column(
             "id",
             sa.UUID(),
-            server_default=sa.text("(gen_random_uuid())"),
             nullable=False,
         ),
         sa.Column("config", db.JSONB(), nullable=True),
@@ -255,7 +251,6 @@ def upgrade() -> None:
         sa.Column(
             "id",
             sa.UUID(),
-            server_default=sa.text("(gen_random_uuid())"),
             nullable=False,
         ),
         sa.Column("name", sa.String(), nullable=True),
@@ -293,7 +288,6 @@ def upgrade() -> None:
         sa.Column(
             "id",
             sa.UUID(),
-            server_default=sa.text("(gen_random_uuid())"),
             nullable=False,
         ),
         sa.Column("title", sa.String(), nullable=True),
@@ -322,7 +316,6 @@ def upgrade() -> None:
         sa.Column(
             "id",
             sa.UUID(),
-            server_default=sa.text("(gen_random_uuid())"),
             nullable=False,
         ),
         sa.Column("projectId", sa.UUID(), nullable=False),
@@ -352,7 +345,6 @@ def upgrade() -> None:
         sa.Column(
             "id",
             sa.UUID(),
-            server_default=sa.text("(gen_random_uuid())"),
             nullable=False,
         ),
         sa.Column("name", sa.String(), nullable=False),
@@ -394,7 +386,6 @@ def upgrade() -> None:
         sa.Column(
             "id",
             sa.UUID(),
-            server_default=sa.text("(gen_random_uuid())"),
             nullable=False,
         ),
         sa.Column("conversationId", sa.UUID(), nullable=False),
@@ -440,7 +431,6 @@ def upgrade() -> None:
         sa.Column(
             "id",
             sa.UUID(),
-            server_default=sa.text("(gen_random_uuid())"),
             nullable=False,
         ),
         sa.Column("user_id", sa.String(), nullable=False),
@@ -481,7 +471,6 @@ def upgrade() -> None:
         sa.Column(
             "id",
             sa.UUID(),
-            server_default=sa.text("(gen_random_uuid())"),
             nullable=False,
         ),
         sa.Column("title", sa.String(length=256), nullable=False),
