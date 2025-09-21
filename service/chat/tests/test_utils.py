@@ -108,3 +108,26 @@ def test_parse_text_containing_partial_tags():
     assert parse_answer_text("Text with <QUERY and CHART: > but no real tags.") == [
         {"type": "text", "content": "Text with <QUERY and CHART: > but no real tags."}
     ]
+
+
+def test_parse_complex_mixed_content():
+    # Test case 15: Complex mixed content with various scenarios
+    text = "Here's a query <QUERY:abc-123> and some text, then a chart <CHART:def-456> followed by more text."
+    expected = [
+        {"type": "text", "content": "Here's a query "},
+        {"type": "query", "query_id": "abc-123"},
+        {"type": "text", "content": " and some text, then a chart "},
+        {"type": "chart", "chart_id": "def-456"},
+        {"type": "text", "content": " followed by more text."}
+    ]
+    assert parse_answer_text(text) == expected
+
+
+def test_parse_edge_cases():
+    # Test case 16: Various edge cases
+    assert parse_answer_text("") == []
+    assert parse_answer_text("Just text") == [{"type": "text", "content": "Just text"}]
+    assert parse_answer_text("<QUERY:123><CHART:456>") == [
+        {"type": "query", "query_id": "123"},
+        {"type": "chart", "chart_id": "456"}
+    ]

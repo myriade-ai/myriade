@@ -246,6 +246,41 @@ async function executeSql(sql: string) {
   }
 }
 
+// Helper function to parse any remaining <QUERY:> and <CHART:> tags in text content
+const parseQueryChartTags = (text: string): Array<{ type: string; content: any; query_id?: string; chart_id?: string }> => {
+  const chunks: Array<{ type: string; content: any; query_id?: string; chart_id?: string }> = []
+  const tagRegex = /(<QUERY:([^>]+)>)|(<CHART:([^>]+)>)/g
+  
+  let lastEnd = 0
+  for (const match of text.matchAll(tagRegex)) {
+    const start = match.index!
+    const end = start + match[0].length
+
+    // Add preceding text segment if it exists
+    if (start > lastEnd) {
+      chunks.push({ type: 'text', content: text.slice(lastEnd, start) })
+    }
+
+    // Check which group matched to determine type and get the ID
+    if (match[1]) { // Matched <QUERY:id>
+      const queryId = match[2].trim()
+      chunks.push({ type: 'query', query_id: queryId })
+    } else if (match[3]) { // Matched <CHART:id>
+      const chartId = match[4].trim()
+      chunks.push({ type: 'chart', chart_id: chartId })
+    }
+
+    lastEnd = end
+  }
+
+  // Add any remaining text segment after the last tag
+  if (lastEnd < text.length) {
+    chunks.push({ type: 'text', content: text.slice(lastEnd) })
+  }
+
+  return chunks.length > 0 ? chunks : [{ type: 'text', content: text }]
+}
+
 const parsedText = computed<
   Array<{ type: string; content: any; query_id?: string; chart_id?: string }>
 >(() => {
@@ -254,22 +289,29 @@ const parsedText = computed<
   let lastIndex = 0
   const parts: Array<{ type: string; content: any; query_id?: string; chart_id?: string }> = []
 
-  // if content is a list, return it as is
+  // if content is a list (parsed Answer message), process it to handle any remaining tags in text chunks
   if (Array.isArray(props.message.content)) {
-    return props.message.content as Array<{
-      type: string
-      content: any
-      query_id?: string
-      chart_id?: string
-    }>
+    const processedParts: Array<{ type: string; content: any; query_id?: string; chart_id?: string }> = []
+    
+    for (const part of props.message.content) {
+      if (part.type === 'text' && typeof part.content === 'string') {
+        // Further parse any remaining <QUERY:> or <CHART:> tags in text chunks
+        const subParts = parseQueryChartTags(part.content)
+        processedParts.push(...subParts)
+      } else {
+        processedParts.push(part)
+      }
+    }
+    
+    return processedParts
   }
 
   while ((match = regex.exec(props.message.content)) !== null) {
     if (match.index > lastIndex) {
-      parts.push({
-        type: 'text',
-        content: props.message.content.slice(lastIndex, match.index)
-      })
+      const textContent = props.message.content.slice(lastIndex, match.index)
+      // Parse any <QUERY:> or <CHART:> tags in this text segment
+      const textParts = parseQueryChartTags(textContent)
+      parts.push(...textParts)
     }
 
     let type = match[1]
@@ -299,10 +341,10 @@ const parsedText = computed<
 
   // Remaining text after the last match
   if (lastIndex < props.message.content?.length) {
-    parts.push({
-      type: 'text',
-      content: props.message.content.slice(lastIndex)
-    })
+    const textContent = props.message.content.slice(lastIndex)
+    // Parse any <QUERY:> or <CHART:> tags in the remaining text
+    const textParts = parseQueryChartTags(textContent)
+    parts.push(...textParts)
   }
 
   return parts

@@ -10,10 +10,10 @@ const props = defineProps<{
   content: string
 }>()
 
-// We need to replace <QUERY:uuid> with link to the query
-// eg. uuid d3a2541d-6fc6-4ae9-841e-055e60f0575e
+// Note: <QUERY:> and <CHART:> tags should be handled by the message parsing logic,
+// not converted to simple links here. This ensures proper interactive components with favorites.
 const content = computed(() => {
-  return props.content.replace(/<QUERY:([^>]+)>/g, '<a href="/query/$1">Query $1</a>')
+  return props.content
 })
 </script>
 
