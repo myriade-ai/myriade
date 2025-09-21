@@ -14,5 +14,3 @@ repos:
         language: system
         files: ^view/.*\.(js|ts|vue|json|css|scss|html|md)$
         pass_filenames: false
-
-
