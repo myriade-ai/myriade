@@ -58,10 +58,17 @@ class TableFacet(SerializerMixin, Base):
         UUID(), ForeignKey("asset.id"), primary_key=True
     )
     asset: Mapped[Asset] = relationship(back_populates="table_facet")
+    database_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("database.id"), nullable=False
+    )
     schema: Mapped[Optional[str]] = mapped_column(String)
     table_name: Mapped[Optional[str]] = mapped_column(String)
 
-    __table_args__ = (UniqueConstraint("schema", "table_name"),)
+    __table_args__ = (
+        UniqueConstraint("database_id", "schema", "table_name"),
+    )
+
+    database: Mapped["Database"] = relationship("Database")
 
 
 @dataclass
