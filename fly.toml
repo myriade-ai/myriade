@@ -47,9 +47,10 @@ primary_region = "cdg"
     soft_limit = 20
 
 # Machine configuration
-[machines]
-  memory = "1gb"
+[[vm]]
+  cpu_kind = "shared"
   cpus = 1
+  memory_mb = 1024
 
 # Volume for persistent data (optional)
 [[mounts]]
