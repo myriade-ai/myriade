@@ -439,7 +439,8 @@ onMounted(async () => {
   } else {
     // Existing conversation
     await conversationsStore.fetchMessages(conversationId.value)
-    scrollToBottom()
+    // Wait for DOM to update with the messages before scrolling
+    nextTick(() => scrollToBottom())
   }
 })
 
@@ -449,21 +450,12 @@ watch(
   async (newVal) => {
     if (newVal !== null && newVal !== undefined && newVal !== '') {
       await conversationsStore.fetchMessages(newVal)
-      scrollToBottom()
-    }
-  }
-)
-
-// Watch for messages changes to auto-scroll when messages are loaded
-watch(
-  () => messages.value.length,
-  (newLength, oldLength) => {
-    // Only scroll if messages were added (not removed)
-    if (newLength > (oldLength || 0)) {
+      // Wait for DOM to update with the messages before scrolling
       nextTick(() => scrollToBottom())
     }
   }
 )
+
 
 /** AI SUGGESTIONS **/
 const aiSuggestions = ref([])
