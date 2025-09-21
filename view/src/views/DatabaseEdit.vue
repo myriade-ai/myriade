@@ -1,43 +1,40 @@
 <template>
   <div>
-    <PageHeader
-      title="Database"
-      subtitle="Manage your database connections and options."
-    />
+    <PageHeader title="Database" subtitle="Manage your database connections and options." />
     <div class="mx-auto px-4">
-    <nav class="flex items-center justify-between px-4 sm:px-0">
-      <div class="-mt-px flex w-0 flex-1">
-        <a
-          @click.prevent="clickCancel"
-          class="inline-flex items-center border-t-2 border-transparent pt-4 pr-1 text-sm font-medium text-gray-500 hover:text-gray-700 cursor-pointer"
-        >
-          <ArrowLeftIcon class="mr-3 h-5 w-5 text-gray-400" aria-hidden="true" />
-          Return to all databases
-        </a>
-      </div>
-    </nav>
-    <br />
+      <nav class="flex items-center justify-between px-4 sm:px-0">
+        <div class="-mt-px flex w-0 flex-1">
+          <a
+            @click.prevent="clickCancel"
+            class="inline-flex items-center border-t-2 border-transparent pt-4 pr-1 text-sm font-medium text-gray-500 hover:text-gray-700 cursor-pointer"
+          >
+            <ArrowLeftIcon class="mr-3 h-5 w-5 text-gray-400" aria-hidden="true" />
+            Return to all databases
+          </a>
+        </div>
+      </nav>
+      <br />
 
-    <DatabaseForm
-      ref="databaseForm"
-      mode="edit"
-      :database-id="databaseId"
-      @saved="onSaved"
-      @error="onError"
-    />
-    <!-- Action Buttons -->
-    <div class="py-5 max-w-lg">
-      <div class="flex justify-between space-x-3">
-        <BaseButton
-          :is-loading="isDeleting"
-          @click="clickDelete"
-          class="bg-red-400 text-white hover:bg-red-600"
-        >
-          Delete
-        </BaseButton>
-        <BaseButton :is-loading="isSaving" @click="clickSave"> Save </BaseButton>
+      <DatabaseForm
+        ref="databaseForm"
+        mode="edit"
+        :database-id="databaseId"
+        @saved="onSaved"
+        @error="onError"
+      />
+      <!-- Action Buttons -->
+      <div class="py-5 max-w-lg">
+        <div class="flex justify-between space-x-3">
+          <BaseButton
+            :is-loading="isDeleting"
+            @click="clickDelete"
+            class="bg-red-400 text-white hover:bg-red-600"
+          >
+            Delete
+          </BaseButton>
+          <BaseButton :is-loading="isSaving" @click="clickSave"> Save </BaseButton>
+        </div>
       </div>
-    </div>
     </div>
   </div>
 </template>
