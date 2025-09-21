@@ -152,6 +152,7 @@
         :queryId="queryData.id"
         :operationType="queryData.operationType"
         :status="queryData.status"
+        @rejected="emit('rejected')"
       />
     </div>
   </div>
@@ -196,7 +197,7 @@ const props = defineProps<{
   message: Message
 }>()
 
-const emit = defineEmits(['editInlineClick', 'regenerateFromMessage'])
+const emit = defineEmits(['editInlineClick', 'regenerateFromMessage', 'rejected'])
 
 // Local state
 const sqlResult = ref<Array<Record<string, string | number | boolean | null>>>([])
