@@ -21,7 +21,7 @@ primary_region = "cdg"
 [env]
   # Environment variables that will be set for the application
   FLASK_ENV = "production"
-  GUNICORN_THREADS = "4"
+  GUNICORN_THREADS = "1"
   AGENTLYS_PROVIDER = "proxy"
   AGENTLYS_MODEL = "claude-sonnet-4-20250514"
   STATIC_FOLDER = "./static"
@@ -49,8 +49,8 @@ primary_region = "cdg"
 # Machine configuration
 [[vm]]
   cpu_kind = "shared"
-  cpus = 1
-  memory_mb = 1024
+  cpus = 2
+  memory_mb = 2048
 
 # Volume for persistent data (optional)
 [[mounts]]
