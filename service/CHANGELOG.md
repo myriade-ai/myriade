@@ -1,6 +1,34 @@
 # CHANGELOG
 
 
+## v0.43.0 (2025-09-21)
+
+### Build System
+
+- Add prettier precommit hook for frontend ([#100](https://github.com/myriade-ai/myriade/pull/100),
+  [`07346a9`](https://github.com/myriade-ai/myriade/commit/07346a9fa361afba2fe2f538863116f8eed1f703))
+
+- Setup fly.io git branch preview environment ([#99](https://github.com/myriade-ai/myriade/pull/99),
+  [`6c27878`](https://github.com/myriade-ai/myriade/commit/6c2787808b9010b5148f9fb72020ed371c996fa2))
+
+### Chores
+
+- Remove pinia-plugin-persistedstate ([#92](https://github.com/myriade-ai/myriade/pull/92),
+  [`6da0d46`](https://github.com/myriade-ai/myriade/commit/6da0d465350df31f59fd2d0bac7d588fcb1ebeeb))
+
+### Features
+
+- Emit rejected event and focus input
+  ([`919beea`](https://github.com/myriade-ai/myriade/commit/919beea65eccbc84efc709010532ef206e5862d8))
+
+This commit introduces a 'rejected' event emission from AskQueryConfirmation.vue when an operation
+  is rejected. This event is caught by Chat.vue and triggers the focusInput function, ensuring the
+  input field is ready for the user's next action. The yarn.lock file has also been updated to
+  reflect dependency changes.
+
+Co-authored-by: benderville <benderville@gmail.com>
+
+
 ## v0.42.1 (2025-09-19)
 
 ### Bug Fixes
