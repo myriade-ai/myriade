@@ -25,6 +25,7 @@ primary_region = "cdg"
   AGENTLYS_PROVIDER = "proxy"
   AGENTLYS_MODEL = "claude-sonnet-4-20250514"
   STATIC_FOLDER = "./static"
+  HOST = ""  # This will fallback to request.url_root.rstrip("/")
 
 # Database configuration - will be set by review app workflow
 [[services]]
