@@ -1,6 +1,6 @@
 # Fly.io configuration for Myriade application
 app = "myriade"
-primary_region = "iad"
+primary_region = "cdg"
 
 [build]
 
@@ -16,7 +16,7 @@ primary_region = "iad"
   interval = "30s"
   method = "GET"
   timeout = "5s"
-  path = "/health"
+  path = "/api/version"  # Health check endpoint
 
 [env]
   # Environment variables that will be set for the application
