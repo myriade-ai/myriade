@@ -106,7 +106,6 @@ class DataAnalystAgent:
         )
         self.agent.add_function(think)
         self.agent.add_function(get_date)
-        self.agent.add_function(self.submit)
         self.agent.add_function(self.answer)
         self.agent.add_function(ask_user)
         self.agent.add_tool(
@@ -157,24 +156,6 @@ class DataAnalystAgent:
             return yaml.dump(context)
         return None
 
-    # TODO: remove ?
-    def submit(
-        self,
-        from_response: Message,
-        queryId: str,
-    ):
-        """
-        Give the final response from the user demand/query
-        Args:
-            queryId: The id of the query to execute
-        """  # noqa: E501
-        query = self.session.query(Query).filter_by(id=queryId).first()
-        if not query:
-            raise ValueError(f"Query with id {queryId} not found")
-        # We update the message with the query id
-        from_response.query_id = query.id
-        from_response.isAnswer = True
-        raise StopLoopException("We want to stop after submitting")
 
     def answer(
         self,
@@ -228,7 +209,7 @@ class DataAnalystAgent:
                     )
 
         from_response.isAnswer = True
-        raise StopLoopException("We want to stop after submitting")
+        raise StopLoopException("We want to stop after answering")
 
     # TODO: rename...
     def _run_conversation(self):
