@@ -156,7 +156,6 @@ class DataAnalystAgent:
             return yaml.dump(context)
         return None
 
-
     def answer(
         self,
         text: str,
