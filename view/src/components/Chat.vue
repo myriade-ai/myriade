@@ -384,8 +384,8 @@ const resizeTextarea = () => {
     if (!inputTextarea.value) return
     inputTextarea.value.style.height = 'auto'
 
-    // Set maximum height to prevent unlimited growth (approximately 6 lines)
-    const maxHeight = 150 // pixels
+    // Set maximum height to prevent unlimited growth (approximately 16 lines)
+    const maxHeight = 400 // pixels
     const scrollHeight = inputTextarea.value.scrollHeight
 
     if (scrollHeight > maxHeight) {
