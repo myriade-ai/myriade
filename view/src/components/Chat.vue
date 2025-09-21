@@ -386,7 +386,18 @@ const resizeTextarea = () => {
   nextTick(() => {
     if (!inputTextarea.value) return
     inputTextarea.value.style.height = 'auto'
-    inputTextarea.value.style.height = inputTextarea.value.scrollHeight + 'px'
+
+    // Set maximum height to prevent unlimited growth (approximately 16 lines)
+    const maxHeight = 400 // pixels
+    const scrollHeight = inputTextarea.value.scrollHeight
+
+    if (scrollHeight > maxHeight) {
+      inputTextarea.value.style.height = maxHeight + 'px'
+      inputTextarea.value.style.overflowY = 'auto'
+    } else {
+      inputTextarea.value.style.height = scrollHeight + 'px'
+      inputTextarea.value.style.overflowY = 'hidden'
+    }
   })
 }
 
