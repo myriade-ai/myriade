@@ -90,7 +90,6 @@ When a pull request is closed or merged:
 - `fly.toml`: Main Fly.io configuration
 - `.github/workflows/review-apps.yml`: GitHub Actions workflow
 - `.env.fly`: Environment variables for Fly.io deployments
-- `service/start-fly.sh`: Fly.io-specific startup script
 - `.dockerignore`: Optimizes Docker builds
 
 ### Environment Variables
@@ -188,6 +187,7 @@ flyctl scale memory 2048  # Use 2GB memory
 ## Support
 
 For issues with:
+
 - **Fly.io Platform**: Check [Fly.io documentation](https://fly.io/docs/)
 - **GitHub Actions**: Review workflow logs in the Actions tab
 - **Application Issues**: Check application logs with `flyctl logs`
