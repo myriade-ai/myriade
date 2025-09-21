@@ -95,5 +95,7 @@ def downgrade() -> None:
             ["schema", "table_name"],
         )
 
-    op.drop_constraint("table_facet_database_id_fkey", "table_facet", type_="foreignkey")
+    op.drop_constraint(
+        "table_facet_database_id_fkey", "table_facet", type_="foreignkey"
+    )
     op.drop_column("table_facet", "database_id")
