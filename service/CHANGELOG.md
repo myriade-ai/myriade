@@ -1,6 +1,54 @@
 # CHANGELOG
 
 
+## v0.43.1 (2025-09-21)
+
+### Bug Fixes
+
+- Build
+  ([`d3d7dfb`](https://github.com/myriade-ai/myriade/commit/d3d7dfb9b2b779ecfab915ab769568348cc6f520))
+
+### Build System
+
+- **deps**: Bump the npm_and_yarn group across 1 directory with 2 updates
+  ([#82](https://github.com/myriade-ai/myriade/pull/82),
+  [`beb3617`](https://github.com/myriade-ai/myriade/commit/beb361722aa7d0314821e3e6c813b2020a20c546))
+
+Bumps the npm_and_yarn group with 2 updates in the /view directory:
+  [axios](https://github.com/axios/axios) and
+  [vite](https://github.com/vitejs/vite/tree/HEAD/packages/vite).
+
+Updates `axios` from 1.8.2 to 1.12.0 - [Release notes](https://github.com/axios/axios/releases) -
+  [Changelog](https://github.com/axios/axios/blob/v1.x/CHANGELOG.md) -
+  [Commits](https://github.com/axios/axios/compare/v1.8.2...v1.12.0)
+
+Updates `vite` from 6.3.5 to 6.3.6 - [Release notes](https://github.com/vitejs/vite/releases) -
+  [Changelog](https://github.com/vitejs/vite/blob/v6.3.6/packages/vite/CHANGELOG.md) -
+  [Commits](https://github.com/vitejs/vite/commits/v6.3.6/packages/vite)
+
+--- updated-dependencies: - dependency-name: axios dependency-version: 1.12.0
+
+dependency-type: direct:production
+
+dependency-group: npm_and_yarn
+
+- dependency-name: vite dependency-version: 6.3.6
+
+dependency-type: direct:development
+
+dependency-group: npm_and_yarn ...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+
+### Refactoring
+
+- Remove unused submit function and update version
+  ([#95](https://github.com/myriade-ai/myriade/pull/95),
+  [`3dab4f3`](https://github.com/myriade-ai/myriade/commit/3dab4f340bb40525901154d1d82d343ddd145655))
+
+
 ## v0.43.0 (2025-09-21)
 
 ### Build System
