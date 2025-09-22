@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## v0.43.4 (2025-09-22)
+
+### Bug Fixes
+
+- Add name to UniqueConstraint for table_facet
+  ([#108](https://github.com/myriade-ai/myriade/pull/108),
+  [`a272f2e`](https://github.com/myriade-ai/myriade/commit/a272f2e979c42893c0f2db0cd5f477caaf123e29))
+
+### Documentation
+
+- Add agents.md ([#107](https://github.com/myriade-ai/myriade/pull/107),
+  [`31f0b45`](https://github.com/myriade-ai/myriade/commit/31f0b4559d4dc322a433f50e4515e4d5fa0f625f))
+
+
 ## v0.43.3 (2025-09-22)
 
 ### Bug Fixes
