@@ -72,7 +72,9 @@ def upgrade() -> None:
             ["asset.id"],
         ),
         sa.PrimaryKeyConstraint("asset_id"),
-        sa.UniqueConstraint("schema", "table_name"),
+        sa.UniqueConstraint(
+            "schema", "table_name", name="table_facet_schema_table_name_key"
+        ),
     )
 
     # Create ColumnFacet table
