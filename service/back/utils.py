@@ -174,6 +174,7 @@ def sync_database_metadata_to_assets(
             # Create table facet
             table_facet = TableFacet(
                 asset_id=table_asset.id,
+                database_id=database_id,
                 schema=schema_name,
                 table_name=table_name,
             )
