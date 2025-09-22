@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.43.3 (2025-09-22)
+
+### Bug Fixes
+
+- Merge two heads
+  ([`386c01b`](https://github.com/myriade-ai/myriade/commit/386c01ba1ecd23cb091bf2a26b6fd9862a286dd0))
+
+
 ## v0.43.2 (2025-09-22)
 
 ### Bug Fixes
