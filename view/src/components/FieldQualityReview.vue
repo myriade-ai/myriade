@@ -21,7 +21,15 @@
       </div>
       <div class="flex items-center space-x-2">
         <component :is="getStatusIcon(field.status)" />
-        <Badge :class="field.qualityScore >= 90 ? 'bg-green-100 text-green-800' : field.qualityScore >= 70 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'">
+        <Badge
+          :class="
+            field.qualityScore >= 90
+              ? 'bg-green-100 text-green-800'
+              : field.qualityScore >= 70
+                ? 'bg-yellow-100 text-yellow-800'
+                : 'bg-red-100 text-red-800'
+          "
+        >
           Quality Score: {{ field.qualityScore }}%
         </Badge>
       </div>
@@ -41,15 +49,17 @@
           <CardContent class="space-y-4">
             <div>
               <h4 class="font-medium mb-2">Definition</h4>
-              <p class="text-sm text-muted-foreground">{{ field.businessDefinition || 'No business definition provided' }}</p>
+              <p class="text-sm text-muted-foreground">
+                {{ field.businessDefinition || 'No business definition provided' }}
+              </p>
             </div>
-            
+
             <div v-if="field.businessRules && field.businessRules.length > 0">
               <h4 class="font-medium mb-2">Business Rules</h4>
               <ul class="text-sm text-muted-foreground space-y-1">
-                <li 
-                  v-for="(rule, index) in field.businessRules" 
-                  :key="index" 
+                <li
+                  v-for="(rule, index) in field.businessRules"
+                  :key="index"
                   class="flex items-start space-x-2"
                 >
                   <span class="text-blue-600 mt-1">•</span>
@@ -57,16 +67,11 @@
                 </li>
               </ul>
             </div>
-            
+
             <div>
               <h4 class="font-medium mb-2">Tags</h4>
               <div class="flex flex-wrap gap-2">
-                <Badge 
-                  v-for="tag in field.tags" 
-                  :key="tag" 
-                  variant="secondary" 
-                  class="text-xs"
-                >
+                <Badge v-for="tag in field.tags" :key="tag" variant="secondary" class="text-xs">
                   <Tag class="w-3 h-3 mr-1" />
                   {{ tag }}
                 </Badge>
@@ -97,7 +102,7 @@
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle class="flex items-center space-x-2">
@@ -127,11 +132,7 @@
           </CardHeader>
           <CardContent>
             <div class="space-y-4">
-              <div 
-                v-for="issue in fieldIssues" 
-                :key="issue.id" 
-                class="p-4 border rounded-lg"
-              >
+              <div v-for="issue in fieldIssues" :key="issue.id" class="p-4 border rounded-lg">
                 <div class="flex items-center justify-between mb-2">
                   <h4 class="font-medium">{{ issue.description }}</h4>
                   <Badge :class="getSeverityColor(issue.severity)">
@@ -157,22 +158,28 @@
           </CardHeader>
           <CardContent>
             <div class="space-y-2">
-              <div 
-                v-for="(sample, index) in mockFieldSamples" 
-                :key="index" 
+              <div
+                v-for="(sample, index) in mockFieldSamples"
+                :key="index"
                 :class="`p-2 rounded text-sm font-mono ${
                   sample.issues.length > 0 ? 'bg-red-50 border border-red-200' : 'bg-gray-50'
                 }`"
               >
                 <div class="flex items-center justify-between">
-                  <span :class="sample.value === '' || sample.value === 'NULL' ? 'text-muted-foreground italic' : ''">
+                  <span
+                    :class="
+                      sample.value === '' || sample.value === 'NULL'
+                        ? 'text-muted-foreground italic'
+                        : ''
+                    "
+                  >
                     {{ sample.value === '' ? '(empty)' : sample.value }}
                   </span>
                   <div v-if="sample.issues.length > 0" class="flex space-x-1">
-                    <Badge 
-                      v-for="(issue, issueIndex) in sample.issues" 
-                      :key="issueIndex" 
-                      variant="destructive" 
+                    <Badge
+                      v-for="(issue, issueIndex) in sample.issues"
+                      :key="issueIndex"
+                      variant="destructive"
                       class="text-xs"
                     >
                       {{ issue.replace('_', ' ') }}
@@ -197,16 +204,16 @@
           <CardContent class="flex-1 flex flex-col p-0">
             <ScrollArea class="flex-1 p-4">
               <div class="space-y-4">
-                <div 
-                  v-for="message in chatMessages" 
-                  :key="message.id" 
+                <div
+                  v-for="message in chatMessages"
+                  :key="message.id"
                   :class="`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`"
                 >
-                  <div :class="`max-w-[80%] rounded-lg p-3 ${
-                    message.type === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted'
-                  }`">
+                  <div
+                    :class="`max-w-[80%] rounded-lg p-3 ${
+                      message.type === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                    }`"
+                  >
                     <div class="flex items-center space-x-2 mb-1">
                       <Bot v-if="message.type === 'agent'" class="w-4 h-4" />
                       <User v-else class="w-4 h-4" />
@@ -246,10 +253,10 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { 
-  ArrowLeft, 
-  Send, 
-  Bot, 
+import {
+  ArrowLeft,
+  Send,
+  Bot,
   User,
   Database,
   Key,
@@ -307,10 +314,10 @@ const mockFieldSamples = [
   { value: 'alice.brown@test.org', issues: [] },
   { value: 'bob@domain', issues: ['invalid_format'] },
   { value: 'sarah.wilson@example.com', issues: [] },
-  { value: 'NULL', issues: ['missing_value'] },
+  { value: 'NULL', issues: ['missing_value'] }
 ]
 
-const fieldIssues = computed(() => props.issues.filter(issue => issue.fieldId === props.field.id))
+const fieldIssues = computed(() => props.issues.filter((issue) => issue.fieldId === props.field.id))
 
 const chatMessages = ref<ChatMessage[]>([
   {
@@ -330,7 +337,7 @@ const newMessage = ref('')
 
 const sendMessage = () => {
   if (!newMessage.value.trim()) return
-  
+
   const userMessage: ChatMessage = {
     id: Date.now().toString(),
     type: 'user',
@@ -342,10 +349,10 @@ const sendMessage = () => {
       entityName: props.field.name
     }
   }
-  
+
   chatMessages.value.push(userMessage)
   newMessage.value = ''
-  
+
   // Simulate AI response with field-specific context
   setTimeout(() => {
     const agentMessage: ChatMessage = {

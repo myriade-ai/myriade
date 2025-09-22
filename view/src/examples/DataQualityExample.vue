@@ -1,7 +1,7 @@
 <template>
   <div class="container mx-auto p-6">
     <h1 class="text-3xl font-bold mb-6">Data Quality Review Example</h1>
-    
+
     <!-- Example 1: Full Dashboard -->
     <div class="mb-8">
       <h2 class="text-2xl font-semibold mb-4">Complete Dashboard</h2>
@@ -28,9 +28,7 @@
       <Card>
         <CardHeader>
           <CardTitle>Analyze Your Data</CardTitle>
-          <CardDescription>
-            Upload or analyze sample data to see quality metrics
-          </CardDescription>
+          <CardDescription> Upload or analyze sample data to see quality metrics </CardDescription>
         </CardHeader>
         <CardContent>
           <div class="space-y-4">
@@ -42,7 +40,7 @@
               >
                 {{ isAnalyzing ? 'Analyzing...' : 'Analyze Sample Data' }}
               </button>
-              
+
               <button
                 @click="generateDemoReport"
                 class="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90"
@@ -68,8 +66,7 @@
             <div v-if="report" class="mt-6 p-4 border rounded-lg">
               <h4 class="font-medium mb-2">Report Summary</h4>
               <p class="text-sm text-muted-foreground mb-4">
-                Overall Score: {{ report.overallScore }}% | 
-                Total Issues: {{ report.totalIssues }} | 
+                Overall Score: {{ report.overallScore }}% | Total Issues: {{ report.totalIssues }} |
                 High Priority: {{ report.highSeverityIssues }}
               </p>
               <div v-if="report.recommendations.length">
@@ -89,19 +86,47 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import {
+  DataProfilingSummary,
+  DataQualityDashboard,
+  DataQualityReview
+} from '@/components/data-quality'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { DataQualityDashboard, DataQualityReview, DataProfilingSummary } from '@/components/data-quality'
 import { useDataQuality } from '@/composables/useDataQuality'
+import { ref } from 'vue'
 
 // Sample data for demonstration
 const sampleData = ref([
-  { id: 1, name: 'John Doe', email: 'john@example.com', phone: '555-0123', created_at: '2024-01-01' },
-  { id: 2, name: 'Jane Smith', email: 'jane@example.com', phone: '5550124', created_at: '2024-01-02' },
+  {
+    id: 1,
+    name: 'John Doe',
+    email: 'john@example.com',
+    phone: '555-0123',
+    created_at: '2024-01-01'
+  },
+  {
+    id: 2,
+    name: 'Jane Smith',
+    email: 'jane@example.com',
+    phone: '5550124',
+    created_at: '2024-01-02'
+  },
   { id: 3, name: '', email: 'invalid-email', phone: null, created_at: '2024-01-03' },
-  { id: 4, name: 'Bob Johnson', email: 'bob@example.com', phone: '555-0125', created_at: 'invalid-date' },
-  { id: 1, name: 'John Doe', email: 'john@example.com', phone: '555-0123', created_at: '2024-01-01' } // duplicate
+  {
+    id: 4,
+    name: 'Bob Johnson',
+    email: 'bob@example.com',
+    phone: '555-0125',
+    created_at: 'invalid-date'
+  },
+  {
+    id: 1,
+    name: 'John Doe',
+    email: 'john@example.com',
+    phone: '555-0123',
+    created_at: '2024-01-01'
+  } // duplicate
 ])
 
 const sampleColumns = ref(['id', 'name', 'email', 'phone', 'created_at'])
@@ -114,15 +139,8 @@ const profilingData = ref({
 })
 
 // Using the composable
-const {
-  isAnalyzing,
-  analysisResults,
-  columnProfiles,
-  issues,
-  overallQualityScore,
-  analyzeDataQuality,
-  generateReport
-} = useDataQuality()
+const { isAnalyzing, analysisResults, overallQualityScore, analyzeDataQuality, generateReport } =
+  useDataQuality()
 
 const report = ref(null)
 

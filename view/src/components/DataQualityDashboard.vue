@@ -12,18 +12,20 @@
           <p class="text-xs text-muted-foreground">Active connections</p>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Avg Quality Score</CardTitle>
           <TrendingUp class="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div :class="`text-2xl font-bold ${getQualityColor(avgQualityScore)}`">{{ avgQualityScore }}%</div>
+          <div :class="`text-2xl font-bold ${getQualityColor(avgQualityScore)}`">
+            {{ avgQualityScore }}%
+          </div>
           <p class="text-xs text-muted-foreground">Across all sources</p>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Total Records</CardTitle>
@@ -34,7 +36,7 @@
           <p class="text-xs text-muted-foreground">Data points analyzed</p>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Quality Issues</CardTitle>
@@ -51,13 +53,13 @@
     <div class="space-y-4">
       <h2>Data Sources</h2>
       <div class="space-y-4">
-        <Card 
-          v-for="dataSource in mockDataSources" 
-          :key="dataSource.id" 
+        <Card
+          v-for="dataSource in mockDataSources"
+          :key="dataSource.id"
           class="hover:shadow-md transition-shadow"
         >
           <CardContent class="p-6">
-            <Collapsible 
+            <Collapsible
               :open="expandedSources.has(dataSource.id)"
               @update:open="toggleSourceExpansion(dataSource.id)"
             >
@@ -65,14 +67,8 @@
                 <div class="flex items-center space-x-4 flex-1">
                   <CollapsibleTrigger as-child>
                     <Button variant="ghost" size="sm" class="p-0">
-                      <ChevronDown 
-                        v-if="expandedSources.has(dataSource.id)" 
-                        class="w-4 h-4" 
-                      />
-                      <ChevronRight 
-                        v-else 
-                        class="w-4 h-4" 
-                      />
+                      <ChevronDown v-if="expandedSources.has(dataSource.id)" class="w-4 h-4" />
+                      <ChevronRight v-else class="w-4 h-4" />
                     </Button>
                   </CollapsibleTrigger>
                   <div class="flex items-center space-x-2">
@@ -80,12 +76,14 @@
                     <div>
                       <h3 class="font-medium">{{ dataSource.name }}</h3>
                       <p class="text-sm text-muted-foreground">
-                        {{ dataSource.type }} • {{ dataSource.recordCount.toLocaleString() }} records • {{ dataSource.tables.length }} tables
+                        {{ dataSource.type }} •
+                        {{ dataSource.recordCount.toLocaleString() }} records •
+                        {{ dataSource.tables.length }} tables
                       </p>
                     </div>
                   </div>
                 </div>
-                
+
                 <div class="flex items-center space-x-4">
                   <div class="text-right">
                     <div class="flex items-center space-x-2">
@@ -98,12 +96,14 @@
                       <Progress :value="dataSource.qualityScore" class="w-32" />
                     </div>
                   </div>
-                  
+
                   <div class="text-right">
                     <p class="text-sm font-medium">{{ dataSource.issuesCount }} issues</p>
-                    <p class="text-xs text-muted-foreground">Updated {{ dataSource.lastUpdated }}</p>
+                    <p class="text-xs text-muted-foreground">
+                      Updated {{ dataSource.lastUpdated }}
+                    </p>
                   </div>
-                  
+
                   <Button variant="outline" size="sm" @click="onSelectDataSource(dataSource)">
                     Review Source
                   </Button>
@@ -112,9 +112,9 @@
 
               <CollapsibleContent class="mt-4">
                 <div class="ml-8 space-y-2">
-                  <div 
-                    v-for="table in dataSource.tables" 
-                    :key="table.id" 
+                  <div
+                    v-for="table in dataSource.tables"
+                    :key="table.id"
                     class="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
                     @click="onSelectTable(dataSource, table.id)"
                   >
@@ -123,25 +123,27 @@
                       <div>
                         <h4 class="font-medium text-sm">{{ table.name }}</h4>
                         <p class="text-xs text-muted-foreground">
-                          {{ table.recordCount.toLocaleString() }} records • {{ table.fields.length }} fields
+                          {{ table.recordCount.toLocaleString() }} records •
+                          {{ table.fields.length }} fields
                         </p>
                       </div>
                     </div>
-                    
+
                     <div class="flex items-center space-x-3">
                       <div class="text-right">
-                        <Badge :class="getQualityBadgeColor(table.qualityScore)" variant="secondary">
+                        <Badge
+                          :class="getQualityBadgeColor(table.qualityScore)"
+                          variant="secondary"
+                        >
                           {{ table.qualityScore }}%
                         </Badge>
                       </div>
-                      
+
                       <div class="text-right">
                         <p class="text-xs font-medium">{{ table.issuesCount }} issues</p>
                       </div>
-                      
-                      <Button variant="ghost" size="sm">
-                        Review Table
-                      </Button>
+
+                      <Button variant="ghost" size="sm"> Review Table </Button>
                     </div>
                   </div>
                 </div>
@@ -155,22 +157,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { AlertTriangle, CheckCircle, XCircle, Database, TrendingUp, TrendingDown, ChevronDown, ChevronRight, Table as TableIcon } from 'lucide-vue-next'
-import type { DataSource } from '@/types/data-quality'
+import { Progress } from '@/components/ui/progress'
 import { mockDataSources } from '@/data/mock-data'
+import type { DataSource } from '@/types/data-quality'
+import {
+  AlertTriangle,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  Database,
+  Table as TableIcon,
+  TrendingDown,
+  TrendingUp,
+  XCircle
+} from 'lucide-vue-next'
+import { computed, ref } from 'vue'
 
 interface Props {
   onSelectDataSource: (dataSource: DataSource) => void
   onSelectTable: (dataSource: DataSource, tableId: string) => void
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const expandedSources = ref(new Set<string>())
 
@@ -199,17 +211,13 @@ const getQualityBadgeColor = (score: number) => {
   return 'bg-red-100 text-red-800'
 }
 
-const avgQualityScore = computed(() => 
+const avgQualityScore = computed(() =>
   Math.round(mockDataSources.reduce((sum, ds) => sum + ds.qualityScore, 0) / mockDataSources.length)
 )
 
-const totalRecords = computed(() => 
-  mockDataSources.reduce((sum, ds) => sum + ds.recordCount, 0)
-)
+const totalRecords = computed(() => mockDataSources.reduce((sum, ds) => sum + ds.recordCount, 0))
 
-const totalIssues = computed(() => 
-  mockDataSources.reduce((sum, ds) => sum + ds.issuesCount, 0)
-)
+const totalIssues = computed(() => mockDataSources.reduce((sum, ds) => sum + ds.issuesCount, 0))
 
 const toggleSourceExpansion = (sourceId: string) => {
   const newExpanded = new Set(expandedSources.value)

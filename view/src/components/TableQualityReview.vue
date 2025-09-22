@@ -11,11 +11,21 @@
           <TableIcon class="w-5 h-5" />
           <div>
             <h1>{{ table.name }}</h1>
-            <p class="text-muted-foreground">{{ table.recordCount.toLocaleString() }} records • {{ table.fields.length }} fields</p>
+            <p class="text-muted-foreground">
+              {{ table.recordCount.toLocaleString() }} records • {{ table.fields.length }} fields
+            </p>
           </div>
         </div>
       </div>
-      <Badge :class="table.qualityScore >= 90 ? 'bg-green-100 text-green-800' : table.qualityScore >= 70 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'">
+      <Badge
+        :class="
+          table.qualityScore >= 90
+            ? 'bg-green-100 text-green-800'
+            : table.qualityScore >= 70
+              ? 'bg-yellow-100 text-yellow-800'
+              : 'bg-red-100 text-red-800'
+        "
+      >
         Quality Score: {{ table.qualityScore }}%
       </Badge>
     </div>
@@ -31,12 +41,7 @@
       <CardContent>
         <p class="mb-3">{{ table.businessDefinition }}</p>
         <div class="flex flex-wrap gap-2">
-          <Badge 
-            v-for="tag in table.tags" 
-            :key="tag" 
-            variant="secondary" 
-            class="text-xs"
-          >
+          <Badge v-for="tag in table.tags" :key="tag" variant="secondary" class="text-xs">
             <Tag class="w-3 h-3 mr-1" />
             {{ tag }}
           </Badge>
@@ -54,7 +59,7 @@
             <TabsTrigger value="issues">Quality Issues</TabsTrigger>
             <TabsTrigger value="metrics">Quality Metrics</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="fields" class="space-y-4">
             <Card>
               <CardHeader>
@@ -84,7 +89,9 @@
                       <TableCell class="font-mono text-sm">{{ field.dataType }}</TableCell>
                       <TableCell>
                         <div class="flex items-center space-x-2">
-                          <span :class="getStatusColor(field.status)">{{ field.qualityScore }}%</span>
+                          <span :class="getStatusColor(field.status)"
+                            >{{ field.qualityScore }}%</span
+                          >
                           <div class="w-16">
                             <Progress :value="field.qualityScore" class="h-2" />
                           </div>
@@ -102,11 +109,7 @@
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          @click="onSelectField(field.id)"
-                        >
+                        <Button variant="outline" size="sm" @click="onSelectField(field.id)">
                           Review
                         </Button>
                       </TableCell>
@@ -116,7 +119,7 @@
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="data" class="space-y-4">
             <Card>
               <CardHeader>
@@ -194,7 +197,7 @@
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="issues" class="space-y-4">
             <!-- Table-wide Issues -->
             <Card v-if="tableWideIssues.length > 0">
@@ -203,9 +206,9 @@
               </CardHeader>
               <CardContent>
                 <div class="space-y-4">
-                  <div 
-                    v-for="issue in tableWideIssues" 
-                    :key="issue.id" 
+                  <div
+                    v-for="issue in tableWideIssues"
+                    :key="issue.id"
                     class="flex items-start space-x-4 p-4 border rounded-lg"
                   >
                     <div class="flex-shrink-0">
@@ -238,9 +241,9 @@
               </CardHeader>
               <CardContent>
                 <div class="space-y-4">
-                  <div 
-                    v-for="issue in fieldIssues" 
-                    :key="issue.id" 
+                  <div
+                    v-for="issue in fieldIssues"
+                    :key="issue.id"
                     class="flex items-start space-x-4 p-4 border rounded-lg"
                   >
                     <div class="flex-shrink-0">
@@ -254,7 +257,9 @@
                         </Badge>
                       </div>
                       <p class="text-sm text-muted-foreground mt-1">
-                        Field: <span class="font-mono">{{ getFieldById(issue.fieldId)?.name }}</span> • {{ issue.affectedRows }} rows affected
+                        Field:
+                        <span class="font-mono">{{ getFieldById(issue.fieldId)?.name }}</span> •
+                        {{ issue.affectedRows }} rows affected
                       </p>
                       <p class="text-sm mt-2">{{ issue.suggestion }}</p>
                       <div v-if="issue.businessImpact" class="mt-2 p-2 bg-blue-50 rounded text-sm">
@@ -266,7 +271,7 @@
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="metrics" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
@@ -275,9 +280,9 @@
                 </CardHeader>
                 <CardContent>
                   <div class="space-y-3">
-                    <div 
-                      v-for="field in table.fields.slice(0, 3)" 
-                      :key="field.id" 
+                    <div
+                      v-for="field in table.fields.slice(0, 3)"
+                      :key="field.id"
                       class="space-y-1"
                     >
                       <div class="flex justify-between text-sm">
@@ -289,16 +294,16 @@
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle>Data Uniqueness</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div class="space-y-3">
-                    <div 
-                      v-for="field in table.fields.slice(0, 3)" 
-                      :key="field.id" 
+                    <div
+                      v-for="field in table.fields.slice(0, 3)"
+                      :key="field.id"
                       class="space-y-1"
                     >
                       <div class="flex justify-between text-sm">
@@ -327,16 +332,16 @@
           <CardContent class="flex-1 flex flex-col p-0">
             <ScrollArea class="flex-1 p-4">
               <div class="space-y-4">
-                <div 
-                  v-for="message in chatMessages" 
-                  :key="message.id" 
+                <div
+                  v-for="message in chatMessages"
+                  :key="message.id"
                   :class="`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`"
                 >
-                  <div :class="`max-w-[80%] rounded-lg p-3 ${
-                    message.type === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted'
-                  }`">
+                  <div
+                    :class="`max-w-[80%] rounded-lg p-3 ${
+                      message.type === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                    }`"
+                  >
                     <div class="flex items-center space-x-2 mb-1">
                       <Bot v-if="message.type === 'agent'" class="w-4 h-4" />
                       <User v-else class="w-4 h-4" />
@@ -374,14 +379,21 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { 
-  ArrowLeft, 
-  Send, 
-  Bot, 
+import {
+  ArrowLeft,
+  Send,
+  Bot,
   User,
   Table as TableIcon,
   FileX,
@@ -447,12 +459,12 @@ const getStatusColor = (status: string) => {
   }
 }
 
-const tableIssues = computed(() => props.issues.filter(issue => issue.tableId === props.table.id))
-const fieldIssues = computed(() => tableIssues.value.filter(issue => issue.level === 'field'))
-const tableWideIssues = computed(() => tableIssues.value.filter(issue => issue.level === 'table'))
+const tableIssues = computed(() => props.issues.filter((issue) => issue.tableId === props.table.id))
+const fieldIssues = computed(() => tableIssues.value.filter((issue) => issue.level === 'field'))
+const tableWideIssues = computed(() => tableIssues.value.filter((issue) => issue.level === 'table'))
 
 const getFieldById = (fieldId?: string) => {
-  return props.table.fields.find(f => f.id === fieldId)
+  return props.table.fields.find((f) => f.id === fieldId)
 }
 
 const chatMessages = ref<ChatMessage[]>([
@@ -473,7 +485,7 @@ const newMessage = ref('')
 
 const sendMessage = () => {
   if (!newMessage.value.trim()) return
-  
+
   const userMessage: ChatMessage = {
     id: Date.now().toString(),
     type: 'user',
@@ -485,10 +497,10 @@ const sendMessage = () => {
       entityName: props.table.name
     }
   }
-  
+
   chatMessages.value.push(userMessage)
   newMessage.value = ''
-  
+
   // Simulate AI response
   setTimeout(() => {
     const agentMessage: ChatMessage = {

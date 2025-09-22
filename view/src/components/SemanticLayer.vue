@@ -26,7 +26,9 @@
             <!-- Search and Filter -->
             <div class="flex space-x-4">
               <div class="flex-1 relative">
-                <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search
+                  class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground"
+                />
                 <Input
                   v-model="searchTerm"
                   placeholder="Search terms and definitions..."
@@ -49,27 +51,23 @@
             <!-- Glossary Terms -->
             <ScrollArea class="h-[500px]">
               <div class="space-y-4">
-                <Card 
-                  v-for="term in filteredGlossary" 
-                  :key="term.id" 
-                  class="p-4"
-                >
+                <Card v-for="term in filteredGlossary" :key="term.id" class="p-4">
                   <div class="space-y-3">
                     <div class="flex items-start justify-between">
                       <div class="flex items-start space-x-3">
                         <div>
                           <div class="flex items-center space-x-2 mb-1">
                             <h3 class="font-semibold text-lg">{{ term.term }}</h3>
-                            <component 
+                            <component
                               v-if="getTermQualityInfo(term).qualityScore !== null"
-                              :is="getQualityIcon(getTermQualityInfo(term).status)" 
+                              :is="getQualityIcon(getTermQualityInfo(term).status)"
                             />
                           </div>
                           <div class="flex items-center space-x-2">
                             <Badge :class="getCategoryColor(term.category)">
                               {{ term.category }}
                             </Badge>
-                            <Badge 
+                            <Badge
                               v-if="getTermQualityInfo(term).qualityScore !== null"
                               :class="getQualityBadgeColor(getTermQualityInfo(term).status)"
                             >
@@ -78,17 +76,16 @@
                           </div>
                         </div>
                       </div>
-                      <div 
-                        v-if="getTermQualityInfo(term).qualityScore !== null"
-                        class="text-right"
-                      >
+                      <div v-if="getTermQualityInfo(term).qualityScore !== null" class="text-right">
                         <div class="flex items-center space-x-2 mb-1">
-                          <span class="text-sm text-muted-foreground">{{ getTermQualityInfo(term).relatedFieldsCount }} fields</span>
+                          <span class="text-sm text-muted-foreground"
+                            >{{ getTermQualityInfo(term).relatedFieldsCount }} fields</span
+                          >
                         </div>
                         <div class="w-24">
                           <Progress :value="getTermQualityInfo(term).qualityScore" class="h-2" />
                         </div>
-                        <p 
+                        <p
                           v-if="getTermQualityInfo(term).issuesCount > 0"
                           class="text-xs text-red-600 mt-1"
                         >
@@ -96,26 +93,32 @@
                         </p>
                       </div>
                     </div>
-                    
+
                     <p class="text-muted-foreground">{{ term.definition }}</p>
-                    
-                    <div 
-                      v-if="getTermQualityInfo(term).qualityScore !== null && getTermQualityInfo(term).issuesCount > 0"
+
+                    <div
+                      v-if="
+                        getTermQualityInfo(term).qualityScore !== null &&
+                        getTermQualityInfo(term).issuesCount > 0
+                      "
                       class="p-3 bg-yellow-50 border border-yellow-200 rounded text-sm"
                     >
                       <p class="font-medium text-yellow-800">Data Quality Impact</p>
                       <p class="text-yellow-700">
-                        This business concept has {{ getTermQualityInfo(term).issuesCount }} data quality issues across {{ getTermQualityInfo(term).relatedFieldsCount }} related fields. 
-                        This may affect business processes that rely on accurate {{ term.term.toLowerCase() }} data.
+                        This business concept has {{ getTermQualityInfo(term).issuesCount }} data
+                        quality issues across
+                        {{ getTermQualityInfo(term).relatedFieldsCount }} related fields. This may
+                        affect business processes that rely on accurate
+                        {{ term.term.toLowerCase() }} data.
                       </p>
                     </div>
-                    
+
                     <div v-if="term.examples && term.examples.length > 0">
                       <h4 class="font-medium text-sm mb-2">Examples:</h4>
                       <ul class="text-sm text-muted-foreground space-y-1">
-                        <li 
-                          v-for="(example, index) in term.examples" 
-                          :key="index" 
+                        <li
+                          v-for="(example, index) in term.examples"
+                          :key="index"
                           class="flex items-start space-x-2"
                         >
                           <span class="text-blue-600 mt-1">•</span>
@@ -123,14 +126,14 @@
                         </li>
                       </ul>
                     </div>
-                    
+
                     <div v-if="term.relatedTerms.length > 0">
                       <h4 class="font-medium text-sm mb-2">Related Terms:</h4>
                       <div class="flex flex-wrap gap-2">
-                        <Badge 
-                          v-for="(relatedTerm, index) in term.relatedTerms" 
-                          :key="index" 
-                          variant="secondary" 
+                        <Badge
+                          v-for="(relatedTerm, index) in term.relatedTerms"
+                          :key="index"
+                          variant="secondary"
                           class="text-xs"
                         >
                           <Tag class="w-3 h-3 mr-1" />
@@ -157,45 +160,55 @@
           <CardContent>
             <ScrollArea class="h-[500px]">
               <div class="space-y-4">
-                <Card 
-                  v-for="relationship in mockSemanticRelationships" 
-                  :key="relationship.id" 
+                <Card
+                  v-for="relationship in mockSemanticRelationships"
+                  :key="relationship.id"
                   class="p-4"
                 >
                   <div class="flex items-center space-x-4">
                     <div class="flex-shrink-0">
                       <component :is="getRelationshipIcon(relationship.type)" />
                     </div>
-                    
+
                     <div class="flex-1">
                       <div class="flex items-center space-x-2 mb-2">
                         <Badge :class="getRelationshipColor(relationship.type)">
                           {{ relationship.type.replace('_', ' ') }}
                         </Badge>
                       </div>
-                      
+
                       <div class="flex items-center space-x-2 text-sm">
                         <div class="flex items-center space-x-1">
                           <TableIcon class="w-4 h-4" />
-                          <span class="font-mono">{{ getTableName(relationship.fromTableId) }}</span>
-                          <template v-if="getFieldName(relationship.fromTableId, relationship.fromFieldId)">
+                          <span class="font-mono">{{
+                            getTableName(relationship.fromTableId)
+                          }}</span>
+                          <template
+                            v-if="getFieldName(relationship.fromTableId, relationship.fromFieldId)"
+                          >
                             <span>.</span>
-                            <span class="font-mono text-blue-600">{{ getFieldName(relationship.fromTableId, relationship.fromFieldId) }}</span>
+                            <span class="font-mono text-blue-600">{{
+                              getFieldName(relationship.fromTableId, relationship.fromFieldId)
+                            }}</span>
                           </template>
                         </div>
-                        
+
                         <ArrowRight class="w-4 h-4 text-muted-foreground" />
-                        
+
                         <div class="flex items-center space-x-1">
                           <TableIcon class="w-4 h-4" />
                           <span class="font-mono">{{ getTableName(relationship.toTableId) }}</span>
-                          <template v-if="getFieldName(relationship.toTableId, relationship.toFieldId)">
+                          <template
+                            v-if="getFieldName(relationship.toTableId, relationship.toFieldId)"
+                          >
                             <span>.</span>
-                            <span class="font-mono text-blue-600">{{ getFieldName(relationship.toTableId, relationship.toFieldId) }}</span>
+                            <span class="font-mono text-blue-600">{{
+                              getFieldName(relationship.toTableId, relationship.toFieldId)
+                            }}</span>
                           </template>
                         </div>
                       </div>
-                      
+
                       <p class="text-sm text-muted-foreground mt-2">
                         {{ relationship.description }}
                       </p>
@@ -221,13 +234,14 @@
               <GitBranch class="w-12 h-12 mx-auto mb-4 opacity-50" />
               <h3 class="font-medium mb-2">Data Lineage Visualization</h3>
               <p class="text-sm max-w-md mx-auto">
-                Interactive data lineage visualization would show how data flows through your systems, 
-                from source to destination, including transformations and dependencies.
+                Interactive data lineage visualization would show how data flows through your
+                systems, from source to destination, including transformations and dependencies.
               </p>
               <div class="mt-6 p-4 bg-muted rounded-lg">
                 <p class="text-sm">
-                  <strong>Future Enhancement:</strong> This section would include an interactive graph 
-                  showing data flow paths, transformation points, and impact analysis for data changes.
+                  <strong>Future Enhancement:</strong> This section would include an interactive
+                  graph showing data flow paths, transformation points, and impact analysis for data
+                  changes.
                 </p>
               </div>
             </div>
@@ -239,31 +253,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Progress } from '@/components/ui/progress'
-import { 
-  BookOpen, 
-  Network, 
-  Search,
-  Tag,
-  ArrowRight,
-  Database,
-  Table as TableIcon,
-  GitBranch,
-  Target,
-  Link,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  BarChart3
-} from 'lucide-vue-next'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { mockBusinessGlossary, mockDataSources, mockSemanticRelationships } from '@/data/mock-data'
 import type { BusinessGlossary, DataField } from '@/types/data-quality'
-import { mockBusinessGlossary, mockSemanticRelationships, mockDataSources } from '@/data/mock-data'
+import {
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  CheckCircle,
+  GitBranch,
+  Link,
+  Network,
+  Search,
+  Table as TableIcon,
+  Tag,
+  Target,
+  XCircle
+} from 'lucide-vue-next'
+import { computed, ref } from 'vue'
 
 const searchTerm = ref('')
 const selectedCategory = ref<string>('all')
@@ -314,23 +327,26 @@ const getCategoryColor = (category: string) => {
 }
 
 const filteredGlossary = computed(() => {
-  return mockBusinessGlossary.filter(term => {
-    const matchesSearch = term.term.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-                         term.definition.toLowerCase().includes(searchTerm.value.toLowerCase())
-    const matchesCategory = selectedCategory.value === 'all' || term.category === selectedCategory.value
+  return mockBusinessGlossary.filter((term) => {
+    const matchesSearch =
+      term.term.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+      term.definition.toLowerCase().includes(searchTerm.value.toLowerCase())
+    const matchesCategory =
+      selectedCategory.value === 'all' || term.category === selectedCategory.value
     return matchesSearch && matchesCategory
   })
 })
 
-const categories = computed(() => 
-  ['all', ...Array.from(new Set(mockBusinessGlossary.map(term => term.category)))]
-)
+const categories = computed(() => [
+  'all',
+  ...Array.from(new Set(mockBusinessGlossary.map((term) => term.category)))
+])
 
 // Helper function to calculate quality metrics for business terms
 const getTermQualityInfo = (term: BusinessGlossary) => {
   const relatedFields: DataField[] = []
   let totalIssues = 0
-  
+
   // Find fields related to this business term by matching tags/names
   for (const source of mockDataSources) {
     for (const table of source.tables) {
@@ -338,31 +354,34 @@ const getTermQualityInfo = (term: BusinessGlossary) => {
         // Check if field is related to this business term
         const termLower = term.term.toLowerCase()
         const fieldNameLower = field.name.toLowerCase()
-        const fieldTags = field.tags.map(tag => tag.toLowerCase())
-        
-        if (fieldNameLower.includes(termLower) || 
-            fieldTags.some(tag => tag.includes(termLower)) ||
-            term.relatedTerms.some(related => 
+        const fieldTags = field.tags.map((tag) => tag.toLowerCase())
+
+        if (
+          fieldNameLower.includes(termLower) ||
+          fieldTags.some((tag) => tag.includes(termLower)) ||
+          term.relatedTerms.some(
+            (related) =>
               fieldNameLower.includes(related.toLowerCase()) ||
-              fieldTags.some(tag => tag.includes(related.toLowerCase()))
-            )) {
+              fieldTags.some((tag) => tag.includes(related.toLowerCase()))
+          )
+        ) {
           relatedFields.push(field)
           totalIssues += field.issuesCount
         }
       }
     }
   }
-  
+
   if (relatedFields.length === 0) {
     return { qualityScore: null, issuesCount: 0, relatedFieldsCount: 0, status: 'unknown' as const }
   }
-  
+
   const avgQualityScore = Math.round(
     relatedFields.reduce((sum, field) => sum + field.qualityScore, 0) / relatedFields.length
   )
-  
+
   const status = avgQualityScore >= 90 ? 'good' : avgQualityScore >= 70 ? 'warning' : 'error'
-  
+
   return {
     qualityScore: avgQualityScore,
     issuesCount: totalIssues,
@@ -400,7 +419,7 @@ const getQualityBadgeColor = (status: string) => {
 // Helper function to find table names by ID
 const getTableName = (tableId: string) => {
   for (const source of mockDataSources) {
-    const table = source.tables.find(t => t.id === tableId)
+    const table = source.tables.find((t) => t.id === tableId)
     if (table) return table.name
   }
   return 'Unknown Table'
@@ -409,9 +428,9 @@ const getTableName = (tableId: string) => {
 const getFieldName = (tableId: string, fieldId?: string) => {
   if (!fieldId) return null
   for (const source of mockDataSources) {
-    const table = source.tables.find(t => t.id === tableId)
+    const table = source.tables.find((t) => t.id === tableId)
     if (table) {
-      const field = table.fields.find(f => f.id === fieldId)
+      const field = table.fields.find((f) => f.id === fieldId)
       if (field) return field.name
     }
   }
