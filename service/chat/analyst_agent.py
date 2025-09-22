@@ -4,14 +4,16 @@ import os
 
 import nest_asyncio
 import yaml
-from autochat import Autochat, Message
-from autochat.chat import StopLoopException
+from agentlys import Agentlys, Message
+from agentlys.chat import StopLoopException
 
 from app import socketio
+from back.utils import get_tables_metadata_from_catalog
 from chat.dbt_utils import DBT
 from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
 from chat.proxy_provider import ProxyProvider
+from chat.tools.catalog import CatalogTool
 from chat.tools.database import DatabaseTool
 from chat.tools.echarts import EchartsTool
 from chat.tools.quality import SemanticCatalog
@@ -24,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Workaround because of eventlet doesn't support loop in loop ?
 nest_asyncio.apply()
 
-AUTOCHAT_PROVIDER = os.getenv("AUTOCHAT_PROVIDER", "proxy")
+AGENTLYS_PROVIDER = os.getenv("AGENTLYS_PROVIDER", "proxy")
 
 
 def think(thought: str) -> None:
@@ -73,15 +75,15 @@ class DataAnalystAgent:
         # Handle custom proxy provider
 
         logger.info(
-            "AUTOCHAT_PROVIDER configured", extra={"provider": AUTOCHAT_PROVIDER}
+            "AGENTLYS_PROVIDER configured", extra={"provider": AGENTLYS_PROVIDER}
         )
 
-        if AUTOCHAT_PROVIDER == "proxy":
+        if AGENTLYS_PROVIDER == "proxy":
             provider = ProxyProvider
         else:
-            provider = AUTOCHAT_PROVIDER
+            provider = AGENTLYS_PROVIDER
 
-        self.agent = Autochat.from_template(
+        self.agent = Agentlys.from_template(
             os.path.join(os.path.dirname(__file__), "..", "chat", "chat_template.txt"),
             provider=provider,
             context=self.context,
@@ -95,12 +97,15 @@ class DataAnalystAgent:
             visible to the user. Use it to answer the user.",
         )
 
+        tables_metadata = get_tables_metadata_from_catalog(
+            self.conversation.database.id
+        )
         self.agent.add_tool(
-            DatabaseTool(self.session, self.conversation.database), "database"
+            DatabaseTool(self.session, self.conversation.database, tables_metadata),
+            "database",
         )
         self.agent.add_function(think)
         self.agent.add_function(get_date)
-        self.agent.add_function(self.submit)
         self.agent.add_function(self.answer)
         self.agent.add_function(ask_user)
         self.agent.add_tool(
@@ -114,6 +119,8 @@ class DataAnalystAgent:
             self.session, self.conversation.id, self.conversation.databaseId
         )
         self.agent.add_tool(semantic_catalog, "semantic_catalog")
+        catalog_tool = CatalogTool(self.session, self.conversation.database)
+        self.agent.add_tool(catalog_tool, "catalog")
         if (
             self.conversation.database.dbt_catalog
             and self.conversation.database.dbt_manifest
@@ -148,25 +155,6 @@ class DataAnalystAgent:
             }
             return yaml.dump(context)
         return None
-
-    # TODO: remove ?
-    def submit(
-        self,
-        from_response: Message,
-        queryId: str,
-    ):
-        """
-        Give the final response from the user demand/query
-        Args:
-            queryId: The id of the query to execute
-        """  # noqa: E501
-        query = self.session.query(Query).filter_by(id=queryId).first()
-        if not query:
-            raise ValueError(f"Query with id {queryId} not found")
-        # We update the message with the query id
-        from_response.query_id = query.id
-        from_response.isAnswer = True
-        raise StopLoopException("We want to stop after submitting")
 
     def answer(
         self,
@@ -220,7 +208,7 @@ class DataAnalystAgent:
                     )
 
         from_response.isAnswer = True
-        raise StopLoopException("We want to stop after submitting")
+        raise StopLoopException("We want to stop after answering")
 
     # TODO: rename...
     def _run_conversation(self):
@@ -232,13 +220,13 @@ class DataAnalystAgent:
                 .order_by(ConversationMessage.createdAt)
                 .all()
             )
-            autochat_messages = [m.to_autochat_message() for m in messages]
-            self.agent.load_messages(autochat_messages)
+            agentlys_messages = [m.to_agentlys_message() for m in messages]
+            self.agent.load_messages(agentlys_messages)
             for m in self.agent.run_conversation():
                 self.check_stop_flag()
                 # We re-emit the status in case the user has refreshed the page
                 emit_status(self.conversation.id, STATUS.RUNNING)
-                message = ConversationMessage.from_autochat_message(m)
+                message = ConversationMessage.from_agentlys_message(m)
                 if self.conversation:
                     message.conversationId = self.conversation.id
                 self.session.add(message)

@@ -1,11 +1,12 @@
 import json
 import uuid
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 import yaml
-from autochat.chat import OUTPUT_SIZE_LIMIT, StopLoopException
-from autochat.model import Message
-from autochat.utils import limit_data_size
+from agentlys.chat import OUTPUT_SIZE_LIMIT, StopLoopException
+from agentlys.model import Message
+from agentlys.utils import limit_data_size
 
 from back.data_warehouse import WriteOperationError
 from models import Database, Query
@@ -71,14 +72,22 @@ def cancel_query(session, query_id: uuid.UUID) -> Query:
 
 
 class DatabaseTool:
-    def __init__(self, session, database: Database):
+    def __init__(
+        self,
+        session,
+        database: Database,
+        tables_metadata: Optional[List[Dict[str, Any]]] = None,
+    ):
         self.session = session
         self.database = database
         self.data_warehouse = database.create_data_warehouse()
+        if tables_metadata is None:
+            tables_metadata = []
+        self.tables_metadata = tables_metadata
 
     def __repr__(self):
         tables_preview = []
-        for table in self.database.tables_metadata:
+        for table in self.tables_metadata:
             table_preview = {
                 "name": table["name"],
                 "schema": table["schema"],

@@ -1,0 +1,59 @@
+# Fly.io configuration for Myriade application
+app = "myriade"
+primary_region = "cdg"
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/api/version"  # Health check endpoint
+
+[env]
+  # Environment variables that will be set for the application
+  FLASK_ENV = "production"
+  GUNICORN_THREADS = "1"
+  AGENTLYS_PROVIDER = "proxy"
+  AGENTLYS_MODEL = "claude-sonnet-4-20250514"
+  STATIC_FOLDER = "./static"
+  HOST = ""  # This will fallback to request.url_root.rstrip("/")
+
+# Database configuration - will be set by review app workflow
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+# Machine configuration
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 2
+  memory_mb = 2048
+
+# Volume for persistent data (optional)
+[[mounts]]
+  source = "data_volume"
+  destination = "/app/data"
+  initial_size = "1gb"

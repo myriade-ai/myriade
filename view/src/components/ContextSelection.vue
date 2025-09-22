@@ -51,8 +51,4 @@ const router = useRouter()
 const databasesStore = useDatabasesStore()
 
 const contextsStore = useContextsStore()
-
-onMounted(() => {
-  contextsStore.initializeContexts()
-})
 </script>

@@ -1,7 +1,7 @@
 [project]
 name = "myriade-service"
 description = "backend for Myriade analytic solution"
-version = "0.41.1"
+version = "0.43.4"
 authors = [
     {name = "Benjamin Derville", email = "benderville@gmail.com"}
 ]
@@ -15,7 +15,6 @@ dependencies = [
     "flask-socketio>=5.3.3",
     "psycopg2-binary>=2.9.7",
     "alembic>=1.11.2",
-    "autochat[all]==0.19.0",
     "python-dotenv>=1.0.1",
     "syrupy>=4.8.2",
     "sentry-sdk[flask]>=2.23.1",
@@ -26,6 +25,7 @@ dependencies = [
     "sqlglot>=26.16.2",
     "python-json-logger>=2.0.7",
     "duckdb>=1.3.2",
+    "agentlys[all]>=0.19.1",
 ]
 
 [project.optional-dependencies]

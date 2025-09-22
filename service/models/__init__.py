@@ -5,7 +5,7 @@ from datetime import datetime
 from io import BytesIO
 from typing import Any, Dict, List, Optional
 
-from autochat.model import Message as AutoChatMessage
+from agentlys.model import Message as AgentlysMessage
 from PIL import Image as PILImage
 from sqlalchemy import (
     Boolean,
@@ -71,7 +71,6 @@ class Database(SerializerMixin, DefaultBase, Base):
     public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Information save by the ai
     memory: Mapped[Optional[str]] = mapped_column(String)
-    tables_metadata: Mapped[Optional[List[Dict[Any, Any]]]] = mapped_column(JSONB)
     dbt_catalog: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
     dbt_manifest: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
 
@@ -107,14 +106,15 @@ class Database(SerializerMixin, DefaultBase, Base):
 
     def create_data_warehouse(self):
         from back.data_warehouse import DataWarehouseFactory
+        from back.utils import get_tables_metadata_from_catalog
 
         data_warehouse = DataWarehouseFactory.create(
             self.engine,
             **self.details,
         )
         data_warehouse.write_mode = self.write_mode
-        # Pass tables metadata for privacy handling
-        data_warehouse.tables_metadata = self.tables_metadata
+        # Pass tables metadata from catalog in same format as before
+        data_warehouse.tables_metadata = get_tables_metadata_from_catalog(self.id)
         return data_warehouse
 
 
@@ -198,8 +198,8 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
             "isAnswer": self.isAnswer,
         }
 
-    def to_autochat_message(self) -> AutoChatMessage:
-        message = AutoChatMessage(
+    def to_agentlys_message(self) -> AgentlysMessage:
+        message = AgentlysMessage(
             role=self.role,  # type: ignore[assignment]
             name=self.name,
             content=self.content,
@@ -211,7 +211,7 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
         return message
 
     @classmethod
-    def from_autochat_message(cls, message: AutoChatMessage):
+    def from_agentlys_message(cls, message: AgentlysMessage):
         kwargs = format_to_camel_case(**message.__dict__)
         kwargs["functionCall"] = message.function_call
         kwargs["functionCallId"] = message.function_call_id

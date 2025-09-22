@@ -23,10 +23,9 @@
 
             <div class="flex items-center space-x-2">
               <input
-                :id="`schema-${group.id}`"
                 type="checkbox"
                 :checked="isGroupSelected(group)"
-                :indeterminate="isGroupIndeterminate(group)"
+                :indeterminate.prop="isGroupIndeterminate(group)"
                 @change="toggleGroup(group)"
                 @click.stop
                 class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
@@ -97,17 +96,23 @@
           </div>
         </div>
       </div>
+      <div
+        v-if="filteredGroups.length === 0"
+        class="text-center py-4 border border-gray-200 bg-gray-200 rounded-lg shadow-sm overflow-hidden"
+      >
+        <div class="text-sm text-gray-500">No tables found</div>
+      </div>
     </div>
 
     <!-- Selection Summary -->
     <div
-      v-if="selectedItems.length > 0"
+      v-if="modelValue.length > 0"
       class="mt-4 p-3 bg-primary-50 rounded-lg border border-primary-200"
     >
       <div class="flex items-center space-x-2">
         <CheckCircleIcon class="h-5 w-5 text-primary-600" />
         <span class="text-sm font-medium text-primary-900">
-          {{ selectedItems.length }} table{{ selectedItems.length !== 1 ? 's' : '' }} selected
+          {{ modelValue.length }} table{{ modelValue.length !== 1 ? 's' : '' }} selected
         </span>
       </div>
       <div class="mt-2 text-xs text-primary-700">
@@ -120,16 +125,15 @@
 <script setup lang="ts">
 import { CheckCircleIcon, ChevronRightIcon, TableCellsIcon } from '@heroicons/vue/24/outline'
 import type { PropType } from 'vue'
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { Input } from '../ui/input'
 import Label from '../ui/label/Label.vue'
 
-// Export the interfaces (same as BaseMultiSelect)
 export interface Item {
   id: string
   label: string
   description?: string
-  [key: string]: any
+  [key: string]: unknown
   columns?: TableColumn[]
 }
 
@@ -159,12 +163,9 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-// Local state
-const selectedItems = ref<Item[]>([...props.modelValue])
 const searchQuery = ref('')
 const collapsedGroups = ref<Set<string>>(new Set())
 
-// Computed properties
 const filteredGroups = computed(() => {
   if (!searchQuery.value.trim()) {
     return props.groups
@@ -184,21 +185,12 @@ const filteredGroups = computed(() => {
     .filter((group) => group.items.length > 0)
 })
 
-watch(
-  () => props.groups,
-  (newGroups) => {
-    collapsedGroups.value = new Set(newGroups.map((group) => group.id))
-  },
-  { immediate: true }
-)
-
-// Selection helpers
 const isSelected = (item: Item): boolean => {
-  return selectedItems.value.some((selectedItem) => selectedItem.id === item.id)
+  return props.modelValue.some((selectedItem) => selectedItem.id === item.id)
 }
 
 const isGroupSelected = (group: Group): boolean => {
-  return group.items.every((item) => isSelected(item))
+  return group.items.length > 0 && group.items.every((item) => isSelected(item))
 }
 
 const isGroupIndeterminate = (group: Group): boolean => {
@@ -210,26 +202,26 @@ const getSelectedCountForGroup = (group: Group): number => {
   return group.items.filter((item) => isSelected(item)).length
 }
 
-// Actions
 const toggleItem = (item: Item) => {
   if (isSelected(item)) {
-    selectedItems.value = selectedItems.value.filter((selectedItem) => selectedItem.id !== item.id)
+    emit(
+      'update:modelValue',
+      props.modelValue.filter((selectedItem) => selectedItem.id !== item.id)
+    )
   } else {
-    selectedItems.value.push(item)
+    emit('update:modelValue', [...props.modelValue, item])
   }
 }
 
 const toggleGroup = (group: Group) => {
-  const allSelected = isGroupSelected(group)
-  if (allSelected) {
-    // Deselect all items in this group
-    selectedItems.value = selectedItems.value.filter(
+  if (isGroupSelected(group)) {
+    const newSelection = props.modelValue.filter(
       (selectedItem) => !group.items.some((groupItem) => groupItem.id === selectedItem.id)
     )
+    emit('update:modelValue', newSelection)
   } else {
-    // Select all items in this group that aren't already selected
     const newItems = group.items.filter((item) => !isSelected(item))
-    selectedItems.value.push(...newItems)
+    emit('update:modelValue', [...props.modelValue, ...newItems])
   }
 }
 
@@ -241,9 +233,8 @@ const toggleCollapse = (groupId: string) => {
   }
 }
 
-// Utility functions
 const showColumnPreview = (item: Item): boolean => {
-  return Array.isArray(getItemColumns(item)) && getItemColumns(item).length > 0
+  return Array.isArray(item.columns) && (item.columns?.length ?? 0) > 0
 }
 
 const getItemColumns = (item: Item): TableColumn[] => {
@@ -253,7 +244,7 @@ const getItemColumns = (item: Item): TableColumn[] => {
 const getSelectionSummary = (): string => {
   const groupCounts = new Map<string, number>()
 
-  selectedItems.value.forEach((item) => {
+  props.modelValue.forEach((item) => {
     const group = props.groups.find((g) => g.items.some((i) => i.id === item.id))
     if (group) {
       groupCounts.set(group.label, (groupCounts.get(group.label) || 0) + 1)
@@ -264,38 +255,4 @@ const getSelectionSummary = (): string => {
     .map(([groupLabel, count]) => `${groupLabel}: ${count}`)
     .join(', ')
 }
-
-// Watchers
-watch(
-  () => props.modelValue,
-  (newValue) => {
-    selectedItems.value = [...newValue]
-  },
-  { immediate: true }
-)
-
-watch(
-  selectedItems,
-  (newValue) => {
-    emit('update:modelValue', newValue)
-  },
-  { deep: true }
-)
-
-// Set indeterminate property for group checkboxes
-watch(
-  [selectedItems, () => props.groups],
-  () => {
-    // Use nextTick to ensure DOM is updated
-    setTimeout(() => {
-      props.groups.forEach((group) => {
-        const checkbox = document.getElementById(`schema-${group.id}`) as HTMLInputElement
-        if (checkbox) {
-          checkbox.indeterminate = isGroupIndeterminate(group)
-        }
-      })
-    }, 0)
-  },
-  { immediate: true }
-)
 </script>

@@ -1,202 +1,207 @@
 <template>
-  <div
-    ref="scrollContainer"
-    class="flex justify-center px-2 lg:px-0 h-screen"
-    v-touch:swipe.right="toggleSidebar"
-  >
-    <div class="flex flex-col w-full max-w-2xl h-full">
-      <div class="flex flex-col flex-1">
-        <div class="w-full lg:pt-4">
-          <ul class="list-none">
-            <template v-for="(group, index) in messageGroups" :key="index">
-              <li v-for="message in group.publicMessages" :key="message.id">
-                <MessageDisplay
-                  :message="message"
-                  @editInlineClick="editInline"
-                  @regenerateFromMessage="conversationsStore.regenerateFromMessage"
-                />
-              </li>
-              <li v-if="group.internalMessages.length > 0" class="flex justify-center">
-                <button
-                  @click="toggleInternalMessages(index)"
-                  class="inline-flex items-center px-3 py-1 my-1 text-sm text-gray-500 rounded-full hover:bg-gray-200"
-                >
-                  <EyeIcon v-if="!internalMessageGroups[index]" class="h-4 w-4 mr-2" />
-                  <EyeSlashIcon v-else class="h-4 w-4 mr-2" />
-                  <span>
-                    {{ internalMessageGroups[index] ? 'Hide' : 'Show' }}
-                    {{ group.internalMessages.length }} internal messages
-                  </span>
-                </button>
-              </li>
-              <transition-group
-                name="internal-messages"
-                enter-active-class="transition-all duration-300 ease-out"
-                enter-from-class="opacity-0 max-h-0"
-                enter-to-class="opacity-100 max-h-[1000px]"
-                leave-active-class="transition-all duration-300 ease-in"
-                leave-from-class="opacity-100 max-h-[1000px]"
-                leave-to-class="opacity-0 max-h-0"
-                v-if="internalMessageGroups[index]"
-              >
-                <li
-                  v-for="message in group.internalMessages"
-                  :key="message.id"
-                  class="overflow-hidden"
-                >
+  <div>
+    <PageHeader title="Chat" subtitle="Ask questions about your data and get instant answers." />
+    <div
+      ref="scrollContainer"
+      class="flex justify-center px-2 lg:px-0 h-screen"
+      v-touch:swipe.right="toggleSidebar"
+    >
+      <div class="flex flex-col w-full max-w-2xl h-full">
+        <div class="flex flex-col flex-1">
+          <div class="w-full lg:pt-4">
+            <ul class="list-none">
+              <template v-for="(group, index) in messageGroups" :key="index">
+                <li v-for="message in group.publicMessages" :key="message.id">
                   <MessageDisplay
                     :message="message"
                     @editInlineClick="editInline"
                     @regenerateFromMessage="conversationsStore.regenerateFromMessage"
-                    class="bg-gray-300"
-                    style="border: 1px solid rgb(205 205 205)"
+                    @rejected="focusInput"
                   />
                 </li>
-              </transition-group>
-            </template>
-          </ul>
-        </div>
-
-        <div id="chat-status" class="w-full pb-4">
-          <div class="w-full flex justify-center">
-            <!-- Subscription Prompt -->
-            <div
-              v-if="showSubscriptionPrompt"
-              class="flex flex-col items-center w-full"
-              style="position: relative"
-            >
-              <SubscriptionPrompt />
-            </div>
-
-            <!-- Display error message if queryStatus is error -->
-            <div v-else-if="queryStatus === 'error'" class="flex flex-col items-center">
-              <div>
-                <p class="text-error-500">{{ errorMessage }}</p>
-              </div>
-              <div>
-                <BaseButton
-                  class="my-4"
-                  @click="conversationsStore.regenerateFromMessage(lastMessage.id)"
+                <li v-if="group.internalMessages.length > 0" class="flex justify-center">
+                  <button
+                    @click="toggleInternalMessages(index)"
+                    class="inline-flex items-center px-3 py-1 my-1 text-sm text-gray-500 rounded-full hover:bg-gray-200"
+                  >
+                    <EyeIcon v-if="!internalMessageGroups[index]" class="h-4 w-4 mr-2" />
+                    <EyeSlashIcon v-else class="h-4 w-4 mr-2" />
+                    <span>
+                      {{ internalMessageGroups[index] ? 'Hide' : 'Show' }}
+                      {{ group.internalMessages.length }} internal messages
+                    </span>
+                  </button>
+                </li>
+                <transition-group
+                  name="internal-messages"
+                  enter-active-class="transition-all duration-300 ease-out"
+                  enter-from-class="opacity-0 max-h-0"
+                  enter-to-class="opacity-100 max-h-[1000px]"
+                  leave-active-class="transition-all duration-300 ease-in"
+                  leave-from-class="opacity-100 max-h-[1000px]"
+                  leave-to-class="opacity-0 max-h-0"
+                  v-if="internalMessageGroups[index]"
                 >
-                  Regenerate
-                </BaseButton>
-              </div>
-            </div>
-
-            <div v-else-if="queryStatus === STATUS.RUNNING || queryStatus === STATUS.PENDING">
-              <!-- Add loading icon, centered, displayed only if a query is running -->
-              <LoaderIcon /><br />
-              <!-- Add stop button, centered, displayed only if a query is running -->
-              <button
-                @click="stopQuery"
-                :disabled="queryStatus === STATUS.TO_STOP"
-                class="w-full bg-gray-500 text-white py-2 px-4 rounded-sm"
-                type="submit"
-              >
-                Stop
-              </button>
-            </div>
+                  <li
+                    v-for="message in group.internalMessages"
+                    :key="message.id"
+                    class="overflow-hidden"
+                  >
+                    <MessageDisplay
+                      :message="message"
+                      @editInlineClick="editInline"
+                      @regenerateFromMessage="conversationsStore.regenerateFromMessage"
+                      @rejected="focusInput"
+                      class="bg-gray-300"
+                      style="border: 1px solid rgb(205 205 205)"
+                    />
+                  </li>
+                </transition-group>
+              </template>
+            </ul>
           </div>
-        </div>
-      </div>
 
-      <div id="chat-input" class="w-full border-gray-300 bg-white sticky bottom-0 z-10">
-        <transition
-          enter-active-class="transition-all duration-300 ease-out"
-          enter-from-class="opacity-0 transform translate-y-4"
-          enter-to-class="opacity-100 transform translate-y-0"
-          leave-active-class="transition-all duration-300 ease-in"
-          leave-from-class="opacity-100 transform translate-y-0"
-          leave-to-class="opacity-0 transform translate-y-4"
-        >
-          <!-- 3 suggestions generated by AI -->
-          <div
-            class="flex flex-col"
-            v-if="aiSuggestions && aiSuggestions.length && messages.length === 0"
-          >
-            <SparklesIcon class="h-5 w-5 text-primary-500" />
-            <span class="text-primary-700 text-sm font-bold mb-2">AI Suggestions</span>
-            <div v-if="aiSuggestions && aiSuggestions.length" class="flex flex-col space-y-2">
+          <div id="chat-status" class="w-full pb-4">
+            <div class="w-full flex justify-center">
+              <!-- Subscription Prompt -->
               <div
-                v-for="(suggestion, index) in aiSuggestions"
-                :key="index"
-                class="flex items-center space-x-2"
+                v-if="showSubscriptionPrompt"
+                class="flex flex-col items-center w-full"
+                style="position: relative"
               >
+                <SubscriptionPrompt />
+              </div>
+
+              <!-- Display error message if queryStatus is error -->
+              <div v-else-if="queryStatus === 'error'" class="flex flex-col items-center">
+                <div>
+                  <p class="text-error-500">{{ errorMessage }}</p>
+                </div>
+                <div>
+                  <BaseButton
+                    class="my-4"
+                    @click="conversationsStore.regenerateFromMessage(lastMessage.id)"
+                  >
+                    Regenerate
+                  </BaseButton>
+                </div>
+              </div>
+
+              <div v-else-if="queryStatus === STATUS.RUNNING || queryStatus === STATUS.PENDING">
+                <!-- Add loading icon, centered, displayed only if a query is running -->
+                <LoaderIcon /><br />
+                <!-- Add stop button, centered, displayed only if a query is running -->
                 <button
-                  class="rounded-md bg-white px-3.5 py-2 text-sm text-primary-500 shadow-xs ring-1 ring-inset ring-primary-300 hover:bg-primary-50 text-left"
-                  @click="applySuggestion(suggestion)"
+                  @click="stopQuery"
+                  :disabled="queryStatus === STATUS.TO_STOP"
+                  class="w-full bg-gray-500 text-white py-2 px-4 rounded-sm"
+                  type="submit"
                 >
-                  {{ suggestion }}
+                  Stop
                 </button>
               </div>
             </div>
           </div>
-        </transition>
-        <div id="input-container" class="py-1 lg:py-2">
-          <div class="flex justify-between items-center mb-2">
-            <div>
-              <button
-                class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-xs hover:bg-gray-50"
-                :style="editMode == 'text' ? 'background-color: #e5e7eb' : ''"
-                @click="editMode = 'text'"
-              >
-                Text
-              </button>
-              <button
-                class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 mx-0.5 text-sm font-medium leading-5 text-gray-700 shadow-xs hover:bg-gray-50"
-                :style="editMode == 'SQL' ? 'background-color: #e5e7eb' : ''"
-                @click="editMode = 'SQL'"
-              >
-                Editor
-              </button>
-            </div>
-            <!-- Credits Display (if user has less than 50 credits, show the number of credits left)-->
+        </div>
+
+        <div id="chat-input" class="w-full border-gray-300 bg-white sticky bottom-0 z-10">
+          <transition
+            enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 transform translate-y-4"
+            enter-to-class="opacity-100 transform translate-y-0"
+            leave-active-class="transition-all duration-300 ease-in"
+            leave-from-class="opacity-100 transform translate-y-0"
+            leave-to-class="opacity-0 transform translate-y-4"
+          >
+            <!-- 3 suggestions generated by AI -->
             <div
-              v-if="user?.credits !== undefined && user.credits < 50"
-              class="text-sm text-gray-500"
+              class="flex flex-col"
+              v-if="aiSuggestions && aiSuggestions.length && messages.length === 0"
             >
-              {{ user.credits }} credits left
+              <SparklesIcon class="h-5 w-5 text-primary-500" />
+              <span class="text-primary-700 text-sm font-bold mb-2">AI Suggestions</span>
+              <div v-if="aiSuggestions && aiSuggestions.length" class="flex flex-col space-y-2">
+                <div
+                  v-for="(suggestion, index) in aiSuggestions"
+                  :key="index"
+                  class="flex items-center space-x-2"
+                >
+                  <button
+                    class="rounded-md bg-white px-3.5 py-2 text-sm text-primary-500 shadow-xs ring-1 ring-inset ring-primary-300 hover:bg-primary-50 text-left"
+                    @click="applySuggestion(suggestion)"
+                  >
+                    {{ suggestion }}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="w-full flex py-1 relative" v-if="editMode == 'SQL'">
-            <BaseEditor v-model="inputSQL" @run-query="handleSendMessage" />
-            <div v-if="inputSQL.trim().length > 0" class="text-gray-300 hover:text-white">
-              <SendButtonWithStatus :status="sendStatus" @clicked="handleSendMessage" />
+          </transition>
+          <div id="input-container" class="py-1 lg:py-2">
+            <div class="flex justify-between items-center mb-2">
+              <div>
+                <button
+                  class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 text-sm font-medium leading-5 text-gray-700 shadow-xs hover:bg-gray-50"
+                  :style="editMode == 'text' ? 'background-color: #e5e7eb' : ''"
+                  @click="editMode = 'text'"
+                >
+                  Text
+                </button>
+                <button
+                  class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-0.5 mx-0.5 text-sm font-medium leading-5 text-gray-700 shadow-xs hover:bg-gray-50"
+                  :style="editMode == 'SQL' ? 'background-color: #e5e7eb' : ''"
+                  @click="editMode = 'SQL'"
+                >
+                  Editor
+                </button>
+              </div>
+              <!-- Credits Display (if user has less than 50 credits, show the number of credits left)-->
+              <div
+                v-if="user?.credits !== undefined && user.credits < 50"
+                class="text-sm text-gray-500"
+              >
+                {{ user.credits }} credits left
+              </div>
             </div>
-          </div>
-          <div class="w-full flex py-1" v-else>
-            <textarea
-              @input="resizeTextarea"
-              @keydown.enter="handleEnter"
-              ref="inputTextarea"
-              class="grow py-2 px-3 pr-10 rounded-sm border border-gray-300"
-              rows="1"
-              placeholder="Type your message"
-              v-model="inputText"
-            ></textarea>
-            <transition
-              enter-active-class="transition-opacity duration-300 ease-out"
-              enter-from-class="opacity-0"
-              enter-to-class="opacity-100"
-              leave-active-class="transition-opacity duration-300 ease-in"
-              leave-from-class="opacity-100"
-              leave-to-class="opacity-0"
-            >
-              <div v-if="inputText.trim().length > 0" class="text-gray-300 hover:text-gray-500">
+            <div class="w-full flex py-1 relative" v-if="editMode == 'SQL'">
+              <BaseEditor ref="inputEditor" v-model="inputSQL" @run-query="handleSendMessage" />
+              <div v-if="inputSQL.trim().length > 0" class="text-gray-300 hover:text-white">
                 <SendButtonWithStatus :status="sendStatus" @clicked="handleSendMessage" />
               </div>
-            </transition>
+            </div>
+            <div class="w-full flex py-1" v-else>
+              <textarea
+                @input="resizeTextarea"
+                @keydown.enter="handleEnter"
+                ref="inputTextarea"
+                class="grow py-2 px-3 pr-10 rounded-sm border border-gray-300"
+                rows="1"
+                placeholder="Type your message"
+                v-model="inputText"
+              ></textarea>
+              <transition
+                enter-active-class="transition-opacity duration-300 ease-out"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition-opacity duration-300 ease-in"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+              >
+                <div v-if="inputText.trim().length > 0" class="text-gray-300 hover:text-gray-500">
+                  <SendButtonWithStatus :status="sendStatus" @clicked="handleSendMessage" />
+                </div>
+              </transition>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Connection status notification -->
-    <div
-      v-if="!isConnected"
-      class="fixed top-3 bg-error-500 text-white px-4 py-2 rounded-md shadow-lg z-50"
-    >
-      Socket disconnected
+      <!-- Connection status notification -->
+      <div
+        v-if="!isConnected"
+        class="fixed top-3 bg-error-500 text-white px-4 py-2 rounded-md shadow-lg z-50"
+      >
+        Socket disconnected
+      </div>
     </div>
   </div>
 </template>
@@ -222,6 +227,7 @@ import { useQueriesStore } from '@/stores/queries'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
 import { useSidebar } from './ui/sidebar'
+import PageHeader from './PageHeader.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -317,6 +323,7 @@ const isPublicMessage = (message, index) => {
 
 /** HANDLE EVENTS **/
 const inputTextarea = ref<HTMLTextAreaElement | null>(null)
+const inputEditor = ref<any>(null)
 const inputText = ref('')
 const inputSQL = ref('')
 const editMode = ref<'text' | 'SQL'>('text')
@@ -379,13 +386,44 @@ const resizeTextarea = () => {
   nextTick(() => {
     if (!inputTextarea.value) return
     inputTextarea.value.style.height = 'auto'
-    inputTextarea.value.style.height = inputTextarea.value.scrollHeight + 'px'
+
+    // Set maximum height to prevent unlimited growth (approximately 16 lines)
+    const maxHeight = 400 // pixels
+    const scrollHeight = inputTextarea.value.scrollHeight
+
+    if (scrollHeight > maxHeight) {
+      inputTextarea.value.style.height = maxHeight + 'px'
+      inputTextarea.value.style.overflowY = 'auto'
+    } else {
+      inputTextarea.value.style.height = scrollHeight + 'px'
+      inputTextarea.value.style.overflowY = 'hidden'
+    }
   })
 }
 
 const editInline = (query: string) => {
   inputSQL.value = query
   editMode.value = 'SQL'
+}
+
+const focusInput = () => {
+  // Focus the input textarea after a short delay to ensure the UI has updated
+  nextTick(() => {
+    if (editMode.value === 'text') {
+      inputTextarea.value?.focus()
+    } else if (editMode.value === 'SQL' && inputEditor.value) {
+      // For Ace editor, we need to access the editor instance
+      try {
+        // The v-ace-editor component exposes the editor instance
+        const aceEditor = inputEditor.value.$refs?.aceEditor?.editor || inputEditor.value.editor
+        if (aceEditor && aceEditor.focus) {
+          aceEditor.focus()
+        }
+      } catch (error) {
+        console.warn('Could not focus SQL editor:', error)
+      }
+    }
+  })
 }
 
 /** END HANDLE EVENTS */

@@ -30,6 +30,8 @@ import {
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
+  SidebarTrigger,
   useSidebar
 } from '@/components/ui/sidebar'
 import { logout, user } from '@/stores/auth'
@@ -54,7 +56,13 @@ import {
 import { computed, nextTick, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
-const items: { title: string; url: string; icon: typeof SquarePen; disabled?: boolean }[] = [
+const navItems: { title: string; url: string; icon: typeof SquarePen; disabled?: boolean }[] = [
+  {
+    title: 'New chat',
+    url: '/chat/new',
+    icon: SquarePen,
+    disabled: false
+  },
   {
     title: 'Control',
     url: '/control',
@@ -107,7 +115,7 @@ const sortedGroup = computed(() => {
 })
 const route = useRoute()
 const isActive = (id: string) => {
-  return route.params.id === id
+  return route.params.id === id || route.path === id
 }
 const userInfo = computed(() => {
   if (!user.value?.firstName || !user.value?.lastName) return { userInitials: '??', fullName: '??' }
@@ -151,66 +159,67 @@ async function handleDeleteConversation(conversationId: string) {
 </script>
 
 <template>
-  <Sidebar>
+  <Sidebar collapsible="icon">
     <SidebarHeader>
-      <div class="shrink-0 flex items-center mb-2 mt-2">
-        <router-link to="/" class="flex items-center">
-          <img src="/logo.svg?v=3" class="h-8 w-auto hidden sm:inline" />
-          <img src="/icon.svg?v=3" class="h-8 w-auto sm:hidden" />
+      <!-- When collapsed: Show only Myriade icon, trigger appears on hover -->
+      <div class="group-data-[collapsible=icon]:block hidden relative group">
+        <router-link to="/" class="flex items-center justify-center mb-2 mt-2">
+          <img src="/icon.svg?v=3" class="h-8 w-auto" />
         </router-link>
+        <SidebarTrigger
+          class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-white group-hover:bg-sidebar group-hover:rounded-none transition-opacity duration-200 bg-sidebar-background/80 backdrop-blur-sm h-8 w-8 overflow-hidden"
+        />
       </div>
-      <Select v-model="contextsStore.contextSelectedId">
-        <SelectTrigger class="w-full bg-white">
-          <SelectValue placeholder="Contexts" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>Projects</SelectLabel>
-            <SelectItem v-for="context in projects" :key="context.id" :value="context.id">
-              {{ context.name }}
-            </SelectItem>
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Databases</SelectLabel>
-            <SelectItem v-for="context in databases" :key="context.id" :value="context.id">
-              {{ context.name }}
-            </SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+
+      <!-- When expanded: Show full logo + text + collapse trigger -->
+      <div class="group-data-[collapsible=icon]:hidden flex items-center justify-between mb-2 mt-2">
+        <router-link to="/" class="flex items-center min-w-0">
+          <img src="/logo.svg?v=3" class="h-8 w-auto" />
+        </router-link>
+        <SidebarTrigger class="-mr-1" />
+      </div>
+      <div class="group-data-[collapsible=icon]:hidden">
+        <Select v-model="contextsStore.contextSelectedId">
+          <SelectTrigger class="w-full bg-white">
+            <SelectValue placeholder="Contexts" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Projects</SelectLabel>
+              <SelectItem v-for="context in projects" :key="context.id" :value="context.id">
+                {{ context.name }}
+              </SelectItem>
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel>Databases</SelectLabel>
+              <SelectItem v-for="context in databases" :key="context.id" :value="context.id">
+                {{ context.name }}
+              </SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
     </SidebarHeader>
     <SidebarContent>
       <SidebarGroup>
-        <SidebarGroupLabel>Myriade</SidebarGroupLabel>
+        <SidebarGroupLabel class="group-data-[collapsible=icon]:hidden">Myriade</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                class="bg-primary text-white hover:text-white hover:bg-primary/70"
-              >
-                <RouterLink to="/chat/new">
-                  <SquarePen class="size-4" />
-                  <span class="">New chat</span>
-                </RouterLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
             <SidebarMenuItem
-              v-for="item in items.filter(({ disabled }) => !disabled)"
+              v-for="item in navItems.filter(({ disabled }) => !disabled)"
               :key="item.title"
             >
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild :isActive="isActive(item.url)" :tooltip="item.title">
                 <RouterLink :to="item.url">
                   <component :is="item.icon" />
-                  <span class="text-primary">{{ item.title }}</span>
+                  <span>{{ item.title }}</span>
                 </RouterLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
-      <SidebarGroup>
+      <SidebarGroup class="group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel>Chats</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
@@ -219,9 +228,10 @@ async function handleDeleteConversation(conversationId: string) {
                 v-if="editingConversationId !== conversation.id"
                 asChild
                 :isActive="isActive(conversation.id)"
+                :tooltip="conversation.name || 'Unnamed...'"
               >
                 <RouterLink :to="`/chat/${conversation.id}`">
-                  <span class="text-primary">{{ conversation.name || 'Unnamed...' }}</span>
+                  <span>{{ conversation.name || 'Unnamed...' }}</span>
                 </RouterLink>
               </SidebarMenuButton>
               <div
@@ -337,5 +347,6 @@ async function handleDeleteConversation(conversationId: string) {
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarFooter>
+    <SidebarRail />
   </Sidebar>
 </template>

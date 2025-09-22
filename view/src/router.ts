@@ -2,6 +2,7 @@ import { authGuard, redirectToWelcome } from '@/auth'
 import Control from '@/components/Control.vue'
 import { useQueryEditor } from '@/composables/useQueryEditor'
 import { createRouter, createWebHistory } from 'vue-router'
+import { useContextsStore } from './stores/contexts'
 
 function loadView(view: string) {
   return () => import(`./views/${view}.vue`)
@@ -40,22 +41,20 @@ const routes = [
   {
     path: '/chat/:id',
     name: 'ChatPage',
-    component: loadView('ChatPage')
+    component: loadView('ChatPage'),
+    meta: { requiresContext: true }
   },
   {
     path: '/editor',
     name: 'Editor',
-    component: loadView('Editor')
-  },
-  {
-    path: '/upload',
-    name: 'Upload',
-    component: loadView('Upload')
+    component: loadView('Editor'),
+    meta: { requiresContext: true }
   },
   {
     path: '/query/:id',
     name: 'Query',
     component: loadView('Editor'),
+    meta: { requiresContext: true },
     beforeEnter: async (to) => {
       const { loadQuery } = useQueryEditor()
       await loadQuery(to.params.id)
@@ -65,12 +64,14 @@ const routes = [
   {
     path: '/favorites',
     name: 'Favorites',
-    component: loadView('Favorites')
+    component: loadView('Favorites'),
+    meta: { requiresContext: true }
   },
   {
     path: '/databases',
     name: 'DatabaseList',
-    component: loadView('DatabaseList')
+    component: loadView('DatabaseList'),
+    meta: { requiresContext: true }
   },
   {
     path: '/databases/new',
@@ -81,12 +82,14 @@ const routes = [
   {
     path: '/databases/:id',
     name: 'DatabaseEdit',
-    component: loadView('DatabaseEdit')
+    component: loadView('DatabaseEdit'),
+    meta: { requiresContext: true }
   },
   {
     path: '/issues',
     name: 'IssuesPage',
-    component: loadView('Issues')
+    component: loadView('Issues'),
+    meta: { requiresContext: true }
   },
   {
     path: '/privacy',
@@ -96,12 +99,14 @@ const routes = [
   {
     path: '/projects',
     name: 'ProjectList',
-    component: loadView('ProjectList')
+    component: loadView('ProjectList'),
+    meta: { requiresContext: true }
   },
   {
     path: '/projects/:id',
     name: 'ProjectEdit',
-    component: loadView('ProjectEdit')
+    component: loadView('ProjectEdit'),
+    meta: { requiresContext: true }
   },
   {
     path: '/quality',
@@ -111,13 +116,14 @@ const routes = [
   {
     path: '/user',
     name: 'User',
-    component: loadView('User')
+    component: loadView('User'),
+    meta: { requiresContext: true }
   },
   {
     path: '/control',
     name: 'Control',
     component: Control,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresContext: true }
   },
   {
     path: '/:pathMatch(.*)*',
@@ -128,7 +134,8 @@ const routes = [
   {
     path: '/profile',
     name: 'Profile',
-    component: loadView('ProfilePage')
+    component: loadView('ProfilePage'),
+    meta: { requiresContext: true }
   }
 ]
 
@@ -138,5 +145,13 @@ const router = createRouter({
 })
 router.beforeEach(authGuard)
 router.beforeEach(redirectToWelcome)
+
+// Initialize contexts for routes that require them
+router.beforeEach(async (to) => {
+  if (to.meta.requiresContext) {
+    const contextsStore = useContextsStore()
+    await contextsStore.initializeContexts()
+  }
+})
 
 export default router
