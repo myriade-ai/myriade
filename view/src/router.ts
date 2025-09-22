@@ -1,14 +1,14 @@
 import { authGuard, redirectToWelcome } from '@/auth'
 import Control from '@/components/Control.vue'
 import { useQueryEditor } from '@/composables/useQueryEditor'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useContextsStore } from './stores/contexts'
 
 function loadView(view: string) {
   return () => import(`./views/${view}.vue`)
 }
 
-const routes = [
+const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'NewChat',
@@ -57,7 +57,7 @@ const routes = [
     meta: { requiresContext: true },
     beforeEnter: async (to) => {
       const { loadQuery } = useQueryEditor()
-      await loadQuery(to.params.id)
+      await loadQuery(Array.isArray(to.params.id) ? to.params.id[0] : to.params.id)
       return true
     }
   },
@@ -135,6 +135,12 @@ const routes = [
     path: '/profile',
     name: 'Profile',
     component: loadView('ProfilePage'),
+    meta: { requiresContext: true }
+  },
+  {
+    path: '/catalog',
+    name: 'CatalogPage',
+    component: loadView('CatalogPage'),
     meta: { requiresContext: true }
   }
 ]
