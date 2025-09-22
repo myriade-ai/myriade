@@ -1,35 +1,19 @@
-<template>
-  <div class="tabs-root">
-    <slot />
-  </div>
-</template>
-
 <script setup lang="ts">
-import { provide, ref, onMounted } from 'vue'
-import type { Ref } from 'vue'
+import type { TabsRootEmits, TabsRootProps } from 'reka-ui'
+import type { HTMLAttributes } from 'vue'
+import { reactiveOmit } from '@vueuse/core'
+import { TabsRoot, useForwardPropsEmits } from 'reka-ui'
+import { cn } from '@/lib/utils'
 
-interface Props {
-  defaultValue?: string
-}
+const props = defineProps<TabsRootProps & { class?: HTMLAttributes['class'] }>()
+const emits = defineEmits<TabsRootEmits>()
 
-const props = withDefaults(defineProps<Props>(), {
-  defaultValue: 'overview'
-})
-
-const activeTab: Ref<string> = ref(props.defaultValue || 'overview')
-
-provide('activeTab', activeTab)
-
-function setActiveTab(value: string) {
-  activeTab.value = value
-}
-
-provide('setActiveTab', setActiveTab)
-
-// Initialize on mount to ensure proper setup
-onMounted(() => {
-  if (!activeTab.value) {
-    activeTab.value = props.defaultValue || 'overview'
-  }
-})
+const delegatedProps = reactiveOmit(props, 'class')
+const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
+
+<template>
+  <TabsRoot data-slot="tabs" v-bind="forwarded" :class="cn('flex flex-col gap-2', props.class)">
+    <slot />
+  </TabsRoot>
+</template>
