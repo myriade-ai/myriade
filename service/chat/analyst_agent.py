@@ -124,21 +124,17 @@ class DataAnalystAgent:
         catalog_tool = CatalogTool(self.session, self.conversation.database)
         self.agent.add_tool(catalog_tool, "catalog")
 
-        if self.conversation.dbt_repo_path:
-            if (
-                self.conversation.database.dbt_catalog
-                and self.conversation.database.dbt_manifest
-            ):
-                dbt = DBT(
-                    catalog=self.conversation.database.dbt_catalog,
-                    manifest=self.conversation.database.dbt_manifest,
-                    repo_path=self.conversation.database.dbt_repo_path,
-                    database_config={
-                        "engine": self.conversation.database.engine,
-                        "details": self.conversation.database.details,
-                    },
-                )
-                self.agent.add_tool(dbt, "dbt")
+        if self.conversation.database.dbt_repo_path:
+            dbt = DBT(
+                catalog=self.conversation.database.dbt_catalog,
+                manifest=self.conversation.database.dbt_manifest,
+                repo_path=self.conversation.database.dbt_repo_path,
+                database_config={
+                    "engine": self.conversation.database.engine,
+                    "details": self.conversation.database.details,
+                },
+            )
+            self.agent.add_tool(dbt, "dbt")
 
             code_editor = CodeEditor(
                 self.conversation.database.dbt_repo_path,
