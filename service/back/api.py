@@ -20,7 +20,7 @@ from back.utils import (
     update_catalog_privacy,
 )
 from chat.proxy_provider import ProxyProvider
-from middleware import admin_required, user_middleware
+from middleware import admin_required, user_middleware, context_middleware, extract_context
 from models import (
     Chart,
     Conversation,
@@ -39,37 +39,17 @@ api = Blueprint("back_api", __name__)
 AGENTLYS_PROVIDER = os.getenv("AGENTLYS_PROVIDER", "proxy")
 
 
-def extract_context(session: Session, context_id: str) -> tuple[UUID, UUID | None]:
-    """
-    Extract the databaseId from the context_id
-    context is "project-{projectId}" or "database-{databaseId}"
-    """
-    if context_id.startswith("project-"):
-        project_id = context_id.removeprefix("project-")
-        project = session.query(Project).filter_by(id=project_id).first()
-        if not project:
-            raise ValueError(f"Project with id {project_id} not found")
-        return project.databaseId, project.id
-    elif context_id.startswith("database-"):
-        database_id = context_id.removeprefix("database-")
-        return UUID(database_id), None
-    else:
-        raise ValueError(f"Invalid context_id: {context_id}")
-
-
 @api.route("/conversations", methods=["POST"])
 @user_middleware
+@context_middleware
 def create_conversation():
     if not request.json:
         return jsonify({"message": "No JSON data provided"}), 400
-    context_id = request.json.get("contextId")
-    if not context_id:
-        return jsonify({"message": "contextId is required"}), 400
-    database_id, project_id = extract_context(g.session, context_id)
+    
     new_conversation = Conversation(
-        databaseId=database_id,
+        databaseId=g.database.id,
         ownerId=g.user.id,
-        projectId=project_id,
+        projectId=g.project.id if g.project else None,
     )
     g.session.add(new_conversation)
     g.session.flush()
@@ -315,8 +295,22 @@ def get_questions(context_id):
     user_language = request.headers.get("Accept-Language")
 
     # context is "project-{projectId}" or "database-{databaseId}"
-    database_id, project_id = extract_context(g.session, context_id)
+    try:
+        database_id, project_id = extract_context(g.session, context_id)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    
     database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+    
+    # Verify user has access to this database
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
 
     tables_metadata = get_tables_metadata_from_catalog(database.id)
 
@@ -690,9 +684,8 @@ def toggle_chart_favorite(chart_id: UUID):
 
 @api.route("/favorites", methods=["GET"])
 @user_middleware
+@context_middleware
 def get_favorites():
-    context_id = request.args.get("contextId")
-    database_id, _ = extract_context(g.session, context_id)
     """Get all favorited queries and charts for the current user"""
     query_favorites = (
         g.session.query(Query)
@@ -701,7 +694,7 @@ def get_favorites():
             UserFavorite.user_id == g.user.id,
             Query.rows.isnot(None),
             Query.exception.is_(None),
-            Query.databaseId == database_id,
+            Query.databaseId == g.database.id,
         )
         .all()
     )
@@ -710,7 +703,7 @@ def get_favorites():
         g.session.query(Chart)
         .join(UserFavorite, UserFavorite.chart_id == Chart.id)
         .join(Query, Query.id == Chart.queryId)
-        .filter(UserFavorite.user_id == g.user.id, Query.databaseId == database_id)
+        .filter(UserFavorite.user_id == g.user.id, Query.databaseId == g.database.id)
         .all()
     )
     # print each query as dict
@@ -733,28 +726,14 @@ def get_favorites():
 
 @api.route("/business-entities", methods=["GET"])
 @user_middleware
+@context_middleware
 def get_business_entities():
-    context_id = request.args.get("contextId")
-    database_id, project_id = extract_context(g.session, context_id)
-
-    # Verify user has access to the database through organization or ownership
-    database = g.session.query(Database).filter_by(id=database_id).first()
-    if not database:
-        return jsonify({"error": "Database not found"}), 404
-
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
-    ):
-        return jsonify({"error": "Access denied"}), 403
-
     # Query business entities with proper database access validation
     query = (
         g.session.query(BusinessEntity)
         .join(Database, BusinessEntity.database_id == Database.id)
         .filter(
-            BusinessEntity.database_id == database_id,
+            BusinessEntity.database_id == g.database.id,
             or_(
                 Database.organisationId == g.organization_id
                 if g.organization_id is not None
@@ -765,7 +744,7 @@ def get_business_entities():
         )
     )
 
-    if project_id:
+    if g.project:
         # Additional filter for project-specific entities if needed
         # Note: BusinessEntity model doesn't have project_id field based on the schema
         # This filter may need to be adjusted based on actual relationships
@@ -777,28 +756,14 @@ def get_business_entities():
 
 @api.route("/issues", methods=["GET"])
 @user_middleware
+@context_middleware
 def get_issues():
-    context_id = request.args.get("contextId")
-    database_id, _ = extract_context(g.session, context_id)
-
-    # Verify user has access to the database through organization or ownership
-    database = g.session.query(Database).filter_by(id=database_id).first()
-    if not database:
-        return jsonify({"error": "Database not found"}), 404
-
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
-    ):
-        return jsonify({"error": "Access denied"}), 403
-
     # Query issues with proper database access validation
     query = (
         g.session.query(Issue)
         .join(Database, Issue.database_id == Database.id)
         .filter(
-            Issue.database_id == database_id,
+            Issue.database_id == g.database.id,
             or_(
                 Database.organisationId == g.organization_id
                 if g.organization_id is not None
