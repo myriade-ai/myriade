@@ -39,6 +39,7 @@ export interface Message {
     arguments: any
   }
   queryId?: string
+  image?: string // base64 encoded image
 }
 
 // A small type for tracking conversation status & errors
@@ -148,7 +149,7 @@ export const useConversationsStore = defineStore('conversations', () => {
           queriesStore.fetchQuery(message.queryId)
         }
       })
-    } catch (error: any) {
+    } catch {
       // Mark this conversation as error
       conversationStatuses.value[conversationId] = {
         status: STATUS.ERROR,

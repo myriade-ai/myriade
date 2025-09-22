@@ -1,15 +1,15 @@
 <template>
-  <div class="h-6 w-6 absolute right-2 top-1/2 transform -translate-y-1/2">
-    <ArrowPathIcon v-if="status === 'running'" class="h-5 w-5 animate-spin" />
-    <XMarkIcon v-else-if="status === 'error'" class="h-5 w-5 text-error-500" />
+  <div class="h-6 w-6">
+    <RefreshCcw v-if="status === 'running'" class="h-6 w-6 animate-spin" />
+    <X v-else-if="status === 'error'" class="h-6 w-6 text-error-500" />
     <button v-else @click="onClick">
-      <PaperAirplaneIcon class="h-5 w-5" />
+      <ArrowUp class="h-6 w-6 text-white" />
     </button>
   </div>
 </template>
 
 <script setup>
-import { ArrowPathIcon, PaperAirplaneIcon, XMarkIcon } from '@heroicons/vue/24/solid'
+import { ArrowUp, RefreshCcw, X } from 'lucide-vue-next'
 
 defineProps({
   status: {
