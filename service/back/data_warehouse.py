@@ -189,9 +189,7 @@ class DataWarehouseRegistry:
 
 class AbstractDatabase(ABC):
     write_mode = "confirmation"  # "read-only", "confirmation", "skip-confirmation"
-    tables_metadata: list[dict] | None = (
-        None  # populated by Database.create_data_warehouse()
-    )
+    tables_metadata: list[dict] | None = None
 
     @abstractmethod
     def __init__(self):
@@ -209,6 +207,58 @@ class AbstractDatabase(ABC):
     @abstractmethod
     def _query_unprotected(self, query) -> list[dict]:
         pass
+
+    def get_sample_data(
+        self, table_name: str, schema_name: str, limit: int = 10
+    ) -> dict | None:
+        """
+        Get sample data from a table
+        Args:
+            table_name: Name of the table to sample
+            schema_name: Schema containing the table
+            limit: Number of sample rows to retrieve (max: 20)
+        """
+        if not schema_name or not table_name:
+            return {
+                "error": ("Cannot sample data: missing schema or table information")
+            }
+
+        safe_limit = min(limit, 20)
+
+        try:
+            # Build the sample query
+            sample_query = f"""
+            SELECT *
+            FROM "{schema_name}"."{table_name}"
+            ORDER BY RANDOM()
+            LIMIT {safe_limit}
+            """
+
+            # Execute the query using the database's unprotected method
+            rows = self._query_unprotected(sample_query.strip())
+
+            # Convert rows to list of dictionaries for better YAML output
+            columns = list(rows[0].keys()) if rows else []
+            sample_data = [dict(row) for row in rows[:safe_limit]]
+
+            sample_result = {
+                "sample_query": sample_query.strip(),
+                "sample_size": len(sample_data),
+                "columns": columns,
+                "data": sample_data,
+                "note": f"Sample shows first {safe_limit} rows from table",
+            }
+
+            return sample_result
+
+        except Exception as e:
+            return {
+                "error": f"Failed to sample data: {str(e)}",
+                "note": (
+                    "Data sampling failed. This may be due to database "
+                    "connectivity issues, permissions, or query syntax."
+                ),
+            }
 
     def _query_count(self, sql) -> int | None:
         count_request = f"SELECT COUNT(*) FROM ({sql.replace(';', '')}) AS foo"
@@ -386,6 +436,62 @@ class SQLDatabase(AbstractDatabase):
 
             return rows
 
+    def get_sample_data(
+        self, table_name: str, schema_name: str, limit: int = 10
+    ) -> dict | None:
+        """SQL database implementation using RAND() for MySQL, RANDOM() for others"""
+        if not schema_name or not table_name:
+            return {
+                "error": ("Cannot sample data: missing schema or table information")
+            }
+
+        safe_limit = min(limit, 20)
+
+        try:
+            # Use appropriate random function based on dialect
+            if self.dialect == "mysql":
+                # MySQL uses RAND()
+                sample_query = f"""
+                SELECT *
+                FROM `{schema_name}`.`{table_name}`
+                ORDER BY RAND()
+                LIMIT {safe_limit}
+                """
+            else:
+                # PostgreSQL, SQLite, and others use RANDOM()
+                sample_query = f"""
+                SELECT *
+                FROM "{schema_name}"."{table_name}"
+                ORDER BY RANDOM()
+                LIMIT {safe_limit}
+                """
+
+            # Execute the query using the database's unprotected method
+            rows = self._query_unprotected(sample_query.strip())
+
+            # Convert rows to list of dictionaries for better YAML output
+            columns = list(rows[0].keys()) if rows else []
+            sample_data = [dict(row) for row in rows[:safe_limit]]
+
+            sample_result = {
+                "sample_query": sample_query.strip(),
+                "sample_size": len(sample_data),
+                "columns": columns,
+                "data": sample_data,
+                "note": f"Sample shows first {safe_limit} rows from table",
+            }
+
+            return sample_result
+
+        except Exception as e:
+            return {
+                "error": f"Failed to sample data: {str(e)}",
+                "note": (
+                    "Data sampling failed. This may be due to database "
+                    "connectivity issues, permissions, or query syntax."
+                ),
+            }
+
 
 class PostgresDatabase(SQLDatabase):
     def __init__(self, uri):
@@ -553,6 +659,52 @@ class BigQueryDatabase(AbstractDatabase):
             total_size += row_size
 
         return rows_list
+
+    def get_sample_data(
+        self, table_name: str, schema_name: str, limit: int = 10
+    ) -> dict | None:
+        """BigQuery-specific implementation using RAND() instead of RANDOM()"""
+        if not schema_name or not table_name:
+            return {
+                "error": ("Cannot sample data: missing schema or table information")
+            }
+
+        safe_limit = min(limit, 20)
+
+        try:
+            # BigQuery uses backticks and RAND() instead of RANDOM()
+            sample_query = f"""
+            SELECT *
+            FROM `{schema_name}.{table_name}`
+            ORDER BY RAND()
+            LIMIT {safe_limit}
+            """
+
+            # Execute the query using the database's unprotected method
+            rows = self._query_unprotected(sample_query.strip())
+
+            # Convert rows to list of dictionaries for better YAML output
+            columns = list(rows[0].keys()) if rows else []
+            sample_data = [dict(row) for row in rows[:safe_limit]]
+
+            sample_result = {
+                "sample_query": sample_query.strip(),
+                "sample_size": len(sample_data),
+                "columns": columns,
+                "data": sample_data,
+                "note": f"Sample shows first {safe_limit} rows from table",
+            }
+
+            return sample_result
+
+        except Exception as e:
+            return {
+                "error": f"Failed to sample data: {str(e)}",
+                "note": (
+                    "Data sampling failed. This may be due to database "
+                    "connectivity issues, permissions, or query syntax."
+                ),
+            }
 
 
 class MotherDuckDatabase(AbstractDatabase):

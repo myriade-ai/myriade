@@ -1,6 +1,164 @@
 # CHANGELOG
 
 
+## v0.43.4 (2025-09-22)
+
+### Bug Fixes
+
+- Add name to UniqueConstraint for table_facet
+  ([#108](https://github.com/myriade-ai/myriade/pull/108),
+  [`a272f2e`](https://github.com/myriade-ai/myriade/commit/a272f2e979c42893c0f2db0cd5f477caaf123e29))
+
+### Documentation
+
+- Add agents.md ([#107](https://github.com/myriade-ai/myriade/pull/107),
+  [`31f0b45`](https://github.com/myriade-ai/myriade/commit/31f0b4559d4dc322a433f50e4515e4d5fa0f625f))
+
+
+## v0.43.3 (2025-09-22)
+
+### Bug Fixes
+
+- Merge two heads
+  ([`386c01b`](https://github.com/myriade-ai/myriade/commit/386c01ba1ecd23cb091bf2a26b6fd9862a286dd0))
+
+
+## v0.43.2 (2025-09-22)
+
+### Bug Fixes
+
+- Scope table facet uniqueness per database ([#103](https://github.com/myriade-ai/myriade/pull/103),
+  [`06c857e`](https://github.com/myriade-ai/myriade/commit/06c857e32113e085c701dd3bbfa1d6a765ba30b0))
+
+
+## v0.43.1 (2025-09-21)
+
+### Bug Fixes
+
+- Build
+  ([`d3d7dfb`](https://github.com/myriade-ai/myriade/commit/d3d7dfb9b2b779ecfab915ab769568348cc6f520))
+
+### Build System
+
+- **deps**: Bump the npm_and_yarn group across 1 directory with 2 updates
+  ([#82](https://github.com/myriade-ai/myriade/pull/82),
+  [`beb3617`](https://github.com/myriade-ai/myriade/commit/beb361722aa7d0314821e3e6c813b2020a20c546))
+
+Bumps the npm_and_yarn group with 2 updates in the /view directory:
+  [axios](https://github.com/axios/axios) and
+  [vite](https://github.com/vitejs/vite/tree/HEAD/packages/vite).
+
+Updates `axios` from 1.8.2 to 1.12.0 - [Release notes](https://github.com/axios/axios/releases) -
+  [Changelog](https://github.com/axios/axios/blob/v1.x/CHANGELOG.md) -
+  [Commits](https://github.com/axios/axios/compare/v1.8.2...v1.12.0)
+
+Updates `vite` from 6.3.5 to 6.3.6 - [Release notes](https://github.com/vitejs/vite/releases) -
+  [Changelog](https://github.com/vitejs/vite/blob/v6.3.6/packages/vite/CHANGELOG.md) -
+  [Commits](https://github.com/vitejs/vite/commits/v6.3.6/packages/vite)
+
+--- updated-dependencies: - dependency-name: axios dependency-version: 1.12.0
+
+dependency-type: direct:production
+
+dependency-group: npm_and_yarn
+
+- dependency-name: vite dependency-version: 6.3.6
+
+dependency-type: direct:development
+
+dependency-group: npm_and_yarn ...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+
+### Refactoring
+
+- Remove unused submit function and update version
+  ([#95](https://github.com/myriade-ai/myriade/pull/95),
+  [`3dab4f3`](https://github.com/myriade-ai/myriade/commit/3dab4f340bb40525901154d1d82d343ddd145655))
+
+
+## v0.43.0 (2025-09-21)
+
+### Build System
+
+- Add prettier precommit hook for frontend ([#100](https://github.com/myriade-ai/myriade/pull/100),
+  [`07346a9`](https://github.com/myriade-ai/myriade/commit/07346a9fa361afba2fe2f538863116f8eed1f703))
+
+- Setup fly.io git branch preview environment ([#99](https://github.com/myriade-ai/myriade/pull/99),
+  [`6c27878`](https://github.com/myriade-ai/myriade/commit/6c2787808b9010b5148f9fb72020ed371c996fa2))
+
+### Chores
+
+- Remove pinia-plugin-persistedstate ([#92](https://github.com/myriade-ai/myriade/pull/92),
+  [`6da0d46`](https://github.com/myriade-ai/myriade/commit/6da0d465350df31f59fd2d0bac7d588fcb1ebeeb))
+
+### Features
+
+- Emit rejected event and focus input
+  ([`919beea`](https://github.com/myriade-ai/myriade/commit/919beea65eccbc84efc709010532ef206e5862d8))
+
+This commit introduces a 'rejected' event emission from AskQueryConfirmation.vue when an operation
+  is rejected. This event is caught by Chat.vue and triggers the focusInput function, ensuring the
+  input field is ready for the user's next action. The yarn.lock file has also been updated to
+  reflect dependency changes.
+
+Co-authored-by: benderville <benderville@gmail.com>
+
+
+## v0.42.1 (2025-09-19)
+
+### Bug Fixes
+
+- Ensure contexts are initialized on component mount
+  ([#90](https://github.com/myriade-ai/myriade/pull/90),
+  [`c278126`](https://github.com/myriade-ai/myriade/commit/c278126303e6b8745decf503c548701e692ce93d))
+
+### Refactoring
+
+- Cleanup deadcode ([#87](https://github.com/myriade-ai/myriade/pull/87),
+  [`cab19d2`](https://github.com/myriade-ai/myriade/commit/cab19d2bd562cf86e91dd002f669ab53b3ee9580))
+
+- Use agentlys ([#88](https://github.com/myriade-ai/myriade/pull/88),
+  [`be99b3c`](https://github.com/myriade-ai/myriade/commit/be99b3c6471006a6659a6ef92582a4320d2147ce))
+
+
+## v0.42.0 (2025-09-17)
+
+### Features
+
+- Catalog ([#84](https://github.com/myriade-ai/myriade/pull/84),
+  [`6f458e0`](https://github.com/myriade-ai/myriade/commit/6f458e03c5ace9bc3aeffd453263dad7a9cb04ee))
+
+* fix: migrations write_mode * feat: implement data catalog tools * feat: upgrade sidebar (#85) *
+  feat: refactor data sampling methods * fix: migration * fix: add read_term * fix: update snapshots
+  * fix: format
+
+
+## v0.41.3 (2025-09-17)
+
+### Bug Fixes
+
+- Connection field name ([#86](https://github.com/myriade-ai/myriade/pull/86),
+  [`0c0edef`](https://github.com/myriade-ai/myriade/commit/0c0edef9ee444ce2530c8f4078d38c0eca74b763))
+
+### Build System
+
+- **deps**: Bump form-data ([#52](https://github.com/myriade-ai/myriade/pull/52),
+  [`0786e34`](https://github.com/myriade-ai/myriade/commit/0786e34792d6cf66b90a233ae10787bfe2add5fa))
+
+--- updated-dependencies: - dependency-name: form-data dependency-version: 4.0.4
+
+dependency-type: indirect
+
+dependency-group: npm_and_yarn ...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+
+
 ## v0.41.2 (2025-09-15)
 
 ### Bug Fixes

@@ -2,7 +2,7 @@
   <div class="relative">
     <button
       class="absolute px-2 py-1 text-sm font-medium text-black bg-gray-100 rounded-md shadow-xs hover:bg-gray-300 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-      style="top: 10px; right: 10px; z-index: 100"
+      style="top: 10px; right: 10px"
       @click="copyToClipboard"
     >
       {{ copyText }}
