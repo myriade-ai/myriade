@@ -31,6 +31,7 @@ from models import (
     Query,
     UserFavorite,
 )
+from models.catalog import Asset, Term
 from models.quality import BusinessEntity, Issue
 
 logger = logging.getLogger(__name__)
@@ -729,6 +730,182 @@ def get_favorites():
 
     charts = [chart.to_dict() for chart in chart_favorites]
     return jsonify({"queries": queries, "charts": charts})
+
+
+# Catalog API routes
+@api.route("/catalogs/<string:context_id>/assets", methods=["GET"])
+@user_middleware
+def get_catalog_assets(context_id):
+    """Get catalog assets for a context with optional filtering"""
+    database_id, _ = extract_context(g.session, context_id)
+    database = g.session.query(Database).filter_by(id=database_id).first()
+
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    asset_type = request.args.get("type")  # TABLE, COLUMN
+    limit = int(request.args.get("limit", 50))
+
+    query = g.session.query(Asset).filter(Asset.database_id == database_id)
+
+    if asset_type:
+        query = query.filter(Asset.type == asset_type.upper())
+
+    assets = query.limit(limit).all()
+
+    # Convert to dictionaries with facet data
+    result = []
+    for asset in assets:
+        asset_dict = asset.to_dict()
+
+        # Add facet-specific data
+        if asset.type == "TABLE" and asset.table_facet:
+            asset_dict["table_facet"] = asset.table_facet.to_dict()
+        elif asset.type == "COLUMN" and asset.column_facet:
+            asset_dict["column_facet"] = asset.column_facet.to_dict()
+
+        result.append(asset_dict)
+
+    return jsonify(result)
+
+
+@api.route("/catalogs/<string:context_id>/terms", methods=["GET"])
+@user_middleware
+def get_catalog_terms(context_id):
+    """Get catalog terms for a context"""
+    database_id, _ = extract_context(g.session, context_id)
+    database = g.session.query(Database).filter_by(id=database_id).first()
+
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    limit = int(request.args.get("limit", 50))
+
+    terms = (
+        g.session.query(Term).filter(Term.database_id == database_id).limit(limit).all()
+    )
+
+    return jsonify([term.to_dict() for term in terms])
+
+
+@api.route("/catalogs/<string:context_id>/search", methods=["GET"])
+@user_middleware
+def search_catalog(context_id):
+    """Search catalog assets and terms"""
+    database_id, _ = extract_context(g.session, context_id)
+    database = g.session.query(Database).filter_by(id=database_id).first()
+
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    query = request.args.get("q", "")
+    asset_type = request.args.get("type")  # TABLE, COLUMN, TERM
+    limit = int(request.args.get("limit", 50))
+
+    if not query:
+        return jsonify({"assets": [], "terms": []})
+
+    results = {"assets": [], "terms": []}
+
+    # Search assets
+    if not asset_type or asset_type.upper() in ["TABLE", "COLUMN"]:
+        asset_query = (
+            g.session.query(Asset)
+            .filter(Asset.database_id == database_id)
+            .filter(
+                Asset.name.ilike(f"%{query}%")
+                | Asset.description.ilike(f"%{query}%")
+                | Asset.urn.ilike(f"%{query}%")
+            )
+        )
+
+        if asset_type and asset_type.upper() in ["TABLE", "COLUMN"]:
+            asset_query = asset_query.filter(Asset.type == asset_type.upper())
+
+        assets = asset_query.limit(limit).all()
+        results["assets"] = [asset.to_dict() for asset in assets]
+
+    # Search terms
+    if not asset_type or asset_type.upper() == "TERM":
+        term_query = (
+            g.session.query(Term)
+            .filter(Term.database_id == database_id)
+            .filter(Term.name.ilike(f"%{query}%") | Term.definition.ilike(f"%{query}%"))
+            .limit(limit)
+        )
+
+        terms = term_query.all()
+        results["terms"] = [term.to_dict() for term in terms]
+
+    return jsonify(results)
+
+
+@api.route("/catalogs/<string:context_id>/terms", methods=["POST"])
+@user_middleware
+def create_catalog_term(context_id):
+    """Create a new catalog term"""
+    database_id, _ = extract_context(g.session, context_id)
+    database = g.session.query(Database).filter_by(id=database_id).first()
+
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access
+    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json()
+    required_fields = ["name", "definition"]
+
+    if not all(field in data for field in required_fields):
+        return jsonify({"error": "Missing required fields: name, definition"}), 400
+
+    # Check if term with same name already exists
+    existing_term = (
+        g.session.query(Term)
+        .filter(Term.database_id == database_id, Term.name.ilike(data["name"]))
+        .first()
+    )
+
+    if existing_term:
+        return jsonify({"error": "Term with this name already exists"}), 409
+
+    new_term = Term(
+        name=data["name"],
+        definition=data["definition"],
+        database_id=database_id,
+        synonyms=data.get("synonyms", []),
+        business_domains=data.get("business_domains", []),
+    )
+
+    g.session.add(new_term)
+    g.session.flush()
+
+    return jsonify(new_term.to_dict()), 201
 
 
 @api.route("/business-entities", methods=["GET"])

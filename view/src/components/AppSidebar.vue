@@ -51,7 +51,8 @@ import {
   ShieldCheck,
   SquarePen,
   Trash2,
-  UserRoundPen
+  UserRoundPen,
+  BookOpen
 } from 'lucide-vue-next'
 import { computed, nextTick, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
@@ -89,6 +90,11 @@ const navItems: { title: string; url: string; icon: typeof SquarePen; disabled?:
     title: 'Editor',
     url: '/editor',
     icon: FilePenLine
+  },
+  {
+    title: 'Catalog',
+    url: '/catalog',
+    icon: BookOpen
   }
 ]
 
