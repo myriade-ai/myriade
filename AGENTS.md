@@ -6,11 +6,19 @@ Myriade is the first AI-native data platform.
 As it's core, it provide an interface to explore and analyze databases with a data analyst agent.
 For enterprise customers, it provides interfaces to maintain up-to-date data catalog, reduce data warehouse costs, assist with modeling, etc...
 
+## Agent Workflow
+
+1. Think about the task required. What is the goal? What is the scope? What is the context? It's not clear or ambiguous, ask for clarification.
+2. Explore the possible implementations designs. Unless it's explicit/specific or straightforward, explore the possibilities and find the best solution.
+3. Make a plan to develop and test your work.
+4. Ensure there is the **minimum of changes necessary** (no more, no less)
+5. If, during your work, you discover code to improve, tell it in the PR description.
+
 ## Architecture
 
 ### Tech Stack
 
-- **Frontend**: Vue 3, Tailwind CSS, Vite (in `/view`)
+- **Frontend**: Vue 3, Tailwind CSS, Vue-Shadcn, Vite (in `/view`)
 - **Backend**: Python with Flask, SQLAlchemy, Alembic, Socket.IO (in `/service`)
 - **AI Library**: [Agentlys library](https://github.com/myriade-ai/agentlys)
 - **Database**: PostgreSQL (or SQLite -- recommended -- for light/development implementation)
@@ -19,6 +27,7 @@ For enterprise customers, it provides interfaces to maintain up-to-date data cat
 
 - `/service` - Python backend with Flask API, chat agents, and database integrations
 - `/view` - Vue.js frontend with real-time chat interface and SQL editor
+- `/view/components/ui` - Vue.js components from Shadcn
 - `/service/chat/` - AI agent implementation for database analysis
 - `/service/back/` - Core database query processing and data warehouse integration
 - `/service/auth/` - Authentication and authorization
