@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.43.2 (2025-09-22)
+
+### Bug Fixes
+
+- Scope table facet uniqueness per database ([#103](https://github.com/myriade-ai/myriade/pull/103),
+  [`06c857e`](https://github.com/myriade-ai/myriade/commit/06c857e32113e085c701dd3bbfa1d6a765ba30b0))
+
+
 ## v0.43.1 (2025-09-21)
 
 ### Bug Fixes
