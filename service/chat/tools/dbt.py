@@ -19,13 +19,13 @@ def read_json(file_path):
 class DBT:
     def __init__(
         self,
-        catalog: dict,
-        manifest: dict,
+        catalog: Optional[dict],
+        manifest: Optional[dict],
         repo_path: Optional[str] = None,
         database_config: Optional[Dict[str, Any]] = None,
     ):
-        self.catalog = catalog["sources"] | catalog["nodes"]
-        self.manifest = manifest["sources"] | manifest["nodes"]
+        self.catalog = catalog["sources"] | catalog["nodes"] if catalog else {}
+        self.manifest = manifest["sources"] | manifest["nodes"] if manifest else {}
         self.repo_path = repo_path
         self.database_config = database_config
         self.models: list[dict[str, str]] = [

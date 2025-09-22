@@ -1,7 +1,7 @@
 """add dbt_repo_path to database table
 
 Revision ID: 9addce233509
-Revises: c8852c2a5ee9
+Revises: c3dae8db7eae
 Create Date: 2025-09-10 09:47:13.076182
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "9addce233509"
-down_revision: Union[str, None] = "c8852c2a5ee9"
+down_revision: Union[str, None] = "c3dae8db7eae"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
