@@ -91,3 +91,44 @@ export interface ChatMessage {
     entityName: string
   }
 }
+
+export interface DataLineage {
+  id: string
+  sourceTableId: string
+  sourceTableName: string
+  targetTableId: string
+  targetTableName: string
+  transformationType: 'direct_copy' | 'aggregation' | 'join' | 'filter' | 'calculation'
+  description?: string
+  lastUpdated: string
+}
+
+export interface DataAsset {
+  id: string
+  name: string
+  type: 'source' | 'table' | 'field'
+  assetType: 'database' | 'table' | 'view' | 'column' | 'file' | 'api'
+  qualityScore: number
+  status: 'good' | 'warning' | 'error'
+  domain: string
+  owner?: string
+  steward?: string
+  tags: string[]
+  description?: string
+  lastUpdated: string
+  usageFrequency: number
+  popularityScore: number
+  sourceId?: string
+  tableId?: string
+  parentPath?: string
+}
+
+export interface CatalogFilters {
+  searchTerm: string
+  assetTypes: string[]
+  domains: string[]
+  qualityScoreRange: [number, number]
+  tags: string[]
+  owners: string[]
+  status: string[]
+}

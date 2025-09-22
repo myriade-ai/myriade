@@ -30,13 +30,21 @@
 
     <!-- Main Tabbed Interface -->
     <div v-else class="flex-1 overflow-hidden">
-      <Tabs default-value="assets" class="h-full flex flex-col">
+      <Tabs default-value="catalog" class="h-full flex flex-col">
         <div class="flex-none px-6 py-3 border-b border-gray-200 bg-white">
-          <TabsList class="grid w-full grid-cols-2">
+          <TabsList class="grid w-full grid-cols-3">
+            <TabsTrigger value="catalog">Data Catalog</TabsTrigger>
             <TabsTrigger value="assets">Assets Table</TabsTrigger>
             <TabsTrigger value="terms">Business Terms</TabsTrigger>
           </TabsList>
         </div>
+
+        <!-- Data Catalog Tab -->
+        <TabsContent value="catalog" class="flex-1 overflow-hidden m-0 p-0">
+          <div class="h-full px-6 py-4 overflow-y-auto">
+            <DataCatalog />
+          </div>
+        </TabsContent>
 
         <!-- Assets Table Tab -->
         <TabsContent value="assets" class="flex-1 overflow-hidden m-0 p-0">
@@ -157,6 +165,7 @@
 
 <script setup lang="ts">
 import CatalogAssetsTable from '@/components/CatalogAssetsTable.vue'
+import DataCatalog from '@/components/DataCatalog.vue'
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
