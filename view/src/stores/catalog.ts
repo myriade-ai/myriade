@@ -46,7 +46,6 @@ export interface CatalogTerm {
   updatedAt: string
 }
 
-
 export interface CatalogSearchResults {
   assets: CatalogAsset[]
   terms: CatalogTerm[]
@@ -58,7 +57,6 @@ export const useCatalogStore = defineStore('catalog', () => {
   // ——————————————————————————————————————————————————
   const assets = ref<Record<string, CatalogAsset>>({})
   const terms = ref<Record<string, CatalogTerm>>({})
-  const searchResults = ref<CatalogSearchResults>({ assets: [], terms: [] })
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -72,9 +70,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         // Clear the catalog store
         assets.value = {}
         terms.value = {}
-        searchResults.value = { assets: [], terms: [] }
         error.value = null
-
       }
     },
     { immediate: true, deep: true }
@@ -101,18 +97,16 @@ export const useCatalogStore = defineStore('catalog', () => {
   const tableAssets = computed(() => assetsByType.value.TABLE || [])
   const columnAssets = computed(() => assetsByType.value.COLUMN || [])
 
-
   // ——————————————————————————————————————————————————
   // ACTIONS
   // ——————————————————————————————————————————————————
 
-
-  async function fetchAssets(contextId: string, type?: 'TABLE' | 'COLUMN', limit: number = 50) {
+  async function fetchAssets(contextId: string, type?: 'TABLE' | 'COLUMN') {
     try {
       loading.value = true
       error.value = null
 
-      const params: Record<string, any> = { limit }
+      const params: Record<string, unknown> = {}
       if (type) params.type = type
 
       const response: AxiosResponse<CatalogAsset[]> = await axios.get(
@@ -121,6 +115,10 @@ export const useCatalogStore = defineStore('catalog', () => {
           params
         }
       )
+
+      if (contextsStore.contextSelected?.id !== contextId) {
+        return []
+      }
 
       // Update assets in store
       response.data.forEach((asset) => {
@@ -149,6 +147,10 @@ export const useCatalogStore = defineStore('catalog', () => {
         }
       )
 
+      if (contextsStore.contextSelected?.id !== contextId) {
+        return []
+      }
+
       // Update terms in store
       response.data.forEach((term) => {
         terms.value[term.id] = term
@@ -163,49 +165,6 @@ export const useCatalogStore = defineStore('catalog', () => {
       loading.value = false
     }
   }
-
-  async function searchCatalog(
-    contextId: string,
-    query: string,
-    type?: 'TABLE' | 'COLUMN' | 'TERM',
-    limit: number = 50
-  ) {
-    try {
-      loading.value = true
-      error.value = null
-
-      const params: Record<string, any> = { q: query, limit }
-      if (type) params.type = type
-
-      const response: AxiosResponse<CatalogSearchResults> = await axios.get(
-        `/api/catalogs/${contextId}/search`,
-        {
-          params
-        }
-      )
-
-      searchResults.value = response.data
-
-      // Also update the stores with search results
-      response.data.assets.forEach((asset) => {
-        assets.value[asset.id] = asset
-      })
-      response.data.terms.forEach((term) => {
-        terms.value[term.id] = term
-      })
-
-      return response.data
-    } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to search catalog'
-      console.error('Error searching catalog:', err)
-      return { assets: [], terms: [] }
-    } finally {
-      loading.value = false
-    }
-  }
-
-
-
 
   async function createTerm(
     contextId: string,
@@ -236,15 +195,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-
-  function clearSearch() {
-    searchResults.value = { assets: [], terms: [] }
-  }
-
   function clearError() {
     error.value = null
   }
-
 
   // ——————————————————————————————————————————————————
   // RETURN
@@ -253,7 +206,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     // state
     assets,
     terms,
-    searchResults,
     loading,
     error,
 
@@ -267,9 +219,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     // actions
     fetchAssets,
     fetchTerms,
-    searchCatalog,
     createTerm,
-    clearSearch,
     clearError
   }
 })

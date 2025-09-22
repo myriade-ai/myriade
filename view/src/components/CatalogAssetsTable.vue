@@ -113,6 +113,7 @@ import {
 } from '@/components/ui/table'
 import { useCatalogStore, type CatalogAsset } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
+import { useConversationsStore } from '@/stores/conversations'
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import {
   FlexRender,
@@ -124,7 +125,7 @@ import {
   type ExpandedState
 } from '@tanstack/vue-table'
 import { Sparkles } from 'lucide-vue-next'
-import { computed, h, onMounted, ref, watch } from 'vue'
+import { computed, h, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 interface CatalogTableRow {
@@ -155,6 +156,7 @@ interface SchemaGroup {
 
 const catalogStore = useCatalogStore()
 const contextsStore = useContextsStore()
+const conversationsStore = useConversationsStore()
 const router = useRouter()
 
 const searchQuery = ref('')
@@ -277,10 +279,37 @@ const columns: ColumnDef<CatalogTableRow>[] = [
         return h(
           'div',
           {
-            class: 'text-sm text-gray-600 truncate overflow-hidden',
-            title: value
+            class: 'flex items-center space-x-2'
           },
-          value
+          [
+            h(
+              'div',
+              {
+                class: 'text-sm text-gray-600 truncate overflow-hidden flex-1',
+                title: value
+              },
+              value
+            ),
+            rowData.type === 'table' || rowData.type === 'column'
+              ? h(
+                  'button',
+                  {
+                    onClick: (e: Event) => {
+                      e.stopPropagation()
+                      fillDescription(rowData)
+                    },
+                    class:
+                      'inline-flex items-center justify-center w-4 h-4 p-0 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors flex-shrink-0',
+                    title: 'Improve description with AI'
+                  },
+                  [
+                    h(Sparkles, {
+                      class: 'h-3 w-3 text-primary-600'
+                    })
+                  ]
+                )
+              : null
+          ]
         )
       }
 
@@ -296,11 +325,36 @@ const columns: ColumnDef<CatalogTableRow>[] = [
 
       if (rowData.type === 'table' && rowData.columnCount) {
         return h(
-          'span',
+          'div',
           {
-            class: 'text-sm text-gray-500'
+            class: 'flex items-center space-x-2'
           },
-          `${rowData.columnCount} columns`
+          [
+            h(
+              'span',
+              {
+                class: 'text-sm text-gray-500'
+              },
+              `${rowData.columnCount} columns`
+            ),
+            h(
+              'button',
+              {
+                onClick: (e: Event) => {
+                  e.stopPropagation()
+                  fillDescription(rowData)
+                },
+                class:
+                  'inline-flex items-center justify-center w-4 h-4 p-0 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors',
+                title: 'Fill description with AI'
+              },
+              [
+                h(Sparkles, {
+                  class: 'h-3 w-3 text-primary-600'
+                })
+              ]
+            )
+          ]
         )
       }
 
@@ -317,23 +371,25 @@ const columns: ColumnDef<CatalogTableRow>[] = [
             },
             'No description'
           ),
-          h(
-            'button',
-            {
-              onClick: (e: Event) => {
-                e.stopPropagation()
-                fillDescription(rowData)
-              },
-              class:
-                'inline-flex items-center justify-center w-4 h-4 p-0 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors',
-              title: 'Fill description with AI'
-            },
-            [
-              h(Sparkles, {
-                class: 'h-3 w-3 text-primary-600'
-              })
-            ]
-          )
+          rowData.type === 'table' || rowData.type === 'column'
+            ? h(
+                'button',
+                {
+                  onClick: (e: Event) => {
+                    e.stopPropagation()
+                    fillDescription(rowData)
+                  },
+                  class:
+                    'inline-flex items-center justify-center w-4 h-4 p-0 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors',
+                  title: 'Fill description with AI'
+                },
+                [
+                  h(Sparkles, {
+                    class: 'h-3 w-3 text-primary-600'
+                  })
+                ]
+              )
+            : null
         ]
       )
     }
@@ -535,44 +591,84 @@ async function refresh() {
   }
 }
 
-function fillDescription(rowData: CatalogTableRow) {
+async function fillDescription(rowData: CatalogTableRow) {
+  if (!contextsStore.contextSelected) {
+    throw new Error('No context selected')
+  }
+
   let prompt = ''
 
   if (rowData.type === 'table') {
     const tableName =
       rowData.asset?.name || rowData.asset?.table_facet?.table_name || 'Unknown Table'
     const schemaName = rowData.asset?.table_facet?.schema || 'default'
-    prompt = `Please provide a description for the table '${tableName}' in schema '${schemaName}'. Consider what data this table might contain based on its name and structure.`
+
+    // Get existing description
+    const existingDescription = rowData.asset?.description
+
+    // Get columns for this table
+    const tableColumns = catalogStore.assetsArray
+      .filter(
+        (asset) =>
+          asset.type === 'COLUMN' && asset.column_facet?.parent_table_asset_id === rowData.asset?.id
+      )
+      .sort((a, b) => (a.column_facet?.ordinal || 0) - (b.column_facet?.ordinal || 0))
+
+    prompt = `Please provide a description for the table '${tableName}' in schema '${schemaName}'. Consider what data this table might contain based on its name and structure. Also create definitions for the columns inside this table.`
+
+    if (existingDescription) {
+      prompt += ` Current table description: "${existingDescription}".`
+    }
+
+    if (tableColumns.length > 0) {
+      prompt += ` The table has ${tableColumns.length} columns:`
+      tableColumns.forEach((col) => {
+        const colName = col.column_facet?.column_name || 'Unknown'
+        const colType = col.column_facet?.data_type || 'unknown'
+        const colDesc = col.description
+        prompt += ` ${colName} (${colType})`
+        if (colDesc) {
+          prompt += ` - currently described as: "${colDesc}"`
+        }
+        prompt += ';'
+      })
+    }
   } else if (rowData.type === 'column') {
     const columnName = rowData.asset?.column_facet?.column_name || 'Unknown Column'
     const dataType = rowData.asset?.column_facet?.data_type || 'unknown'
+    const existingDescription = rowData.asset?.description
 
     // Find parent table info
     const parentTableId = rowData.asset?.column_facet?.parent_table_asset_id
     let tableName = 'Unknown Table'
+    let parentTableDescription = ''
     if (parentTableId) {
       const parentTable = catalogStore.assetsArray.find((a) => a.id === parentTableId)
       if (parentTable) {
         tableName = parentTable.name || parentTable.table_facet?.table_name || 'Unknown Table'
+        parentTableDescription = parentTable.description || ''
       }
     }
 
     prompt = `Please provide a description for the column '${columnName}' of type '${dataType}' in table '${tableName}'. Consider what this column represents and what kind of data it might store.`
+
+    if (existingDescription) {
+      prompt += ` Current column description: "${existingDescription}".`
+    }
+
+    if (parentTableDescription) {
+      prompt += ` The parent table is described as: "${parentTableDescription}".`
+    }
   }
 
-  // Navigate to chat with the prompt
-  router.push({
-    path: '/chat/new',
-    query: { prompt: prompt }
-  })
+  const conversation = await conversationsStore.createConversation(
+    contextsStore.contextSelected!.id
+  )
+
+  await conversationsStore.sendMessage(conversation.id, prompt, 'text')
+
+  router.push({ name: 'ChatPage', params: { id: conversation.id.toString() } })
 }
-
-// Load assets when component mounts and we have a context but no assets
-onMounted(async () => {
-  if (contextsStore.contextSelected && catalogStore.assetsArray.length === 0) {
-    await catalogStore.fetchAssets(contextsStore.contextSelected.id, undefined, 1000)
-  }
-})
 
 watch(
   () => contextsStore.contextSelected,
@@ -580,10 +676,6 @@ watch(
     if (newContext && newContext.id !== oldContext?.id) {
       expanded.value = {}
       searchQuery.value = ''
-      // Fetch assets for new context if needed
-      if (catalogStore.assetsArray.length === 0) {
-        await catalogStore.fetchAssets(newContext.id, undefined, 1000)
-      }
     }
   }
 )

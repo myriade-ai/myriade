@@ -229,8 +229,11 @@ watch(
   () => contextsStore.contextSelected,
   async (newContext, oldContext) => {
     if (newContext && newContext.id !== oldContext?.id) {
-      // Fetch new context data
-      await catalogStore.fetchTerms(newContext.id)
+      // Fetch both terms and assets for the new context
+      await Promise.all([
+        catalogStore.fetchTerms(newContext.id),
+        catalogStore.fetchAssets(newContext.id, undefined)
+      ])
     }
   }
 )
@@ -238,7 +241,11 @@ watch(
 // Initialize on mount
 onMounted(async () => {
   if (contextsStore.contextSelected) {
-    await catalogStore.fetchTerms(contextsStore.contextSelected.id)
+    // Fetch both terms and assets for the catalog
+    await Promise.all([
+      catalogStore.fetchTerms(contextsStore.contextSelected.id),
+      catalogStore.fetchAssets(contextsStore.contextSelected.id, undefined)
+    ])
   }
 })
 </script>
