@@ -65,7 +65,7 @@ For enterprise customers, it provides interfaces to maintain up-to-date data cat
 Create `.env.dev` file in `/service` with:
 
 ```
-AUTOCHAT_MODEL=claude-sonnet-4-20250514
+AGENTLYS_MODEL=claude-sonnet-4-20250514
 ANTHROPIC_API_KEY=<your_key>
 DATABASE_URL=postgresql://user:pass@localhost:5432/myriade
 ```
