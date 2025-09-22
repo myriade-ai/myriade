@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.44.0 (2025-09-22)
+
+### Features
+
+- Add catalog draft ([#106](https://github.com/myriade-ai/myriade/pull/106),
+  [`14e328d`](https://github.com/myriade-ai/myriade/commit/14e328d63eff15fac51de92c7ef6e0616cf571c8))
+
+### Refactoring
+
+- Update tabs components ([#110](https://github.com/myriade-ai/myriade/pull/110),
+  [`d9e68a8`](https://github.com/myriade-ai/myriade/commit/d9e68a84eb6130e65ab68ba014e098fa1741c5e9))
+
+
 ## v0.43.4 (2025-09-22)
 
 ### Bug Fixes
