@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.44.1 (2025-09-23)
+
+### Bug Fixes
+
+- Remove global overscroll-behavior-none
+  ([`b35f855`](https://github.com/myriade-ai/myriade/commit/b35f8553b435df748260139b67ac0e35d9c9b6b6))
+
+### Refactoring
+
+- Chat design
+  ([`0c96264`](https://github.com/myriade-ai/myriade/commit/0c962644e03781e0d005ae7372460e7d4d4e260f))
+
+
 ## v0.44.0 (2025-09-22)
 
 ### Features
