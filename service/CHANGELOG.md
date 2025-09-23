@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.44.3 (2025-09-23)
+
+### Bug Fixes
+
+- Remove useless media query ([#117](https://github.com/myriade-ai/myriade/pull/117),
+  [`7e58a2a`](https://github.com/myriade-ai/myriade/commit/7e58a2a22b1e3de5c453abb60239f0fcf2c32540))
+
+### Refactoring
+
+- Use tanstack table ([#114](https://github.com/myriade-ai/myriade/pull/114),
+  [`a004103`](https://github.com/myriade-ai/myriade/commit/a004103a708bea9884ac9476e467537012531c7d))
+
+
 ## v0.44.2 (2025-09-23)
 
 ### Bug Fixes
