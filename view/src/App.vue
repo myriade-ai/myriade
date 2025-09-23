@@ -35,10 +35,14 @@
       </div>
     </div>
   </NotificationGroup>
+
+  <!-- Feature Flag Panel (Dev Only) -->
+  <FeatureFlagPanel />
 </template>
 
 <script lang="ts" setup>
 import BaseNotification from '@/components/base/BaseNotification.vue'
+import FeatureFlagPanel from '@/components/FeatureFlagPanel.vue'
 import { Notification, NotificationGroup } from 'notiwind'
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 

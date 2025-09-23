@@ -3,6 +3,8 @@ app = "myriade"
 primary_region = "cdg"
 
 [build]
+  [build.args]
+    ENV = "staging" 
 
 [http_service]
   internal_port = 8080

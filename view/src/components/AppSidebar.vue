@@ -37,6 +37,7 @@ import {
 import { logout, user } from '@/stores/auth'
 import { useContextsStore } from '@/stores/contexts'
 import { useConversationsStore } from '@/stores/conversations'
+import { useFeatureFlagsStore } from '@/stores/featureFlags'
 import {
   CalendarCog,
   ChevronsUpDown,
@@ -100,6 +101,7 @@ const navItems: { title: string; url: string; icon: typeof SquarePen; disabled?:
 
 const store = useConversationsStore()
 const contextsStore = useContextsStore()
+const featureFlagsStore = useFeatureFlagsStore()
 const router = useRouter()
 
 const editingConversationId = ref<string | null>(null)
@@ -115,6 +117,15 @@ function setNameInputRef(id: string) {
 
 const projects = computed(() => contextsStore.contexts.filter((c) => c.type === 'project'))
 const databases = computed(() => contextsStore.contexts.filter((c) => c.type === 'database'))
+
+const filteredNavItems = computed(() => {
+  return navItems.filter((item) => {
+    if (item.title === 'Catalog') {
+      return featureFlagsStore.isFeatureEnabled('catalog')
+    }
+    return true
+  })
+})
 
 const sortedGroup = computed(() => {
   return store.sortedUserConversations
@@ -212,7 +223,7 @@ async function handleDeleteConversation(conversationId: string) {
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem
-              v-for="item in navItems.filter(({ disabled }) => !disabled)"
+              v-for="item in filteredNavItems.filter(({ disabled }) => !disabled)"
               :key="item.title"
             >
               <SidebarMenuButton asChild :isActive="isActive(item.url)" :tooltip="item.title">

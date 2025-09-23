@@ -1,6 +1,9 @@
 # Multi-stage build for single container Myriade deployment
 FROM node:lts-alpine AS frontend-build
 
+# Accept environment argument (defaults to production)
+ARG ENV=production
+
 # Build Vue.js frontend
 WORKDIR /app/view
 COPY view/package.json view/yarn.lock ./
@@ -8,7 +11,13 @@ ENV NODE_OPTIONS="--max_old_space_size=4096"
 RUN yarn install
 
 COPY view/ .
-RUN yarn build
+
+# Build with proper Vite mode
+RUN if [ "$ENV" = "staging" ]; then \
+        yarn build --mode staging; \
+    else \
+        yarn build --mode production; \
+    fi
 
 # Main application stage
 FROM python:3.11.4
