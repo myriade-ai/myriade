@@ -6,7 +6,7 @@
       class="flex justify-center px-2 sm:px-4 lg:px-0"
       v-touch:swipe.right="toggleSidebar"
     >
-      <div class="flex flex-col w-full lg:min-h-[calc(100vh-4rem)]">
+      <div class="flex flex-col w-full min-h-[calc(100vh-4rem)]">
         <div class="flex flex-col flex-1 w-full max-w-3xl m-auto">
           <div class="w-full lg:pt-4">
             <ul class="list-none">
