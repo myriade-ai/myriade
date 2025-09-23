@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.44.2 (2025-09-23)
+
+### Bug Fixes
+
+- Update uv.lock with change
+  ([`435f3d0`](https://github.com/myriade-ai/myriade/commit/435f3d0f541b319dc45320ba209bd5490961a1d1))
+
+
 ## v0.44.1 (2025-09-23)
 
 ### Bug Fixes
