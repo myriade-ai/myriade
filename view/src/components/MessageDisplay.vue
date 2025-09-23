@@ -74,7 +74,7 @@
               <BaseEditor :modelValue="part.content" :read-only="true"></BaseEditor>
             </div>
             <div v-if="part.type === 'json'" :key="`json-${index}`" class="w-full overflow-x-auto">
-              <BaseTable :data="part.content" :count="part.content.length" />
+              <DataTable :data="part.content" :count="part.content.length" class="bg-white mt-2" />
             </div>
             <!-- TODO: remove -->
             <Card v-if="part.type === 'echarts'" :key="`echarts-${index}`">
@@ -180,7 +180,7 @@ import { computed, defineEmits, defineProps, onMounted, ref } from 'vue'
 import AskQueryConfirmation from '@/components/AskQueryConfirmation.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
-import BaseTable from '@/components/base/BaseTable.vue'
+import DataTable from '@/components/DataTable.vue'
 import Chart from '@/components/Chart.vue'
 import Echart from '@/components/Echart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
