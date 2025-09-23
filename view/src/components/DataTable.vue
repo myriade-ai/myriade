@@ -7,7 +7,7 @@
             <TableHead
               v-for="column in columns"
               :key="column"
-              class="font-medium cursor-pointer select-none hover:bg-muted/50"
+              class="font-medium cursor-pointer select-none bg-muted/50 hover:bg-muted"
               @click="toggleSort(column)"
             >
               <div class="flex items-center justify-between">
@@ -73,8 +73,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
 import { ChevronDown, ChevronUp } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
 import { Button } from './ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
 
