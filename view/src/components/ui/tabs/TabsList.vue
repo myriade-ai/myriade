@@ -1,12 +1,26 @@
+<script setup lang="ts">
+import { cn } from '@/lib/utils'
+import { reactiveOmit } from '@vueuse/core'
+import type { TabsListProps } from 'reka-ui'
+import { TabsList } from 'reka-ui'
+import type { HTMLAttributes } from 'vue'
+
+const props = defineProps<TabsListProps & { class?: HTMLAttributes['class'] }>()
+
+const delegatedProps = reactiveOmit(props, 'class')
+</script>
+
 <template>
-  <div
-    class="tabs-list inline-flex h-10 items-center justify-center rounded-md bg-gray-100 p-1 text-gray-500"
-    :class="$attrs.class"
+  <TabsList
+    data-slot="tabs-list"
+    v-bind="delegatedProps"
+    :class="
+      cn(
+        'bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]',
+        props.class
+      )
+    "
   >
     <slot />
-  </div>
+  </TabsList>
 </template>
-
-<script setup lang="ts">
-// No props needed, just a container for tab triggers
-</script>

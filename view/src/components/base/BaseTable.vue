@@ -87,5 +87,7 @@ onMounted(() => {
 }
 .tabulator {
   margin-top: 0.5rem;
+  margin: 0;
+  margin-top: 0.5rem;
 }
 </style>

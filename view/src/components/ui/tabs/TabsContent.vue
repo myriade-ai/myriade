@@ -1,28 +1,21 @@
+<script setup lang="ts">
+import { cn } from '@/lib/utils'
+import { reactiveOmit } from '@vueuse/core'
+import type { TabsContentProps } from 'reka-ui'
+import { TabsContent } from 'reka-ui'
+import type { HTMLAttributes } from 'vue'
+
+const props = defineProps<TabsContentProps & { class?: HTMLAttributes['class'] }>()
+
+const delegatedProps = reactiveOmit(props, 'class')
+</script>
+
 <template>
-  <div
-    v-show="isActive"
-    :class="[
-      'ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2',
-      $attrs.class
-    ]"
-    :data-state="isActive ? 'active' : 'inactive'"
-    tabindex="0"
+  <TabsContent
+    data-slot="tabs-content"
+    :class="cn('flex-1 outline-none', props.class)"
+    v-bind="delegatedProps"
   >
     <slot />
-  </div>
+  </TabsContent>
 </template>
-
-<script setup lang="ts">
-import { inject, computed } from 'vue'
-import type { Ref } from 'vue'
-
-interface Props {
-  value: string
-}
-
-const props = defineProps<Props>()
-
-const activeTab = inject<Ref<string>>('activeTab')
-
-const isActive = computed(() => activeTab?.value === props.value)
-</script>

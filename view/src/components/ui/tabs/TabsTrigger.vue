@@ -1,29 +1,28 @@
+<script setup lang="ts">
+import { cn } from '@/lib/utils'
+import { reactiveOmit } from '@vueuse/core'
+import type { TabsTriggerProps } from 'reka-ui'
+import { TabsTrigger, useForwardProps } from 'reka-ui'
+import type { HTMLAttributes } from 'vue'
+
+const props = defineProps<TabsTriggerProps & { class?: HTMLAttributes['class'] }>()
+
+const delegatedProps = reactiveOmit(props, 'class')
+
+const forwardedProps = useForwardProps(delegatedProps)
+</script>
+
 <template>
-  <button
-    @click="setActiveTab?.(value)"
-    :class="[
-      'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
-      isActive ? 'bg-white text-gray-950 shadow-sm' : 'hover:bg-gray-200/80 hover:text-gray-900'
-    ]"
-    :data-state="isActive ? 'active' : 'inactive'"
-    type="button"
+  <TabsTrigger
+    data-slot="tabs-trigger"
+    v-bind="forwardedProps"
+    :class="
+      cn(
+        `data-[state=active]:bg-background dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4`,
+        props.class
+      )
+    "
   >
     <slot />
-  </button>
+  </TabsTrigger>
 </template>
-
-<script setup lang="ts">
-import { inject, computed } from 'vue'
-import type { Ref } from 'vue'
-
-interface Props {
-  value: string
-}
-
-const props = defineProps<Props>()
-
-const activeTab = inject<Ref<string>>('activeTab')
-const setActiveTab = inject<(value: string) => void>('setActiveTab')
-
-const isActive = computed(() => activeTab?.value === props.value)
-</script>
