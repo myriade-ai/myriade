@@ -132,7 +132,6 @@
 /* Prevent double-tap zoom on iOS */
 * {
   touch-action: manipulation;
-  overscroll-behavior: none;
 }
 
 @theme inline {
