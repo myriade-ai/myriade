@@ -19,6 +19,7 @@ class Asset(SerializerMixin, DefaultBase, Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(), primary_key=True, default=uuid.uuid4)
     urn: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    reviewed: Mapped[bool] = mapped_column(default=False, nullable=False)
     type: Mapped[str] = mapped_column(String, nullable=False)  # "TABLE", "COLUMN"
     name: Mapped[Optional[str]] = mapped_column(String)
     description: Mapped[Optional[str]] = mapped_column(Text)
@@ -103,6 +104,7 @@ class Term(SerializerMixin, DefaultBase, Base):
     __tablename__ = "term"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(), primary_key=True, default=uuid.uuid4)
+    reviewed: Mapped[bool] = mapped_column(default=False, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
     definition: Mapped[str] = mapped_column(Text, nullable=False)
     database_id: Mapped[uuid.UUID] = mapped_column(
@@ -127,4 +129,5 @@ class Term(SerializerMixin, DefaultBase, Base):
             "definition": definition,
             "synonyms": self.synonyms,
             "business_domains": self.business_domains,
+            "reviewed": self.reviewed,
         }

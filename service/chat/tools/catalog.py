@@ -1,8 +1,9 @@
 import uuid
 from enum import Enum
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import yaml
+from agentlys.model import Message
 from sqlalchemy.orm import Session
 
 from models import Database
@@ -13,6 +14,21 @@ class AssetType(Enum):
     TABLE = "TABLE"
     COLUMN = "COLUMN"
     TERM = "TERM"
+
+
+def _ensure_arguments_dict(from_response: Message) -> Dict[str, object]:
+    if from_response.function_call is None:
+        from_response.function_call = {"arguments": {}}
+
+    if not isinstance(from_response.function_call, dict):
+        raise ValueError("function_call must be a dictionary to attach proposal data")
+
+    arguments = from_response.function_call.get("arguments")
+    if not isinstance(arguments, dict):
+        arguments = {}
+        from_response.function_call["arguments"] = arguments
+
+    return arguments
 
 
 class CatalogTool:
@@ -86,6 +102,7 @@ class CatalogTool:
                     "urn": asset.urn,
                     "name": asset.name,
                     "type": asset.type,
+                    "reviewed": asset.reviewed,
                     "description": (
                         asset.description[:100] + "..."
                         if asset.description and len(asset.description) > 100
@@ -181,6 +198,7 @@ class CatalogTool:
                     "urn": asset.urn,
                     "name": asset.name,
                     "type": asset.type,
+                    "reviewed": asset.reviewed,
                     "description": (
                         asset.description[:200] + "..."
                         if asset.description and len(asset.description) > 200
@@ -194,6 +212,7 @@ class CatalogTool:
                     "id": str(term.id),
                     "name": term.name,
                     "type": "TERM",
+                    "reviewed": term.reviewed,
                     "description": (
                         term.definition[:200] + "..."
                         if term.definition and len(term.definition) > 200
@@ -233,6 +252,7 @@ class CatalogTool:
             "description": asset.description,
             "type": asset.type,
             "tags": asset.tags,
+            "reviewed": asset.reviewed,
             "created_at": asset.createdAt.isoformat(),
         }
 
@@ -291,6 +311,7 @@ class CatalogTool:
             "definition": term.definition,
             "synonyms": term.synonyms,
             "business_domains": term.business_domains,
+            "reviewed": term.reviewed,
             "created_at": term.createdAt.isoformat(),
         }
 
@@ -301,6 +322,7 @@ class CatalogTool:
         asset_id: str,
         description: Optional[str] = None,
         tags: Optional[list] = None,
+        from_response: Message | None = None,
     ) -> str:
         """
         Update properties of a catalog asset
@@ -321,26 +343,64 @@ class CatalogTool:
         if not asset:
             raise ValueError(f"Asset with id {asset_id} not found")
 
-        updates: list[str] = []
+        current_state = {
+            "description": asset.description,
+            "tags": list(asset.tags or []),
+        }
+        proposed_state = {
+            "description": current_state["description"],
+            "tags": list(current_state["tags"]),
+        }
 
-        if description is not None:
-            asset.description = description
-            updates.append("description")
+        updated_fields: List[str] = []
 
-        if tags is not None:
-            asset.tags = tags
-            updates.append("tags")
+        if description is not None and description != asset.description:
+            proposed_state["description"] = description
+            updated_fields.append("description")
 
-        if not updates:
+        if tags is not None and tags != asset.tags:
+            proposed_state["tags"] = list(tags or [])
+            updated_fields.append("tags")
+
+        if not updated_fields:
             return f"No updates provided for asset '{asset.name}'"
+
+        target_reviewed = from_response is None
+        asset.description = proposed_state["description"]
+        asset.tags = proposed_state["tags"]
+        asset.reviewed = target_reviewed
 
         self.session.flush()
 
+        if from_response is not None:
+            arguments = _ensure_arguments_dict(from_response)
+            arguments["proposal"] = {
+                "operation": "update_asset",
+                "title": f"Update asset '{asset.name}'",
+                "entity": {
+                    "type": "asset",
+                    "id": str(asset.id),
+                    "urn": asset.urn,
+                    "name": asset.name,
+                },
+                "current": current_state,
+                "proposed": proposed_state,
+                "status": "pending_review",
+                "updates": updated_fields,
+            }
+
+        status_message = "Updated asset"
+        if from_response is not None:
+            status_message = (
+                "Updated asset automatically. Awaiting human review to mark as approved."
+            )
+
         return yaml.dump(
             {
-                "message": f"Updated asset '{asset.name}'",
+                "message": f"{status_message} '{asset.name}'",
                 "asset_id": str(asset.id),
-                "updates": updates,
+                "updates": updated_fields,
+                "reviewed": asset.reviewed,
             }
         )
 
@@ -351,6 +411,7 @@ class CatalogTool:
         synonyms: Optional[list] = None,
         business_domains: Optional[list] = None,
         id: Optional[str] = None,
+        from_response: Message | None = None,
     ) -> str:
         """
         Create or update a business glossary term
@@ -388,54 +449,125 @@ class CatalogTool:
             )
 
         if existing_term:
-            # Update existing term
-            updates = []
-            if existing_term.name != name:
-                existing_term.name = name
-                updates.append("name")
+            current_state = {
+                "name": existing_term.name,
+                "definition": existing_term.definition,
+                "synonyms": list(existing_term.synonyms or []),
+                "business_domains": list(existing_term.business_domains or []),
+            }
+            proposed_state = {
+                "name": name,
+                "definition": definition,
+                "synonyms": list(synonyms or existing_term.synonyms or []),
+                "business_domains": list(
+                    business_domains or existing_term.business_domains or []
+                ),
+            }
 
-            if existing_term.definition != definition:
-                existing_term.definition = definition
-                updates.append("definition")
+            if synonyms is not None:
+                proposed_state["synonyms"] = list(synonyms or [])
 
-            if synonyms is not None and existing_term.synonyms != synonyms:
-                existing_term.synonyms = synonyms or []
-                updates.append("synonyms")
+            if business_domains is not None:
+                proposed_state["business_domains"] = list(business_domains or [])
 
-            if (
-                business_domains is not None
-                and existing_term.business_domains != business_domains
-            ):
-                existing_term.business_domains = business_domains or []
-                updates.append("business_domains")
-
-            if not updates:
+            if proposed_state == current_state:
                 return f"No updates needed for term '{name}'"
 
+            target_reviewed = from_response is None
+            existing_term.name = proposed_state["name"]
+            existing_term.definition = proposed_state["definition"]
+            existing_term.synonyms = proposed_state["synonyms"]
+            existing_term.business_domains = proposed_state["business_domains"]
+            existing_term.reviewed = target_reviewed
+
             self.session.flush()
 
+            updates = [
+                field
+                for field in [
+                    "name",
+                    "definition",
+                    "synonyms",
+                    "business_domains",
+                ]
+                if current_state.get(field) != proposed_state.get(field)
+            ]
+
+            if from_response is not None:
+                arguments = _ensure_arguments_dict(from_response)
+                arguments["proposal"] = {
+                    "operation": "upsert_term",
+                    "title": f"Update term '{name}'",
+                    "entity": {
+                        "type": "term",
+                        "id": str(existing_term.id),
+                    },
+                    "current": current_state,
+                    "proposed": proposed_state,
+                    "status": "pending_review",
+                    "updates": updates,
+                }
+
+            status_message = "Updated term"
+            if from_response is not None:
+                status_message = (
+                    "Updated term automatically. Awaiting human review to mark as approved."
+                )
+
             result = {
-                "message": f"Updated term '{name}'",
+                "message": f"{status_message} '{proposed_state['name']}'",
                 "term_id": str(existing_term.id),
                 "updates": updates,
+                "reviewed": existing_term.reviewed,
             }
-        else:
-            # Create new term
-            new_term = Term(
-                name=name,
-                definition=definition,
-                database_id=self.database.id,
-                synonyms=synonyms or [],
-                business_domains=business_domains or [],
-            )
 
-            self.session.add(new_term)
-            self.session.flush()
+            return yaml.dump(result)
 
-            result = {
-                "message": f"Created term '{name}'",
-                "term_id": str(new_term.id),
+        proposed_state = {
+            "name": name,
+            "definition": definition,
+            "synonyms": list(synonyms or []),
+            "business_domains": list(business_domains or []),
+        }
+
+        target_reviewed = from_response is None
+        new_term = Term(
+            name=proposed_state["name"],
+            definition=proposed_state["definition"],
+            database_id=self.database.id,
+            synonyms=proposed_state["synonyms"],
+            business_domains=proposed_state["business_domains"],
+            reviewed=target_reviewed,
+        )
+
+        self.session.add(new_term)
+        self.session.flush()
+
+        if from_response is not None:
+            arguments = _ensure_arguments_dict(from_response)
+            arguments["proposal"] = {
+                "operation": "upsert_term",
+                "title": f"Create term '{name}'",
+                "entity": {
+                    "type": "term",
+                    "id": str(new_term.id),
+                    "name": name,
+                },
+                "current": None,
+                "proposed": proposed_state,
+                "status": "pending_review",
+                "updates": ["name", "definition", "synonyms", "business_domains"],
             }
+
+        result = {
+            "message": (
+                "Created term automatically. Awaiting human review to mark as approved."
+                if from_response is not None
+                else f"Created term '{proposed_state['name']}'"
+            ),
+            "term_id": str(new_term.id),
+            "reviewed": new_term.reviewed,
+        }
 
         return yaml.dump(result)
 

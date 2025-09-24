@@ -16,7 +16,6 @@ from chat.proxy_provider import ProxyProvider
 from chat.tools.catalog import CatalogTool
 from chat.tools.database import DatabaseTool
 from chat.tools.echarts import EchartsTool
-from chat.tools.quality import SemanticCatalog
 from chat.tools.workspace import WorkspaceTool
 from chat.utils import parse_answer_text
 from models import Chart, Conversation, ConversationMessage, Query
@@ -115,10 +114,6 @@ class DataAnalystAgent:
             EchartsTool(self.session, self.conversation.database),
             "echarts",
         )
-        semantic_catalog = SemanticCatalog(
-            self.session, self.conversation.id, self.conversation.databaseId
-        )
-        self.agent.add_tool(semantic_catalog, "semantic_catalog")
         catalog_tool = CatalogTool(self.session, self.conversation.database)
         self.agent.add_tool(catalog_tool, "catalog")
         if (

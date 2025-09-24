@@ -100,6 +100,11 @@
             :status="queryData.status"
             @rejected="emit('rejected')"
           />
+          <AskCatalogConfirmation
+            v-if="catalogProposal && props.message.role === 'assistant'"
+            :proposal="catalogProposal"
+            :functionCallId="props.message.functionCallId"
+          />
         </div>
       </div>
 
@@ -177,6 +182,7 @@ import yaml from 'js-yaml'
 import { computed, defineEmits, defineProps, onMounted, ref } from 'vue'
 
 // Components
+import AskCatalogConfirmation from '@/components/AskCatalogConfirmation.vue'
 import AskQueryConfirmation from '@/components/AskQueryConfirmation.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
@@ -214,6 +220,10 @@ const editedContent = ref('')
 const queriesStore = useQueriesStore()
 const queryData = computed(() => queriesStore.getQuery(props.message.queryId))
 const needsConfirmation = computed(() => queriesStore.needsConfirmation(props.message.queryId))
+const catalogProposal = computed(() => {
+  const args = props.message.functionCall?.arguments as Record<string, any> | undefined
+  return args?.proposal ?? null
+})
 
 const toggleEditMode = () => {
   isEditing.value = !isEditing.value

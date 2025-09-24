@@ -38,6 +38,7 @@ export interface Message {
     name: string
     arguments: any
   }
+  functionCallId?: string
   queryId?: string
   image?: string // base64 encoded image
 }

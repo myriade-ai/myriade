@@ -5,6 +5,7 @@ from uuid import UUID
 from flask import Blueprint
 from flask import session as flask_session
 from flask_socketio import emit
+from sqlalchemy.orm.attributes import flag_modified
 
 from app import socketio
 from auth.auth import UnauthorizedError, socket_auth
@@ -17,6 +18,7 @@ from chat.lock import (
 )
 from chat.tools.database import cancel_query
 from models import Conversation, ConversationMessage, Query
+from models.catalog import Asset, Term
 
 api = Blueprint("chat_api", __name__)
 logger = logging.getLogger(__name__)
@@ -302,6 +304,263 @@ def handle_reject_write_operation(session, conversation_id: UUID, query_id: UUID
         conversationId=conversation.id,
         queryId=query_id,
         functionCallId=functionCallMessage.functionCallId,
+    )
+    session.add(response_message)
+    session.flush()
+    emit("response", response_message.to_dict())
+    session.commit()
+
+
+@socketio.on("confirmCatalogOperation")
+@socket_auth_required
+@conversation_auth_required
+def handle_confirm_catalog_operation(
+    session,
+    conversation_id: UUID,
+    function_call_id: str,
+    updated_proposed: dict | None = None,
+):
+    """Execute a confirmed catalog operation proposal."""
+
+    conversation = session.query(Conversation).filter_by(id=conversation_id).first()
+    if not conversation:
+        emit("error", {"message": "Conversation not found"})
+        return
+
+    function_message = (
+        session.query(ConversationMessage)
+        .filter_by(
+            conversationId=conversation_id,
+            functionCallId=function_call_id,
+            role="assistant",
+        )
+        .first()
+    )
+
+    if not function_message or not function_message.functionCall:
+        emit("error", {"message": "Catalog operation proposal not found"})
+        return
+
+    arguments = function_message.functionCall.get("arguments")
+    if not isinstance(arguments, dict):
+        arguments = {}
+        function_message.functionCall["arguments"] = arguments
+
+    proposal = arguments.get("proposal")
+
+    if not proposal or not isinstance(proposal, dict):
+        emit("error", {"message": "Catalog operation proposal missing"})
+        return
+
+    if isinstance(updated_proposed, dict):
+        proposal["proposed"] = updated_proposed
+
+    entity_raw = proposal.get("entity")
+    entity = entity_raw if isinstance(entity_raw, dict) else {}
+    entity_type = entity.get("type")
+    entity_id = entity.get("id")
+    entity_uuid: UUID | None = None
+
+    if entity_id:
+        try:
+            entity_uuid = UUID(str(entity_id))
+        except ValueError:
+            emit("error", {"message": "Invalid entity identifier for approval"})
+            return
+
+    proposal_status = proposal.get("status")
+    is_pending_review = proposal_status == "pending_review"
+
+    if is_pending_review and (not entity_type or entity_uuid is None):
+        emit("error", {"message": "Missing entity information for approval"})
+        return
+
+    proposed_raw = proposal.get("proposed")
+    proposed = proposed_raw if isinstance(proposed_raw, dict) else {}
+    operation = proposal.get("operation")
+
+    agent = DataAnalystAgent(session, conversation)
+    catalog_tool = agent.agent.tools.get("catalog")
+    if catalog_tool is None:
+        emit("error", {"message": "Catalog tool not available"})
+        return
+
+    try:
+        if operation == "update_asset":
+            asset_id = entity.get("id")
+            if not asset_id:
+                emit("error", {"message": "Missing asset identifier for confirmation"})
+                return
+            description_value = proposed.get("description")
+            tags_value = proposed.get("tags")
+
+            proposed = {
+                **proposed,
+                "description": description_value,
+                "tags": tags_value,
+            }
+            proposal["proposed"] = proposed
+
+            result = catalog_tool.update_asset(
+                asset_id=str(asset_id),
+                description=description_value,
+                tags=tags_value,
+                from_response=None,
+            )
+        elif operation == "upsert_term":
+            name = proposed.get("name")
+            definition = proposed.get("definition")
+            if not name or not definition:
+                emit(
+                    "error",
+                    {"message": "Incomplete term information for confirmation"},
+                )
+                return
+            name_value = name.strip() if isinstance(name, str) else str(name)
+            definition_value = proposed.get("definition")
+            synonyms_value = proposed.get("synonyms")
+            domains_value = proposed.get("business_domains")
+
+            proposed = {
+                **proposed,
+                "name": name_value,
+                "definition": definition_value,
+                "synonyms": synonyms_value,
+                "business_domains": domains_value,
+            }
+            proposal["proposed"] = proposed
+            result = catalog_tool.upsert_term(
+                name=name_value,
+                definition=definition_value,
+                synonyms=synonyms_value,
+                business_domains=domains_value,
+                id=entity.get("id"),
+                from_response=None,
+            )
+        else:
+            emit("error", {"message": "Unsupported catalog operation"})
+            return
+    except Exception as exc:
+        logger.error(
+            "Error executing catalog proposal",
+            exc_info=True,
+            extra={"error": str(exc)},
+        )
+        emit("error", {"message": str(exc)})
+        session.rollback()
+        return
+
+    if is_pending_review and entity_uuid is not None:
+        if entity_type == "asset":
+            target = session.query(Asset).filter_by(id=entity_uuid).first()
+        elif entity_type == "term":
+            target = session.query(Term).filter_by(id=entity_uuid).first()
+        else:
+            target = None
+
+        if target is None:
+            emit(
+                "error",
+                {"message": "Entity not found for approval", "entityId": entity_id},
+            )
+            session.rollback()
+            return
+
+        target.reviewed = True
+        session.flush()
+
+    proposal["status"] = "approved" if is_pending_review else "confirmed"
+    proposal["reviewed"] = True
+    arguments["proposal"] = proposal
+    flag_modified(function_message, "functionCall")
+    session.flush()
+    emit("response", function_message.to_dict())
+
+    response_message = ConversationMessage(
+        role="function",
+        name=function_message.functionCall.get("name"),
+        content=result,
+        conversationId=conversation.id,
+        functionCallId=function_call_id,
+    )
+    session.add(response_message)
+    session.flush()
+    emit("response", response_message.to_dict())
+
+    session.commit()
+
+    agent = DataAnalystAgent(session, conversation)
+    for message in agent._run_conversation():
+        try:
+            session.commit()
+        except Exception as e:
+            logger.error(
+                "Error committing session",
+                exc_info=True,
+                extra={"error": str(e)},
+            )
+            session.rollback()
+            break
+        response_data = message.to_dict()
+
+        credits_remaining = get_last_credits_info()
+        if credits_remaining is not None:
+            response_data["credits_remaining"] = credits_remaining
+
+        emit("response", response_data)
+    session.commit()
+
+
+@socketio.on("rejectCatalogOperation")
+@socket_auth_required
+@conversation_auth_required
+def handle_reject_catalog_operation(
+    session, conversation_id: UUID, function_call_id: str
+):
+    """Handle user rejection of a catalog proposal."""
+
+    conversation = session.query(Conversation).filter_by(id=conversation_id).first()
+    if not conversation:
+        emit("error", {"message": "Conversation not found"})
+        return
+
+    function_message = (
+        session.query(ConversationMessage)
+        .filter_by(
+            conversationId=conversation_id,
+            functionCallId=function_call_id,
+            role="assistant",
+        )
+        .first()
+    )
+
+    if not function_message or not function_message.functionCall:
+        emit("error", {"message": "Catalog operation proposal not found"})
+        return
+
+    arguments = function_message.functionCall.get("arguments")
+    if not isinstance(arguments, dict):
+        arguments = {}
+        function_message.functionCall["arguments"] = arguments
+
+    proposal = arguments.get("proposal")
+
+    if not proposal or not isinstance(proposal, dict):
+        emit("error", {"message": "Catalog operation proposal missing"})
+        return
+
+    proposal["status"] = "rejected"
+    arguments["proposal"] = proposal
+    flag_modified(function_message, "functionCall")
+    session.flush()
+    emit("response", function_message.to_dict())
+
+    response_message = ConversationMessage(
+        role="function",
+        name=function_message.functionCall.get("name"),
+        content="User rejected the catalog operation proposal",
+        conversationId=conversation.id,
+        functionCallId=function_call_id,
     )
     session.add(response_message)
     session.flush()

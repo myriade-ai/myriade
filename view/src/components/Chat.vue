@@ -321,10 +321,23 @@ const isPublicMessage = (message: Message, index: number) => {
   const isFunctionAfterAnswer = isFunction && prevMessage?.isAnswer
   const isAnwser = message.isAnswer
   let hasWriteOperation = false
+  const functionCallArgs = (message.functionCall as { arguments?: unknown } | undefined)?.arguments
+  const hasCatalogProposal =
+    typeof functionCallArgs === 'object' &&
+    functionCallArgs !== null &&
+    'proposal' in functionCallArgs &&
+    Boolean((functionCallArgs as Record<string, unknown>).proposal)
   if (message.queryId) {
     hasWriteOperation = queriesStore.getQuery(message.queryId)?.operationType !== null
   }
-  return isUser || isFunctionAfterUser || isAnwser || isFunctionAfterAnswer || hasWriteOperation
+  return (
+    isUser ||
+    isFunctionAfterUser ||
+    isAnwser ||
+    isFunctionAfterAnswer ||
+    hasWriteOperation ||
+    hasCatalogProposal
+  )
 }
 
 /** END MESSAGE DISPLAY LOGIC **/
