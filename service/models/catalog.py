@@ -2,8 +2,9 @@ import uuid
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql import expression
 
 from db import JSONB, UUID, Base, DefaultBase, SerializerMixin
 
@@ -29,6 +30,12 @@ class Asset(SerializerMixin, DefaultBase, Base):
     # Metadata fields
     tags: Mapped[Optional[List[str]]] = mapped_column(JSONB)
     created_by: Mapped[Optional[str]] = mapped_column(String, ForeignKey("user.id"))
+    validated: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=expression.false(),
+    )
 
     # 1:1 optional facets
     table_facet: Mapped[Optional["TableFacet"]] = relationship(
@@ -110,6 +117,12 @@ class Term(SerializerMixin, DefaultBase, Base):
     )
     synonyms: Mapped[Optional[List[str]]] = mapped_column(JSONB)
     business_domains: Mapped[Optional[List[str]]] = mapped_column(JSONB)
+    validated: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=expression.false(),
+    )
 
     # Relationships
     database: Mapped["Database"] = relationship("Database")

@@ -44,7 +44,6 @@ import {
 import { useContextsStore } from '@/stores/contexts'
 import { useDatabasesStore } from '@/stores/databases'
 
-import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()

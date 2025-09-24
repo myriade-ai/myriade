@@ -334,6 +334,7 @@ class CatalogTool:
         if not updates:
             return f"No updates provided for asset '{asset.name}'"
 
+        asset.validated = False
         self.session.flush()
 
         return yaml.dump(
@@ -412,6 +413,7 @@ class CatalogTool:
             if not updates:
                 return f"No updates needed for term '{name}'"
 
+            existing_term.validated = False
             self.session.flush()
 
             result = {

@@ -11,7 +11,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import true
 
 import telemetry
+from app import socketio
 from back.data_warehouse import ConnectionError, DataWarehouseFactory
+from back.session import get_db_session
 from back.utils import (
     create_database,
     get_tables_metadata_from_catalog,
@@ -19,6 +21,7 @@ from back.utils import (
     sync_database_metadata_to_assets,
     update_catalog_privacy,
 )
+from chat.analyst_agent import DataAnalystAgent
 from chat.proxy_provider import ProxyProvider
 from middleware import admin_required, user_middleware
 from models import (
@@ -56,6 +59,50 @@ def extract_context(session: Session, context_id: str) -> tuple[UUID, UUID | Non
         return UUID(database_id), None
     else:
         raise ValueError(f"Invalid context_id: {context_id}")
+
+
+def _run_catalog_parser(database_id: UUID, project_id: UUID | None, user_id: str) -> None:
+    session = get_db_session()
+    try:
+        conversation = Conversation(
+            databaseId=database_id,
+            ownerId=user_id,
+            projectId=project_id,
+            name="Catalog enrichment run",
+        )
+        session.add(conversation)
+        session.flush()
+
+        agent = DataAnalystAgent(session, conversation)
+        prompt = (
+            "You were launched from the catalog management interface. "
+            "Review the entire database schema and populate the catalog. "
+            "Provide detailed descriptions for tables and columns and create "
+            "relevant business glossary terms. Ensure the whole database is covered."
+        )
+
+        for _ in agent.ask(prompt):
+            pass
+
+        session.commit()
+        logger.info(
+            "Catalog parsing run completed",
+            extra={
+                "conversation_id": str(conversation.id),
+                "database_id": str(database_id),
+            },
+        )
+    except Exception:
+        session.rollback()
+        logger.exception(
+            "Catalog parsing run failed",
+            extra={
+                "database_id": str(database_id),
+                "project_id": str(project_id) if project_id else None,
+            },
+        )
+    finally:
+        session.close()
 
 
 @api.route("/conversations", methods=["POST"])
@@ -733,6 +780,32 @@ def get_favorites():
 
 
 # Catalog API routes
+@api.route("/catalogs/<string:context_id>/parse", methods=["POST"])
+@user_middleware
+def parse_catalog(context_id: str):
+    database_id, project_id = extract_context(g.session, context_id)
+    database = g.session.query(Database).filter_by(id=database_id).first()
+
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    socketio.start_background_task(
+        _run_catalog_parser,
+        database_id,
+        project_id,
+        g.user.id,
+    )
+
+    return jsonify({"status": "started"}), 202
+
+
 @api.route("/catalogs/<string:context_id>/assets", methods=["GET"])
 @user_middleware
 def get_catalog_assets(context_id):

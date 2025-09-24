@@ -10,7 +10,39 @@
             {{ catalogStore.termsArray.length }} terms
           </p>
         </div>
-        <Button @click="refresh"> Refresh </Button>
+        <div class="flex items-center space-x-3">
+          <Button
+            variant="outline"
+            @click="runCatalogParse"
+            :disabled="!contextsStore.contextSelected || parsingCatalog"
+          >
+            <span class="flex items-center">
+              <svg
+                v-if="parsingCatalog"
+                class="animate-spin -ml-1 mr-2 h-4 w-4 text-primary-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                />
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              <span>{{ parsingCatalog ? 'Parsing…' : 'Fill Catalog' }}</span>
+            </span>
+          </Button>
+          <Button @click="refresh" :disabled="parsingCatalog"> Refresh </Button>
+        </div>
       </div>
     </div>
 
@@ -182,11 +214,33 @@ const newTerm = ref({
 // Computed
 const loading = computed(() => catalogStore.loading)
 const error = computed(() => catalogStore.error)
+const parsingCatalog = computed(() => catalogStore.parsing)
 
 // Methods
-function refresh() {
-  if (contextsStore.contextSelected) {
-    catalogStore.fetchTerms(contextsStore.contextSelected.id)
+async function refresh() {
+  if (!contextsStore.contextSelected) {
+    return
+  }
+
+  try {
+    await Promise.all([
+      catalogStore.fetchTerms(contextsStore.contextSelected.id),
+      catalogStore.fetchAssets(contextsStore.contextSelected.id, undefined)
+    ])
+  } catch (error) {
+    console.error('Error refreshing catalog:', error)
+  }
+}
+
+async function runCatalogParse() {
+  if (!contextsStore.contextSelected) {
+    return
+  }
+
+  try {
+    await catalogStore.parseCatalog(contextsStore.contextSelected.id)
+  } catch (error) {
+    console.error('Error starting catalog parsing:', error)
   }
 }
 

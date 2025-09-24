@@ -16,6 +16,7 @@ export interface CatalogAsset {
   created_by: string | null
   createdAt: string
   updatedAt: string
+  validated: boolean
   table_facet?: TableFacet
   column_facet?: ColumnFacet
 }
@@ -42,6 +43,7 @@ export interface CatalogTerm {
   database_id: string
   synonyms: string[] | null
   business_domains: string[] | null
+  validated: boolean
   createdAt: string
   updatedAt: string
 }
@@ -58,6 +60,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   const assets = ref<Record<string, CatalogAsset>>({})
   const terms = ref<Record<string, CatalogTerm>>({})
   const loading = ref(false)
+  const parsing = ref(false)
   const error = ref<string | null>(null)
 
   // Watch for context changes and fetch catalog data
@@ -195,6 +198,24 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
+  async function parseCatalog(contextId: string) {
+    try {
+      parsing.value = true
+      error.value = null
+
+      const response = await axios.post(`/api/catalogs/${contextId}/parse`)
+      return response.data
+    } catch (err: any) {
+      const message =
+        err.response?.data?.error || err.response?.data?.message || 'Failed to parse catalog'
+      error.value = message
+      console.error('Error parsing catalog:', err)
+      throw err
+    } finally {
+      parsing.value = false
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -207,6 +228,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     assets,
     terms,
     loading,
+    parsing,
     error,
 
     // getters
@@ -220,6 +242,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     fetchAssets,
     fetchTerms,
     createTerm,
+    parseCatalog,
     clearError
   }
 })
