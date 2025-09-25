@@ -1,16 +1,15 @@
 <!-- Take chart id and display using echarts -->
 <template>
   <div class="relative">
-    <div class="flex justify-end mb-2">
-      <button
-        class="text-primary-500 hover:text-primary-700 flex items-center"
+    <div class="flex justify-end -mr-2">
+      <Button
         title="Save chart to workspace"
+        variant="ghost"
+        size="icon"
         @click="handleToggleChartFavorite"
       >
-        <ChartBarIconSolid v-if="isChartFavorite" class="h-4 w-4 text-yellow-500" />
-        <ChartBarIcon v-else class="h-4 w-4" />
-        <span class="ml-1 hidden lg:inline">{{ isChartFavorite ? 'saved' : 'save' }}</span>
-      </button>
+        <Star :class="isChartFavorite ? 'text-yellow-500 fill-yellow-500' : ''" />
+      </Button>
     </div>
     <Echart v-if="chartOption && chartOption.query_id" :option="chartOption" />
   </div>
@@ -19,9 +18,9 @@
 <script setup lang="ts">
 import Echart from '@/components/Echart.vue'
 import { useChartStore } from '@/stores/chart'
-import { ChartBarIcon } from '@heroicons/vue/24/outline'
-import { ChartBarIcon as ChartBarIconSolid } from '@heroicons/vue/24/solid'
+import { Star } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
+import { Button } from './ui/button'
 const { fetchChart, toggleChartFavorite } = useChartStore()
 
 const props = defineProps({

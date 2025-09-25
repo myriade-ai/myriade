@@ -1,6 +1,131 @@
 # CHANGELOG
 
 
+## v0.44.3 (2025-09-23)
+
+### Bug Fixes
+
+- Remove useless media query ([#117](https://github.com/myriade-ai/myriade/pull/117),
+  [`7e58a2a`](https://github.com/myriade-ai/myriade/commit/7e58a2a22b1e3de5c453abb60239f0fcf2c32540))
+
+### Refactoring
+
+- Use tanstack table ([#114](https://github.com/myriade-ai/myriade/pull/114),
+  [`a004103`](https://github.com/myriade-ai/myriade/commit/a004103a708bea9884ac9476e467537012531c7d))
+
+
+## v0.44.2 (2025-09-23)
+
+### Bug Fixes
+
+- Update uv.lock with change
+  ([`435f3d0`](https://github.com/myriade-ai/myriade/commit/435f3d0f541b319dc45320ba209bd5490961a1d1))
+
+
+## v0.44.1 (2025-09-23)
+
+### Bug Fixes
+
+- Remove global overscroll-behavior-none
+  ([`b35f855`](https://github.com/myriade-ai/myriade/commit/b35f8553b435df748260139b67ac0e35d9c9b6b6))
+
+### Refactoring
+
+- Chat design
+  ([`0c96264`](https://github.com/myriade-ai/myriade/commit/0c962644e03781e0d005ae7372460e7d4d4e260f))
+
+
+## v0.44.0 (2025-09-22)
+
+### Features
+
+- Add catalog draft ([#106](https://github.com/myriade-ai/myriade/pull/106),
+  [`14e328d`](https://github.com/myriade-ai/myriade/commit/14e328d63eff15fac51de92c7ef6e0616cf571c8))
+
+### Refactoring
+
+- Update tabs components ([#110](https://github.com/myriade-ai/myriade/pull/110),
+  [`d9e68a8`](https://github.com/myriade-ai/myriade/commit/d9e68a84eb6130e65ab68ba014e098fa1741c5e9))
+
+
+## v0.43.4 (2025-09-22)
+
+### Bug Fixes
+
+- Add name to UniqueConstraint for table_facet
+  ([#108](https://github.com/myriade-ai/myriade/pull/108),
+  [`a272f2e`](https://github.com/myriade-ai/myriade/commit/a272f2e979c42893c0f2db0cd5f477caaf123e29))
+
+### Documentation
+
+- Add agents.md ([#107](https://github.com/myriade-ai/myriade/pull/107),
+  [`31f0b45`](https://github.com/myriade-ai/myriade/commit/31f0b4559d4dc322a433f50e4515e4d5fa0f625f))
+
+
+## v0.43.3 (2025-09-22)
+
+### Bug Fixes
+
+- Merge two heads
+  ([`386c01b`](https://github.com/myriade-ai/myriade/commit/386c01ba1ecd23cb091bf2a26b6fd9862a286dd0))
+
+
+## v0.43.2 (2025-09-22)
+
+### Bug Fixes
+
+- Scope table facet uniqueness per database ([#103](https://github.com/myriade-ai/myriade/pull/103),
+  [`06c857e`](https://github.com/myriade-ai/myriade/commit/06c857e32113e085c701dd3bbfa1d6a765ba30b0))
+
+
+## v0.43.1 (2025-09-21)
+
+### Bug Fixes
+
+- Build
+  ([`d3d7dfb`](https://github.com/myriade-ai/myriade/commit/d3d7dfb9b2b779ecfab915ab769568348cc6f520))
+
+### Build System
+
+- **deps**: Bump the npm_and_yarn group across 1 directory with 2 updates
+  ([#82](https://github.com/myriade-ai/myriade/pull/82),
+  [`beb3617`](https://github.com/myriade-ai/myriade/commit/beb361722aa7d0314821e3e6c813b2020a20c546))
+
+Bumps the npm_and_yarn group with 2 updates in the /view directory:
+  [axios](https://github.com/axios/axios) and
+  [vite](https://github.com/vitejs/vite/tree/HEAD/packages/vite).
+
+Updates `axios` from 1.8.2 to 1.12.0 - [Release notes](https://github.com/axios/axios/releases) -
+  [Changelog](https://github.com/axios/axios/blob/v1.x/CHANGELOG.md) -
+  [Commits](https://github.com/axios/axios/compare/v1.8.2...v1.12.0)
+
+Updates `vite` from 6.3.5 to 6.3.6 - [Release notes](https://github.com/vitejs/vite/releases) -
+  [Changelog](https://github.com/vitejs/vite/blob/v6.3.6/packages/vite/CHANGELOG.md) -
+  [Commits](https://github.com/vitejs/vite/commits/v6.3.6/packages/vite)
+
+--- updated-dependencies: - dependency-name: axios dependency-version: 1.12.0
+
+dependency-type: direct:production
+
+dependency-group: npm_and_yarn
+
+- dependency-name: vite dependency-version: 6.3.6
+
+dependency-type: direct:development
+
+dependency-group: npm_and_yarn ...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+
+### Refactoring
+
+- Remove unused submit function and update version
+  ([#95](https://github.com/myriade-ai/myriade/pull/95),
+  [`3dab4f3`](https://github.com/myriade-ai/myriade/commit/3dab4f340bb40525901154d1d82d343ddd145655))
+
+
 ## v0.43.0 (2025-09-21)
 
 ### Build System
