@@ -34,8 +34,11 @@
         <!-- Normal display mode -->
         <div v-else class="w-full overflow-hidden">
           <template v-for="(part, index) in parsedText">
-            <div v-if="part.type === 'text'" :key="`text-${index}`" class="w-full">
+            <div v-if="part.type === 'markdown'" :key="`text-${index}`" class="w-full">
               <MarkdownDisplay :content="part.content"></MarkdownDisplay>
+            </div>
+            <div v-if="part.type === 'text'" :key="`text-${index}`" class="w-full">
+              <pre>{{ part.content }}</pre>
             </div>
             <div
               v-if="part.type === 'error'"
@@ -190,10 +193,10 @@ import type { Message } from '@/stores/conversations'
 import { useDatabasesStore } from '@/stores/databases'
 import { Pencil, RotateCcw, SquarePen } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import FunctionCallRenderer from './FunctionCallRenderer.vue'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { Textarea } from './ui/textarea'
-import FunctionCallRenderer from './FunctionCallRenderer.vue'
 
 const { databaseSelectedId } = useDatabasesStore()
 const router = useRouter()
