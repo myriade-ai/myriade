@@ -309,6 +309,8 @@ def handle_reject_write_operation(session, conversation_id: UUID, query_id: UUID
     session.commit()
 
 
+
+
 @socketio.on("regenerateFromMessage")
 @socket_auth_required
 @conversation_auth_required

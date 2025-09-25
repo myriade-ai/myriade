@@ -1,8 +1,9 @@
 import uuid
 from enum import Enum
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import yaml
+from agentlys.model import Message
 from sqlalchemy.orm import Session
 
 from models import Database
@@ -86,6 +87,7 @@ class CatalogTool:
                     "urn": asset.urn,
                     "name": asset.name,
                     "type": asset.type,
+                    "reviewed": asset.reviewed,
                     "description": (
                         asset.description[:100] + "..."
                         if asset.description and len(asset.description) > 100
@@ -181,6 +183,7 @@ class CatalogTool:
                     "urn": asset.urn,
                     "name": asset.name,
                     "type": asset.type,
+                    "reviewed": asset.reviewed,
                     "description": (
                         asset.description[:200] + "..."
                         if asset.description and len(asset.description) > 200
@@ -194,6 +197,7 @@ class CatalogTool:
                     "id": str(term.id),
                     "name": term.name,
                     "type": "TERM",
+                    "reviewed": term.reviewed,
                     "description": (
                         term.definition[:200] + "..."
                         if term.definition and len(term.definition) > 200
@@ -233,6 +237,7 @@ class CatalogTool:
             "description": asset.description,
             "type": asset.type,
             "tags": asset.tags,
+            "reviewed": asset.reviewed,
             "created_at": asset.createdAt.isoformat(),
         }
 
@@ -291,6 +296,7 @@ class CatalogTool:
             "definition": term.definition,
             "synonyms": term.synonyms,
             "business_domains": term.business_domains,
+            "reviewed": term.reviewed,
             "created_at": term.createdAt.isoformat(),
         }
 
@@ -321,28 +327,24 @@ class CatalogTool:
         if not asset:
             raise ValueError(f"Asset with id {asset_id} not found")
 
-        updates: list[str] = []
-
         if description is not None:
-            asset.description = description
-            updates.append("description")
+            if isinstance(description, str):
+                asset.description = description.strip()
+            else:
+                asset.description = None
 
         if tags is not None:
             asset.tags = tags
-            updates.append("tags")
 
-        if not updates:
-            return f"No updates provided for asset '{asset.name}'"
+        # Assets created by AI are saved with reviewed=False initially
+        # They will be marked as reviewed=True when user approves via REST API
+        asset.reviewed = False
 
         self.session.flush()
 
-        return yaml.dump(
-            {
-                "message": f"Updated asset '{asset.name}'",
-                "asset_id": str(asset.id),
-                "updates": updates,
-            }
-        )
+        asset_label = asset.name or asset.urn or asset_id
+
+        return f"Updated asset '{asset_label}'"
 
     def upsert_term(
         self,
@@ -388,54 +390,69 @@ class CatalogTool:
             )
 
         if existing_term:
-            # Update existing term
-            updates = []
-            if existing_term.name != name:
-                existing_term.name = name
-                updates.append("name")
+            previous_name = existing_term.name
+            previous_definition = existing_term.definition
+            previous_synonyms = list(existing_term.synonyms or [])
+            previous_business_domains = list(existing_term.business_domains or [])
 
-            if existing_term.definition != definition:
-                existing_term.definition = definition
-                updates.append("definition")
-
-            if synonyms is not None and existing_term.synonyms != synonyms:
-                existing_term.synonyms = synonyms or []
-                updates.append("synonyms")
-
-            if (
-                business_domains is not None
-                and existing_term.business_domains != business_domains
-            ):
-                existing_term.business_domains = business_domains or []
-                updates.append("business_domains")
-
-            if not updates:
-                return f"No updates needed for term '{name}'"
-
-            self.session.flush()
-
-            result = {
-                "message": f"Updated term '{name}'",
-                "term_id": str(existing_term.id),
-                "updates": updates,
-            }
-        else:
-            # Create new term
-            new_term = Term(
-                name=name,
-                definition=definition,
-                database_id=self.database.id,
-                synonyms=synonyms or [],
-                business_domains=business_domains or [],
+            next_name = name
+            next_definition = definition
+            next_synonyms = (
+                previous_synonyms if synonyms is None else list(synonyms or [])
+            )
+            next_business_domains = (
+                previous_business_domains
+                if business_domains is None
+                else list(business_domains or [])
             )
 
-            self.session.add(new_term)
+            if (
+                previous_name == next_name
+                and previous_definition == next_definition
+                and previous_synonyms == next_synonyms
+                and previous_business_domains == next_business_domains
+            ):
+                return f"No updates needed for term '{name}'"
+
+            # Terms created by AI are saved with reviewed=False initially
+            # They will be marked as reviewed=True when user approves via REST API
+            existing_term.name = next_name
+            existing_term.definition = next_definition
+            existing_term.synonyms = next_synonyms
+            existing_term.business_domains = next_business_domains
+            existing_term.reviewed = False
+
             self.session.flush()
 
-            result = {
-                "message": f"Created term '{name}'",
-                "term_id": str(new_term.id),
-            }
+            term_label = next_name or str(existing_term.id)
+
+            return f"Updated term '{term_label}'"
+
+        proposed_state = {
+            "name": name,
+            "definition": definition,
+            "synonyms": list(synonyms or []),
+            "business_domains": list(business_domains or []),
+        }
+
+        # Terms created by AI are saved with reviewed=False initially
+        new_term = Term(
+            name=proposed_state["name"],
+            definition=proposed_state["definition"],
+            database_id=self.database.id,
+            synonyms=proposed_state["synonyms"],
+            business_domains=proposed_state["business_domains"],
+            reviewed=False,
+        )
+
+        self.session.add(new_term)
+        self.session.flush()
+
+        result = {
+            "message": f"Created term '{proposed_state['name']}'",
+            "term_id": str(new_term.id),
+            "reviewed": new_term.reviewed,
+        }
 
         return yaml.dump(result)
 
