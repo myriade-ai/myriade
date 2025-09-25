@@ -1,7 +1,7 @@
 [project]
 name = "myriade-service"
 description = "backend for Myriade analytic solution"
-version = "0.43.3"
+version = "0.44.3"
 authors = [
     {name = "Benjamin Derville", email = "benderville@gmail.com"}
 ]
@@ -100,6 +100,8 @@ max-complexity = 10
 version_toml = [
     "pyproject.toml:project.version",
 ]
+version_pattern = [
+    "service/uv.lock:(?ms)\\[\\[package\\]\\]\\s+name = \\\"myriade-service\\\"\\s+version = \\\"(?P<version>.*?)\\\"",
+]
 changelog_file = "./CHANGELOG.md"
 commit_message = "chore(release): bump version to {version}"
-
