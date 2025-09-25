@@ -1,7 +1,7 @@
 <template>
   <div class="h-6 w-6">
-    <RefreshCcw v-if="status === 'running'" class="h-6 w-6 animate-spin" />
-    <X v-else-if="status === 'error'" class="h-6 w-6 text-error-500" />
+    <RefreshCw v-if="status === 'running'" class="h-6 w-6 animate-spin text-white" />
+    <X v-else-if="status === 'error'" class="h-6 w-6 text-error-200" />
     <button v-else @click="onClick">
       <ArrowUp class="h-6 w-6 text-white" />
     </button>
@@ -9,7 +9,7 @@
 </template>
 
 <script setup>
-import { ArrowUp, RefreshCcw, X } from 'lucide-vue-next'
+import { ArrowUp, RefreshCw, X } from 'lucide-vue-next'
 
 defineProps({
   status: {

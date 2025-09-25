@@ -128,7 +128,9 @@ def get_conversation(conversation_id: UUID):
 
     # TODO: redesign this to use a single query
     conversation_dict = conversation.to_dict()
-    conversation_dict["messages"] = [m.to_dict() for m in conversation.messages]
+    conversation_dict["messages"] = [
+        m.to_dict_with_linked_models(g.session) for m in conversation.messages
+    ]
     conversation_dict["messages"].sort(key=lambda x: x["createdAt"])
     return jsonify(conversation_dict)
 
@@ -776,6 +778,46 @@ def get_catalog_assets(context_id):
     return jsonify(result)
 
 
+@api.route("/catalogs/assets/<string:asset_id>", methods=["PATCH"])
+@user_middleware
+def update_catalog_asset(asset_id: str):
+    """Update mutable fields of a catalog asset."""
+
+    try:
+        asset_uuid = UUID(asset_id)
+    except ValueError:
+        return jsonify({"error": "Invalid asset id"}), 400
+
+    asset = g.session.query(Asset).filter(Asset.id == asset_uuid).first()
+
+    if not asset:
+        return jsonify({"error": "Asset not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+
+    if "name" in data:
+        asset.name = data["name"]
+
+    if "description" in data:
+        asset.description = data["description"]
+
+    if "tags" in data:
+        asset.tags = data["tags"]
+
+    if "reviewed" in data:
+        asset.reviewed = data["reviewed"]
+
+    g.session.flush()
+
+    asset_dict = asset.to_dict()
+    if asset.type == "TABLE" and asset.table_facet:
+        asset_dict["table_facet"] = asset.table_facet.to_dict()
+    elif asset.type == "COLUMN" and asset.column_facet:
+        asset_dict["column_facet"] = asset.column_facet.to_dict()
+
+    return jsonify(asset_dict)
+
+
 @api.route("/catalogs/<string:context_id>/terms", methods=["GET"])
 @user_middleware
 def get_catalog_terms(context_id):
@@ -847,6 +889,43 @@ def create_catalog_term(context_id):
     g.session.flush()
 
     return jsonify(new_term.to_dict()), 201
+
+
+@api.route("/catalogs/terms/<string:term_id>", methods=["PATCH"])
+@user_middleware
+def update_catalog_term(term_id: str):
+    """Update mutable fields of a catalog term."""
+
+    try:
+        term_uuid = UUID(term_id)
+    except ValueError:
+        return jsonify({"error": "Invalid term id"}), 400
+
+    term = g.session.query(Term).filter(Term.id == term_uuid).first()
+
+    if not term:
+        return jsonify({"error": "Term not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+
+    if "name" in data:
+        term.name = data["name"]
+
+    if "definition" in data:
+        term.definition = data["definition"]
+
+    if "synonyms" in data:
+        term.synonyms = data["synonyms"]
+
+    if "business_domains" in data:
+        term.business_domains = data["business_domains"]
+
+    if "reviewed" in data:
+        term.reviewed = data["reviewed"]
+
+    g.session.flush()
+
+    return jsonify(term.to_dict())
 
 
 @api.route("/business-entities", methods=["GET"])
