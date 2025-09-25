@@ -128,8 +128,11 @@ class DBT:
         Args:
             command: The DBT command to run. eg. "docs generate"
         """
-        # self.database_config
-        return DBTRepository(self.repo_path)._run_dbt_command(command.split(" "), None)
+        if not self.database_config:
+            raise ValueError("Database configuration required to run DBT commands")
+
+        with DBTRepository(self.repo_path, self.database_config) as repo:
+            return repo._run_dbt_command(command.split(" "))
 
     def create_folder_if_not_exists(self, folder_path: str):
         """

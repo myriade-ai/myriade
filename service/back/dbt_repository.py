@@ -20,12 +20,13 @@ class DBTRepositoryError(Exception):
 class DBTRepository:
     """Manages DBT repository operations and docs generation."""
 
-    def __init__(self, repo_path: str):
+    def __init__(self, repo_path: str, database_config: Dict[str, Any] = None):
         """
         Initialize DBT repository manager.
 
         Args:
             repo_path: Path to the local DBT repository
+            database_config: Database connection configuration
         """
         self.repo_path = Path(repo_path)
         if not self.repo_path.exists():
@@ -34,6 +35,13 @@ class DBTRepository:
         self.project_file = self.repo_path / "dbt_project.yml"
         if not self.project_file.exists():
             raise DBTRepositoryError(f"No dbt_project.yml found in {repo_path}")
+
+        self.database_config = database_config
+        self.profiles_dir = None
+
+        # Create profiles.yml if database config is provided
+        if self.database_config:
+            self.profiles_dir = self.create_profiles_yml(self.database_config)
 
     def validate_repository(self) -> bool:
         """
@@ -236,14 +244,9 @@ class DBTRepository:
         logger.info(f"Created profiles.yml at {profiles_path}")
         return temp_dir
 
-    def generate_docs(
-        self, database_config: Dict[str, Any]
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def generate_docs(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
         Generate DBT documentation (catalog and manifest).
-
-        Args:
-            database_config: Database connection configuration
 
         Returns:
             Tuple of (catalog_dict, manifest_dict)
@@ -260,24 +263,27 @@ class DBTRepository:
                 "manifest.json files."
             )
 
-        profiles_dir = None
+        if not self.database_config:
+            raise DBTRepositoryError(
+                "No database configuration provided. Cannot generate docs."
+            )
+
         try:
-            engine = database_config.get("engine")
+            engine = self.database_config.get("engine")
             logger.info(f"Starting DBT docs generation for engine: {engine}")
-            details_keys = list(database_config.get("details", {}).keys())
+            details_keys = list(self.database_config.get("details", {}).keys())
             logger.debug(f"Database config keys: {details_keys}")
 
-            # Create profiles.yml
-            profiles_dir = self.create_profiles_yml(database_config)
-            logger.info(f"Created profiles directory: {profiles_dir}")
+            # Use pre-created profiles directory
+            logger.info(f"Using profiles directory: {self.profiles_dir}")
 
             # Run dbt deps to install dependencies
             logger.info("Running dbt deps...")
-            self._run_dbt_command(["deps"], profiles_dir)
+            self._run_dbt_command(["deps"])
 
             # Run dbt docs generate
             logger.info("Running dbt docs generate...")
-            self._run_dbt_command(["docs", "generate"], profiles_dir)
+            self._run_dbt_command(["docs", "generate"])
 
             # Read generated files
             target_dir = self.repo_path / "target"
@@ -308,29 +314,23 @@ class DBTRepository:
         except Exception as e:
             logger.error(f"Error generating DBT docs: {e}", exc_info=True)
             raise DBTRepositoryError(f"Error generating DBT docs: {e}") from e
-        finally:
-            # Clean up temporary profiles directory
-            if profiles_dir:
-                import shutil
 
-                try:
-                    shutil.rmtree(profiles_dir)
-                    logger.debug(f"Cleaned up profiles directory: {profiles_dir}")
-                except Exception as e:
-                    logger.warning(f"Failed to cleanup profiles directory: {e}")
-
-    def _run_dbt_command(self, command: list, profiles_dir: str) -> str:
+    def _run_dbt_command(self, command: list, profiles_dir: str = None) -> str:
         """
         Run a DBT command using dbtRunner.
 
         Args:
             command: DBT command arguments
-            profiles_dir: Path to profiles directory
+            profiles_dir: Path to profiles directory (optional, uses instance
+                profiles_dir if not provided)
 
         Returns:
             Command output
         """
         logger.info(f"Running DBT command with dbtRunner: {' '.join(command)}")
+
+        # Use provided profiles_dir or instance profiles_dir
+        effective_profiles_dir = profiles_dir or self.profiles_dir
 
         # Set environment variables to disable DBT tracking
         original_env = {}
@@ -348,20 +348,29 @@ class DBTRepository:
             # Initialize the runner
             dbt = dbtRunner()
 
-            # Add profiles dir to command if provided
-            full_command = (
-                command + ["--profiles-dir", profiles_dir] if profiles_dir else command
-            ) + ["--project-dir", str(self.repo_path)]
+            # Add profiles dir to command if available
+            if effective_profiles_dir:
+                full_command = command + ["--profiles-dir", effective_profiles_dir]
+            else:
+                full_command = command
+            full_command += ["--project-dir", str(self.repo_path)]
 
             # Change to the repository directory
             original_cwd = os.getcwd()
             os.chdir(str(self.repo_path))
 
             try:
+                logger.info("dbt command: ", full_command)
                 # Run the command
                 res: dbtRunnerResult = dbt.invoke(full_command)
                 # Quick win
-                text = "SUCCESS: " + str(res.success)
+                text = f"SUCCESS: {str(res.success)}\n"
+                if res.exception:
+                    text += f"EXCEPTION: {res.exception}\n"
+                for ind, result in enumerate(res.result.results):
+                    text += f"RESULT {ind}:\n"
+                    text += result.message
+                    text += "--------------------------------\n"
                 if res.result and hasattr(res.result, "message"):
                     text = "RESULT:\n"
                     for result in res.result:
@@ -369,17 +378,6 @@ class DBTRepository:
                             text += result.message
                             text += "--------------------------------"
                 return text
-                # if not result.success:
-                #     error_msg = f"DBT command failed: {' '.join(full_command)}"
-                #     if hasattr(result, "exception") and result.exception:
-                #         error_msg += f" - {result.exception}"
-                #     logger.error(error_msg)
-                #     raise DBTRepositoryError(error_msg)
-
-                # cmd_str = " ".join(full_command)
-                # logger.info(f"DBT command completed successfully: {cmd_str}")
-                # # Return a success message since dbtRunner doesn't provide stdout
-                # return f"Command '{cmd_str}' completed successfully"
 
             finally:
                 os.chdir(original_cwd)
@@ -396,6 +394,28 @@ class DBTRepository:
                     os.environ.pop(key, None)
                 else:
                     os.environ[key] = original_value
+
+    def cleanup(self):
+        """
+        Clean up temporary files and directories created by this instance.
+        """
+        if self.profiles_dir:
+            import shutil
+
+            try:
+                shutil.rmtree(self.profiles_dir)
+                logger.debug(f"Cleaned up profiles directory: {self.profiles_dir}")
+                self.profiles_dir = None
+            except Exception as e:
+                logger.warning(f"Failed to cleanup profiles directory: {e}")
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - automatically cleanup."""
+        self.cleanup()
 
 
 def validate_dbt_repo(repo_path: str) -> bool:
@@ -428,5 +448,5 @@ def generate_dbt_docs(
     Returns:
         Tuple of (catalog_dict, manifest_dict)
     """
-    repo = DBTRepository(repo_path)
-    return repo.generate_docs(database_config)
+    with DBTRepository(repo_path, database_config) as repo:
+        return repo.generate_docs()
