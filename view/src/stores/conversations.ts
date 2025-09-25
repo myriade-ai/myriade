@@ -40,6 +40,7 @@ export interface Message {
   }
   queryId?: string
   image?: string // base64 encoded image
+  name?: string // For function response messages
 }
 
 // A small type for tracking conversation status & errors

@@ -33,7 +33,16 @@
 
         <!-- Normal display mode -->
         <div v-else class="w-full overflow-hidden">
-          <template v-for="(part, index) in parsedText">
+          <!-- Function response renderer for CodeEditor read_file operations -->
+          <div
+            v-if="props.message.role === 'function' && props.message.name?.includes('read_file')"
+          >
+            <CodeFileDisplay
+              :content="props.message.content"
+              :fileName="extractFileNameFromFunctionResponse()"
+            />
+          </div>
+          <template v-else v-for="(part, index) in parsedText">
             <div v-if="part.type === 'markdown'" :key="`text-${index}`" class="w-full">
               <MarkdownDisplay :content="part.content"></MarkdownDisplay>
             </div>
@@ -90,8 +99,9 @@
           <div v-if="props.message.image" class="w-full">
             <img :src="`data:image/png;base64,${props.message.image}`" class="max-w-full h-auto" />
           </div>
+
           <FunctionCallRenderer
-            v-if="props.message.functionCall"
+            v-else-if="props.message.functionCall"
             :functionCall="props.message.functionCall"
             :queryId="props.message.queryId"
             :databaseSelectedId="databaseSelectedId"
@@ -193,6 +203,7 @@ import type { Message } from '@/stores/conversations'
 import { useDatabasesStore } from '@/stores/databases'
 import { Pencil, RotateCcw, SquarePen } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import CodeFileDisplay from './CodeFileDisplay.vue'
 import FunctionCallRenderer from './FunctionCallRenderer.vue'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
@@ -327,6 +338,14 @@ const parsedText = computed<
 
   return parts
 })
+
+// Helper function for extracting file names from function responses
+
+const extractFileNameFromFunctionResponse = (): string | undefined => {
+  // For now, we'll extract from the function name if possible
+  // In a more complete implementation, we might need to look at the previous function call
+  return undefined
+}
 
 onMounted(() => {
   // If we detect yml-graph blocks, execute the SQL in them automatically
