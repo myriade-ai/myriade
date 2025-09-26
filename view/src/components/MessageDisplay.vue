@@ -228,12 +228,13 @@ const catalogOperation = computed(() => {
   if (!functionCall) return false
 
   // Check if it's a catalog operation based on function name
-  const isCatalogFunction = functionCall.name?.includes('catalog') ||
-                           functionCall.name?.includes('update_asset') ||
-                           functionCall.name?.includes('upsert_term')
+  const isCatalogFunction =
+    functionCall.name?.includes('catalog') ||
+    functionCall.name?.includes('update_asset') ||
+    functionCall.name?.includes('upsert_term')
 
   // Also check if we have asset or term data in the message
-  const hasAssetOrTermData = props.message.asset || props.message.term
+  const hasAssetOrTermData = !!(props.message.asset || props.message.term)
 
   return isCatalogFunction || hasAssetOrTermData
 })

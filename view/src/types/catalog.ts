@@ -1,5 +1,3 @@
-// Clean catalog types for REST API usage
-
 export interface CatalogAssetUpdatePayload {
   description?: string | null
   tags?: string[] | null
@@ -15,7 +13,6 @@ export interface CatalogTermUpdatePayload {
   reviewed?: boolean
 }
 
-// Simple term state interface for forms and components
 export interface CatalogTermState {
   name: string
   definition: string
