@@ -1,9 +1,8 @@
 import uuid
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import yaml
-from agentlys.model import Message
 from sqlalchemy.orm import Session
 
 from models import Database

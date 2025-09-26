@@ -72,9 +72,10 @@
             tags: row.tags ?? [],
             dataType: row.column_facet?.data_type ?? null,
             privacy: row.column_facet?.privacy,
-            schema: row.table_facet?.schema ?? '',
+            schema: row.table_facet?.schema || row.column_facet?.parent_table_facet?.schema || '',
             tableName:
               row.table_facet?.table_name ||
+              row.column_facet?.parent_table_facet?.table_name ||
               catalogStore.assetsArray.find((a) => a.id === row.column_facet?.parent_table_asset_id)
                 ?.table_facet?.table_name ||
               '',

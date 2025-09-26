@@ -7,7 +7,7 @@ import anthropic
 from agentlys import Agentlys
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql.expression import true
 
 import telemetry
@@ -31,7 +31,7 @@ from models import (
     Query,
     UserFavorite,
 )
-from models.catalog import Asset, Term
+from models.catalog import Asset, ColumnFacet, Term
 from models.quality import BusinessEntity, Issue
 
 logger = logging.getLogger(__name__)
@@ -755,7 +755,17 @@ def get_catalog_assets(context_id):
 
     asset_type = request.args.get("type")  # TABLE, COLUMN
 
-    query = g.session.query(Asset).filter(Asset.database_id == database_id)
+    query = (
+        g.session.query(Asset)
+        .filter(Asset.database_id == database_id)
+        .options(
+            # Eagerly load facets
+            joinedload(Asset.table_facet),
+            joinedload(Asset.column_facet)
+            .joinedload(ColumnFacet.parent_table_asset)
+            .joinedload(Asset.table_facet),
+        )
+    )
 
     if asset_type:
         query = query.filter(Asset.type == asset_type.upper())
@@ -771,7 +781,18 @@ def get_catalog_assets(context_id):
         if asset.type == "TABLE" and asset.table_facet:
             asset_dict["table_facet"] = asset.table_facet.to_dict()
         elif asset.type == "COLUMN" and asset.column_facet:
-            asset_dict["column_facet"] = asset.column_facet.to_dict()
+            column_facet_dict = asset.column_facet.to_dict()
+
+            # Include parent table information for columns
+            if (
+                asset.column_facet.parent_table_asset
+                and asset.column_facet.parent_table_asset.table_facet
+            ):
+                column_facet_dict["parent_table_facet"] = (
+                    asset.column_facet.parent_table_asset.table_facet.to_dict()
+                )
+
+            asset_dict["column_facet"] = column_facet_dict
 
         result.append(asset_dict)
 

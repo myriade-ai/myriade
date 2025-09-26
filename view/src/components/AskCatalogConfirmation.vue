@@ -1,14 +1,16 @@
 <template>
   <div>
     <div class="flex-1 text-sm">
-      <div class="flex mt-2 space-x-1">
+      <div class="flex mt-2 space-x-1" v-if="assetData || termData">
         <component :is="statusIcon" class="w-5 h-5" :class="statusIconClass" />
 
         <p v-if="!isReviewed" class="text-yellow-700 mb-3">
           This catalog update needs your approval to be marked as reviewed.
         </p>
 
-        <p v-else class="text-green-700 mb-3">Catalog update approved and marked as reviewed.</p>
+        <p v-else-if="isReviewed" class="text-green-700 mb-3">
+          Catalog update approved and marked as reviewed.
+        </p>
       </div>
 
       <!-- Asset Display -->
@@ -26,47 +28,12 @@
 
       <!-- Term Display -->
       <div v-else-if="termData" class="space-y-3">
-        <div class="border rounded-lg p-4">
-          <h3 class="font-semibold text-lg mb-2">{{ termData.name }}</h3>
-          <p class="text-sm text-gray-600 mb-2">{{ termData.definition }}</p>
-          <div v-if="termData.synonyms && termData.synonyms.length" class="mb-2">
-            <span class="text-xs font-medium text-gray-500">Synonyms:</span>
-            <div class="flex flex-wrap gap-1 mt-1">
-              <span
-                v-for="synonym in termData.synonyms"
-                :key="synonym"
-                class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded"
-              >
-                {{ synonym }}
-              </span>
-            </div>
-          </div>
-          <div v-if="termData.business_domains && termData.business_domains.length" class="mb-2">
-            <span class="text-xs font-medium text-gray-500">Business Domains:</span>
-            <div class="flex flex-wrap gap-1 mt-1">
-              <span
-                v-for="domain in termData.business_domains"
-                :key="domain"
-                class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded"
-              >
-                {{ domain }}
-              </span>
-            </div>
-          </div>
-          <div v-if="!isReviewed" class="mt-4">
-            <Button
-              variant="default"
-              size="sm"
-              :disabled="isProcessing"
-              :is-loading="isProcessing"
-              @click="handleTermApprove"
-              class="text-green-600"
-            >
-              <template #loading>Approving...</template>
-              Approve
-            </Button>
-          </div>
-        </div>
+        <TermBase
+          v-model="editableTermData"
+          :is-editable="!isReviewed"
+          :is-processing="isProcessing"
+          @approve="handleTermApprove"
+        />
       </div>
     </div>
   </div>
@@ -75,11 +42,12 @@
 <script setup lang="ts">
 import { useCatalogStore } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
+import type { CatalogTermState } from '@/types/catalog'
 import { CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AssetBase from './AssetBase.vue'
-import { Button } from './ui/button'
+import TermBase from './TermBase.vue'
 
 const props = defineProps<{
   functionCall?: {
@@ -109,9 +77,38 @@ const catalogStore = useCatalogStore()
 const contextsStore = useContextsStore()
 const isProcessing = ref(false)
 
-// Determine if this is an asset or term operation based on available data
 const assetData = computed(() => props.asset)
 const termData = computed(() => props.term)
+
+const editableTermData = computed<CatalogTermState>({
+  get: () => {
+    if (!termData.value) {
+      return {
+        id: '',
+        name: '',
+        definition: '',
+        synonyms: [],
+        business_domains: [],
+        reviewed: false
+      }
+    }
+    return {
+      id: termData.value.id,
+      name: termData.value.name,
+      definition: termData.value.definition,
+      synonyms: termData.value.synonyms || [],
+      business_domains: termData.value.business_domains || [],
+      reviewed: termData.value.reviewed
+    }
+  },
+  set: (value: CatalogTermState) => {
+    if (termData.value) {
+      termData.value.definition = value.definition
+      termData.value.synonyms = value.synonyms
+      termData.value.business_domains = value.business_domains
+    }
+  }
+})
 
 const isReviewed = computed(() => {
   if (assetData.value) return assetData.value.reviewed
@@ -122,7 +119,11 @@ const isReviewed = computed(() => {
 const statusIcon = computed(() => (isReviewed.value ? CheckCircleIcon : ExclamationTriangleIcon))
 const statusIconClass = computed(() => (isReviewed.value ? 'text-green-500' : 'text-yellow-400'))
 
-const handleAssetApprove = async (payload: { id: string; description: string; tags: string[] }) => {
+const handleAssetApprove = async (payload: {
+  id: string
+  description: string
+  tags: string[] | null
+}) => {
   const contextId = contextsStore.contextSelected?.id
   if (!contextId || !assetData.value) {
     console.warn('Cannot approve asset without context or asset data')
@@ -131,11 +132,18 @@ const handleAssetApprove = async (payload: { id: string; description: string; ta
 
   try {
     isProcessing.value = true
-    await catalogStore.updateAsset(contextId, payload.id, {
+    await catalogStore.updateAsset(payload.id, {
       description: payload.description,
       tags: payload.tags,
       reviewed: true
     })
+
+    // Update local asset data to reflect the approval
+    if (assetData.value) {
+      assetData.value.reviewed = true
+      assetData.value.description = payload.description
+      assetData.value.tags = payload.tags
+    }
   } catch (error) {
     console.error('Failed to approve asset:', error)
   } finally {
@@ -152,9 +160,20 @@ const handleTermApprove = async () => {
 
   try {
     isProcessing.value = true
-    await catalogStore.updateTerm(contextId, termData.value.id, {
+    const currentTermData = editableTermData.value
+    await catalogStore.updateTerm(termData.value.id, {
+      definition: currentTermData.definition,
+      synonyms: currentTermData.synonyms,
+      business_domains: currentTermData.business_domains,
       reviewed: true
     })
+
+    if (termData.value) {
+      termData.value.definition = currentTermData.definition
+      termData.value.synonyms = currentTermData.synonyms
+      termData.value.business_domains = currentTermData.business_domains
+      termData.value.reviewed = true
+    }
   } catch (error) {
     console.error('Failed to approve term:', error)
   } finally {

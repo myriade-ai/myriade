@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 from models.quality import BusinessEntity, Issue, IssueScope, Severity, Status
 
 
-class SemanticCatalog:
-    """A catalog of business entities with their quality metrics."""
+class SemanticModel:
+    """A semantic model of business entities with their quality metrics."""
 
     def __init__(
         self, session: Session, conversation_id: uuid.UUID, database_id: uuid.UUID
@@ -66,7 +66,7 @@ class SemanticCatalog:
         return yaml.safe_dump(issue)
 
     def create_entity(self, entity_name: str, definition: str):
-        """Creates a new entity in the catalog.
+        """Creates a new entity in the semantic model.
         Args:
             entity_name: The name of the entity to create.
             definition: The definition of the entity.
@@ -127,7 +127,7 @@ class SemanticCatalog:
         self.session.flush()
 
     def delete_entity(self, entity_name: str) -> bool:
-        """Deletes an entity from the catalog.
+        """Deletes an entity from the semantic model.
 
         Args:
             entity_name: The name of the entity to delete.

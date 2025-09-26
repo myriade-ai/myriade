@@ -139,7 +139,7 @@ def handle_ask(session, conversation_id: UUID, question: str):
             session.rollback()
             # We break the loop to avoid sending the message
             break
-        response_data = message.to_dict()
+        response_data = message.to_dict_with_linked_models(session)
 
         # Include credits info if available from proxy
         credits_remaining = get_last_credits_info()
@@ -307,8 +307,6 @@ def handle_reject_write_operation(session, conversation_id: UUID, query_id: UUID
     session.flush()
     emit("response", response_message.to_dict())
     session.commit()
-
-
 
 
 @socketio.on("regenerateFromMessage")

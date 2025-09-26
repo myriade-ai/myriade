@@ -236,6 +236,8 @@ export const useConversationsStore = defineStore('conversations', () => {
       existing.content = incomingMsg.content
       existing.functionCall = incomingMsg.functionCall
       existing.role = incomingMsg.role
+      existing.asset = incomingMsg.asset
+      existing.term = incomingMsg.term
       // If other fields exist, update them as well
     } else {
       conversation.messages.push(incomingMsg)

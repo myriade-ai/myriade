@@ -40,6 +40,7 @@ export interface ColumnFacet {
   ordinal: number | null
   data_type: string | null
   privacy?: Privacy
+  parent_table_facet?: TableFacet
 }
 
 export interface CatalogTerm {
@@ -52,11 +53,6 @@ export interface CatalogTerm {
   createdAt: string
   updatedAt: string
   reviewed: boolean
-}
-
-export interface CatalogSearchResults {
-  assets: CatalogAsset[]
-  terms: CatalogTerm[]
 }
 
 export const useCatalogStore = defineStore('catalog', () => {
@@ -206,16 +202,12 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  async function updateAsset(
-    contextId: string,
-    assetId: string,
-    updates: CatalogAssetUpdatePayload
-  ) {
+  async function updateAsset(assetId: string, updates: CatalogAssetUpdatePayload) {
     try {
       error.value = null
 
       const response: AxiosResponse<CatalogAsset> = await axios.patch(
-        `/api/catalogs/${contextId}/assets/${assetId}`,
+        `/api/catalogs/assets/${assetId}`,
         updates
       )
 
@@ -233,12 +225,12 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  async function updateTerm(contextId: string, termId: string, updates: CatalogTermUpdatePayload) {
+  async function updateTerm(termId: string, updates: CatalogTermUpdatePayload) {
     try {
       error.value = null
 
       const response: AxiosResponse<CatalogTerm> = await axios.patch(
-        `/api/catalogs/${contextId}/terms/${termId}`,
+        `/api/catalogs/terms/${termId}`,
         updates
       )
 
@@ -254,10 +246,6 @@ export const useCatalogStore = defineStore('catalog', () => {
       console.error('Error updating term:', err)
       throw err
     }
-  }
-
-  function clearError() {
-    error.value = null
   }
 
   // ——————————————————————————————————————————————————
@@ -282,7 +270,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     fetchTerms,
     createTerm,
     updateAsset,
-    updateTerm,
-    clearError
+    updateTerm
   }
 })

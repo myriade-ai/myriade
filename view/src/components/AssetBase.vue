@@ -369,7 +369,7 @@ async function handleSave() {
 
   try {
     saving.value = true
-    await catalogStore.updateAsset(contextId, payload.id, {
+    await catalogStore.updateAsset(payload.id, {
       description: payload.description,
       tags: payload.tags
     })
@@ -403,7 +403,7 @@ async function handleApprove() {
 
   try {
     approving.value = true
-    const updated = await catalogStore.updateAsset(contextId, payload.id, {
+    const updated = await catalogStore.updateAsset(payload.id, {
       description: payload.description,
       tags: payload.tags,
       reviewed: true
