@@ -22,7 +22,7 @@ def parse_answer_text(text: str):
 
         # Add preceding text segment if it exists
         if start > last_end:
-            chunks.append({"type": "text", "content": text[last_end:start]})
+            chunks.append({"type": "markdown", "content": text[last_end:start]})
 
         # Check which group matched to determine type and get the ID
         if match.group(1):  # Matched <QUERY:id>
@@ -36,6 +36,6 @@ def parse_answer_text(text: str):
 
     # Add any remaining text segment after the last tag
     if last_end < len(text):
-        chunks.append({"type": "text", "content": text[last_end:]})
+        chunks.append({"type": "markdown", "content": text[last_end:]})
 
     return chunks

@@ -18,6 +18,7 @@ def create_database(
     organisation_id: str | None = None,
     dbt_catalog: dict | None = None,
     dbt_manifest: dict | None = None,
+    dbt_repo_path: str | None = None,
 ):
     # Create a new database
     database = Database(
@@ -31,6 +32,7 @@ def create_database(
         write_mode=write_mode,
         dbt_catalog=dbt_catalog,
         dbt_manifest=dbt_manifest,
+        dbt_repo_path=dbt_repo_path,
     )
     # After database creation, we'll sync initial metadata to catalog
     # This happens in the API layer after the database is persisted

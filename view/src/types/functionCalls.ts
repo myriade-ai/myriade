@@ -41,12 +41,43 @@ export interface SubmitCall extends BaseFunctionCall {
   arguments: Record<string, unknown>
 }
 
+export interface CodeEditorReadFileCall extends BaseFunctionCall {
+  name: string // Pattern: CodeEditor-code_editor__read_file
+  arguments: {
+    path?: string
+    content?: string
+    [key: string]: unknown
+  }
+}
+
+export interface CodeEditorReplaceCall extends BaseFunctionCall {
+  name: string // Pattern: CodeEditor-code_editor__str_replace
+  arguments: {
+    path?: string
+    old_string?: string
+    new_string?: string
+    [key: string]: unknown
+  }
+}
+
+export interface CodeEditorCreateFileCall extends BaseFunctionCall {
+  name: string // Pattern: CodeEditor-code_editor__create_file
+  arguments: {
+    path?: string
+    content?: string
+    [key: string]: unknown
+  }
+}
+
 export type FunctionCall =
   | MemorySearchCall
   | ThinkCall
   | AskUserCall
   | SqlQueryCall
   | SubmitCall
+  | CodeEditorReadFileCall
+  | CodeEditorReplaceCall
+  | CodeEditorCreateFileCall
   | BaseFunctionCall
 
 // Props interface for renderer components
@@ -75,4 +106,16 @@ export function isSqlQueryCall(call: FunctionCall): call is SqlQueryCall {
 
 export function isSubmitCall(call: FunctionCall): call is SubmitCall {
   return call.name === 'submit'
+}
+
+export function isCodeEditorReadFileCall(call: FunctionCall): call is CodeEditorReadFileCall {
+  return call.name.includes('code_editor__read_file')
+}
+
+export function isCodeEditorReplaceCall(call: FunctionCall): call is CodeEditorReplaceCall {
+  return call.name.includes('code_editor__str_replace')
+}
+
+export function isCodeEditorCreateFileCall(call: FunctionCall): call is CodeEditorCreateFileCall {
+  return call.name.includes('code_editor__create_file')
 }

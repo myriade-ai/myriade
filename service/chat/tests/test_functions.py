@@ -29,3 +29,9 @@ def test_tools(analyst_agent, snapshot: SnapshotAssertion):
         for name, tool in agent.tools.items()
     }
     assert tools_dict == snapshot
+
+
+def test_dbt_functions_schema(analyst_agent_dbt, snapshot: SnapshotAssertion):
+    """Test that the tools dictionary stays consistent"""
+    agent = analyst_agent_dbt.agent
+    assert agent.functions_schema == snapshot
