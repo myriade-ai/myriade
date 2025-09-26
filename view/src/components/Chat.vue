@@ -142,14 +142,18 @@
               </div>
             </div>
           </transition>
-          <Card id="input-container" class="py-0 px-2">
-            <div
-              class="flex justify-end mb-2"
-              v-if="user?.credits !== undefined && user.credits < 50"
-            >
-              <!-- Credits Display (if user has less than 50 credits, show the number of credits left)-->
-              <div class="text-sm text-gray-500">{{ user.credits }} credits left</div>
+          
+          <!-- Credits Display - moved outside input container to prevent deformation -->
+          <div
+            class="flex justify-end mb-2 px-2"
+            v-if="user?.credits !== undefined && user.credits < 50"
+          >
+            <div class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-md">
+              {{ user.credits }} credits left
             </div>
+          </div>
+          
+          <Card id="input-container" class="py-0 px-2">
             <div class="flex items-center">
               <div class="w-full flex py-1">
                 <Textarea
