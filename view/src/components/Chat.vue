@@ -143,13 +143,6 @@
             </div>
           </transition>
           <Card id="input-container" class="py-0 px-2">
-            <div
-              class="flex justify-end mb-2"
-              v-if="user?.credits !== undefined && user.credits < 50"
-            >
-              <!-- Credits Display (if user has less than 50 credits, show the number of credits left)-->
-              <div class="text-sm text-gray-500">{{ user.credits }} credits left</div>
-            </div>
             <div class="flex items-center">
               <div class="w-full flex py-1">
                 <Textarea
@@ -168,12 +161,20 @@
                   v-if="editMode === 'SQL'"
                 />
 
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2 ml-2">
+                  <!-- Credits Display (if user has less than 50 credits, show the number of credits left)-->
+                  <div 
+                    v-if="user?.credits !== undefined && user.credits < 50"
+                    class="text-xs text-gray-500 whitespace-nowrap px-2 py-1 bg-gray-50 rounded-md border"
+                  >
+                    {{ user.credits }} credits left
+                  </div>
+                  
                   <Button
                     @click="toggleEditMode"
                     variant="ghost"
                     size="sm"
-                    class="text-xs px-2 py-1 ml-2"
+                    class="text-xs px-2 py-1"
                   >
                     {{ editMode === 'text' ? 'SQL' : 'Text' }}
                   </Button>
