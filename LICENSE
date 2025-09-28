@@ -1,12 +1,12 @@
-# Functional Source License, Version 1.1, ALv2 Future License
+# Fair Core License, Version 1.0, ALv2 Future License
 
 ## Abbreviation
 
-FSL-1.1-ALv2
+FCL-1.0-ALv2
 
 ## Notice
 
-Copyright 2025 Catalys SAS - Myriade
+Copyright 2025 - Catalys SAS
 
 ## Terms and Conditions
 
@@ -22,10 +22,11 @@ Conditions with the Software.
 
 ### License Grant
 
-Subject to your compliance with this License Grant and the Patents,
-Redistribution and Trademark clauses below, we hereby grant you the right to
-use, copy, modify, create derivative works, publicly perform, publicly display
-and redistribute the Software for any Permitted Purpose identified below.
+Subject to your compliance with this License Grant and the Limitations,
+Patents, Redistribution and Trademark clauses below, we hereby grant you the
+right to use, copy, modify, create derivative works, publicly perform, publicly
+display and redistribute the Software for any Permitted Purpose identified
+below.
 
 ### Permitted Purpose
 
@@ -42,14 +43,32 @@ service that:
 
 Permitted Purposes specifically include using the Software:
 
-1. for your internal use and access;
+1. personal or individual use, including use with the user’s own API keys
+   (e.g., OpenAI, Anthropic) provided that such use is non-commercial;
 
-2. for non-commercial education;
+2. non-commercial education;
 
-3. for non-commercial research; and
+3. non-commercial research; and
 
-4. in connection with professional services that you provide to a licensee
-   using the Software in accordance with these Terms and Conditions.
+4. professional services delivered to licensees of the Software in accordance
+   with these Terms and Conditions.
+
+Enterprise or organizational use of advanced features (including but not limited
+to Catalog, Modeling, Quality Reviews) requires a commercial subscription with us. 
+Any enterprise use of such features without a valid subscription constitutes
+a Competing Use.
+
+### Limitations
+
+You must not move, change, disable, or circumvent the license key functionality
+or the centralized authentication system used to enforce license keys or
+subscriptions in the Software; or modify any portion of the Software protected
+by the license key or authentication system to:
+
+1. enable access to the protected functionality without a valid license key or
+   subscription; or
+
+2. remove the protected functionality.
 
 ### Patents
 
@@ -66,7 +85,8 @@ the Software.
 
 If you redistribute any copies, modifications or derivatives of the Software,
 you must include a copy of or a link to these Terms and Conditions and not
-remove any copyright notices provided in or with the Software.
+remove any copyright or other proprietary notices provided in or with the
+Software.
 
 ### Disclaimer
 
@@ -78,6 +98,9 @@ IN NO EVENT WILL WE HAVE ANY LIABILITY TO YOU ARISING OUT OF OR RELATED TO THE
 SOFTWARE, INCLUDING INDIRECT, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES,
 EVEN IF WE HAVE BEEN INFORMED OF THEIR POSSIBILITY IN ADVANCE.
 
+In the event the provision of this Disclaimer section is unenforceable under
+applicable law, the licenses granted herein are void.
+
 ### Trademarks
 
 Except for displaying the License Details and identifying us as the origin of
@@ -86,11 +109,11 @@ trademarks, trade names, service marks or product names.
 
 ## Grant of Future License
 
-We hereby irrevocably grant you an additional license to use the Software under
-the Apache License, Version 2.0 that is effective on the second anniversary of
-the date we make the Software available. On or after that date, you may use the
-Software under the Apache License, Version 2.0, in which case the following
-will apply:
+We hereby irrevocably grant you an additional license to use the Software,
+under the Apache License, Version 2.0, that is effective on the second
+anniversary of the date we make the Software available. On or after that date,
+you may use the Software under the Apache License, Version 2.0, in which case
+the following will apply:
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License.
