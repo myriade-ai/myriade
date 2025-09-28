@@ -103,11 +103,12 @@ See [`docs/telemetry.md`](./docs/telemetry.md) for what we collect and why.
 
 ## 📜 License
 
-Myriade is licensed under the [FAIR License](https://fair.io):
+Myriade is licensed under the [Fair Core License](https://fair.io) [(FCL-1.0-ALv2)](http://fcl.dev):
 
 - ✅ **Free to tinker** – read the code, run it, fork it, submit PRs.
-- ✅ **Free to self-host** – personal or internal company use.
-- 🚫 **No SaaS competition** – for 24 months after release, you can’t offer Myriade (or a derivative) as a competing hosted service.
+- ✅ **Free to self-host** – personal use, or internal company use of basic features (chat).
+- 🚫 **Enterprise features** – data catalog, modeling, quality reviews, etc. require a subscription via our auth.
+- 🚫 **No competition** – for 24 months after release, you can’t offer Myriade (or a derivative) as a competing product.
 - 🔄 **Open-source switch** – 2 years after each release, the license flips to Apache-2.0.
 
 See [`LICENSE`](./LICENSE) for full details.
