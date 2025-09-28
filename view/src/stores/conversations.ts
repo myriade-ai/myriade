@@ -37,9 +37,27 @@ export interface Message {
   functionCall?: {
     name: string
     arguments: any
+    metadata?: Record<string, unknown>
   }
+  functionCallId?: string
   queryId?: string
   image?: string // base64 encoded image
+  asset?: {
+    id: string
+    name: string
+    description?: string | null
+    tags?: string[] | null
+    type: 'TABLE' | 'COLUMN'
+    reviewed: boolean
+  }
+  term?: {
+    id: string
+    name: string
+    definition: string
+    synonyms?: string[] | null
+    business_domains?: string[] | null
+    reviewed: boolean
+  }
 }
 
 // A small type for tracking conversation status & errors
@@ -218,6 +236,8 @@ export const useConversationsStore = defineStore('conversations', () => {
       existing.content = incomingMsg.content
       existing.functionCall = incomingMsg.functionCall
       existing.role = incomingMsg.role
+      existing.asset = incomingMsg.asset
+      existing.term = incomingMsg.term
       // If other fields exist, update them as well
     } else {
       conversation.messages.push(incomingMsg)

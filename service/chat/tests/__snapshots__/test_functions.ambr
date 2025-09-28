@@ -8,12 +8,12 @@
     'answer',
     'ask_user',
     'EchartsTool-echarts__preview_render',
-    'SemanticCatalog-semantic_catalog__create_entity',
-    'SemanticCatalog-semantic_catalog__create_issue',
-    'SemanticCatalog-semantic_catalog__delete_entity',
-    'SemanticCatalog-semantic_catalog__read_issue',
-    'SemanticCatalog-semantic_catalog__update_entity',
-    'SemanticCatalog-semantic_catalog__update_issue',
+    'SemanticModel-semantic_model__create_entity',
+    'SemanticModel-semantic_model__create_issue',
+    'SemanticModel-semantic_model__delete_entity',
+    'SemanticModel-semantic_model__read_issue',
+    'SemanticModel-semantic_model__update_entity',
+    'SemanticModel-semantic_model__update_issue',
     'CatalogTool-catalog__list_assets',
     'CatalogTool-catalog__read_asset',
     'CatalogTool-catalog__read_term',
@@ -642,8 +642,8 @@
       }),
     }),
     dict({
-      'description': 'Creates a new entity in the catalog.',
-      'name': 'SemanticCatalog-semantic_catalog__create_entity',
+      'description': 'Creates a new entity in the semantic model.',
+      'name': 'SemanticModel-semantic_model__create_entity',
       'parameters': dict({
         'properties': dict({
           'definition': dict({
@@ -667,7 +667,7 @@
     }),
     dict({
       'description': 'Creates a new issue for an entity.',
-      'name': 'SemanticCatalog-semantic_catalog__create_issue',
+      'name': 'SemanticModel-semantic_model__create_issue',
       'parameters': dict({
         'properties': dict({
           'business_entity_id': dict({
@@ -708,8 +708,8 @@
       }),
     }),
     dict({
-      'description': 'Deletes an entity from the catalog.',
-      'name': 'SemanticCatalog-semantic_catalog__delete_entity',
+      'description': 'Deletes an entity from the semantic model.',
+      'name': 'SemanticModel-semantic_model__delete_entity',
       'parameters': dict({
         'properties': dict({
           'entity_name': dict({
@@ -727,7 +727,7 @@
     }),
     dict({
       'description': 'Fetch an issue by id',
-      'name': 'SemanticCatalog-semantic_catalog__read_issue',
+      'name': 'SemanticModel-semantic_model__read_issue',
       'parameters': dict({
         'properties': dict({
           'issue_id': dict({
@@ -744,7 +744,7 @@
     }),
     dict({
       'description': 'Updates the quality of an existing entity.',
-      'name': 'SemanticCatalog-semantic_catalog__update_entity',
+      'name': 'SemanticModel-semantic_model__update_entity',
       'parameters': dict({
         'properties': dict({
           'completeness': dict({
@@ -792,7 +792,7 @@
     }),
     dict({
       'description': 'Updates an existing issue.',
-      'name': 'SemanticCatalog-semantic_catalog__update_issue',
+      'name': 'SemanticModel-semantic_model__update_issue',
       'parameters': dict({
         'properties': dict({
           'description': dict({
@@ -1183,7 +1183,7 @@
     'dbt': 'DBT',
     'echarts': 'EchartsTool',
     'notes': 'Notes',
-    'semantic_catalog': 'SemanticCatalog',
+    'semantic_model': 'SemanticModel',
     'workspace': 'WorkspaceTool',
   })
 # ---
