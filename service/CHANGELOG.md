@@ -1,6 +1,40 @@
 # CHANGELOG
 
 
+## v0.44.3 (2025-09-23)
+
+### Bug Fixes
+
+- Remove useless media query ([#117](https://github.com/myriade-ai/myriade/pull/117),
+  [`7e58a2a`](https://github.com/myriade-ai/myriade/commit/7e58a2a22b1e3de5c453abb60239f0fcf2c32540))
+
+### Refactoring
+
+- Use tanstack table ([#114](https://github.com/myriade-ai/myriade/pull/114),
+  [`a004103`](https://github.com/myriade-ai/myriade/commit/a004103a708bea9884ac9476e467537012531c7d))
+
+
+## v0.44.2 (2025-09-23)
+
+### Bug Fixes
+
+- Update uv.lock with change
+  ([`435f3d0`](https://github.com/myriade-ai/myriade/commit/435f3d0f541b319dc45320ba209bd5490961a1d1))
+
+
+## v0.44.1 (2025-09-23)
+
+### Bug Fixes
+
+- Remove global overscroll-behavior-none
+  ([`b35f855`](https://github.com/myriade-ai/myriade/commit/b35f8553b435df748260139b67ac0e35d9c9b6b6))
+
+### Refactoring
+
+- Chat design
+  ([`0c96264`](https://github.com/myriade-ai/myriade/commit/0c962644e03781e0d005ae7372460e7d4d4e260f))
+
+
 ## v0.44.0 (2025-09-22)
 
 ### Features

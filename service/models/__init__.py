@@ -22,6 +22,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from chat.utils import parse_answer_text
 from db import JSONB, UUID, Base, DefaultBase, SerializerMixin
+from models.catalog import Asset, Term
 
 from .quality import (
     BusinessEntity,  # noqa: F401
@@ -199,6 +200,33 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
             "isAnswer": self.isAnswer,
         }
 
+    def to_dict_with_linked_models(self, session):
+        """Extended to_dict method that includes asset details if referenced in functionCall."""  # noqa: E501
+        base_dict = self.to_dict()
+        functionCall = self.functionCall
+
+        if (
+            functionCall
+            and functionCall.get("name") == "CatalogTool-catalog__update_asset"
+        ):
+            asset_id = functionCall["arguments"].get("asset_id")
+            if asset_id:
+                asset = session.query(Asset).filter(Asset.id == asset_id).first()
+                if asset:
+                    base_dict["asset"] = asset.to_dict()
+
+        if (
+            functionCall
+            and functionCall.get("name") == "CatalogTool-catalog__upsert_term"
+        ):
+            term_name = functionCall["arguments"].get("name")
+            if term_name:
+                term = session.query(Term).filter(Term.name == term_name).first()
+                if term:
+                    base_dict["term"] = term.to_dict()
+
+        return base_dict
+
     def to_agentlys_message(self) -> AgentlysMessage:
         message = AgentlysMessage(
             role=self.role,  # type: ignore[assignment]
@@ -254,7 +282,7 @@ class Conversation(SerializerMixin, DefaultBase, Base):
         "ConversationMessage",
         back_populates="conversation",
         lazy="joined",
-        # Order by id
+        # Order by createdAt
         order_by="ConversationMessage.createdAt",
     )
     project: Mapped[Optional["Project"]] = relationship()

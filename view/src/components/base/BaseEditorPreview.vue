@@ -14,13 +14,13 @@
       </Button>
     </div>
     <BaseEditor :modelValue="sqlQuery" :readOnly="true" />
-    <BaseTable :data="rows" :count="count" />
+    <DataTable :data="rows" :count="count" class="mt-4" />
   </div>
 </template>
 
 <script lang="ts" setup>
 import BaseEditor from '@/components/base/BaseEditor.vue'
-import BaseTable from '@/components/base/BaseTable.vue'
+import DataTable from '@/components/DataTable.vue'
 import { useQueryEditor } from '@/composables/useQueryEditor'
 import axios from '@/plugins/axios'
 import { Star } from 'lucide-vue-next'

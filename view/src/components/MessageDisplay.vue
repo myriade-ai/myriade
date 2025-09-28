@@ -86,7 +86,7 @@
               <BaseEditor :modelValue="part.content" :read-only="true"></BaseEditor>
             </div>
             <div v-if="part.type === 'json'" :key="`json-${index}`" class="w-full overflow-x-auto">
-              <BaseTable :data="part.content" :count="part.content.length" />
+              <DataTable :data="part.content" :count="part.content.length" class="bg-white mt-2" />
             </div>
             <!-- TODO: remove -->
             <Card v-if="part.type === 'echarts'" :key="`echarts-${index}`">
@@ -112,6 +112,12 @@
             :operationType="queryData.operationType"
             :status="queryData.status"
             @rejected="emit('rejected')"
+          />
+          <AskCatalogConfirmation
+            v-if="catalogOperation && props.message.role === 'assistant'"
+            :function-call="props.message.functionCall"
+            :asset="props.message.asset"
+            :term="props.message.term"
           />
         </div>
       </div>
@@ -190,10 +196,11 @@ import yaml from 'js-yaml'
 import { computed, defineEmits, defineProps, onMounted, ref } from 'vue'
 
 // Components
+import AskCatalogConfirmation from '@/components/AskCatalogConfirmation.vue'
 import AskQueryConfirmation from '@/components/AskQueryConfirmation.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
-import BaseTable from '@/components/base/BaseTable.vue'
+import DataTable from '@/components/DataTable.vue'
 import Chart from '@/components/Chart.vue'
 import Echart from '@/components/Echart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
@@ -228,6 +235,23 @@ const editedContent = ref('')
 const queriesStore = useQueriesStore()
 const queryData = computed(() => queriesStore.getQuery(props.message.queryId))
 const needsConfirmation = computed(() => queriesStore.needsConfirmation(props.message.queryId))
+
+// Detect catalog operations based on function call name and available asset/term data
+const catalogOperation = computed(() => {
+  const functionCall = props.message.functionCall
+  if (!functionCall) return false
+
+  // Check if it's a catalog operation based on function name
+  const isCatalogFunction =
+    functionCall.name?.includes('catalog') ||
+    functionCall.name?.includes('update_asset') ||
+    functionCall.name?.includes('upsert_term')
+
+  // Also check if we have asset or term data in the message
+  const hasAssetOrTermData = !!(props.message.asset || props.message.term)
+
+  return isCatalogFunction || hasAssetOrTermData
+})
 
 const toggleEditMode = () => {
   isEditing.value = !isEditing.value

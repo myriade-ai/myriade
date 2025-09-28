@@ -14,10 +14,11 @@
           <template #title> There is an error in the SQL execution 😔 </template>
           {{ editor.error.value }}
         </BaseAlert>
-        <BaseTable
+        <DataTable
           v-if="editor.results.value !== null"
           :data="editor.results.value"
           :count="editor.count.value ?? 0"
+          class="mt-4"
         />
       </div>
     </div>
@@ -28,7 +29,7 @@
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import BaseQuery from '@/components/base/BaseQuery.vue'
-import BaseTable from '@/components/base/BaseTable.vue'
+import DataTable from '@/components/DataTable.vue'
 import DatabaseExplorer from '@/components/DatabaseExplorer.vue'
 import { useQueryEditor } from '@/composables/useQueryEditor'
 import { useDatabasesStore } from '@/stores/databases'

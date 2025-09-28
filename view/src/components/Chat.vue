@@ -6,7 +6,7 @@
       class="flex justify-center px-2 sm:px-4 lg:px-0"
       v-touch:swipe.right="toggleSidebar"
     >
-      <div class="flex flex-col w-full lg:min-h-[calc(100vh-4rem)]">
+      <div class="flex flex-col w-full min-h-[calc(100vh-4rem)]">
         <div class="flex flex-col flex-1 w-full max-w-3xl m-auto">
           <div class="w-full lg:pt-4">
             <ul class="list-none">
@@ -142,14 +142,18 @@
               </div>
             </div>
           </transition>
-          <Card id="input-container" class="py-0 px-2">
-            <div
-              class="flex justify-end mb-2"
-              v-if="user?.credits !== undefined && user.credits < 50"
-            >
-              <!-- Credits Display (if user has less than 50 credits, show the number of credits left)-->
-              <div class="text-sm text-gray-500">{{ user.credits }} credits left</div>
+
+          <!-- Credits Display - moved outside input container to prevent deformation -->
+          <div
+            class="flex justify-end mb-2 px-2"
+            v-if="user?.credits !== undefined && user.credits < 50"
+          >
+            <div class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-md">
+              {{ user.credits }} credits left
             </div>
+          </div>
+
+          <Card id="input-container" class="py-0 px-2">
             <div class="flex items-center">
               <div class="w-full flex py-1">
                 <Textarea
@@ -224,9 +228,9 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
 import PageHeader from './PageHeader.vue'
 import { Button } from './ui/button'
+import { Card } from './ui/card'
 import { useSidebar } from './ui/sidebar'
 import { Textarea } from './ui/textarea'
-import { Card } from './ui/card'
 
 const route = useRoute()
 const router = useRouter()
@@ -321,10 +325,20 @@ const isPublicMessage = (message: Message, index: number) => {
   const isFunctionAfterAnswer = isFunction && prevMessage?.isAnswer
   const isAnwser = message.isAnswer
   let hasWriteOperation = false
+  const hasCatalogProposal =
+    message.functionCall?.name.includes('update_asset') ||
+    message.functionCall?.name.includes('upsert_term')
   if (message.queryId) {
     hasWriteOperation = queriesStore.getQuery(message.queryId)?.operationType !== null
   }
-  return isUser || isFunctionAfterUser || isAnwser || isFunctionAfterAnswer || hasWriteOperation
+  return (
+    isUser ||
+    isFunctionAfterUser ||
+    isAnwser ||
+    isFunctionAfterAnswer ||
+    hasWriteOperation ||
+    hasCatalogProposal
+  )
 }
 
 /** END MESSAGE DISPLAY LOGIC **/

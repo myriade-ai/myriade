@@ -2,6 +2,7 @@
 export interface BaseFunctionCall {
   name: string
   arguments: Record<string, unknown>
+  metadata?: Record<string, unknown>
 }
 
 // Specific function call interfaces

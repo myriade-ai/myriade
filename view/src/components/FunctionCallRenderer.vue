@@ -65,6 +65,9 @@
       />
     </div>
 
+    <!-- Hide catalog operations -->
+    <div v-else-if="argumentsNameToHide.includes(functionCall.name)"></div>
+
     <!-- Default fallback renderer -->
     <div v-else>
       <pre class="arguments">{{ functionCall.arguments }}</pre>
@@ -99,6 +102,11 @@ const props = defineProps<{
   queryId?: string
   databaseSelectedId?: string | null
 }>()
+
+const argumentsNameToHide = [
+  'CatalogTool-catalog__update_asset',
+  'CatalogTool-catalog__upsert_term'
+]
 
 // Compute display information for the function call
 const displayInfo = computed(() => getFunctionCallDisplayInfo(props.functionCall.name))

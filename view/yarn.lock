@@ -972,11 +972,6 @@
   resolved "https://registry.npmjs.org/@types/node/-/node-18.15.3.tgz"
   integrity sha512-p6ua9zBxz5otCmbpb5D3U4B5Nanw6Pk3PPyX05xnxbB/fRv71N7CPmORg7uAD5P70T0xmx1pzAx/FUfa5X+3cw==
 
-"@types/tabulator-tables@^6.2.10":
-  version "6.2.10"
-  resolved "https://registry.yarnpkg.com/@types/tabulator-tables/-/tabulator-tables-6.2.10.tgz#5a9fcde6b1ea379abd5ee6790cc095ebcae1e769"
-  integrity sha512-g6o0gG3lu/ozmxPw9rLY1p57T6rvV8OhbJKyzWwPwjdnN3JuSQ3gWxb06v2+dl2tdoqNXTvlylipSSKpS8UzzQ==
-
 "@types/web-bluetooth@^0.0.21":
   version "0.0.21"
   resolved "https://registry.yarnpkg.com/@types/web-bluetooth/-/web-bluetooth-0.0.21.tgz#525433c784aed9b457aaa0ee3d92aeb71f346b63"
@@ -3577,11 +3572,6 @@ synckit@^0.9.1:
   dependencies:
     "@pkgr/core" "^0.1.0"
     tslib "^2.6.2"
-
-tabulator-tables@^5.4.4:
-  version "5.4.4"
-  resolved "https://registry.npmjs.org/tabulator-tables/-/tabulator-tables-5.4.4.tgz"
-  integrity sha512-WqPWLRwrD8UMISUjQqZyj6y9k3ajQBs7eJtRosbt9q8RRkZlYCJYGxLt3L44jEXaQCE5q5EJFbGeDUEDJa1a3w==
 
 tailwind-merge@^3.3.1:
   version "3.3.1"
