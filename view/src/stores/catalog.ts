@@ -1,16 +1,22 @@
 import axios from '@/plugins/axios'
 import { useContextsStore } from '@/stores/contexts'
+import type { CatalogAssetUpdatePayload, CatalogTermUpdatePayload } from '@/types/catalog'
 import type { AxiosResponse } from 'axios'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
-// Define catalog asset types
+export type AssetType = 'TABLE' | 'COLUMN'
+
+export type Privacy = {
+  llm: 'Encrypted' | 'Default'
+}
+
 export interface CatalogAsset {
   id: string
   urn: string
   name: string | null
   description: string | null
-  type: 'TABLE' | 'COLUMN'
+  type: AssetType
   tags: string[] | null
   database_id: string
   created_by: string | null
@@ -18,6 +24,7 @@ export interface CatalogAsset {
   updatedAt: string
   table_facet?: TableFacet
   column_facet?: ColumnFacet
+  reviewed: boolean
 }
 
 export interface TableFacet {
@@ -32,7 +39,8 @@ export interface ColumnFacet {
   column_name: string
   ordinal: number | null
   data_type: string | null
-  privacy: Record<string, any> | null
+  privacy?: Privacy
+  parent_table_facet?: TableFacet
 }
 
 export interface CatalogTerm {
@@ -44,11 +52,7 @@ export interface CatalogTerm {
   business_domains: string[] | null
   createdAt: string
   updatedAt: string
-}
-
-export interface CatalogSearchResults {
-  assets: CatalogAsset[]
-  terms: CatalogTerm[]
+  reviewed: boolean
 }
 
 export const useCatalogStore = defineStore('catalog', () => {
@@ -126,8 +130,9 @@ export const useCatalogStore = defineStore('catalog', () => {
       })
 
       return response.data
-    } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to fetch assets'
+    } catch (err: unknown) {
+      const errorResponse = err as any
+      error.value = errorResponse?.response?.data?.message || 'Failed to fetch assets'
       console.error('Error fetching assets:', err)
       return []
     } finally {
@@ -157,8 +162,9 @@ export const useCatalogStore = defineStore('catalog', () => {
       })
 
       return response.data
-    } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to fetch terms'
+    } catch (err: unknown) {
+      const errorResponse = err as any
+      error.value = errorResponse?.response?.data?.message || 'Failed to fetch terms'
       console.error('Error fetching terms:', err)
       return []
     } finally {
@@ -186,8 +192,9 @@ export const useCatalogStore = defineStore('catalog', () => {
 
       terms.value[response.data.id] = response.data
       return response.data
-    } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to create term'
+    } catch (err: unknown) {
+      const errorResponse = err as any
+      error.value = errorResponse?.response?.data?.message || 'Failed to create term'
       console.error('Error creating term:', err)
       throw err
     } finally {
@@ -195,8 +202,50 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  function clearError() {
-    error.value = null
+  async function updateAsset(assetId: string, updates: CatalogAssetUpdatePayload) {
+    try {
+      error.value = null
+
+      const response: AxiosResponse<CatalogAsset> = await axios.patch(
+        `/api/catalogs/assets/${assetId}`,
+        updates
+      )
+
+      assets.value[response.data.id] = response.data
+      return response.data
+    } catch (err: unknown) {
+      const errorResponse = err as any
+      const message =
+        errorResponse?.response?.data?.error ||
+        errorResponse?.response?.data?.message ||
+        'Failed to update asset'
+      error.value = message
+      console.error('Error updating asset:', err)
+      throw err
+    }
+  }
+
+  async function updateTerm(termId: string, updates: CatalogTermUpdatePayload) {
+    try {
+      error.value = null
+
+      const response: AxiosResponse<CatalogTerm> = await axios.patch(
+        `/api/catalogs/terms/${termId}`,
+        updates
+      )
+
+      terms.value[response.data.id] = response.data
+      return response.data
+    } catch (err: unknown) {
+      const errorResponse = err as any
+      const message =
+        errorResponse?.response?.data?.error ||
+        errorResponse?.response?.data?.message ||
+        'Failed to update term'
+      error.value = message
+      console.error('Error updating term:', err)
+      throw err
+    }
   }
 
   // ——————————————————————————————————————————————————
@@ -220,6 +269,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     fetchAssets,
     fetchTerms,
     createTerm,
-    clearError
+    updateAsset,
+    updateTerm
   }
 })

@@ -1,18 +1,18 @@
 <template>
   <div class="catalog-page flex flex-col h-full">
     <!-- Header -->
-    <div class="flex-none border-b border-gray-200 bg-white px-6 py-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-semibold text-gray-900">Data Catalog</h1>
-          <p class="text-sm text-gray-600 mt-1">
-            {{ catalogStore.assetsArray.length }} assets •
-            {{ catalogStore.termsArray.length }} terms
-          </p>
-        </div>
+    <PageHeader
+      title="Data Catalog"
+      :subtitle="`${catalogStore.assetsArray.length} assets • ${catalogStore.termsArray.length} terms`"
+    >
+      <template #actions>
+        <Button @click="exploreDatabase" variant="outline" class="mr-2">
+          <SparklesIcon class="h-4 w-4 mr-2" />
+          Explore & Describe Assets
+        </Button>
         <Button @click="refresh"> Refresh </Button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <!-- Loading State -->
     <div v-if="loading" class="flex-1 flex items-center justify-center">
@@ -158,6 +158,7 @@
 <script setup lang="ts">
 import CatalogAssetsTable from '@/components/CatalogAssetsTable.vue'
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Label from '@/components/ui/label/Label.vue'
@@ -165,7 +166,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs/'
 import { Textarea } from '@/components/ui/textarea'
 import { useCatalogStore } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
+import { useConversationsStore } from '@/stores/conversations'
+import { SparklesIcon } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 const catalogStore = useCatalogStore()
 const contextsStore = useContextsStore()
@@ -221,6 +225,46 @@ async function createTerm() {
     refresh()
   } catch (error) {
     console.error('Error creating term:', error)
+  }
+}
+
+const conversationsStore = useConversationsStore()
+const router = useRouter()
+
+async function exploreDatabase() {
+  const prompt = `Explore the database and help fill in descriptions for the most important assets in our data catalog. Before writing any asset descriptions, please:
+
+1. **Perform a global business understanding check**:
+   - Analyze the overall database structure and schema
+   - Identify key business domains and data relationships
+   - Understand the primary business processes reflected in the data
+
+2. **Prioritize assets for description**:
+   - Identify core tables and columns
+   - Consider tables with the most relationships or references
+
+3. **Write short and concise asset descriptions that include**:
+   - Key relationships with other tables
+   - Data freshness and update patterns if observable
+   - Important business rules or constraints
+
+Please start by exploring the database structure to understand our business context, then provide descriptions for the most important assets you identify. Focus on clarity and business value rather than technical implementation details.`
+
+  if (!contextsStore.contextSelected) {
+    console.error('No context selected')
+    return
+  }
+
+  try {
+    const newConversation = await conversationsStore.createConversation(
+      contextsStore.contextSelected.id
+    )
+
+    await conversationsStore.sendMessage(newConversation.id, prompt, 'text')
+
+    router.push({ name: 'ChatPage', params: { id: newConversation.id.toString() } })
+  } catch (error) {
+    console.error('Error creating conversation and sending message:', error)
   }
 }
 

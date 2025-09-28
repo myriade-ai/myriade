@@ -228,9 +228,9 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
 import PageHeader from './PageHeader.vue'
 import { Button } from './ui/button'
+import { Card } from './ui/card'
 import { useSidebar } from './ui/sidebar'
 import { Textarea } from './ui/textarea'
-import { Card } from './ui/card'
 
 const route = useRoute()
 const router = useRouter()
@@ -325,10 +325,20 @@ const isPublicMessage = (message: Message, index: number) => {
   const isFunctionAfterAnswer = isFunction && prevMessage?.isAnswer
   const isAnwser = message.isAnswer
   let hasWriteOperation = false
+  const hasCatalogProposal =
+    message.functionCall?.name.includes('update_asset') ||
+    message.functionCall?.name.includes('upsert_term')
   if (message.queryId) {
     hasWriteOperation = queriesStore.getQuery(message.queryId)?.operationType !== null
   }
-  return isUser || isFunctionAfterUser || isAnwser || isFunctionAfterAnswer || hasWriteOperation
+  return (
+    isUser ||
+    isFunctionAfterUser ||
+    isAnwser ||
+    isFunctionAfterAnswer ||
+    hasWriteOperation ||
+    hasCatalogProposal
+  )
 }
 
 /** END MESSAGE DISPLAY LOGIC **/
