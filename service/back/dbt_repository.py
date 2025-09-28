@@ -363,20 +363,34 @@ class DBTRepository:
                 logger.info("dbt command: ", full_command)
                 # Run the command
                 res: dbtRunnerResult = dbt.invoke(full_command)
-                # Quick win
+                # Build response text
                 text = f"SUCCESS: {str(res.success)}\n"
                 if res.exception:
                     text += f"EXCEPTION: {res.exception}\n"
-                for ind, result in enumerate(res.result.results):
-                    text += f"RESULT {ind}:\n"
-                    text += result.message
-                    text += "--------------------------------\n"
-                if res.result and hasattr(res.result, "message"):
-                    text = "RESULT:\n"
-                    for result in res.result:
-                        if result.message:
+
+                # Check if res.result exists and has results
+                if res.result and hasattr(res.result, "results"):
+                    for ind, result in enumerate(res.result.results):
+                        text += f"RESULT {ind}:\n"
+                        if hasattr(result, "message") and result.message:
                             text += result.message
-                            text += "--------------------------------"
+                        text += "--------------------------------\n"
+                elif res.result and hasattr(res.result, "message"):
+                    text += "RESULT:\n"
+                    text += res.result.message
+                    text += "--------------------------------\n"
+                elif res.result:
+                    # Handle other result types (like iterables)
+                    try:
+                        for result in res.result:
+                            if hasattr(result, "message") and result.message:
+                                text += "RESULT:\n"
+                                text += result.message
+                                text += "--------------------------------\n"
+                    except (TypeError, AttributeError):
+                        # If res.result is not iterable or doesn't have expected format
+                        text += f"RESULT: {str(res.result)}\n"
+
                 return text
 
             finally:

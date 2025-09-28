@@ -47,7 +47,7 @@
               <MarkdownDisplay :content="part.content"></MarkdownDisplay>
             </div>
             <div v-if="part.type === 'text'" :key="`text-${index}`" class="w-full">
-              <pre>{{ part.content }}</pre>
+              <pre class="whitespace-pre-wrap">{{ part.content }}</pre>
             </div>
             <div
               v-if="part.type === 'error'"
