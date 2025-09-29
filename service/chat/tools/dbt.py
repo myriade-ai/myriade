@@ -4,8 +4,6 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import yaml
-
 from back.dbt_repository import DBTRepository, DBTRepositoryError, generate_dbt_docs
 
 logger = logging.getLogger(__name__)
@@ -43,7 +41,7 @@ class DBT:
 
     def __llm__(self):
         """High level description of the DBT catalog."""
-        return yaml.dump(self.catalog)
+        return self.fetch_model_list()
 
     def fetch_model_list(self):
         """Return a list of models in the DBT catalog.

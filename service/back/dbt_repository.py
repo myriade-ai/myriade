@@ -1,12 +1,12 @@
 import json
 import logging
 import os
+import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
 import yaml
-from dbt.cli.main import dbtRunner, dbtRunnerResult
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +142,9 @@ class DBTRepository:
                     "user": details["user"],
                     "pass": details.get("password", ""),
                     "dbname": details["database"],
-                    "schema": details.get("schema", "public"),
+                    "schema": details.get(
+                        "schema", "analytics"
+                    ),  # Default schema for DBT
                 }
             )
 
@@ -164,7 +166,7 @@ class DBTRepository:
                     "port": details.get("port", 3306),
                     "username": details["user"],
                     "database": details["database"],
-                    "schema": details.get("schema", details["database"]),
+                    "schema": details.get("schema", "analytics"),
                 }
             )
 
@@ -187,7 +189,7 @@ class DBTRepository:
                     "role": details.get("role", "PUBLIC"),
                     "database": details["database"],
                     "warehouse": details.get("warehouse", "COMPUTE_WH"),
-                    "schema": details.get("schema", "PUBLIC"),
+                    "schema": details.get("schema", "analytics"),
                 }
             )
 
@@ -317,7 +319,7 @@ class DBTRepository:
 
     def _run_dbt_command(self, command: list, profiles_dir: str = None) -> str:
         """
-        Run a DBT command using dbtRunner.
+        Run a DBT command using subprocess.
 
         Args:
             command: DBT command arguments
@@ -327,87 +329,94 @@ class DBTRepository:
         Returns:
             Command output
         """
-        logger.info(f"Running DBT command with dbtRunner: {' '.join(command)}")
+        logger.info(f"Running DBT command with subprocess: {' '.join(command)}")
 
         # Use provided profiles_dir or instance profiles_dir
         effective_profiles_dir = profiles_dir or self.profiles_dir
 
-        # Set environment variables to disable DBT tracking
-        original_env = {}
-        tracking_vars = {
-            "DBT_SEND_ANONYMOUS_USAGE_STATS": "false",
-            "DBT_DISABLE_TRACKING": "true",
-        }
+        # Check for .venv in the DBT project directory (required)
+        venv_dbt_path = self.repo_path / ".venv" / "bin" / "dbt"
+        if not venv_dbt_path.exists():
+            raise DBTRepositoryError(
+                f"DBT virtual environment not found. Expected dbt at: {venv_dbt_path}. "
+                "Please ensure the DBT project has a .venv directory with "
+                "dbt installed."
+            )
 
-        # Save original values and set new ones
-        for key, value in tracking_vars.items():
-            original_env[key] = os.environ.get(key)
-            os.environ[key] = value
+        dbt_command = str(venv_dbt_path)
+        logger.info(f"Using dbt from project .venv: {dbt_command}")
+
+        # Build the full command
+        full_command = [dbt_command] + command
+
+        # Add profiles dir to command if available
+        if effective_profiles_dir:
+            full_command += ["--profiles-dir", effective_profiles_dir]
+
+        full_command += ["--project-dir", str(self.repo_path)]
+
+        # Set up environment variables
+        env = os.environ.copy()
+        env.update(
+            {
+                "DBT_SEND_ANONYMOUS_USAGE_STATS": "false",
+                "DBT_DISABLE_TRACKING": "true",
+            }
+        )
+
+        # Set up the virtual environment path (we know .venv exists at this point)
+        venv_path = self.repo_path / ".venv"
+        venv_bin_path = venv_path / "bin"
+
+        # Prepend the .venv/bin to PATH to ensure we use the venv Python and tools
+        current_path = env.get("PATH", "")
+        env["PATH"] = f"{venv_bin_path}:{current_path}"
+        env["VIRTUAL_ENV"] = str(venv_path)
+        # Remove PYTHONHOME if set to avoid conflicts
+        env.pop("PYTHONHOME", None)
+        logger.info(f"Using virtual environment: {venv_path}")
+
+        logger.info(f"dbt command: {' '.join(full_command)}")
+
+        print(f"dbt command: {' '.join(full_command)}")
+        print(f"env: {env}")
+        print(f"cwd: {str(self.repo_path)}")
 
         try:
-            # Initialize the runner
-            dbt = dbtRunner()
+            # Run the command with subprocess
+            result = subprocess.run(
+                full_command,
+                cwd=str(self.repo_path),
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,  # Don't raise exception on non-zero exit code
+            )
 
-            # Add profiles dir to command if available
-            if effective_profiles_dir:
-                full_command = command + ["--profiles-dir", effective_profiles_dir]
-            else:
-                full_command = command
-            full_command += ["--project-dir", str(self.repo_path)]
+            # Build response text
+            text = f"SUCCESS: {result.returncode == 0}\n"
+            text += f"EXIT CODE: {result.returncode}\n"
 
-            # Change to the repository directory
-            original_cwd = os.getcwd()
-            os.chdir(str(self.repo_path))
+            if result.stdout:
+                text += "STDOUT:\n"
+                text += result.stdout
+                text += "--------------------------------\n"
 
-            try:
-                logger.info("dbt command: ", full_command)
-                # Run the command
-                res: dbtRunnerResult = dbt.invoke(full_command)
-                # Build response text
-                text = f"SUCCESS: {str(res.success)}\n"
-                if res.exception:
-                    text += f"EXCEPTION: {res.exception}\n"
+            if result.stderr:
+                text += "STDERR:\n"
+                text += result.stderr
+                text += "--------------------------------\n"
 
-                # Check if res.result exists and has results
-                if res.result and hasattr(res.result, "results"):
-                    for ind, result in enumerate(res.result.results):
-                        text += f"RESULT {ind}:\n"
-                        if hasattr(result, "message") and result.message:
-                            text += result.message
-                        text += "--------------------------------\n"
-                elif res.result and hasattr(res.result, "message"):
-                    text += "RESULT:\n"
-                    text += res.result.message
-                    text += "--------------------------------\n"
-                elif res.result:
-                    # Handle other result types (like iterables)
-                    try:
-                        for result in res.result:
-                            if hasattr(result, "message") and result.message:
-                                text += "RESULT:\n"
-                                text += result.message
-                                text += "--------------------------------\n"
-                    except (TypeError, AttributeError):
-                        # If res.result is not iterable or doesn't have expected format
-                        text += f"RESULT: {str(res.result)}\n"
+            return text
 
-                return text
-
-            finally:
-                os.chdir(original_cwd)
-
+        except subprocess.SubprocessError as e:
+            logger.error(f"Error running DBT command with subprocess: {e}")
+            raise DBTRepositoryError(f"Error running DBT command: {e}") from e
         except Exception as e:
             if isinstance(e, DBTRepositoryError):
                 raise
-            logger.error(f"Error running DBT command with runner: {e}")
+            logger.error(f"Unexpected error running DBT command: {e}")
             raise DBTRepositoryError(f"Error running DBT command: {e}") from e
-        finally:
-            # Restore original environment variables
-            for key, original_value in original_env.items():
-                if original_value is None:
-                    os.environ.pop(key, None)
-                else:
-                    os.environ[key] = original_value
 
     def cleanup(self):
         """
