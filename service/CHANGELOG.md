@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.44.5 (2025-09-29)
+
+### Bug Fixes
+
+- Message display ([#127](https://github.com/myriade-ai/myriade/pull/127),
+  [`fb72150`](https://github.com/myriade-ai/myriade/commit/fb72150569104c7ffd7b18235db007f7512556bd))
+
+
 ## v0.44.4 (2025-09-29)
 
 ### Bug Fixes
