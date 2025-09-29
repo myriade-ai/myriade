@@ -803,6 +803,31 @@ def get_catalog_assets(context_id):
 
         result.append(asset_dict)
 
+    # Sort assets by: Schema then tables first, then columns by their ordinal within
+    # their tables
+
+    def get_sort_key(asset):
+        if asset["type"] == "TABLE":
+            table_name = asset.get("table_facet", {}).get("table_name", "")
+            schema_name = asset.get("table_facet", {}).get("schema", "")
+            return (schema_name, table_name, 0, None)  # 0 for tables (comes first)
+        elif asset["type"] == "COLUMN":
+            column_facet = asset.get("column_facet", {})
+            parent_table_facet = column_facet.get("parent_table_facet", {})
+            table_name = parent_table_facet.get("table_name", "")
+            schema_name = parent_table_facet.get("schema", "")
+            ordinal = column_facet.get("ordinal", None)
+            return (
+                schema_name,
+                table_name,
+                1,
+                ordinal if ordinal is not None else 9999,
+            )
+        else:
+            return ("", "", 2, None)
+
+    result.sort(key=get_sort_key)
+
     return jsonify(result)
 
 
