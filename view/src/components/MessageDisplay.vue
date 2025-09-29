@@ -37,10 +37,7 @@
           <div
             v-if="props.message.role === 'function' && props.message.name?.includes('read_file')"
           >
-            <CodeFileDisplay
-              :content="props.message.content"
-              :fileName="extractFileNameFromFunctionResponse()"
-            />
+            <CodeFileDisplay :content="props.message.content" />
           </div>
           <template v-else v-for="(part, index) in parsedText">
             <div v-if="part.type === 'markdown'" :key="`text-${index}`" class="w-full">
@@ -200,8 +197,8 @@ import AskCatalogConfirmation from '@/components/AskCatalogConfirmation.vue'
 import AskQueryConfirmation from '@/components/AskQueryConfirmation.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
-import DataTable from '@/components/DataTable.vue'
 import Chart from '@/components/Chart.vue'
+import DataTable from '@/components/DataTable.vue'
 import Echart from '@/components/Echart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 // Store
@@ -362,14 +359,6 @@ const parsedText = computed<
 
   return parts
 })
-
-// Helper function for extracting file names from function responses
-
-const extractFileNameFromFunctionResponse = (): string | undefined => {
-  // For now, we'll extract from the function name if possible
-  // In a more complete implementation, we might need to look at the previous function call
-  return undefined
-}
 
 onMounted(() => {
   // If we detect yml-graph blocks, execute the SQL in them automatically
