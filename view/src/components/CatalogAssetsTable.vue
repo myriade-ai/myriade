@@ -21,18 +21,14 @@
           <SelectItem value="COLUMN">Columns</SelectItem>
         </SelectContent>
       </Select>
-      <!-- Add transition classes to make variant/size change smooth -->
       <Button
-        :variant="filters.reviewed === 'all' ? 'outline' : 'default'"
-        @click="cycleReviewed"
+        :variant="filters.reviewed === 'not_approved' ? 'default' : 'outline'"
+        @click="filters.reviewed = filters.reviewed === 'not_approved' ? 'all' : 'not_approved'"
         class="transition-all duration-200 ease-out transform-gpu"
       >
-        <template #default>
-          <span v-if="filters.reviewed === 'all'">All</span>
-          <span v-else-if="filters.reviewed === 'approved'">Approved</span>
-          <span v-else>Todo</span>
-        </template>
+        To review ({{ catalogStore.assetsArray.filter((a) => isNeedingReview(a)).length }})
       </Button>
+
       <Button
         variant="outline"
         @click="clearFilters"
@@ -91,7 +87,7 @@
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useCatalogStore, type AssetType } from '@/stores/catalog'
+import { useCatalogStore, type AssetType, type CatalogAsset } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -115,6 +111,13 @@ const pendingAssetId = ref<string | null>(null)
 const loading = computed(() => catalogStore.loading)
 const error = computed(() => catalogStore.error)
 
+const isNeedingReview = (asset: CatalogAsset) => {
+  const isReviewed = !!asset.reviewed
+  const hasDescription = Boolean(asset.description && asset.description.toString().trim().length)
+  const hasTags = Array.isArray(asset.tags) && asset.tags.length > 0
+  return !isReviewed && (hasDescription || hasTags)
+}
+
 const filteredAssets = computed(() => {
   const query = filters.value.search?.trim().toLowerCase() ?? ''
   return catalogStore.assetsArray.filter((asset) => {
@@ -124,8 +127,11 @@ const filteredAssets = computed(() => {
 
     if (filters.value.reviewed !== 'all') {
       const isReviewed = !!asset.reviewed
+
       if (filters.value.reviewed === 'approved' && !isReviewed) return false
-      if (filters.value.reviewed === 'not_approved' && isReviewed) return false
+      // For 'not_approved' we only consider assets that have at least a description or tags
+      if (filters.value.reviewed === 'not_approved' && (isReviewed || !isNeedingReview(asset)))
+        return false
     }
 
     if (!query) {
@@ -191,13 +197,6 @@ const clearFilters = () => {
   filters.value.search = ''
   filters.value.type = 'all'
   filters.value.reviewed = 'all'
-}
-
-function cycleReviewed() {
-  const order: Array<typeof filters.value.reviewed> = ['all', 'approved', 'not_approved']
-  const current = filters.value.reviewed
-  const nextIndex = (order.indexOf(current) + 1) % order.length
-  filters.value.reviewed = order[nextIndex]
 }
 
 async function refresh() {
