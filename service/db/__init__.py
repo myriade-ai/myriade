@@ -1,9 +1,9 @@
 import json
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import DateTime
 from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.inspection import inspect
@@ -135,8 +135,11 @@ class SerializerMixin:
 
 class DefaultBase:
     createdAt: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now()
+        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )
     updatedAt: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
