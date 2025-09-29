@@ -142,7 +142,7 @@
               </div>
             </div>
           </transition>
-          
+
           <!-- Credits Display - moved outside input container to prevent deformation -->
           <div
             class="flex justify-end mb-2 px-2"
@@ -152,7 +152,7 @@
               {{ user.credits }} credits left
             </div>
           </div>
-          
+
           <Card id="input-container" class="py-0 px-2">
             <div class="flex items-center">
               <div class="w-full flex py-1">
@@ -290,7 +290,7 @@ const messageGroups = computed(() => {
   const groups: MessageGroup[] = []
   let currentGroup: MessageGroup = { publicMessages: [], internalMessages: [] }
 
-  messages.value.filter(shouldDisplayMessage).forEach((message, index) => {
+  messages.value.forEach((message, index) => {
     const isPublic = isPublicMessage(message, index)
 
     if (isPublic) {
@@ -310,12 +310,6 @@ const messageGroups = computed(() => {
 
   return groups
 })
-
-const shouldDisplayMessage = (message: Message) => {
-  const isEmptyFunctionResponse =
-    message.role === 'function' && message.content === '' && message.image === null
-  return !isEmptyFunctionResponse
-}
 
 const isPublicMessage = (message: Message, index: number) => {
   const prevMessage = index > 0 ? messages.value[index - 1] : null
