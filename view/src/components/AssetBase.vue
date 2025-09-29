@@ -254,9 +254,9 @@ const hasPrivacyConfiguration = computed(() => {
     return false
   }
 
-  const privacyConfig = internalAsset.value.privacy
+  const privacyConfig = internalAsset.value.privacy?.llm ?? 'Default'
 
-  return privacyConfig !== undefined && privacyConfig.llm !== 'Default'
+  return privacyConfig !== 'Default'
 })
 
 const draft = reactive({
