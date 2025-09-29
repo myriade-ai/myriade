@@ -1,6 +1,42 @@
 # CHANGELOG
 
 
+## v0.44.5 (2025-09-29)
+
+### Bug Fixes
+
+- Message display ([#127](https://github.com/myriade-ai/myriade/pull/127),
+  [`fb72150`](https://github.com/myriade-ai/myriade/commit/fb72150569104c7ffd7b18235db007f7512556bd))
+
+
+## v0.44.4 (2025-09-29)
+
+### Bug Fixes
+
+- Sort assets ([#124](https://github.com/myriade-ai/myriade/pull/124),
+  [`6186ed3`](https://github.com/myriade-ai/myriade/commit/6186ed3e01be1b09cc47558eaabdc4a126cc2241))
+
+### Documentation
+
+- Refresh readme with platform overview ([#118](https://github.com/myriade-ai/myriade/pull/118),
+  [`2d201f8`](https://github.com/myriade-ai/myriade/commit/2d201f89fee686dc9b802e1395937e40803e1e15))
+
+- Update LICENSE to FCL
+  ([`8330174`](https://github.com/myriade-ai/myriade/commit/8330174b11fdb21761a834992fb7cb0679547baf))
+
+### Refactoring
+
+- Catalog view and validation ([#122](https://github.com/myriade-ai/myriade/pull/122),
+  [`89bec31`](https://github.com/myriade-ai/myriade/commit/89bec314b3fcaa2e64e45fc126ad31a3a1988c49))
+
+* refactor: catalog view and validation
+
+* feat: rename semantic catalog to semantic model
+
+- Update reviewed filter button ([#125](https://github.com/myriade-ai/myriade/pull/125),
+  [`3a16ad9`](https://github.com/myriade-ai/myriade/commit/3a16ad930a62e12b5ff3e7539dd6e19bd119ef4e))
+
+
 ## v0.44.3 (2025-09-23)
 
 ### Bug Fixes
