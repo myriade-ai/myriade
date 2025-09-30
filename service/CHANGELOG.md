@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.44.6 (2025-09-30)
+
+### Bug Fixes
+
+- Hide empty function response
+  ([`9ba2eee`](https://github.com/myriade-ai/myriade/commit/9ba2eeef7d03e5c0d5a55eec58847e5a990a47c3))
+
+
 ## v0.44.5 (2025-09-29)
 
 ### Bug Fixes
