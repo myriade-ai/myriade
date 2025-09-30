@@ -33,7 +33,7 @@ services:
       HOST: ${HOST:-http://localhost:8080}
       GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
       AGENTLYS_PROVIDER: ${PROVIDER:-proxy}
-      AGENTLYS_MODEL: ${MODEL:-claude-sonnet-4-20250514}
+      AGENTLYS_MODEL: ${MODEL:-claude-sonnet-4-5-20250929}
 
       # Optional integrations
       SENTRY_DSN: ${SENTRY_DSN:-}
