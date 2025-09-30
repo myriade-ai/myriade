@@ -1,7 +1,10 @@
 <template>
   <Card
     :class="
-      cn('transition-shadow rounded-xl', props.selected ? 'ring-2 ring-primary-500 shadow-md' : '')
+      cn(
+        'transition-shadow rounded-xl hover:border-primary-600',
+        props.selected ? 'ring-2 ring-primary-500 shadow-md' : ''
+      )
     "
     :id="props.asset.id"
   >

@@ -6,11 +6,10 @@
       :subtitle="`${catalogStore.assetsArray.length} assets • ${catalogStore.termsArray.length} terms`"
     >
       <template #actions>
-        <Button @click="exploreDatabase" variant="outline" class="mr-2">
+        <Button @click="exploreDatabase">
           <SparklesIcon class="h-4 w-4 mr-2" />
           Explore & Describe Assets
         </Button>
-        <Button @click="refresh"> Refresh </Button>
       </template>
     </PageHeader>
 
@@ -31,7 +30,7 @@
     <!-- Main Tabbed Interface -->
     <div v-else class="flex-1 overflow-hidden">
       <Tabs default-value="assets" class="h-full flex flex-col">
-        <div class="flex-none px-6 py-3 border-b border-gray-200 bg-white">
+        <div class="flex-none px-4 py-3 border-b border-gray-200 bg-white">
           <TabsList class="grid w-full grid-cols-2">
             <TabsTrigger value="assets">Assets Table</TabsTrigger>
             <TabsTrigger value="terms">Business Terms</TabsTrigger>
