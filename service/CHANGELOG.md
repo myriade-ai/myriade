@@ -1,6 +1,15 @@
 # CHANGELOG
 
 
+## v0.44.7 (2025-09-30)
+
+### Bug Fixes
+
+- Update AGENTLYS_MODEL version to claude 4.5
+  ([#131](https://github.com/myriade-ai/myriade/pull/131),
+  [`eb2e759`](https://github.com/myriade-ai/myriade/commit/eb2e7590ec5923a11f1f663d702c67cf1215be4c))
+
+
 ## v0.44.6 (2025-09-30)
 
 ### Bug Fixes
