@@ -269,6 +269,9 @@ const conversation = computed(() => {
 const messages = computed(() => {
   return conversation.value?.messages ?? []
 })
+const displayedMessages = computed(() => {
+  return messages.value.filter(shouldDisplayMessage)
+})
 /** END CONVERSATION LOGIC **/
 
 /** MESSAGE DISPLAY LOGIC **/
@@ -290,7 +293,7 @@ const messageGroups = computed(() => {
   const groups: MessageGroup[] = []
   let currentGroup: MessageGroup = { publicMessages: [], internalMessages: [] }
 
-  messages.value.forEach((message, index) => {
+  displayedMessages.value.forEach((message, index) => {
     const isPublic = isPublicMessage(message, index)
 
     if (isPublic) {
@@ -311,8 +314,14 @@ const messageGroups = computed(() => {
   return groups
 })
 
+const shouldDisplayMessage = (message: Message) => {
+  const isEmptyFunctionResponse =
+    message.role === 'function' && message.content === '' && message.image === null
+  return !isEmptyFunctionResponse
+}
+
 const isPublicMessage = (message: Message, index: number) => {
-  const prevMessage = index > 0 ? messages.value[index - 1] : null
+  const prevMessage = index > 0 ? displayedMessages.value[index - 1] : null
   const isUser = message.role === 'user'
   const isFunction = message.role === 'function'
   const isFunctionAfterUser = isFunction && prevMessage?.role === 'user'
