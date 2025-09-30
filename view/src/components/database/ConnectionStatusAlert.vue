@@ -12,14 +12,10 @@
       </div>
     </div>
 
-    <BaseAlert v-else class="max-w-lg">
-      <template #title>There is an error 😔</template>
-      {{ message }}
-      <!-- Server IP whitelist information section -->
-      <br />
-      --------------------------------
-      <br />
-      <div>
+    <Alert v-else class="mt-2" variant="destructive">
+      <CircleAlert class="h-5 w-5" />
+      <AlertTitle> There is an error 😔</AlertTitle>
+      <AlertDescription>
         <p>
           The server was unable to establish a connection to your database.
           <b>Verify that your connection details are correct.</b>
@@ -31,15 +27,16 @@
             in your database</b
           >
         </p>
-      </div>
-    </BaseAlert>
+      </AlertDescription>
+    </Alert>
   </div>
 </template>
 
 <script setup lang="ts">
-import BaseAlert from '@/components/base/BaseAlert.vue'
 import { useServerInfo } from '@/composables/useServerInfo'
 import { CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { CircleAlert } from 'lucide-vue-next'
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 
 interface Props {
   status: 'success' | 'error' | null
