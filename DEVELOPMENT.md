@@ -47,7 +47,7 @@
 
    ```bash
    AGENTLYS_PROVIDER=anthropic
-   AGENTLYS_MODEL=claude-sonnet-4-20250514
+   AGENTLYS_MODEL=claude-sonnet-4-5-20250929
    ANTHROPIC_API_KEY=<Your_Anthropic_API_Key>
    DATABASE_URL=postgresql://user:pass@localhost:5432/myriade
    ```

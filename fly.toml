@@ -23,7 +23,7 @@ primary_region = "cdg"
   FLASK_ENV = "production"
   GUNICORN_THREADS = "1"
   AGENTLYS_PROVIDER = "proxy"
-  AGENTLYS_MODEL = "claude-sonnet-4-20250514"
+  AGENTLYS_MODEL = "claude-sonnet-4-5-20250929"
   STATIC_FOLDER = "./static"
   HOST = ""  # This will fallback to request.url_root.rstrip("/")
 
