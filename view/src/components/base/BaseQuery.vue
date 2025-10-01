@@ -16,6 +16,7 @@
 
   <br />
   <div class="relative">
+    <!-- Clicking the run button will set pagination to the first page -->
     <BaseEditor v-model="props.editor.query.sql" @run-query="() => props.editor.runQuery()" />
     <button
       class="absolute bottom-2 right-2 bg-primary-500 hover:bg-primary-600 text-white rounded-full p-3 shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center justify-center disabled:bg-primary-800"
