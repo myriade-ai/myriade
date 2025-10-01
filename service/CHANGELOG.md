@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.46.0 (2025-10-01)
+
+### Features
+
+- Init demo databases at startup ([#134](https://github.com/myriade-ai/myriade/pull/134),
+  [`4613f0d`](https://github.com/myriade-ai/myriade/commit/4613f0d2364b3b01f4ed1c08d462ba2528f21348))
+
+
 ## v0.45.0 (2025-10-01)
 
 ### Features
