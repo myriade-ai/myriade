@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.45.0 (2025-10-01)
+
+### Features
+
+- Add column resizing to DataTable ([#128](https://github.com/myriade-ai/myriade/pull/128),
+  [`f22cf95`](https://github.com/myriade-ai/myriade/commit/f22cf95a4a3feb238b034ab28c695b1dd0b54659))
+
+
 ## v0.44.9 (2025-10-01)
 
 ### Bug Fixes
