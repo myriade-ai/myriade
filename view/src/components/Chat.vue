@@ -326,13 +326,14 @@ const isPublicMessage = (message: Message, index: number) => {
   const isFunctionAfterUser = isFunction && prevMessage?.role === 'user'
   const isFunctionAfterAnswer = isFunction && prevMessage?.isAnswer
   const isAnwser = message.isAnswer
-  let hasWriteOperation = false
   const hasCatalogProposal =
     message.functionCall?.name.includes('update_asset') ||
     message.functionCall?.name.includes('upsert_term')
-  if (message.queryId) {
-    hasWriteOperation = queriesStore.getQuery(message.queryId)?.operationType !== null
-  }
+
+  const hasWriteOperation = message.queryId
+    ? !!queriesStore.getQuery(message.queryId)?.operationType
+    : false
+
   return (
     isUser ||
     isFunctionAfterUser ||
