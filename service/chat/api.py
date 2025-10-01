@@ -5,6 +5,7 @@ from uuid import UUID
 from flask import Blueprint
 from flask import session as flask_session
 from flask_socketio import emit
+from pydantic import validate_call
 
 from app import socketio
 from auth.auth import UnauthorizedError, socket_auth
@@ -108,12 +109,12 @@ def conversation_auth_required(f):
 @socketio.on("stop")
 @socket_auth_required
 @conversation_auth_required
+@validate_call
 def handle_stop(session, conversation_id: UUID):
     logger.info(
         "Received stop signal for conversation",
         extra={"conversation_id": conversation_id},
     )
-    # Stop the query - convert string to UUID for the lock functions
     set_stop_flag(conversation_id)
     emit_status(conversation_id, STATUS.TO_STOP)
 
