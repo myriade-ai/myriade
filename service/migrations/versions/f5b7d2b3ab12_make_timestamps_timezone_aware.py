@@ -40,7 +40,7 @@ TIMESTAMP_TABLES: dict[str, tuple[str, ...]] = {
     "metadata": ("createdAt", "updatedAt"),
 }
 
-POSTGRES_SERVER_DEFAULT = sa.text("TIMEZONE('utc', CURRENT_TIMESTAMP)")
+POSTGRES_SERVER_DEFAULT = sa.text("CURRENT_TIMESTAMP")
 SQLITE_SERVER_DEFAULT = sa.text("STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')")
 LEGACY_SERVER_DEFAULT = sa.text("CURRENT_TIMESTAMP")
 
