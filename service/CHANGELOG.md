@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v0.44.9 (2025-10-01)
+
+### Bug Fixes
+
+- Cannot stop conversation ([#130](https://github.com/myriade-ai/myriade/pull/130),
+  [`830343d`](https://github.com/myriade-ai/myriade/commit/830343d1b4d52e094872039ed21634afafa097b1))
+
+### Refactoring
+
+- Use shadcn components ([#132](https://github.com/myriade-ai/myriade/pull/132),
+  [`3707603`](https://github.com/myriade-ai/myriade/commit/37076037f93fa99e4d550b1e3e222952ddeb1723))
+
+- Ux/ui improvements ([#129](https://github.com/myriade-ai/myriade/pull/129),
+  [`8ad5a83`](https://github.com/myriade-ai/myriade/commit/8ad5a837fc0223dab0d456f4e8a2872125138be9))
+
+
 ## v0.44.8 (2025-10-01)
 
 ### Bug Fixes
