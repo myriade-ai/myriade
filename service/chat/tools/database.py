@@ -1,14 +1,13 @@
 import json
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 
 import yaml
 from agentlys.chat import OUTPUT_SIZE_LIMIT, StopLoopException
 from agentlys.model import Message
 from agentlys.utils import limit_data_size
 
-from back.data_warehouse import WriteOperationError
+from back.data_warehouse import AbstractDatabase, WriteOperationError
 from models import Database, Query
 
 RESULT_TEMPLATE = """Results {len_sample}/{len_total} rows:
@@ -72,22 +71,14 @@ def cancel_query(session, query_id: uuid.UUID) -> Query:
 
 
 class DatabaseTool:
-    def __init__(
-        self,
-        session,
-        database: Database,
-        tables_metadata: Optional[List[Dict[str, Any]]] = None,
-    ):
+    def __init__(self, session, database: Database, data_warehouse: AbstractDatabase):
         self.session = session
         self.database = database
-        self.data_warehouse = database.create_data_warehouse()
-        if tables_metadata is None:
-            tables_metadata = []
-        self.tables_metadata = tables_metadata
+        self.data_warehouse = data_warehouse
 
     def __repr__(self):
         tables_preview = []
-        for table in self.tables_metadata:
+        for table in self.data_warehouse.tables_metadata:
             table_preview = {
                 "name": table["name"],
                 "schema": table["schema"],

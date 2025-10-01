@@ -189,7 +189,7 @@ class DataWarehouseRegistry:
 
 class AbstractDatabase(ABC):
     write_mode = "confirmation"  # "read-only", "confirmation", "skip-confirmation"
-    tables_metadata: list[dict] | None = None
+    tables_metadata: list[dict] = []
 
     @abstractmethod
     def __init__(self):

@@ -5,16 +5,23 @@ import uuid
 
 from PIL import Image
 
+from back.data_warehouse import AbstractDatabase
 from chat.tools.chart_types import ChartOptions
 from db import JSONEncoder
 from models import Chart, ConversationMessage, Database, Query
 
 
 class EchartsTool:
-    def __init__(self, session, database: Database):
+    def __init__(
+        self,
+        session,
+        database: Database,
+        data_warehouse: AbstractDatabase,
+    ):
         self.session = session
         self.database = database
-        self.data_warehouse = self.database.create_data_warehouse()
+        # Reuse provided data_warehouse instance or create new one
+        self.data_warehouse = data_warehouse
 
     def preview_render(
         self,

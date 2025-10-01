@@ -21,8 +21,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
-from back.data_warehouse import DataWarehouseFactory
-
 # Create migration-specific metadata and base class
 migration_metadata = MetaData()
 
@@ -62,14 +60,6 @@ class Database(MigrationBase):
         DateTime, nullable=True, server_default=func.now()
     )
 
-    def create_data_warehouse(self):
-        data_warehouse = DataWarehouseFactory.create(
-            self.engine,
-            **self.details,
-        )
-        # For migrations, we don't need write_mode
-        return data_warehouse
-
 
 def create_database(
     name: str,
@@ -97,14 +87,6 @@ def create_database(
         dbt_manifest=dbt_manifest,
     )
 
-    try:
-        data_warehouse = DataWarehouseFactory.create(engine, **details)
-        updated_tables_metadata = data_warehouse.load_metadata()
-        database.tables_metadata = updated_tables_metadata
-    except Exception:
-        # If metadata loading fails, continue without it
-        database.tables_metadata = None
-
     return database
 
 
@@ -124,7 +106,8 @@ def upgrade() -> None:
     session = Session()
 
     try:
-        # Create the Northwind database with full metadata loading
+        # Create the Northwind database
+        # Metadata and catalog will be populated on app startup
         northwind = create_database(
             name="Northwind - Traders",
             description="Trading/export company's operations",
@@ -140,7 +123,8 @@ def upgrade() -> None:
             },
         )
 
-        # Create the Marker database with full metadata loading
+        # Create the Marker database
+        # Metadata and catalog will be populated on app startup
         marker = create_database(
             name="Marker - SaaS",
             description="Demo from PopSQL",
