@@ -12,6 +12,11 @@ from sqlalchemy.sql.expression import true
 
 import telemetry
 from back.data_warehouse import ConnectionError, DataWarehouseFactory
+from back.dbt_repository import (
+    DBTRepositoryError,
+    generate_dbt_docs,
+    validate_dbt_repo,
+)
 from back.utils import (
     create_database,
     get_tables_metadata_from_catalog,
@@ -182,8 +187,9 @@ def create_database_route():
         owner_id=g.user.id,
         public=False,
         write_mode=data["write_mode"],
-        dbt_catalog=data["dbt_catalog"],
-        dbt_manifest=data["dbt_manifest"],
+        dbt_catalog=data.get("dbt_catalog"),
+        dbt_manifest=data.get("dbt_manifest"),
+        dbt_repo_path=data.get("dbt_repo_path"),
     )
 
     g.session.add(database)
@@ -273,8 +279,9 @@ def update_database(database_id: UUID):
     database.engine = data["engine"]
     database.details = data["details"]
     database.write_mode = data["write_mode"]
-    database.dbt_catalog = data["dbt_catalog"]
-    database.dbt_manifest = data["dbt_manifest"]
+    database.dbt_catalog = data.get("dbt_catalog")
+    database.dbt_manifest = data.get("dbt_manifest")
+    database.dbt_repo_path = data.get("dbt_repo_path")
 
     # Load new metadata and merge with existing privacy settings from catalog
     new_meta = data_warehouse.load_metadata()
@@ -1054,3 +1061,81 @@ def get_issues():
 
     issues = query.all()
     return jsonify(issues)
+
+
+@api.route("/databases/<uuid:database_id>/validate-dbt-repo", methods=["POST"])
+@user_middleware
+def validate_dbt_repository(database_id: UUID):
+    """Validate that a repository path contains a valid DBT project."""
+    database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access to update this database
+    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json()
+    repo_path = data.get("repo_path")
+
+    if not repo_path:
+        return jsonify({"error": "Repository path is required"}), 400
+
+    try:
+        is_valid = validate_dbt_repo(repo_path)
+        if is_valid:
+            return jsonify({"success": True, "message": "Valid DBT repository"})
+        else:
+            return jsonify({"success": False, "message": "Invalid DBT repository"})
+    except Exception as e:
+        logger.error(f"Error validating DBT repository: {e}")
+        return jsonify({"success": False, "message": str(e)}), 400
+
+
+@api.route("/databases/<uuid:database_id>/generate-dbt-docs", methods=["POST"])
+@user_middleware
+def generate_dbt_documentation(database_id: UUID):
+    """Generate DBT documentation from repository and update database."""
+    database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access to update this database
+    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+        return jsonify({"error": "Access denied"}), 403
+
+    if not database.dbt_repo_path:
+        return jsonify({"error": "No DBT repository path configured"}), 400
+
+    try:
+        # Prepare database config for DBT
+        database_config = {
+            "engine": database.engine,
+            "details": database.details,
+        }
+
+        # Generate docs
+        catalog, manifest = generate_dbt_docs(database.dbt_repo_path, database_config)
+
+        # Update database with generated docs
+        database.dbt_catalog = catalog
+        database.dbt_manifest = manifest
+        g.session.flush()
+
+        return jsonify(
+            {
+                "success": True,
+                "message": "DBT documentation generated successfully",
+                "catalog_nodes": len(catalog.get("nodes", {})),
+                "manifest_nodes": len(manifest.get("nodes", {})),
+            }
+        )
+
+    except DBTRepositoryError as e:
+        logger.error(f"DBT repository error: {e}")
+        return jsonify({"success": False, "message": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error generating DBT documentation: {e}")
+        return jsonify(
+            {"success": False, "message": "Failed to generate DBT documentation"}
+        ), 500

@@ -254,7 +254,7 @@ const copyToClipboard = async () => {
 watch(
   () => props.data,
   () => {
-    currentPage.value = 1
+    pagination.value.pageIndex = 0
   }
 )
 </script>

@@ -26,6 +26,7 @@ dependencies = [
     "python-json-logger>=2.0.7",
     "duckdb>=1.3.2",
     "agentlys[all]>=0.19.1",
+    "agentlys-tools[code-editor]>=0.1.0",
 ]
 
 [project.optional-dependencies]

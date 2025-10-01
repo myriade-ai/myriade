@@ -1,5 +1,5 @@
 <template>
-  <div :class="$attrs.class + ' markdown-content'" v-html="marked(content)"></div>
+  <div :class="$attrs.class ?? '' + ' markdown-content'" v-html="marked(content)"></div>
 </template>
 
 <script setup lang="ts">

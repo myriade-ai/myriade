@@ -74,6 +74,7 @@ class Database(SerializerMixin, DefaultBase, Base):
     memory: Mapped[Optional[str]] = mapped_column(String)
     dbt_catalog: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
     dbt_manifest: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
+    dbt_repo_path: Mapped[Optional[str]] = mapped_column(String)
 
     # organisation: Mapped[Optional["Organisation"]] = relationship()
     # owner: Mapped[Optional["User"]] = relationship()

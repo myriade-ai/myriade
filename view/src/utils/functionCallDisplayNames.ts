@@ -181,6 +181,35 @@ const patternMappings: Array<{
       icon: '🏗️',
       category: 'workspace'
     })
+  },
+
+  // Match CodeEditor operations
+  {
+    pattern: /^CodeEditor-code_editor__read_file$/,
+    mapper: () => ({
+      displayName: 'Read File',
+      description: 'View file contents',
+      icon: '📄',
+      category: 'code'
+    })
+  },
+  {
+    pattern: /^CodeEditor-code_editor__str_replace$/,
+    mapper: () => ({
+      displayName: 'Edit Code',
+      description: 'Modify file content',
+      icon: '✏️',
+      category: 'code'
+    })
+  },
+  {
+    pattern: /^CodeEditor-code_editor__create_file$/,
+    mapper: () => ({
+      displayName: 'Create File',
+      description: 'Create new file',
+      icon: '📝',
+      category: 'code'
+    })
   }
 ]
 
