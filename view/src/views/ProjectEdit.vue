@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-sidebar/50">
+  <div class="min-h-screen">
     <Form @submit="clickSave" class="max-w-7xl mx-auto px-4 py-4">
       <div class="mb-4 p-4 border-l-4 border-yellow-500 bg-yellow-50">
         <div class="flex items-start gap-3">

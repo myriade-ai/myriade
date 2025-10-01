@@ -2,7 +2,7 @@
   <SidebarProvider :default-open="true">
     <AppSidebar />
     <SidebarInset class="min-w-0 w-full">
-      <div class="flex-1 flex flex-col">
+      <div class="flex-1 flex flex-col bg-page-background">
         <AnonymousUserBar />
         <Suspense>
           <router-view />

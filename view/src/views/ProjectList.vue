@@ -4,7 +4,7 @@
       title="Projects"
       subtitle="Manage your projects, so you can work on specific problems/topics."
     />
-    <div class="px-6 py-4 bg-sidebar/50 w-full min-h-screen">
+    <div class="px-6 py-4 w-full min-h-screen">
       <div class="max-w-4xl mx-auto">
         <div class="flex items-center gap-4 mb-6">
           <div class="flex-1">

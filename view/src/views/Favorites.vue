@@ -1,7 +1,7 @@
 <template>
   <div>
     <PageHeader title="Favorites" subtitle="Your saved queries and charts" />
-    <div class="overflow-y-auto h-screen bg-sidebar/50">
+    <div class="overflow-y-auto h-screen">
       <div class="px-8">
         <div v-if="loading" class="mt-4 text-center">
           <p>Loading...</p>
