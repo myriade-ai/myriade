@@ -5,6 +5,7 @@ from typing import List, Optional
 import yaml
 from sqlalchemy.orm import Session
 
+from back.data_warehouse import AbstractDatabase
 from models import Database
 from models.catalog import Asset, Term
 
@@ -16,10 +17,12 @@ class AssetType(Enum):
 
 
 class CatalogTool:
-    def __init__(self, session: Session, database: Database):
+    def __init__(
+        self, session: Session, database: Database, data_warehouse: AbstractDatabase
+    ):
         self.session = session
         self.database = database
-        self.data_warehouse = database.create_data_warehouse()
+        self.data_warehouse = data_warehouse
 
     def __llm__(self):
         """Summary of catalog contents for agent context"""
