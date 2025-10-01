@@ -1,22 +1,34 @@
 <template>
   <div class="relative">
-    <div class="rounded-md border">
-      <Table class="">
+    <div class="rounded-md border overflow-x-auto">
+      <Table :style="{ minWidth: `${table.getCenterTotalSize()}px` }">
         <TableHeader>
-          <TableRow>
+          <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
             <TableHead
-              v-for="column in columns"
-              :key="column"
-              class="font-medium cursor-pointer select-none bg-muted/50 hover:bg-muted"
-              @click="toggleSort(column)"
+              v-for="header in headerGroup.headers"
+              :key="header.id"
+              class="font-medium select-none bg-muted/50 hover:bg-muted relative"
+              :style="{
+                width: `${header.getSize()}px`,
+                minWidth: `${header.getSize()}px`,
+                maxWidth: `${header.getSize()}px`
+              }"
             >
-              <div class="flex items-center justify-between">
-                <span>{{ column }}</span>
-                <div class="flex flex-col ml-2">
+              <div
+                class="flex items-center justify-between overflow-hidden cursor-pointer"
+                @click="header.column.getToggleSortingHandler()?.($event)"
+              >
+                <div class="truncate flex-1 min-w-0">
+                  <FlexRender
+                    :render="header.column.columnDef.header"
+                    :props="header.getContext()"
+                  />
+                </div>
+                <div v-if="header.column.getIsSorted()" class="flex flex-col ml-2 flex-shrink-0">
                   <ChevronUp
                     :class="[
                       'h-3 w-3 transition-colors',
-                      sortConfig.column === column && sortConfig.direction === 'asc'
+                      header.column.getIsSorted() === 'asc'
                         ? 'text-foreground'
                         : 'text-muted-foreground/40'
                     ]"
@@ -24,22 +36,45 @@
                   <ChevronDown
                     :class="[
                       'h-3 w-3 -mt-1 transition-colors',
-                      sortConfig.column === column && sortConfig.direction === 'desc'
+                      header.column.getIsSorted() === 'desc'
                         ? 'text-foreground'
                         : 'text-muted-foreground/40'
                     ]"
                   />
                 </div>
               </div>
+              <div
+                v-if="header.column.getCanResize()"
+                class="resizer"
+                :class="{ isResizing: header.column.getIsResizing() }"
+                :style="{
+                  transform:
+                    columnResizeMode === 'onEnd' && header.column.getIsResizing()
+                      ? `translateX(${table.getState().columnSizingInfo.deltaOffset ?? 0}px)`
+                      : ''
+                }"
+                @dblclick.stop="header.column.resetSize()"
+                @mousedown.stop="header.getResizeHandler()?.($event)"
+                @touchstart.stop="header.getResizeHandler()?.($event)"
+              />
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow v-for="(row, index) in paginatedData" :key="index">
-            <TableCell v-for="column in columns" :key="column" class="py-2">
-              <span class="break-words max-w-xs inline-block overflow-hidden text-ellipsis">
-                {{ formatCellValue(row[column]) }}
-              </span>
+          <TableRow v-for="row in table.getRowModel().rows" :key="row.id">
+            <TableCell
+              v-for="cell in row.getVisibleCells()"
+              :key="cell.id"
+              class="py-2"
+              :style="{
+                width: `${cell.column.getSize()}px`,
+                minWidth: `${cell.column.getSize()}px`,
+                maxWidth: `${cell.column.getSize()}px`
+              }"
+            >
+              <div class="truncate overflow-hidden text-ellipsis">
+                <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+              </div>
             </TableCell>
           </TableRow>
         </TableBody>
@@ -47,7 +82,7 @@
     </div>
 
     <!-- Pagination -->
-    <div v-if="filteredData.length > pageSize" class="flex items-center justify-between px-2 py-4">
+    <div v-if="props.data.length > pageSize" class="flex items-center justify-between px-2 py-4">
       <div class="text-sm text-muted-foreground">
         Showing {{ startRow }}-{{ endRow }} of {{ totalCount }} rows
       </div>
@@ -55,15 +90,22 @@
         <Button size="sm" variant="ghost" @click="copyToClipboard">
           {{ copyText }}
         </Button>
-        <Button variant="outline" size="sm" :disabled="currentPage === 1" @click="previousPage">
-          Previous
-        </Button>
-        <div class="text-sm">Page {{ currentPage }} of {{ totalPages }}</div>
         <Button
           variant="outline"
           size="sm"
-          :disabled="currentPage === totalPages"
-          @click="nextPage"
+          :disabled="!table.getCanPreviousPage()"
+          @click="table.previousPage()"
+        >
+          Previous
+        </Button>
+        <div class="text-sm">
+          Page {{ table.getState().pagination.pageIndex + 1 }} of {{ table.getPageCount() }}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          :disabled="!table.getCanNextPage()"
+          @click="table.nextPage()"
         >
           Next
         </Button>
@@ -73,6 +115,15 @@
 </template>
 
 <script setup lang="ts">
+import {
+  FlexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useVueTable,
+  type ColumnDef,
+  type SortingState
+} from '@tanstack/vue-table'
 import { ChevronDown, ChevronUp } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { Button } from './ui/button'
@@ -84,20 +135,17 @@ const props = defineProps<{
 }>()
 
 const copyText = ref('Copy as XLSX')
-const currentPage = ref(1)
 const pageSize = 10
-
-// Sorting state
-const sortConfig = ref<{
-  column: string | null
-  direction: 'asc' | 'desc'
-}>({
-  column: null,
-  direction: 'asc'
+const sorting = ref<SortingState>([])
+const columnSizing = ref<Record<string, number>>({})
+const columnResizeMode = ref<'onChange' | 'onEnd'>('onChange')
+const pagination = ref({
+  pageIndex: 0,
+  pageSize: pageSize
 })
 
-const filteredData = computed(() => {
-  let data = props.data.map((row) => {
+const processedData = computed(() => {
+  return props.data.map((row) => {
     const newRow = { ...row }
     for (const key in newRow) {
       if (typeof newRow[key] === 'string' && (newRow[key] as string).startsWith('encrypted:')) {
@@ -106,67 +154,7 @@ const filteredData = computed(() => {
     }
     return newRow
   })
-
-  if (sortConfig.value.column) {
-    data = data.sort((a, b) => {
-      const aVal = a[sortConfig.value.column!]
-      const bVal = b[sortConfig.value.column!]
-
-      if (aVal == null && bVal == null) return 0
-      if (aVal == null) return 1
-      if (bVal == null) return -1
-
-      const aStr = String(aVal).toLowerCase()
-      const bStr = String(bVal).toLowerCase()
-
-      const aNum = Number(aVal)
-      const bNum = Number(bVal)
-      if (!isNaN(aNum) && !isNaN(bNum)) {
-        const comparison = aNum - bNum
-        return sortConfig.value.direction === 'asc' ? comparison : -comparison
-      }
-
-      const comparison = aStr.localeCompare(bStr)
-      return sortConfig.value.direction === 'asc' ? comparison : -comparison
-    })
-  }
-
-  return data
 })
-
-// Dynamically determine columns from data keys
-const columns = computed(() => {
-  if (!filteredData.value.length) return []
-  const allKeys = new Set<string>()
-  filteredData.value.forEach((row) => {
-    Object.keys(row).forEach((key) => allKeys.add(key))
-  })
-  return Array.from(allKeys)
-})
-
-const totalPages = computed(() => Math.ceil(filteredData.value.length / pageSize))
-const totalCount = computed(() => props.count ?? filteredData.value.length)
-
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  const end = start + pageSize
-  return filteredData.value.slice(start, end)
-})
-
-const startRow = computed(() => (currentPage.value - 1) * pageSize + 1)
-const endRow = computed(() => Math.min(currentPage.value * pageSize, filteredData.value.length))
-
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++
-  }
-}
-
-const previousPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--
-  }
-}
 
 const formatCellValue = (value: unknown): string => {
   if (value === null) return 'null'
@@ -175,23 +163,80 @@ const formatCellValue = (value: unknown): string => {
   return String(value)
 }
 
-const toggleSort = (column: string) => {
-  if (sortConfig.value.column === column) {
-    sortConfig.value.direction = sortConfig.value.direction === 'asc' ? 'desc' : 'asc'
-  } else {
-    sortConfig.value.column = column
-    sortConfig.value.direction = 'asc'
-  }
-  // Reset to first page when sorting changes
-  currentPage.value = 1
-}
+const columns = computed<ColumnDef<Record<string, unknown>>[]>(() => {
+  if (!processedData.value.length) return []
+  const allKeys = new Set<string>()
+  processedData.value.forEach((row) => {
+    Object.keys(row).forEach((key) => allKeys.add(key))
+  })
+  const keysArray = Array.from(allKeys)
+
+  return keysArray.map((key) => ({
+    accessorKey: key,
+    header: key,
+    cell: (info) => formatCellValue(info.getValue()),
+    enableSorting: true,
+    enableResizing: true,
+    size: 150,
+    minSize: 30,
+    maxSize: 1000
+  }))
+})
+
+const table = useVueTable({
+  get data() {
+    return processedData.value
+  },
+  get columns() {
+    return columns.value
+  },
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
+  getPaginationRowModel: getPaginationRowModel(),
+  onSortingChange: (updater) => {
+    sorting.value = typeof updater === 'function' ? updater(sorting.value) : updater
+  },
+  onColumnSizingChange: (updater) => {
+    columnSizing.value = typeof updater === 'function' ? updater(columnSizing.value) : updater
+  },
+  onPaginationChange: (updater) => {
+    pagination.value = typeof updater === 'function' ? updater(pagination.value) : updater
+  },
+  state: {
+    get sorting() {
+      return sorting.value
+    },
+    get columnSizing() {
+      return columnSizing.value
+    },
+    get pagination() {
+      return pagination.value
+    }
+  },
+  columnResizeMode: columnResizeMode.value,
+  enableColumnResizing: true
+})
+
+const totalCount = computed(() => props.count ?? processedData.value.length)
+const startRow = computed(
+  () => table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1
+)
+const endRow = computed(() =>
+  Math.min(
+    (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+    processedData.value.length
+  )
+)
 
 const copyToClipboard = async () => {
   try {
     // Convert data to TSV format for clipboard
-    const headers = columns.value.join('\t')
-    const rows = filteredData.value
-      .map((row) => columns.value.map((col) => formatCellValue(row[col])).join('\t'))
+    const headers = columns.value.map((col) => String(col.header)).join('\t')
+    const rows = processedData.value
+      .map((row) =>
+        // @ts-expect-error We know accessorKey is available here because we defined it above
+        columns.value.map((col) => formatCellValue(row[String(col.accessorKey)])).join('\t')
+      )
       .join('\n')
     const tsvData = headers + '\n' + rows
 
@@ -213,3 +258,27 @@ watch(
   }
 )
 </script>
+
+<style scoped>
+.resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 4px;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  transition: background 0.2s ease;
+}
+
+.resizer:hover {
+  background: hsl(var(--primary) / 0.5);
+  border-right: 1px solid black;
+}
+
+.resizer.isResizing {
+  background: black;
+  border-right: 2px solid black;
+}
+</style>
