@@ -1,14 +1,16 @@
 import json
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import DateTime
 from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON, String, TypeDecorator
+from sqlalchemy.sql import expression
 
 Base = declarative_base()
 
@@ -133,10 +135,42 @@ class SerializerMixin:
         return data
 
 
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class UtcTimestamp(expression.FunctionElement):
+    type = DateTime(timezone=True)
+    inherit_cache = True
+
+
+@compiles(UtcTimestamp)
+def _default_utc_timestamp(element, compiler, **kw):
+    return "CURRENT_TIMESTAMP"
+
+
+@compiles(UtcTimestamp, "postgresql")
+def _postgresql_utc_timestamp(element, compiler, **kw):
+    return "TIMEZONE('utc', CURRENT_TIMESTAMP)"
+
+
+@compiles(UtcTimestamp, "sqlite")
+def _sqlite_utc_timestamp(element, compiler, **kw):
+    return "STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')"
+
+
 class DefaultBase:
     createdAt: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now()
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utcnow,
+        server_default=UtcTimestamp(),
     )
     updatedAt: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utcnow,
+        onupdate=_utcnow,
+        server_default=UtcTimestamp(),
+        server_onupdate=UtcTimestamp(),
     )
