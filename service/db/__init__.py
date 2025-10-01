@@ -15,11 +15,21 @@ from sqlalchemy.types import JSON, String, TypeDecorator
 Base = declarative_base()
 
 
+def _ensure_timezone(value: datetime) -> datetime:
+    """Ensure datetimes are timezone-aware, defaulting to UTC when missing."""
+
+    if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
+
+
 class JSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
         if isinstance(obj, (datetime, date)):
+            if isinstance(obj, datetime):
+                obj = _ensure_timezone(obj)
             return obj.isoformat()
         if isinstance(obj, timedelta):
             # Represent timedeltas as total seconds for JSON compatibility
@@ -104,7 +114,7 @@ class SerializerMixin:
 
     def _convert(self, value):
         if isinstance(value, datetime):
-            return value.isoformat()
+            return _ensure_timezone(value).isoformat()
         if isinstance(value, timedelta):
             return value.total_seconds()
         if isinstance(value, uuid.UUID):
