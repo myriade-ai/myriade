@@ -4,10 +4,10 @@ from datetime import datetime
 from enum import StrEnum
 from typing import List, Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db import UUID, Base, DefaultBase, SerializerMixin
+from db import UUID, Base, DefaultBase, SerializerMixin, UtcDateTime
 
 
 class Status(StrEnum):
@@ -92,7 +92,9 @@ class BusinessEntity(SerializerMixin, Base, DefaultBase):
     # Quality metrics
     completeness: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     quality_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    review_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    review_date: Mapped[Optional[datetime]] = mapped_column(
+        UtcDateTime(), nullable=True
+    )
     report: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     database_id: Mapped[uuid.UUID] = mapped_column(
         UUID(), ForeignKey("database.id"), nullable=False

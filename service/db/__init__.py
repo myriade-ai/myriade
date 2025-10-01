@@ -1,24 +1,36 @@
 import json
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import DateTime
 from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import expression
 from sqlalchemy.types import JSON, String, TypeDecorator
 
 Base = declarative_base()
+
+
+def _ensure_timezone(value: datetime) -> datetime:
+    """Ensure datetimes are timezone-aware, defaulting to UTC when missing."""
+
+    if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
 
 
 class JSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
-        if isinstance(obj, (datetime, date)):
+        if isinstance(obj, date):
             return obj.isoformat()
+        if isinstance(obj, datetime):
+            return _ensure_timezone(obj).isoformat()
         if isinstance(obj, timedelta):
             # Represent timedeltas as total seconds for JSON compatibility
             return obj.total_seconds()
@@ -41,6 +53,24 @@ class JSONB(TypeDecorator):
         if dialect.name == "postgresql":
             return dialect.type_descriptor(PG_JSONB())
         return dialect.type_descriptor(JSON())
+
+
+class UtcDateTime(TypeDecorator):
+    """Custom DateTime type that ensures timezone awareness for PostgreSQL & SQLite."""
+
+    impl = DateTime
+    cache_ok = True
+
+    def __init__(self, *args, **kwargs):
+        # Always use timezone=True for the underlying DateTime
+        kwargs["timezone"] = True
+        super().__init__(*args, **kwargs)
+
+    def process_result_value(self, value, dialect):
+        """Ensure datetime values are timezone-aware when reading from database."""
+        if value is not None and isinstance(value, datetime):
+            return _ensure_timezone(value)
+        return value
 
 
 class UUID(TypeDecorator):
@@ -102,7 +132,7 @@ class SerializerMixin:
 
     def _convert(self, value):
         if isinstance(value, datetime):
-            return value.isoformat()
+            return _ensure_timezone(value).isoformat()
         if isinstance(value, timedelta):
             return value.total_seconds()
         if isinstance(value, uuid.UUID):
@@ -133,10 +163,37 @@ class SerializerMixin:
         return data
 
 
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class UtcTimestamp(expression.FunctionElement):
+    type = DateTime(timezone=True)
+    inherit_cache = True
+
+
+@compiles(UtcTimestamp)
+def _default_utc_timestamp(element, compiler, **kw):
+    return "CURRENT_TIMESTAMP"
+
+
+@compiles(UtcTimestamp, "sqlite")
+def _sqlite_utc_timestamp(element, compiler, **kw):
+    return "STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')"
+
+
 class DefaultBase:
     createdAt: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now()
+        UtcDateTime(),
+        nullable=False,
+        default=_utcnow,
+        server_default=UtcTimestamp(),
     )
     updatedAt: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+        UtcDateTime(),
+        nullable=False,
+        default=_utcnow,
+        onupdate=_utcnow,
+        server_default=UtcTimestamp(),
+        server_onupdate=UtcTimestamp(),
     )

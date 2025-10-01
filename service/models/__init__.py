@@ -21,7 +21,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from chat.utils import parse_answer_text
-from db import JSONB, UUID, Base, DefaultBase, SerializerMixin
+from db import JSONB, UUID, Base, DefaultBase, SerializerMixin, UtcDateTime
 from models.catalog import Asset, Term
 
 from .quality import (
@@ -323,8 +323,10 @@ class Query(SerializerMixin, DefaultBase, Base):
         default="completed",  # Default for existing queries
         server_default="completed",
     )
-    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(UtcDateTime(), nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        UtcDateTime(), nullable=True
+    )
     operation_type: Mapped[Optional[str]] = mapped_column(
         String, nullable=True
     )  # CREATE, INSERT, UPDATE, etc.
