@@ -1,33 +1,36 @@
 <template>
-  <div class="w-full flex flex-col item-end">
+  <div
+    ref="messageRef"
+    class="w-full flex flex-col item-end"
+    :class="props.message.role === 'user' ? 'group' : ''"
+  >
     <div
       :class="
         cn(
           props.message.role === 'user'
-            ? cn('bg-gray-100 rounded-lg p-4', isEditing ? 'w-full' : 'max-w-3/4 ml-auto')
+            ? cn(
+                'bg-gray-100 rounded-lg p-4',
+                isEditing ? 'w-full rounded-xl' : 'max-w-3/4 ml-auto'
+              )
             : 'w-full p-2'
         )
       "
+      @click.stop="props.message.role === 'user' ? toggleActionsVisibility() : undefined"
     >
-      <!-- Message header with role only -->
-      <div class="flex flex-col sm:flex-row sm:items-center">
-        <span class="font-bold text-gray-600 leading-none">{{ props.message.role }}</span>
-      </div>
-
-      <!-- Message content -->
       <div class="w-full overflow-y-hidden">
-        <!-- Edit mode for user messages -->
-        <div v-if="isEditing && props.message.role === 'user'" class="mt-2 mb-2">
+        <div v-if="isEditing">
           <Textarea
             v-model="editedContent"
-            class="w-full border border-gray-300 rounded-sm py-2 px-3 resize-none"
-            rows="4"
+            class="w-full min-h-8 border-none shadow-none outline-none focus-visible:ring-0 py-2 px-3 resize-none max-h-36"
+            rows="2"
           />
           <div class="flex flex-col sm:flex-row justify-end mt-2 gap-2">
             <Button @click="cancelEdit" variant="secondary" size="sm" class="bg-white">
               Cancel
             </Button>
-            <Button @click="saveEdit" size="sm"> Send </Button>
+            <Button @click="saveEdit" size="sm" class="bg-primary hover:bg-primary/90">
+              Send
+            </Button>
           </div>
         </div>
 
@@ -156,8 +159,22 @@
     <!-- Message actions outside card for user messages -->
     <div
       v-if="!isEditing && props.message.role === 'user'"
-      :class="cn('flex items-center gap-1 mt-2', 'max-w-3/4 ml-auto justify-end', '-mr-2')"
+      :class="
+        cn(
+          'flex items-center gap-1 mt-2',
+          'max-w-3/4 ml-auto justify-end',
+          '-mr-2',
+          'transition-opacity',
+          showActions ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'
+        )
+      "
     >
+      <!-- Copy button for user messages -->
+      <Button @click="copyMessage" title="Copy message" variant="ghost" size="sm" class="p-1">
+        <Check v-if="isCopied" class="h-3 w-3 sm:h-4 sm:w-4" />
+        <Copy v-else class="h-3 w-3 sm:h-4 sm:w-4" />
+      </Button>
+
       <!-- Edit button for user messages -->
       <Button @click="toggleEditMode" title="Edit message" variant="ghost" size="sm" class="p-1">
         <SquarePen class="h-3 w-3 sm:h-4 sm:w-4" />
@@ -190,7 +207,7 @@
 import axios from '@/plugins/axios'
 import { useQueriesStore } from '@/stores/queries'
 import yaml from 'js-yaml'
-import { computed, defineEmits, defineProps, onMounted, ref } from 'vue'
+import { computed, defineEmits, defineProps, onMounted, onUnmounted, ref } from 'vue'
 
 // Components
 import AskCatalogConfirmation from '@/components/AskCatalogConfirmation.vue'
@@ -205,7 +222,7 @@ import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 import { cn } from '@/lib/utils'
 import type { Message } from '@/stores/conversations'
 import { useDatabasesStore } from '@/stores/databases'
-import { Pencil, RotateCcw, SquarePen } from 'lucide-vue-next'
+import { Check, Copy, Pencil, RotateCcw, SquarePen } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import CodeFileDisplay from './CodeFileDisplay.vue'
 import FunctionCallRenderer from './FunctionCallRenderer.vue'
@@ -227,6 +244,9 @@ const sqlResult = ref<Array<Record<string, string | number | boolean | null>>>([
 const sqlCount = ref(0)
 const isEditing = ref(false)
 const editedContent = ref('')
+const isCopied = ref(false)
+const showActions = ref(false)
+const messageRef = ref<HTMLElement | null>(null)
 
 // Query confirmation using store
 const queriesStore = useQueriesStore()
@@ -250,6 +270,16 @@ const catalogOperation = computed(() => {
   return isCatalogFunction || hasAssetOrTermData
 })
 
+const toggleActionsVisibility = () => {
+  showActions.value = !showActions.value
+}
+
+const handleClickOutside = (event: MouseEvent) => {
+  if (messageRef.value && !messageRef.value.contains(event.target as Node)) {
+    showActions.value = false
+  }
+}
+
 const toggleEditMode = () => {
   isEditing.value = !isEditing.value
   editedContent.value = props.message.content
@@ -264,6 +294,18 @@ const saveEdit = () => {
 const cancelEdit = () => {
   isEditing.value = false
   editedContent.value = ''
+}
+
+const copyMessage = async () => {
+  try {
+    await navigator.clipboard.writeText(props.message.content)
+    isCopied.value = true
+    setTimeout(() => {
+      isCopied.value = false
+    }, 2000)
+  } catch (error) {
+    console.error('Failed to copy message:', error)
+  }
 }
 
 // Methods
@@ -370,6 +412,13 @@ onMounted(() => {
       }
     }
   })
+
+  // Add click outside listener
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 

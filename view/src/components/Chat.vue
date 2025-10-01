@@ -82,12 +82,12 @@
                   <p class="text-error-500">{{ errorMessage }}</p>
                 </div>
                 <div>
-                  <BaseButton
-                    class="my-4"
+                  <Button
+                    variant="default"
                     @click="conversationsStore.regenerateFromMessage(lastMessage.id)"
                   >
                     Regenerate
-                  </BaseButton>
+                  </Button>
                 </div>
               </div>
 
@@ -206,7 +206,6 @@
 </template>
 
 <script setup lang="ts">
-import BaseButton from '@/components/base/BaseButton.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import SendButtonWithStatus from '@/components/icons/SendButtonWithStatus.vue'
 import MessageDisplay from '@/components/MessageDisplay.vue'

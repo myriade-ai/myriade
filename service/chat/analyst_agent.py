@@ -9,7 +9,6 @@ from agentlys.chat import StopLoopException
 from agentlys_tools.code_editor import CodeEditor
 
 from app import socketio
-from back.utils import get_tables_metadata_from_catalog
 from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
 from chat.proxy_provider import ProxyProvider
@@ -98,11 +97,16 @@ class DataAnalystAgent:
             visible to the user. Use it to answer the user.",
         )
 
-        tables_metadata = get_tables_metadata_from_catalog(
-            self.conversation.database.id
+        data_warehouse = self.conversation.database.create_data_warehouse(
+            session=self.session
         )
+
         self.agent.add_tool(
-            DatabaseTool(self.session, self.conversation.database, tables_metadata),
+            DatabaseTool(
+                self.session,
+                self.conversation.database,
+                data_warehouse=data_warehouse,
+            ),
             "database",
         )
         self.agent.add_function(think)
@@ -113,14 +117,22 @@ class DataAnalystAgent:
             WorkspaceTool(self.session, self.conversation.id), "workspace"
         )
         self.agent.add_tool(
-            EchartsTool(self.session, self.conversation.database),
+            EchartsTool(
+                self.session,
+                self.conversation.database,
+                data_warehouse=data_warehouse,
+            ),
             "echarts",
         )
         semantic_model = SemanticModel(
             self.session, self.conversation.id, self.conversation.databaseId
         )
         self.agent.add_tool(semantic_model, "semantic_model")
-        catalog_tool = CatalogTool(self.session, self.conversation.database)
+        catalog_tool = CatalogTool(
+            self.session,
+            self.conversation.database,
+            data_warehouse=data_warehouse,
+        )
         self.agent.add_tool(catalog_tool, "catalog")
 
         if self.conversation.database.dbt_repo_path:

@@ -41,6 +41,62 @@ if config.SENTRY_DSN:
     )
 
 
+def initialize_demo_databases():
+    """
+    Sync catalog metadata for demo databases on startup if not already done.
+    This ensures demo databases have their catalog populated after migration.
+    """
+    from sqlalchemy import and_, exists
+
+    from back.data_warehouse import DataWarehouseFactory
+    from back.utils import sync_database_metadata_to_assets
+    from models import Database
+    from models.catalog import Asset
+
+    session = get_db_session()
+    try:
+        databases_without_assets = (
+            session.query(Database)
+            .filter(
+                and_(
+                    Database.public,
+                    ~exists().where(Asset.database_id == Database.id),
+                )
+            )
+            .all()
+        )
+
+        for db in databases_without_assets:
+            logger.info(f"Initializing catalog for demo database: {db.name}")
+
+            metadata = None
+            try:
+                data_warehouse = DataWarehouseFactory.create(
+                    db.engine,
+                    **db.details,
+                )
+                metadata = data_warehouse.load_metadata()
+                session.flush()
+            except Exception as e:
+                logger.warning(
+                    f"Could not load metadata for {db.name}: {e}",
+                    exc_info=True,
+                )
+
+            if metadata:
+                sync_database_metadata_to_assets(db.id, metadata, session)
+                logger.info(f"Successfully synced catalog for {db.name}")
+            else:
+                raise ValueError("No metadata loaded")
+
+        session.commit()
+    except Exception as e:
+        logger.error(f"Error initializing demo databases: {e}", exc_info=True)
+        session.rollback()
+    finally:
+        session.close()
+
+
 def create_app():
     # Create app
     app = Flask(__name__, static_folder=config.STATIC_FOLDER)
@@ -148,5 +204,8 @@ def create_app():
 
     # Start telemetry service for version checking and usage analytics
     telemetry.start_telemetry_service()
+
+    # Initialize demo databases catalog on startup
+    initialize_demo_databases()
 
     return app

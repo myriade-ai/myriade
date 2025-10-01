@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-sidebar/50">
+  <div class="min-h-screen">
     <Form @submit="clickSave" class="max-w-7xl mx-auto px-4 py-4">
       <div class="mb-4 p-4 border-l-4 border-yellow-500 bg-yellow-50">
         <div class="flex items-start gap-3">
@@ -48,27 +48,6 @@ What to be aware of?
         />
       </div>
 
-      <!-- Database Selection -->
-      <div class="mb-6" v-if="false">
-        <base-field name="Database">
-          <VField
-            name="databaseId"
-            as="select"
-            v-model="project.databaseId"
-            @change="fetchDatabaseSchema"
-            class="block w-full max-w-lg rounded-md border-gray-300 shadow-xs focus:border-primary-500 focus:ring-primary-500 sm:max-w-xs sm:text-sm"
-            rules="required"
-            :validate-on-change="true"
-          >
-            <option value="">Select a database</option>
-            <option v-for="db in databasesStore.databases" :key="db.id" :value="db.id">
-              {{ db.name }}
-            </option>
-          </VField>
-          <ErrorMessage name="databaseId" class="text-error-500 text-sm mt-1" />
-        </base-field>
-      </div>
-
       <!-- Tables Selection -->
       <div v-if="selectedDatabase && !isLoading" class="mb-6">
         <label class="block text-gray-700 text-sm font-medium mb-2" for="tables">
@@ -82,9 +61,13 @@ What to be aware of?
         <div class="text-gray-600">Loading database schema...</div>
       </div>
 
-      <BaseAlert class="mt-5" v-if="apiError">
-        <template #title> There is an error 😔 </template>{{ apiError }}
-      </BaseAlert>
+      <Alert v-if="apiError" class="mt-5">
+        <CircleAlert class="h-5 w-5" />
+        <AlertTitle> There is an error 😔 </AlertTitle>
+        <AlertDescription>
+          {{ apiError }}
+        </AlertDescription>
+      </Alert>
 
       <div class="bottom-6 right-6 flex space-x-2 z-50 py-4 float-right">
         <Button
@@ -103,10 +86,9 @@ What to be aware of?
 </template>
 
 <script setup lang="ts">
-import BaseAlert from '@/components/base/BaseAlert.vue'
-import BaseField from '@/components/base/BaseField.vue'
 import type { Group, Item } from '@/components/base/DatabaseTableSelector.vue'
 import DatabaseTableSelector from '@/components/base/DatabaseTableSelector.vue'
+import { AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import Field from '@/components/ui/input/Field.vue'
 import Label from '@/components/ui/label/Label.vue'
@@ -116,7 +98,8 @@ import { useDatabasesStore } from '@/stores/databases'
 import type { Project } from '@/stores/projects'
 import { useProjectsStore } from '@/stores/projects'
 import { LightBulbIcon } from '@heroicons/vue/24/outline'
-import { ErrorMessage, Form, Field as VField } from 'vee-validate'
+import { CircleAlert } from 'lucide-vue-next'
+import { Form } from 'vee-validate'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 

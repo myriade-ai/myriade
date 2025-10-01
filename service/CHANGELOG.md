@@ -1,6 +1,64 @@
 # CHANGELOG
 
 
+## v0.46.0 (2025-10-01)
+
+### Features
+
+- Init demo databases at startup ([#134](https://github.com/myriade-ai/myriade/pull/134),
+  [`4613f0d`](https://github.com/myriade-ai/myriade/commit/4613f0d2364b3b01f4ed1c08d462ba2528f21348))
+
+
+## v0.45.0 (2025-10-01)
+
+### Features
+
+- Add column resizing to DataTable ([#128](https://github.com/myriade-ai/myriade/pull/128),
+  [`f22cf95`](https://github.com/myriade-ai/myriade/commit/f22cf95a4a3feb238b034ab28c695b1dd0b54659))
+
+
+## v0.44.9 (2025-10-01)
+
+### Bug Fixes
+
+- Cannot stop conversation ([#130](https://github.com/myriade-ai/myriade/pull/130),
+  [`830343d`](https://github.com/myriade-ai/myriade/commit/830343d1b4d52e094872039ed21634afafa097b1))
+
+### Refactoring
+
+- Use shadcn components ([#132](https://github.com/myriade-ai/myriade/pull/132),
+  [`3707603`](https://github.com/myriade-ai/myriade/commit/37076037f93fa99e4d550b1e3e222952ddeb1723))
+
+- Ux/ui improvements ([#129](https://github.com/myriade-ai/myriade/pull/129),
+  [`8ad5a83`](https://github.com/myriade-ai/myriade/commit/8ad5a837fc0223dab0d456f4e8a2872125138be9))
+
+
+## v0.44.8 (2025-10-01)
+
+### Bug Fixes
+
+- Reset pagination to first page on data change in DataTable
+  ([#133](https://github.com/myriade-ai/myriade/pull/133),
+  [`eb31067`](https://github.com/myriade-ai/myriade/commit/eb31067ecea631f817721abbc0bb3f9540dd4f7e))
+
+
+## v0.44.7 (2025-09-30)
+
+### Bug Fixes
+
+- Update AGENTLYS_MODEL version to claude 4.5
+  ([#131](https://github.com/myriade-ai/myriade/pull/131),
+  [`eb2e759`](https://github.com/myriade-ai/myriade/commit/eb2e7590ec5923a11f1f663d702c67cf1215be4c))
+
+
+## v0.44.6 (2025-09-30)
+
+### Bug Fixes
+
+- Hide empty function response
+  ([`9ba2eee`](https://github.com/myriade-ai/myriade/commit/9ba2eeef7d03e5c0d5a55eec58847e5a990a47c3))
+
+
 ## v0.44.5 (2025-09-29)
 
 ### Bug Fixes

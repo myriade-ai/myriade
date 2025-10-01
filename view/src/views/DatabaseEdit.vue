@@ -25,14 +25,10 @@
       <!-- Action Buttons -->
       <div class="py-5 max-w-lg">
         <div class="flex justify-between space-x-3">
-          <BaseButton
-            :is-loading="isDeleting"
-            @click="clickDelete"
-            class="bg-red-400 text-white hover:bg-red-600"
-          >
+          <Button :is-loading="isDeleting" @click="clickDelete" variant="destructive">
             Delete
-          </BaseButton>
-          <BaseButton :is-loading="isSaving" @click="clickSave"> Save </BaseButton>
+          </Button>
+          <Button :is-loading="isSaving" @click="clickSave"> Save </Button>
         </div>
       </div>
     </div>
@@ -40,9 +36,9 @@
 </template>
 
 <script setup lang="ts">
-import BaseButton from '@/components/base/BaseButton.vue'
 import DatabaseForm from '@/components/database/DatabaseForm.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import { Button } from '@/components/ui/button'
 import router from '@/router'
 import { useDatabasesStore } from '@/stores/databases'
 import { ArrowLeftIcon } from '@heroicons/vue/24/solid'

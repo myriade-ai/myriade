@@ -78,20 +78,30 @@ def merge_tables_metadata(
     return merged
 
 
-def get_tables_metadata_from_catalog(database_id: UUID) -> List[Dict[str, Any]]:
+def get_tables_metadata_from_catalog(
+    database_id: UUID, session=None
+) -> List[Dict[str, Any]]:
     """Get tables metadata from catalog in the same format as the old
-    tables_metadata field"""
+    tables_metadata field
+
+    Args:
+        database_id: UUID of the database
+        session: Optional SQLAlchemy session. If not provided, uses g.session
+    """
+    # Use provided session or fall back to g.session
+    db_session = session if session is not None else g.session
+
     try:
         # Get all table and column assets for this database
         tables_data = (
-            g.session.query(Asset, TableFacet)
+            db_session.query(Asset, TableFacet)
             .join(TableFacet, Asset.id == TableFacet.asset_id)
             .filter(Asset.database_id == database_id, Asset.type == "TABLE")
             .all()
         )
 
         columns_data = (
-            g.session.query(Asset, ColumnFacet, TableFacet)
+            db_session.query(Asset, ColumnFacet, TableFacet)
             .join(ColumnFacet, Asset.id == ColumnFacet.asset_id)
             .join(TableFacet, ColumnFacet.parent_table_asset_id == TableFacet.asset_id)
             .filter(Asset.database_id == database_id, Asset.type == "COLUMN")
@@ -133,14 +143,23 @@ def get_tables_metadata_from_catalog(database_id: UUID) -> List[Dict[str, Any]]:
 def sync_database_metadata_to_assets(
     database_id: UUID,
     tables_metadata: List[Dict[str, Any]],
+    session=None,
 ):
     """
     Sync catalog with database metadata (tables/columns)
     This method creates catalog assets from the database's tables_metadata
     using facet-based models
+
+    Args:
+        database_id: UUID of the database
+        tables_metadata: List of table metadata dictionaries
+        session: Optional SQLAlchemy session. If not provided, uses g.session
     """
     if not tables_metadata:
         return "No database metadata available to sync"
+
+    # Use provided session or fall back to g.session
+    db_session = session if session is not None else g.session
 
     synced_count = 0
 
@@ -153,7 +172,7 @@ def sync_database_metadata_to_assets(
 
         # Check if table asset already exists
         table_asset = (
-            g.session.query(Asset)
+            db_session.query(Asset)
             .filter(
                 Asset.database_id == database_id,
                 Asset.urn == table_urn,
@@ -170,8 +189,8 @@ def sync_database_metadata_to_assets(
                 description=table_meta.get("description"),
                 database_id=database_id,
             )
-            g.session.add(table_asset)
-            g.session.flush()  # Get the ID
+            db_session.add(table_asset)
+            db_session.flush()  # Get the ID
 
             # Create table facet
             table_facet = TableFacet(
@@ -180,7 +199,7 @@ def sync_database_metadata_to_assets(
                 schema=schema_name,
                 table_name=table_name,
             )
-            g.session.add(table_facet)
+            db_session.add(table_facet)
             synced_count += 1
 
         # Create/update column assets
@@ -193,7 +212,7 @@ def sync_database_metadata_to_assets(
             )
 
             column_asset = (
-                g.session.query(Asset)
+                db_session.query(Asset)
                 .filter(
                     Asset.database_id == database_id,
                     Asset.urn == column_urn,
@@ -210,8 +229,8 @@ def sync_database_metadata_to_assets(
                     description=column.get("description"),
                     database_id=database_id,
                 )
-                g.session.add(column_asset)
-                g.session.flush()  # Get the ID
+                db_session.add(column_asset)
+                db_session.flush()  # Get the ID
 
                 # Create column facet
                 column_facet = ColumnFacet(
@@ -222,7 +241,7 @@ def sync_database_metadata_to_assets(
                     data_type=column.get("type"),
                     privacy=column.get("privacy"),
                 )
-                g.session.add(column_facet)
+                db_session.add(column_facet)
                 synced_count += 1
 
     return {
@@ -230,13 +249,22 @@ def sync_database_metadata_to_assets(
     }
 
 
-def update_catalog_privacy(database_id: UUID, tables_metadata: List[Dict[str, Any]]):
+def update_catalog_privacy(
+    database_id: UUID, tables_metadata: List[Dict[str, Any]], session=None
+):
     """
     Update privacy settings in catalog for existing assets
     This method updates column facets with new privacy information
+
+    Args:
+        database_id: UUID of the database
+        tables_metadata: List of table metadata dictionaries
+        session: Optional SQLAlchemy session. If not provided, uses g.session
     """
     if not tables_metadata:
         return
+
+    db_session = session if session is not None else g.session
 
     for table_meta in tables_metadata:
         schema_name = table_meta.get("schema")
@@ -254,7 +282,7 @@ def update_catalog_privacy(database_id: UUID, tables_metadata: List[Dict[str, An
 
             # Find existing column asset
             column_asset = (
-                g.session.query(Asset)
+                db_session.query(Asset)
                 .filter(
                     Asset.database_id == database_id,
                     Asset.urn == column_urn,
@@ -266,7 +294,7 @@ def update_catalog_privacy(database_id: UUID, tables_metadata: List[Dict[str, An
             if column_asset:
                 # Update column facet privacy settings
                 column_facet = (
-                    g.session.query(ColumnFacet)
+                    db_session.query(ColumnFacet)
                     .filter(ColumnFacet.asset_id == column_asset.id)
                     .first()
                 )

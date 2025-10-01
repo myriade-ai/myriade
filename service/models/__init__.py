@@ -106,7 +106,7 @@ class Database(SerializerMixin, DefaultBase, Base):
 
         return result
 
-    def create_data_warehouse(self):
+    def create_data_warehouse(self, session=None):
         from back.data_warehouse import DataWarehouseFactory
         from back.utils import get_tables_metadata_from_catalog
 
@@ -116,7 +116,9 @@ class Database(SerializerMixin, DefaultBase, Base):
         )
         data_warehouse.write_mode = self.write_mode
         # Pass tables metadata from catalog in same format as before
-        data_warehouse.tables_metadata = get_tables_metadata_from_catalog(self.id)
+        data_warehouse.tables_metadata = get_tables_metadata_from_catalog(
+            self.id, session=session
+        )
         return data_warehouse
 
 
