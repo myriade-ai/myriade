@@ -1,6 +1,15 @@
 # CHANGELOG
 
 
+## v0.44.8 (2025-10-01)
+
+### Bug Fixes
+
+- Reset pagination to first page on data change in DataTable
+  ([#133](https://github.com/myriade-ai/myriade/pull/133),
+  [`eb31067`](https://github.com/myriade-ai/myriade/commit/eb31067ecea631f817721abbc0bb3f9540dd4f7e))
+
+
 ## v0.44.7 (2025-09-30)
 
 ### Bug Fixes
