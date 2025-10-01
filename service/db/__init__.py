@@ -55,6 +55,24 @@ class JSONB(TypeDecorator):
         return dialect.type_descriptor(JSON())
 
 
+class UtcDateTime(TypeDecorator):
+    """Custom DateTime type that ensures timezone awareness for PostgreSQL & SQLite."""
+
+    impl = DateTime
+    cache_ok = True
+
+    def __init__(self, *args, **kwargs):
+        # Always use timezone=True for the underlying DateTime
+        kwargs["timezone"] = True
+        super().__init__(*args, **kwargs)
+
+    def process_result_value(self, value, dialect):
+        """Ensure datetime values are timezone-aware when reading from database."""
+        if value is not None and isinstance(value, datetime):
+            return _ensure_timezone(value)
+        return value
+
+
 class UUID(TypeDecorator):
     """Custom UUID type that uses native UUID for PostgreSQL and String for SQLite."""
 
@@ -166,13 +184,13 @@ def _sqlite_utc_timestamp(element, compiler, **kw):
 
 class DefaultBase:
     createdAt: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        UtcDateTime(),
         nullable=False,
         default=_utcnow,
         server_default=UtcTimestamp(),
     )
     updatedAt: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        UtcDateTime(),
         nullable=False,
         default=_utcnow,
         onupdate=_utcnow,
