@@ -4,7 +4,7 @@ import platform
 import threading
 import time
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -176,7 +176,7 @@ def collect_telemetry_data() -> Dict[str, Any]:
         "total_assistant_messages": get_total_assistant_messages(),
         "total_user_messages": get_total_user_messages(),
         "total_users": get_total_users(),
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
