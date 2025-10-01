@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.47.2 (2025-10-01)
+
+### Bug Fixes
+
+- **service**: Use timezone-aware defaults ([#135](https://github.com/myriade-ai/myriade/pull/135),
+  [`a5a7328`](https://github.com/myriade-ai/myriade/commit/a5a7328d67fa3dabea42438f7baefe55e4b3f530))
+
+
 ## v0.47.1 (2025-10-01)
 
 ### Bug Fixes
