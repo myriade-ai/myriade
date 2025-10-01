@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.47.1 (2025-10-01)
+
+### Bug Fixes
+
+- Chat flickering ([#136](https://github.com/myriade-ai/myriade/pull/136),
+  [`462b97d`](https://github.com/myriade-ai/myriade/commit/462b97dfdb8abe72bb87daa87f898fa1432ed273))
+
+
 ## v0.47.0 (2025-10-01)
 
 ### Features
