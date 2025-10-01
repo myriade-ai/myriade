@@ -74,7 +74,7 @@
 
 <script setup lang="ts">
 import { ChevronDown, ChevronUp } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Button } from './ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
 
@@ -204,4 +204,12 @@ const copyToClipboard = async () => {
     console.error('Failed to copy to clipboard:', error)
   }
 }
+
+// Reset to first page when data changes (e.g., after running a query)
+watch(
+  () => props.data,
+  () => {
+    currentPage.value = 1
+  }
+)
 </script>
