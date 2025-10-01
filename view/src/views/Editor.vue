@@ -10,10 +10,15 @@
       </div>
       <div class="col-span-12 md:col-span-9">
         <BaseQuery :editor="editor" />
-        <BaseAlert v-if="editor.error.value">
-          <template #title> There is an error in the SQL execution 😔 </template>
-          {{ editor.error.value }}
-        </BaseAlert>
+
+        <Alert v-if="editor.error.value" class="mt-2" variant="destructive">
+          <CircleAlert class="h-5 w-5" />
+          <AlertTitle> There is an error in the SQL execution 😔 </AlertTitle>
+          <AlertDescription>
+            {{ editor.error.value }}
+          </AlertDescription>
+        </Alert>
+
         <DataTable
           v-if="editor.results.value !== null"
           :data="editor.results.value"
@@ -26,7 +31,6 @@
 </template>
 
 <script setup lang="ts">
-import BaseAlert from '@/components/base/BaseAlert.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import BaseQuery from '@/components/base/BaseQuery.vue'
 import DataTable from '@/components/DataTable.vue'
@@ -35,6 +39,8 @@ import { useQueryEditor } from '@/composables/useQueryEditor'
 import { useDatabasesStore } from '@/stores/databases'
 import { useSelectedDatabaseFromContext } from '@/useSelectedDatabaseFromContext'
 import { watchEffect } from 'vue'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { CircleAlert } from 'lucide-vue-next'
 
 const databasesStore = useDatabasesStore()
 
