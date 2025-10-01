@@ -4,6 +4,7 @@
     dict({
       'dbt_catalog': None,
       'dbt_manifest': None,
+      'dbt_repo_path': None,
       'description': 'ephemeral test db',
       'details': dict({
         'filename': ':memory:',

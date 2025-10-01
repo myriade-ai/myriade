@@ -1,4 +1,1106 @@
 # serializer version: 1
+# name: test_dbt_functions_schema
+  list([
+    dict({
+      'description': "Add text to the AI's memory",
+      'name': 'DatabaseTool-database__save_to_memory',
+      'parameters': dict({
+        'properties': dict({
+          'text': dict({
+            'description': 'The text to add to the memory',
+            'title': 'Text',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'text',
+        ]),
+        'title': 'Input for `save_to_memory`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Run an SQL query on the database and return the result',
+      'name': 'DatabaseTool-database__sql_query',
+      'parameters': dict({
+        'properties': dict({
+          'query': dict({
+            'description': "The SQL query string to be executed. Don't forget to escape this if you use double quote.",
+            'title': 'Query',
+            'type': 'string',
+          }),
+          'title': dict({
+            'default': '',
+            'description': 'The name/title of the query',
+            'title': 'Title',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'query',
+        ]),
+        'title': 'Input for `sql_query`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Think about the task at hand. It helps to reflect or decompose the situation.',
+      'name': 'think',
+      'parameters': dict({
+        'properties': dict({
+          'thought': dict({
+            'description': 'A thought to think about.',
+            'title': 'Thought',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'thought',
+        ]),
+        'title': 'Input for `think`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Get the current date as a string. Returns: the current date string in YYYY-MM-DD format',
+      'name': 'get_date',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `get_date`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': "Give the final response from the user demand/query as a text. You can insert a query with it's preview result in the text using the <QUERY:{query_id}> tag. You can insert a chart in the text using the <CHART:{chart_id}> tag. Replace {query_id} and {chart_id} with the actual query id and chart id. Show the query / chart only if the user asked for it or if that make sense to have it.",
+      'name': 'answer',
+      'parameters': dict({
+        'properties': dict({
+          'text': dict({
+            'title': 'Text',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'text',
+        ]),
+        'title': 'Input for `answer`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Ask the user a question. Use it to ask for confirmation, for ambiguous queries,    etc. Use it only when it strictly necessary.',
+      'name': 'ask_user',
+      'parameters': dict({
+        'properties': dict({
+          'question': dict({
+            'description': 'The question to ask the user',
+            'title': 'Question',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'question',
+        ]),
+        'title': 'Input for `ask_user`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Render a chart (using Echarts 6). This is not shown to the user, but this will create a chart object That you can reference in the answer response. --- Provide the chart_options without the "dataset" parameter We will fill the dataset.source automatically with the SQL result Don\'t forget to Map from Data to Charts (series.encode) using the correct names Don\'t use specific color in the chart_options unless the user asked for it When creating bar charts with ECharts, make sure to set the correct axis types. IMPORTANT: When using formatters with encoded data, use the {@column_name} syntax. For example: - For labels: "formatter": "{@nps_score}%" - For tooltips: "formatter": "Mois: {@mois}<br/>Score NPS: {@nps_score}%" - NOT: "formatter": "{c}%" (this will show [Object Object])',
+      'name': 'EchartsTool-echarts__preview_render',
+      'parameters': dict({
+        '$defs': dict({
+          'Axis': dict({
+            'properties': dict({
+              'axisLabel': dict({
+                'anyOf': list([
+                  dict({
+                    '$ref': '#/$defs/AxisLabel',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+              }),
+              'inverse': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'boolean',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Inverse',
+              }),
+              'max': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'integer',
+                  }),
+                  dict({
+                    'type': 'number',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Max',
+              }),
+              'min': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'integer',
+                  }),
+                  dict({
+                    'type': 'number',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Min',
+              }),
+              'name': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Name',
+              }),
+              'type': dict({
+                'enum': list([
+                  'value',
+                  'category',
+                  'time',
+                  'log',
+                ]),
+                'title': 'Type',
+                'type': 'string',
+              }),
+            }),
+            'required': list([
+              'type',
+            ]),
+            'title': 'Axis',
+            'type': 'object',
+          }),
+          'AxisLabel': dict({
+            'properties': dict({
+              'formatter': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Formatter',
+              }),
+              'interval': dict({
+                'default': 0,
+                'title': 'Interval',
+                'type': 'integer',
+              }),
+              'rotate': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'integer',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Rotate',
+              }),
+            }),
+            'title': 'AxisLabel',
+            'type': 'object',
+          }),
+          'ChartOptions': dict({
+            'properties': dict({
+              'dataZoom': dict({
+                'anyOf': list([
+                  dict({
+                    'items': dict({
+                      '$ref': '#/$defs/DataZoom',
+                    }),
+                    'type': 'array',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Datazoom',
+              }),
+              'grid': dict({
+                'anyOf': list([
+                  dict({
+                    '$ref': '#/$defs/GridOptions',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+              }),
+              'series': dict({
+                'items': dict({
+                  '$ref': '#/$defs/Series',
+                }),
+                'title': 'Series',
+                'type': 'array',
+              }),
+              'title': dict({
+                'anyOf': list([
+                  dict({
+                    '$ref': '#/$defs/TitleOptions',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+              }),
+              'tooltip': dict({
+                'anyOf': list([
+                  dict({
+                    '$ref': '#/$defs/Tooltip',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+              }),
+              'xAxis': dict({
+                '$ref': '#/$defs/Axis',
+              }),
+              'yAxis': dict({
+                '$ref': '#/$defs/Axis',
+              }),
+            }),
+            'required': list([
+              'xAxis',
+              'yAxis',
+              'series',
+            ]),
+            'title': 'ChartOptions',
+            'type': 'object',
+          }),
+          'DataZoom': dict({
+            'properties': dict({
+              'end': dict({
+                'default': 100,
+                'title': 'End',
+                'type': 'integer',
+              }),
+              'start': dict({
+                'default': 0,
+                'title': 'Start',
+                'type': 'integer',
+              }),
+              'type': dict({
+                'enum': list([
+                  'inside',
+                  'slider',
+                ]),
+                'title': 'Type',
+                'type': 'string',
+              }),
+            }),
+            'required': list([
+              'type',
+            ]),
+            'title': 'DataZoom',
+            'type': 'object',
+          }),
+          'GridOptions': dict({
+            'properties': dict({
+              'bottom': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'integer',
+                  }),
+                ]),
+                'default': '10%',
+                'title': 'Bottom',
+              }),
+              'containLabel': dict({
+                'default': True,
+                'title': 'Containlabel',
+                'type': 'boolean',
+              }),
+              'left': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'integer',
+                  }),
+                ]),
+                'default': '10%',
+                'title': 'Left',
+              }),
+              'right': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'integer',
+                  }),
+                ]),
+                'default': '10%',
+                'title': 'Right',
+              }),
+              'top': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'integer',
+                  }),
+                ]),
+                'default': '10%',
+                'title': 'Top',
+              }),
+            }),
+            'title': 'GridOptions',
+            'type': 'object',
+          }),
+          'ItemStyle': dict({
+            'properties': dict({
+              'color': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Color',
+              }),
+            }),
+            'title': 'ItemStyle',
+            'type': 'object',
+          }),
+          'Series': dict({
+            'properties': dict({
+              'encode': dict({
+                '$ref': '#/$defs/SeriesEncode',
+              }),
+              'itemStyle': dict({
+                'anyOf': list([
+                  dict({
+                    '$ref': '#/$defs/ItemStyle',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+              }),
+              'label': dict({
+                'anyOf': list([
+                  dict({
+                    '$ref': '#/$defs/SeriesLabel',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+              }),
+              'type': dict({
+                'enum': list([
+                  'bar',
+                  'line',
+                  'pie',
+                  'scatter',
+                ]),
+                'title': 'Type',
+                'type': 'string',
+              }),
+            }),
+            'required': list([
+              'type',
+              'encode',
+            ]),
+            'title': 'Series',
+            'type': 'object',
+          }),
+          'SeriesEncode': dict({
+            'properties': dict({
+              'itemName': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Itemname',
+              }),
+              'value': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Value',
+              }),
+              'x': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'X',
+              }),
+              'y': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Y',
+              }),
+            }),
+            'title': 'SeriesEncode',
+            'type': 'object',
+          }),
+          'SeriesLabel': dict({
+            'properties': dict({
+              'formatter': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Formatter',
+              }),
+              'position': dict({
+                'default': 'right',
+                'title': 'Position',
+                'type': 'string',
+              }),
+              'show': dict({
+                'default': False,
+                'title': 'Show',
+                'type': 'boolean',
+              }),
+            }),
+            'title': 'SeriesLabel',
+            'type': 'object',
+          }),
+          'TitleOptions': dict({
+            'properties': dict({
+              'left': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'enum': list([
+                      'center',
+                      'left',
+                      'right',
+                    ]),
+                    'type': 'string',
+                  }),
+                ]),
+                'default': 'center',
+                'title': 'Left',
+              }),
+              'text': dict({
+                'title': 'Text',
+                'type': 'string',
+              }),
+            }),
+            'required': list([
+              'text',
+            ]),
+            'title': 'TitleOptions',
+            'type': 'object',
+          }),
+          'Tooltip': dict({
+            'properties': dict({
+              'formatter': dict({
+                'anyOf': list([
+                  dict({
+                    'type': 'string',
+                  }),
+                  dict({
+                    'type': 'null',
+                  }),
+                ]),
+                'default': None,
+                'title': 'Formatter',
+              }),
+              'trigger': dict({
+                'default': 'item',
+                'enum': list([
+                  'item',
+                  'axis',
+                ]),
+                'title': 'Trigger',
+                'type': 'string',
+              }),
+            }),
+            'title': 'Tooltip',
+            'type': 'object',
+          }),
+        }),
+        'properties': dict({
+          'chart_options': dict({
+            '$ref': '#/$defs/ChartOptions',
+            'description': 'The options of the chart. A dict, not a json dump',
+          }),
+          'query_id': dict({
+            'description': 'The uuid of the query to execute',
+            'title': 'Query Id',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'chart_options',
+          'query_id',
+        ]),
+        'title': 'Input for `preview_render`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Creates a new entity in the semantic model.',
+      'name': 'SemanticModel-semantic_model__create_entity',
+      'parameters': dict({
+        'properties': dict({
+          'definition': dict({
+            'description': 'The definition of the entity.',
+            'title': 'Definition',
+            'type': 'string',
+          }),
+          'entity_name': dict({
+            'description': 'The name of the entity to create.',
+            'title': 'Entity Name',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'entity_name',
+          'definition',
+        ]),
+        'title': 'Input for `create_entity`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Creates a new issue for an entity.',
+      'name': 'SemanticModel-semantic_model__create_issue',
+      'parameters': dict({
+        'properties': dict({
+          'business_entity_id': dict({
+            'description': 'The uuid of the entity to create the issue for.',
+            'title': 'Business Entity Id',
+            'type': 'string',
+          }),
+          'description': dict({
+            'description': "The description of the issue.                You can use markdown.                Give context / table(s) & column(s) / example(s) to help user visualize the issue.                Use the syntax <QUERY:QUERY_ID> to insert a link to a query if that helps.                Explain the severity of the issue if it's high, critical or blocker.",
+            'title': 'Description',
+            'type': 'string',
+          }),
+          'scope': dict({
+            'description': 'The scope of the issue ("DATA", "BUSINESS", "BOTH", "UNKNOWN"). Data is for pipeline / warehouse, that can be fixed by data engineers with DBT. Business is for operations / process that impact the business.',
+            'title': 'Scope',
+            'type': 'string',
+          }),
+          'severity': dict({
+            'description': 'The severity of the issue ("LOW", "MEDIUM", "HIGH", "CRITICAL").',
+            'title': 'Severity',
+            'type': 'string',
+          }),
+          'title': dict({
+            'description': 'The title of the issue. Tell it as a recommendation.',
+            'title': 'Title',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'title',
+          'description',
+          'severity',
+          'scope',
+          'business_entity_id',
+        ]),
+        'title': 'Input for `create_issue`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Deletes an entity from the semantic model.',
+      'name': 'SemanticModel-semantic_model__delete_entity',
+      'parameters': dict({
+        'properties': dict({
+          'entity_name': dict({
+            'description': 'The name of the entity to delete.',
+            'title': 'Entity Name',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'entity_name',
+        ]),
+        'title': 'Input for `delete_entity`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Fetch an issue by id',
+      'name': 'SemanticModel-semantic_model__read_issue',
+      'parameters': dict({
+        'properties': dict({
+          'issue_id': dict({
+            'title': 'Issue Id',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'issue_id',
+        ]),
+        'title': 'Input for `read_issue`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Updates the quality of an existing entity.',
+      'name': 'SemanticModel-semantic_model__update_entity',
+      'parameters': dict({
+        'properties': dict({
+          'completeness': dict({
+            'description': 'The completeness of the entity.',
+            'title': 'Completeness',
+            'type': 'integer',
+          }),
+          'definition': dict({
+            'description': 'The definition of the entity.',
+            'title': 'Definition',
+            'type': 'string',
+          }),
+          'entity_name': dict({
+            'description': 'The name of the entity to update.',
+            'title': 'Entity Name',
+            'type': 'string',
+          }),
+          'quality_score': dict({
+            'description': 'The quality score of the entity.',
+            'title': 'Quality Score',
+            'type': 'integer',
+          }),
+          'report': dict({
+            'description': 'The quality report of the entity.',
+            'title': 'Report',
+            'type': 'string',
+          }),
+          'table_ref': dict({
+            'description': 'The table reference of the entity (e.g. "table_name").',
+            'title': 'Table Ref',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'entity_name',
+          'definition',
+          'completeness',
+          'quality_score',
+          'report',
+          'table_ref',
+        ]),
+        'title': 'Input for `update_entity`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Updates an existing issue.',
+      'name': 'SemanticModel-semantic_model__update_issue',
+      'parameters': dict({
+        'properties': dict({
+          'description': dict({
+            'description': 'The description of the issue.',
+            'title': 'Description',
+            'type': 'string',
+          }),
+          'issue_id': dict({
+            'description': 'The id of the issue to update.',
+            'title': 'Issue Id',
+            'type': 'string',
+          }),
+          'scope': dict({
+            'description': 'The scope of the issue ("DATA", "BUSINESS", "BOTH", "UNKNOWN"). Data is for pipeline / warehouse, that can be fixed by data engineers with DBT. Business is for operations / process that impact the business.',
+            'title': 'Scope',
+            'type': 'string',
+          }),
+          'severity': dict({
+            'description': 'The severity of the issue ("LOW", "MEDIUM", "HIGH", "CRITICAL").',
+            'title': 'Severity',
+            'type': 'string',
+          }),
+          'status': dict({
+            'description': 'The status of the issue ("OPEN", "IN_PROGRESS", "DONE").',
+            'title': 'Status',
+            'type': 'string',
+          }),
+          'title': dict({
+            'description': 'The title of the issue.',
+            'title': 'Title',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'issue_id',
+          'status',
+          'title',
+          'description',
+          'scope',
+          'severity',
+        ]),
+        'title': 'Input for `update_issue`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'List catalog assets and terms with optional filtering',
+      'name': 'CatalogTool-catalog__list_assets',
+      'parameters': dict({
+        'properties': dict({
+          'asset_type': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by type ("TABLE", "COLUMN", "TERM").',
+            'title': 'Asset Type',
+          }),
+          'limit': dict({
+            'default': 10,
+            'description': 'Maximum number of results',
+            'title': 'Limit',
+            'type': 'integer',
+          }),
+        }),
+        'title': 'Input for `list_assets`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Get detailed information about a specific asset',
+      'name': 'CatalogTool-catalog__read_asset',
+      'parameters': dict({
+        'properties': dict({
+          'asset_id': dict({
+            'description': 'UUID of the asset',
+            'title': 'Asset Id',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'asset_id',
+        ]),
+        'title': 'Input for `read_asset`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Get detailed information about a specific term',
+      'name': 'CatalogTool-catalog__read_term',
+      'parameters': dict({
+        'properties': dict({
+          'term_id': dict({
+            'description': 'UUID of the term',
+            'title': 'Term Id',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'term_id',
+        ]),
+        'title': 'Input for `read_term`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Search assets and terms by name, description, urn, tags, or definition. The search is case-insensitive and matches partial strings. Returns first 50 matches.',
+      'name': 'CatalogTool-catalog__search_assets',
+      'parameters': dict({
+        'properties': dict({
+          'asset_type': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by type ("TABLE", "COLUMN", "TERM").',
+            'title': 'Asset Type',
+          }),
+          'text': dict({
+            'description': 'Search query',
+            'title': 'Text',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'text',
+        ]),
+        'title': 'Input for `search_assets`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Update properties of a catalog asset',
+      'name': 'CatalogTool-catalog__update_asset',
+      'parameters': dict({
+        'properties': dict({
+          'asset_id': dict({
+            'description': 'UUID of the asset to update',
+            'title': 'Asset Id',
+            'type': 'string',
+          }),
+          'description': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'New description for the asset',
+            'title': 'Description',
+          }),
+          'tags': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'New tags for the asset',
+            'title': 'Tags',
+          }),
+        }),
+        'required': list([
+          'asset_id',
+        ]),
+        'title': 'Input for `update_asset`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Create or update a business glossary term',
+      'name': 'CatalogTool-catalog__upsert_term',
+      'parameters': dict({
+        'properties': dict({
+          'business_domains': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'List of business domains this term belongs to',
+            'title': 'Business Domains',
+          }),
+          'definition': dict({
+            'description': 'Term definition',
+            'title': 'Definition',
+            'type': 'string',
+          }),
+          'id': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Optional term ID for direct updates. If provided, updates the',
+            'title': 'Id',
+          }),
+          'name': dict({
+            'description': 'Term name',
+            'title': 'Name',
+            'type': 'string',
+          }),
+          'synonyms': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'List of synonymous terms',
+            'title': 'Synonyms',
+          }),
+        }),
+        'required': list([
+          'name',
+          'definition',
+        ]),
+        'title': 'Input for `upsert_term`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': None,
+      'name': 'Notes-notes__close_note',
+      'parameters': dict({
+        'properties': dict({
+          'id': dict({
+            'title': 'Id',
+            'type': 'integer',
+          }),
+        }),
+        'required': list([
+          'id',
+        ]),
+        'title': 'Input for `close_note`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': None,
+      'name': 'Notes-notes__create_note',
+      'parameters': dict({
+        'properties': dict({
+          'content': dict({
+            'title': 'Content',
+            'type': 'string',
+          }),
+          'title': dict({
+            'title': 'Title',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'title',
+          'content',
+        ]),
+        'title': 'Input for `create_note`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Delete a note from the project',
+      'name': 'Notes-notes__delete_note',
+      'parameters': dict({
+        'properties': dict({
+          'id': dict({
+            'title': 'Id',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'id',
+        ]),
+        'title': 'Input for `delete_note`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': None,
+      'name': 'Notes-notes__list_notes',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `list_notes`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': None,
+      'name': 'Notes-notes__open_note',
+      'parameters': dict({
+        'properties': dict({
+          'id': dict({
+            'title': 'Id',
+            'type': 'integer',
+          }),
+        }),
+        'required': list([
+          'id',
+        ]),
+        'title': 'Input for `open_note`',
+        'type': 'object',
+      }),
+    }),
+  ])
+# ---
 # name: test_functions
   list([
     'DatabaseTool-database__save_to_memory',
@@ -20,9 +1122,6 @@
     'CatalogTool-catalog__search_assets',
     'CatalogTool-catalog__update_asset',
     'CatalogTool-catalog__upsert_term',
-    'DBT-dbt__fetch_model',
-    'DBT-dbt__fetch_model_list',
-    'DBT-dbt__search_models',
     'Notes-notes__close_note',
     'Notes-notes__create_note',
     'Notes-notes__delete_note',
@@ -1048,50 +2147,6 @@
       }),
     }),
     dict({
-      'description': 'Fetch all model details from the DBT catalog.',
-      'name': 'DBT-dbt__fetch_model',
-      'parameters': dict({
-        'properties': dict({
-          'key': dict({
-            'title': 'Key',
-            'type': 'string',
-          }),
-        }),
-        'required': list([
-          'key',
-        ]),
-        'title': 'Input for `fetch_model`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': 'Return a list of models in the DBT catalog. Return: key, description',
-      'name': 'DBT-dbt__fetch_model_list',
-      'parameters': dict({
-        'properties': dict({
-        }),
-        'title': 'Input for `fetch_model_list`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': 'Search for a model in the DBT catalog. Return: key, description',
-      'name': 'DBT-dbt__search_models',
-      'parameters': dict({
-        'properties': dict({
-          'query': dict({
-            'title': 'Query',
-            'type': 'string',
-          }),
-        }),
-        'required': list([
-          'query',
-        ]),
-        'title': 'Input for `search_models`',
-        'type': 'object',
-      }),
-    }),
-    dict({
       'description': None,
       'name': 'Notes-notes__close_note',
       'parameters': dict({
@@ -1180,7 +2235,6 @@
   dict({
     'catalog': 'CatalogTool',
     'database': 'DatabaseTool',
-    'dbt': 'DBT',
     'echarts': 'EchartsTool',
     'notes': 'Notes',
     'semantic_model': 'SemanticModel',

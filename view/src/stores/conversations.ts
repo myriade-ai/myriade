@@ -42,6 +42,7 @@ export interface Message {
   functionCallId?: string
   queryId?: string
   image?: string // base64 encoded image
+  name?: string // For function response messages
   asset?: {
     id: string
     name: string

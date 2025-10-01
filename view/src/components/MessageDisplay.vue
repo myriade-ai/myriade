@@ -36,9 +36,18 @@
 
         <!-- Normal display mode -->
         <div v-else class="w-full overflow-hidden">
-          <template v-for="(part, index) in parsedText">
-            <div v-if="part.type === 'text'" :key="`text-${index}`" class="w-full">
+          <!-- Function response renderer for CodeEditor read_file operations -->
+          <div
+            v-if="props.message.role === 'function' && props.message.name?.includes('read_file')"
+          >
+            <CodeFileDisplay :content="props.message.content" />
+          </div>
+          <template v-else v-for="(part, index) in parsedText">
+            <div v-if="part.type === 'markdown'" :key="`text-${index}`" class="w-full">
               <MarkdownDisplay :content="part.content"></MarkdownDisplay>
+            </div>
+            <div v-if="part.type === 'text'" :key="`text-${index}`" class="w-full">
+              <pre class="whitespace-pre-wrap">{{ part.content }}</pre>
             </div>
             <div
               v-if="part.type === 'error'"
@@ -90,8 +99,9 @@
           <div v-if="props.message.image" class="w-full">
             <img :src="`data:image/png;base64,${props.message.image}`" class="max-w-full h-auto" />
           </div>
+
           <FunctionCallRenderer
-            v-if="props.message.functionCall"
+            v-else-if="props.message.functionCall"
             :functionCall="props.message.functionCall"
             :queryId="props.message.queryId"
             :databaseSelectedId="databaseSelectedId"
@@ -204,8 +214,8 @@ import AskCatalogConfirmation from '@/components/AskCatalogConfirmation.vue'
 import AskQueryConfirmation from '@/components/AskQueryConfirmation.vue'
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
-import DataTable from '@/components/DataTable.vue'
 import Chart from '@/components/Chart.vue'
+import DataTable from '@/components/DataTable.vue'
 import Echart from '@/components/Echart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 // Store
@@ -214,10 +224,11 @@ import type { Message } from '@/stores/conversations'
 import { useDatabasesStore } from '@/stores/databases'
 import { Check, Copy, Pencil, RotateCcw, SquarePen } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import CodeFileDisplay from './CodeFileDisplay.vue'
+import FunctionCallRenderer from './FunctionCallRenderer.vue'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { Textarea } from './ui/textarea'
-import FunctionCallRenderer from './FunctionCallRenderer.vue'
 
 const { databaseSelectedId } = useDatabasesStore()
 const router = useRouter()

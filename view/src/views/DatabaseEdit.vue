@@ -36,7 +36,6 @@
 </template>
 
 <script setup lang="ts">
-import BaseButton from '@/components/base/BaseButton.vue'
 import DatabaseForm from '@/components/database/DatabaseForm.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { Button } from '@/components/ui/button'

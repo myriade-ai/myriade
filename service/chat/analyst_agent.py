@@ -6,14 +6,15 @@ import nest_asyncio
 import yaml
 from agentlys import Agentlys, Message
 from agentlys.chat import StopLoopException
+from agentlys_tools.code_editor import CodeEditor
 
 from app import socketio
-from chat.dbt_utils import DBT
 from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
 from chat.proxy_provider import ProxyProvider
 from chat.tools.catalog import CatalogTool
 from chat.tools.database import DatabaseTool
+from chat.tools.dbt import DBT
 from chat.tools.echarts import EchartsTool
 from chat.tools.quality import SemanticModel
 from chat.tools.workspace import WorkspaceTool
@@ -133,15 +134,24 @@ class DataAnalystAgent:
             data_warehouse=data_warehouse,
         )
         self.agent.add_tool(catalog_tool, "catalog")
-        if (
-            self.conversation.database.dbt_catalog
-            and self.conversation.database.dbt_manifest
-        ):
+
+        if self.conversation.database.dbt_repo_path:
             dbt = DBT(
                 catalog=self.conversation.database.dbt_catalog,
                 manifest=self.conversation.database.dbt_manifest,
+                repo_path=self.conversation.database.dbt_repo_path,
+                database_config={
+                    "engine": self.conversation.database.engine,
+                    "details": self.conversation.database.details,
+                },
             )
             self.agent.add_tool(dbt, "dbt")
+
+            code_editor = CodeEditor(
+                self.conversation.database.dbt_repo_path,
+            )
+            self.agent.add_tool(code_editor, "code_editor")
+
         if self.conversation.project:
             notes = Notes(self.session, self.agent, self.conversation.project)
             self.agent.add_tool(notes, "notes")
