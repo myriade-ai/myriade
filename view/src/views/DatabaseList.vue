@@ -1,6 +1,13 @@
 <template>
   <div>
-    <PageHeader title="Database" subtitle="Manage your database connections and options." />
+    <PageHeader title="Database" subtitle="Manage your database connections and options.">
+      <template #actions>
+        <Button @click="router.push('/setup')">
+          <PlusIcon class="h-4 w-4" />
+          Add Database
+        </Button>
+      </template>
+    </PageHeader>
     <div class="mx-auto px-4">
       <div class="mt-6 flow-root">
         <ul role="list" class="-my-5 divide-y divide-gray-200">
@@ -33,24 +40,15 @@
           </li>
         </ul>
       </div>
-      <hr class="my-4" />
-      <div class="mt-6 mb-6">
-        <BaseButton @click="router.push('/setup')" color="primary" class="w-full justify-center">
-          <div class="relative -ml-0.5 h-4 w-4 mr-2">
-            <DatabaseIcon />
-          </div>
-          Add Database
-        </BaseButton>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import BaseButton from '@/components/base/BaseButton.vue'
-import DatabaseIcon from '@/components/icons/DatabaseIcon.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import { Button } from '@/components/ui/button'
 import { useDatabasesStore } from '@/stores/databases'
+import { PlusIcon } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 
 const databasesStore = useDatabasesStore()

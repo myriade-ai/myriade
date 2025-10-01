@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Card Layout (for setup funnel) -->
-    <div v-if="layout === 'cards'" class="space-y-4">
+    <div class="space-y-4">
       <div class="text-center" v-if="showTitle">
         <h2 class="text-2xl font-bold text-gray-900 mb-2">Select Your Database Type</h2>
         <p class="text-gray-600">
@@ -37,27 +37,12 @@
         </button>
       </div>
     </div>
-
-    <!-- Dropdown Layout (for edit form) -->
-    <base-field v-else name="Engine">
-      <div class="select">
-        <select
-          :value="modelValue"
-          @change="selectType(($event.target as HTMLSelectElement).value as Engine)"
-          class="block w-full max-w-lg rounded-md border-gray-300 shadow-xs focus:border-primary-500 focus:ring-primary-500 sm:max-w-xs sm:text-sm"
-        >
-          <option v-for="dbType in availableTypes" :key="dbType.value" :value="dbType.value">
-            {{ dbType.name }}
-          </option>
-        </select>
-      </div>
-    </base-field>
   </div>
 </template>
 
 <script setup lang="ts">
-import BaseField from '@/components/base/BaseField.vue'
 import type { Engine } from '@/stores/databases'
+import type { Component } from 'vue'
 import {
   CheckCircleIcon,
   CircleStackIcon,
@@ -71,20 +56,18 @@ interface DatabaseType {
   value: Engine
   name: string
   description: string
-  icon: any
+  icon: Component
   iconBg: string
   iconColor: string
 }
 
 interface Props {
   modelValue: Engine | null
-  layout?: 'cards' | 'dropdown'
   showTitle?: boolean
   includedTypes?: Engine[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  layout: 'dropdown',
   showTitle: true,
   includedTypes: () => ['postgres', 'mysql', 'snowflake', 'sqlite', 'bigquery', 'motherduck']
 })
