@@ -1,5 +1,5 @@
 <template>
-  <header class="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+  <header class="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-white">
     <SidebarTrigger class="md:hidden -ml-1" />
     <div class="flex gap-2 items-baseline flex-1">
       <h1 class="text-xl">{{ title }}</h1>
