@@ -27,10 +27,10 @@ class JSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
-        if isinstance(obj, (datetime, date)):
-            if isinstance(obj, datetime):
-                obj = _ensure_timezone(obj)
+        if isinstance(obj, date):
             return obj.isoformat()
+        if isinstance(obj, datetime):
+            return _ensure_timezone(obj).isoformat()
         if isinstance(obj, timedelta):
             # Represent timedeltas as total seconds for JSON compatibility
             return obj.total_seconds()
