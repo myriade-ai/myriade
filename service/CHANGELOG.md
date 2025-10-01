@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.47.0 (2025-10-01)
+
+### Features
+
+- Dbt integration ([#83](https://github.com/myriade-ai/myriade/pull/83),
+  [`0a2c722`](https://github.com/myriade-ai/myriade/commit/0a2c7228e091714f92a69066f2da092908f34390))
+
+
 ## v0.46.0 (2025-10-01)
 
 ### Features
