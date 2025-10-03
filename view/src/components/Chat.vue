@@ -316,7 +316,10 @@ const messageGroups = computed(() => {
 const shouldDisplayMessage = (message: Message) => {
   const isEmptyFunctionResponse =
     message.role === 'function' && message.content === '' && message.image === null
-  return !isEmptyFunctionResponse
+
+  const isUpdateAssetReturn =
+    message.role === 'function' && message.name === 'CatalogTool-catalog__update_asset'
+  return !isEmptyFunctionResponse && !isUpdateAssetReturn
 }
 
 const isPublicMessage = (message: Message, index: number) => {
