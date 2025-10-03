@@ -121,28 +121,29 @@
         Encrypted
       </Badge>
       <div v-if="!isEditing" class="flex flex-wrap gap-1">
-        <Badge v-for="value in internalAsset.tags" :key="value" class="mt-2">{{ value }}</Badge>
+        <Badge v-for="tag in internalAsset.tags" :key="tag.id">
+          {{ tag.name }}
+        </Badge>
         <p v-if="!internalAsset.tags?.length" class="text-sm text-muted-foreground">No tags yet.</p>
       </div>
 
-      <TagsInput v-else v-model="draft.tags" :disabled="isProcessing || saving" class="w-full">
-        <TagsInputItem v-for="value in draft.tags" :key="value" :value="value">
-          <TagsInputItemText />
-          <TagsInputItemDelete />
-        </TagsInputItem>
-
-        <TagsInputInput placeholder="Tags..." />
-      </TagsInput>
+      <AssetTagSelect
+        v-else
+        v-model="draft.tags"
+        :disabled="isProcessing || saving"
+        class="w-full"
+      />
     </CardFooter>
   </Card>
 </template>
 
 <script lang="ts" setup>
 import { cn } from '@/lib/utils'
-import { useCatalogStore, type AssetType, type Privacy } from '@/stores/catalog'
+import { useCatalogStore, type AssetTag, type AssetType, type Privacy } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import { Columns3, Database, ExternalLink, Shield } from 'lucide-vue-next'
 import { computed, reactive, ref, watch, type Component } from 'vue'
+import AssetTagSelect from './AssetTagSelect.vue'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import {
@@ -154,13 +155,6 @@ import {
   CardHeader,
   CardTitle
 } from './ui/card'
-import {
-  TagsInput,
-  TagsInputInput,
-  TagsInputItem,
-  TagsInputItemDelete,
-  TagsInputItemText
-} from './ui/tags-input'
 import { Textarea } from './ui/textarea'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 
@@ -171,7 +165,7 @@ interface AssetInput {
   description?: string | null
   dataType?: string | null
   privacy?: Privacy
-  tags?: string[] | null
+  tags: AssetTag[]
   schema?: string | null
   tableName?: string | null
   reviewed?: boolean
@@ -187,7 +181,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'approve', payload: { id: string; description: string; tags: string[] }): void
+  (e: 'approve', payload: { id: string; description: string; tag_ids: string[] }): void
   (e: 'navigate-to-catalog', payload: { id: string }): void
 }>()
 
@@ -264,9 +258,7 @@ const hasPrivacyConfiguration = computed(() => {
 
 const draft = reactive({
   description: internalAsset.value.description ?? '',
-  tags: Array.isArray(internalAsset.value.tags)
-    ? [...(internalAsset.value.tags ?? [])]
-    : ([] as string[])
+  tags: [...internalAsset.value.tags]
 })
 
 watch(
@@ -302,8 +294,8 @@ watch(
 const showEditToggle = computed(() => !isApprovalMode.value && !props.disableEditing)
 const isEditing = computed(() => editMode.value && !props.disableEditing)
 
-const normalizedCurrentTags = computed(() => normalizeTags(internalAsset.value.tags ?? []))
-const normalizedDraftTags = computed(() => normalizeTags(draft.tags))
+const normalizedCurrentTags = computed(() => normalizeTagIds(internalAsset.value.tags))
+const normalizedDraftTags = computed(() => normalizeTagIds(draft.tags))
 const hasChanges = computed(() => {
   const descriptionChanged =
     (draft.description ?? '').trim() !== (internalAsset.value.description ?? '').trim()
@@ -312,17 +304,18 @@ const hasChanges = computed(() => {
   if (normalizedCurrentTags.value.length !== normalizedDraftTags.value.length) {
     return true
   }
-  return normalizedCurrentTags.value.some((tag, index) => tag !== normalizedDraftTags.value[index])
+  return normalizedCurrentTags.value.some(
+    (tagId, index) => tagId !== normalizedDraftTags.value[index]
+  )
 })
 
-function normalizeTags(tags: string[]) {
+function normalizeTagIds(tags: AssetTag[]) {
   const seen = new Set<string>()
   const normalized: string[] = []
   tags.forEach((tag) => {
-    const trimmed = tag.trim()
-    if (trimmed && !seen.has(trimmed)) {
-      seen.add(trimmed)
-      normalized.push(trimmed)
+    if (tag.id && !seen.has(tag.id)) {
+      seen.add(tag.id)
+      normalized.push(tag.id)
     }
   })
   return normalized
@@ -330,9 +323,7 @@ function normalizeTags(tags: string[]) {
 
 function syncDraftFromAsset() {
   draft.description = internalAsset.value.description ?? ''
-  draft.tags = Array.isArray(internalAsset.value.tags)
-    ? [...(internalAsset.value.tags ?? [])]
-    : ([] as string[])
+  draft.tags = [...internalAsset.value.tags]
 }
 
 function toggleEditMode() {
@@ -348,7 +339,7 @@ function buildPayload() {
   return {
     id: internalAsset.value.id,
     description: draft.description.trim(),
-    tags: normalizeTags(draft.tags)
+    tag_ids: draft.tags.map((tag) => tag.id)
   }
 }
 
@@ -372,14 +363,14 @@ async function handleSave() {
 
   try {
     saving.value = true
-    await catalogStore.updateAsset(payload.id, {
+    const updated = await catalogStore.updateAsset(payload.id, {
       description: payload.description,
-      tags: payload.tags
+      tag_ids: payload.tag_ids
     })
     internalAsset.value = {
       ...internalAsset.value,
-      description: payload.description,
-      tags: [...payload.tags]
+      description: updated.description ?? payload.description,
+      tags: updated.tags
     }
     syncDraftFromAsset()
     editMode.value = false
@@ -408,14 +399,14 @@ async function handleApprove() {
     approving.value = true
     const updated = await catalogStore.updateAsset(payload.id, {
       description: payload.description,
-      tags: payload.tags,
+      tag_ids: payload.tag_ids,
       reviewed: true
     })
 
     internalAsset.value = {
       ...internalAsset.value,
       description: updated.description ?? payload.description,
-      tags: Array.isArray(updated.tags) ? [...updated.tags] : [...payload.tags],
+      tags: updated.tags,
       reviewed: updated.reviewed ?? true
     }
     syncDraftFromAsset()

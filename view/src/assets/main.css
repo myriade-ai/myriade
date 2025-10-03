@@ -255,3 +255,10 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .combobox-content-width-full {
+    width: var(--reka-popper-anchor-width);
+    max-width: var(--reka-popper-anchor-width);
+  }
+}
