@@ -140,7 +140,7 @@ const filteredAssets = computed(() => {
 
     const nameMatch = asset.name?.toLowerCase().includes(query)
     const descMatch = asset.description?.toLowerCase().includes(query)
-    const tagsMatch = asset.tags?.some((tag) => tag.toLowerCase().includes(query))
+    const tagsMatch = asset.tags?.some((tag) => tag.name.toLowerCase().includes(query))
     return !!(nameMatch || descMatch || tagsMatch)
   })
 })

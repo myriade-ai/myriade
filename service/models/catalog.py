@@ -2,13 +2,21 @@ import uuid
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, String, Table, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db import JSONB, UUID, Base, DefaultBase, SerializerMixin
 
 if TYPE_CHECKING:
     from models import Database, User
+
+
+asset_tag_association = Table(
+    "asset_tag_association",
+    Base.metadata,
+    Column("asset_id", UUID(), ForeignKey("asset.id"), primary_key=True),
+    Column("tag_id", UUID(), ForeignKey("asset_tag.id"), primary_key=True),
+)
 
 
 @dataclass
@@ -28,7 +36,6 @@ class Asset(SerializerMixin, DefaultBase, Base):
     )
 
     # Metadata fields
-    tags: Mapped[Optional[List[str]]] = mapped_column(JSONB)
     created_by: Mapped[Optional[str]] = mapped_column(String, ForeignKey("user.id"))
 
     # 1:1 optional facets
@@ -47,6 +54,9 @@ class Asset(SerializerMixin, DefaultBase, Base):
     # Relationships
     database: Mapped["Database"] = relationship("Database")
     creator: Mapped[Optional["User"]] = relationship("User", foreign_keys=[created_by])
+    asset_tags: Mapped[List["AssetTag"]] = relationship(
+        "AssetTag", secondary=asset_tag_association, back_populates="assets"
+    )
 
 
 @dataclass
@@ -131,3 +141,25 @@ class Term(SerializerMixin, DefaultBase, Base):
             "business_domains": self.business_domains,
             "reviewed": self.reviewed,
         }
+
+
+@dataclass
+class AssetTag(SerializerMixin, DefaultBase, Base):
+    """Reusable tag that can be applied to multiple assets"""
+
+    __tablename__ = "asset_tag"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    database_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("database.id"), nullable=False
+    )
+
+    __table_args__ = (UniqueConstraint("database_id", "name"),)
+
+    # Relationships
+    database: Mapped["Database"] = relationship("Database")
+    assets: Mapped[List[Asset]] = relationship(
+        Asset, secondary=asset_tag_association, back_populates="asset_tags"
+    )

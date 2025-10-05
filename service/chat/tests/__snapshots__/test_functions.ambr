@@ -837,6 +837,28 @@
       }),
     }),
     dict({
+      'description': 'List all available tags in the catalog',
+      'name': 'CatalogTool-catalog__list_tags',
+      'parameters': dict({
+        'properties': dict({
+          'limit': dict({
+            'default': 50,
+            'description': 'Maximum number of results',
+            'title': 'Limit',
+            'type': 'integer',
+          }),
+          'offset': dict({
+            'default': 0,
+            'description': 'Number of results to skip for pagination',
+            'title': 'Offset',
+            'type': 'integer',
+          }),
+        }),
+        'title': 'Input for `list_tags`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': 'Get detailed information about a specific asset',
       'name': 'CatalogTool-catalog__read_asset',
       'parameters': dict({
@@ -904,6 +926,30 @@
       }),
     }),
     dict({
+      'description': 'Search tags by name or description',
+      'name': 'CatalogTool-catalog__search_tags',
+      'parameters': dict({
+        'properties': dict({
+          'limit': dict({
+            'default': 50,
+            'description': 'Maximum number of results',
+            'title': 'Limit',
+            'type': 'integer',
+          }),
+          'text': dict({
+            'description': 'Search query',
+            'title': 'Text',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'text',
+        ]),
+        'title': 'Input for `search_tags`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': 'Update properties of a catalog asset',
       'name': 'CatalogTool-catalog__update_asset',
       'parameters': dict({
@@ -926,7 +972,7 @@
             'description': 'New description for the asset',
             'title': 'Description',
           }),
-          'tags': dict({
+          'tag_ids': dict({
             'anyOf': list([
               dict({
                 'items': dict({
@@ -938,14 +984,58 @@
               }),
             ]),
             'default': None,
-            'description': 'New tags for the asset',
-            'title': 'Tags',
+            'description': 'List of tag IDs to associate with the asset. Can be:',
+            'title': 'Tag Ids',
           }),
         }),
         'required': list([
           'asset_id',
         ]),
         'title': 'Input for `update_asset`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Create or update a reusable tag',
+      'name': 'CatalogTool-catalog__upsert_tag',
+      'parameters': dict({
+        'properties': dict({
+          'description': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Optional tag description',
+            'title': 'Description',
+          }),
+          'id': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Optional tag ID for direct updates. If provided, updates the',
+            'title': 'Id',
+          }),
+          'name': dict({
+            'description': 'Tag name (unique within database)',
+            'title': 'Name',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'name',
+        ]),
+        'title': 'Input for `upsert_tag`',
         'type': 'object',
       }),
     }),
@@ -1117,10 +1207,13 @@
     'SemanticModel-semantic_model__update_entity',
     'SemanticModel-semantic_model__update_issue',
     'CatalogTool-catalog__list_assets',
+    'CatalogTool-catalog__list_tags',
     'CatalogTool-catalog__read_asset',
     'CatalogTool-catalog__read_term',
     'CatalogTool-catalog__search_assets',
+    'CatalogTool-catalog__search_tags',
     'CatalogTool-catalog__update_asset',
+    'CatalogTool-catalog__upsert_tag',
     'CatalogTool-catalog__upsert_term',
     'Notes-notes__close_note',
     'Notes-notes__create_note',
@@ -1967,6 +2060,28 @@
       }),
     }),
     dict({
+      'description': 'List all available tags in the catalog',
+      'name': 'CatalogTool-catalog__list_tags',
+      'parameters': dict({
+        'properties': dict({
+          'limit': dict({
+            'default': 50,
+            'description': 'Maximum number of results',
+            'title': 'Limit',
+            'type': 'integer',
+          }),
+          'offset': dict({
+            'default': 0,
+            'description': 'Number of results to skip for pagination',
+            'title': 'Offset',
+            'type': 'integer',
+          }),
+        }),
+        'title': 'Input for `list_tags`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': 'Get detailed information about a specific asset',
       'name': 'CatalogTool-catalog__read_asset',
       'parameters': dict({
@@ -2034,6 +2149,30 @@
       }),
     }),
     dict({
+      'description': 'Search tags by name or description',
+      'name': 'CatalogTool-catalog__search_tags',
+      'parameters': dict({
+        'properties': dict({
+          'limit': dict({
+            'default': 50,
+            'description': 'Maximum number of results',
+            'title': 'Limit',
+            'type': 'integer',
+          }),
+          'text': dict({
+            'description': 'Search query',
+            'title': 'Text',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'text',
+        ]),
+        'title': 'Input for `search_tags`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': 'Update properties of a catalog asset',
       'name': 'CatalogTool-catalog__update_asset',
       'parameters': dict({
@@ -2056,7 +2195,7 @@
             'description': 'New description for the asset',
             'title': 'Description',
           }),
-          'tags': dict({
+          'tag_ids': dict({
             'anyOf': list([
               dict({
                 'items': dict({
@@ -2068,14 +2207,58 @@
               }),
             ]),
             'default': None,
-            'description': 'New tags for the asset',
-            'title': 'Tags',
+            'description': 'List of tag IDs to associate with the asset. Can be:',
+            'title': 'Tag Ids',
           }),
         }),
         'required': list([
           'asset_id',
         ]),
         'title': 'Input for `update_asset`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Create or update a reusable tag',
+      'name': 'CatalogTool-catalog__upsert_tag',
+      'parameters': dict({
+        'properties': dict({
+          'description': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Optional tag description',
+            'title': 'Description',
+          }),
+          'id': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Optional tag ID for direct updates. If provided, updates the',
+            'title': 'Id',
+          }),
+          'name': dict({
+            'description': 'Tag name (unique within database)',
+            'title': 'Name',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'name',
+        ]),
+        'title': 'Input for `upsert_tag`',
         'type': 'object',
       }),
     }),

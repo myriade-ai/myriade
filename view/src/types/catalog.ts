@@ -1,6 +1,6 @@
 export interface CatalogAssetUpdatePayload {
   description?: string | null
-  tags?: string[] | null
+  tag_ids?: string[]
   name?: string | null
   reviewed?: boolean
 }

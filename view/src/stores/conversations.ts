@@ -47,7 +47,11 @@ export interface Message {
     id: string
     name: string
     description?: string | null
-    tags?: string[] | null
+    tags?: Array<{
+      id: string
+      name: string
+      description: string | null
+    }>
     type: 'TABLE' | 'COLUMN'
     reviewed: boolean
   }

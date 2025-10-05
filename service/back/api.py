@@ -36,7 +36,7 @@ from models import (
     Query,
     UserFavorite,
 )
-from models.catalog import Asset, ColumnFacet, Term
+from models.catalog import Asset, AssetTag, ColumnFacet, Term
 from models.quality import BusinessEntity, Issue
 
 logger = logging.getLogger(__name__)
@@ -766,11 +766,12 @@ def get_catalog_assets(context_id):
         g.session.query(Asset)
         .filter(Asset.database_id == database_id)
         .options(
-            # Eagerly load facets
+            # Eagerly load facets and tags
             joinedload(Asset.table_facet),
             joinedload(Asset.column_facet)
             .joinedload(ColumnFacet.parent_table_asset)
             .joinedload(Asset.table_facet),
+            joinedload(Asset.asset_tags),
         )
     )
 
@@ -783,6 +784,8 @@ def get_catalog_assets(context_id):
     result = []
     for asset in assets:
         asset_dict = asset.to_dict()
+
+        asset_dict["tags"] = [tag.to_dict() for tag in asset.asset_tags]
 
         # Add facet-specific data
         if asset.type == "TABLE" and asset.table_facet:
@@ -854,8 +857,22 @@ def update_catalog_asset(asset_id: str):
     if "description" in data:
         asset.description = data["description"]
 
-    if "tags" in data:
-        asset.tags = data["tags"]
+    if "tag_ids" in data:
+        asset.asset_tags.clear()
+
+        # Add new tag associations
+        for tag_id in data["tag_ids"]:
+            tag_uuid = UUID(tag_id)
+            tag = (
+                g.session.query(AssetTag)
+                .filter(
+                    AssetTag.id == tag_uuid,
+                    AssetTag.database_id == asset.database_id,
+                )
+                .first()
+            )
+            if tag:
+                asset.asset_tags.append(tag)
 
     if "reviewed" in data:
         asset.reviewed = data["reviewed"]
@@ -863,6 +880,7 @@ def update_catalog_asset(asset_id: str):
     g.session.flush()
 
     asset_dict = asset.to_dict()
+    asset_dict["tags"] = [tag.to_dict() for tag in asset.asset_tags]
     if asset.type == "TABLE" and asset.table_facet:
         asset_dict["table_facet"] = asset.table_facet.to_dict()
     elif asset.type == "COLUMN" and asset.column_facet:
@@ -909,7 +927,11 @@ def create_catalog_term(context_id):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     data = request.get_json(silent=True)
@@ -979,6 +1001,181 @@ def update_catalog_term(term_id: str):
     g.session.flush()
 
     return jsonify(term.to_dict())
+
+
+@api.route("/catalogs/terms/<string:term_id>", methods=["DELETE"])
+@user_middleware
+def delete_catalog_term(term_id: str):
+    """Delete a catalog term"""
+    try:
+        term_uuid = UUID(term_id)
+    except ValueError:
+        return jsonify({"error": "Invalid term id"}), 400
+
+    term = g.session.query(Term).filter(Term.id == term_uuid).first()
+
+    if not term:
+        return jsonify({"error": "Term not found"}), 404
+
+    # Verify user has access
+    database = g.session.query(Database).filter_by(id=term.database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    g.session.delete(term)
+    g.session.flush()
+
+    return jsonify({"success": True})
+
+
+@api.route("/catalogs/<string:context_id>/tags", methods=["GET"])
+@user_middleware
+def get_catalog_tags(context_id):
+    """Get all available tags for a context"""
+    database_id, _ = extract_context(g.session, context_id)
+    database = g.session.query(Database).filter_by(id=database_id).first()
+
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    tags = g.session.query(AssetTag).filter(AssetTag.database_id == database_id).all()
+
+    return jsonify([tag.to_dict() for tag in tags])
+
+
+@api.route("/catalogs/<string:context_id>/tags", methods=["POST"])
+@user_middleware
+def create_catalog_tag(context_id):
+    """Create a new tag"""
+    database_id, _ = extract_context(g.session, context_id)
+    database = g.session.query(Database).filter_by(id=database_id).first()
+
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Request body must be a valid JSON object"}), 400
+
+    required_fields = ["name"]
+    if not all(field in data for field in required_fields):
+        return jsonify({"error": "Missing required field: name"}), 400
+
+    # Check if tag with same name already exists
+    existing_tag = (
+        g.session.query(AssetTag)
+        .filter(AssetTag.database_id == database_id, AssetTag.name.ilike(data["name"]))
+        .first()
+    )
+
+    if existing_tag:
+        return jsonify({"error": "Tag with this name already exists"}), 409
+
+    new_tag = AssetTag(
+        name=data["name"],
+        description=data.get("description"),
+        database_id=database_id,
+    )
+
+    g.session.add(new_tag)
+    g.session.flush()
+
+    return jsonify(new_tag.to_dict()), 201
+
+
+@api.route("/catalogs/tags/<string:tag_id>", methods=["PATCH"])
+@user_middleware
+def update_catalog_tag(tag_id: str):
+    """Update a tag's properties"""
+    try:
+        tag_uuid = UUID(tag_id)
+    except ValueError:
+        return jsonify({"error": "Invalid tag id"}), 400
+
+    tag = g.session.query(AssetTag).filter(AssetTag.id == tag_uuid).first()
+
+    if not tag:
+        return jsonify({"error": "Tag not found"}), 404
+
+    # Verify user has access
+    database = g.session.query(Database).filter_by(id=tag.database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json(silent=True) or {}
+
+    if "name" in data:
+        # Check if another tag with this name already exists
+        existing_tag = (
+            g.session.query(AssetTag)
+            .filter(
+                AssetTag.database_id == tag.database_id,
+                AssetTag.name.ilike(data["name"]),
+                AssetTag.id != tag_uuid,
+            )
+            .first()
+        )
+        if existing_tag:
+            return jsonify({"error": "Tag with this name already exists"}), 409
+        tag.name = data["name"]
+
+    if "description" in data:
+        tag.description = data["description"]
+
+    g.session.flush()
+
+    return jsonify(tag.to_dict())
+
+
+@api.route("/catalogs/tags/<string:tag_id>", methods=["DELETE"])
+@user_middleware
+def delete_catalog_tag(tag_id: str):
+    """Delete a tag (removes all associations)"""
+    try:
+        tag_uuid = UUID(tag_id)
+    except ValueError:
+        return jsonify({"error": "Invalid tag id"}), 400
+
+    tag = g.session.query(AssetTag).filter(AssetTag.id == tag_uuid).first()
+
+    if not tag:
+        return jsonify({"error": "Tag not found"}), 404
+
+    # Verify user has access
+    database = g.session.query(Database).filter_by(id=tag.database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+        return jsonify({"error": "Access denied"}), 403
+
+    g.session.delete(tag)
+    g.session.flush()
+
+    return jsonify({"success": True})
 
 
 @api.route("/business-entities", methods=["GET"])

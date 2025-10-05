@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from back.data_warehouse import AbstractDatabase
 from models import Database
-from models.catalog import Asset, Term
+from models.catalog import Asset, AssetTag, Term
 
 
 class AssetType(Enum):
@@ -95,7 +95,10 @@ class CatalogTool:
                         if asset.description and len(asset.description) > 100
                         else asset.description
                     ),
-                    "tags": asset.tags,
+                    "tags": [
+                        {"id": str(tag.id), "name": tag.name}
+                        for tag in asset.asset_tags
+                    ],
                 }
 
                 # Add type-specific information
@@ -149,15 +152,18 @@ class CatalogTool:
             )
             terms = terms_query.all()
         else:
-            # Handle assets
+            # Handle assets - search in name, description, urn, and tag names
             assets_query = (
                 self.session.query(Asset)
+                .outerjoin(Asset.asset_tags)
                 .filter(Asset.database_id == self.database.id)
                 .filter(
                     Asset.name.ilike(f"%{text}%")
                     | Asset.description.ilike(f"%{text}%")
                     | Asset.urn.ilike(f"%{text}%")
+                    | AssetTag.name.ilike(f"%{text}%")
                 )
+                .distinct()
             )
 
             if asset_type:
@@ -191,6 +197,10 @@ class CatalogTool:
                         if asset.description and len(asset.description) > 200
                         else asset.description
                     ),
+                    "tags": [
+                        {"id": str(tag.id), "name": tag.name}
+                        for tag in asset.asset_tags
+                    ],
                 }
                 for asset in assets
             ]
@@ -238,7 +248,14 @@ class CatalogTool:
             "name": asset.name,
             "description": asset.description,
             "type": asset.type,
-            "tags": asset.tags,
+            "tags": [
+                {
+                    "id": str(tag.id),
+                    "name": tag.name,
+                    "description": tag.description,
+                }
+                for tag in asset.asset_tags
+            ],
             "reviewed": asset.reviewed,
             "created_at": asset.createdAt.isoformat(),
         }
@@ -308,14 +325,16 @@ class CatalogTool:
         self,
         asset_id: str,
         description: Optional[str] = None,
-        tags: Optional[list] = None,
+        tag_ids: Optional[list] = None,
     ) -> str:
         """
         Update properties of a catalog asset
         Args:
             asset_id: UUID of the asset to update
             description: New description for the asset
-            tags: New tags for the asset
+            tag_ids: List of tag IDs to associate with the asset. Can be:
+                     - List of tag UUIDs (strings)
+                     - List of tag names (will auto-create if needed)
         """
         asset = (
             self.session.query(Asset)
@@ -335,8 +354,47 @@ class CatalogTool:
             else:
                 asset.description = None
 
-        if tags is not None:
-            asset.tags = tags
+        if tag_ids is not None:
+            # Clear existing tag associations
+            asset.asset_tags.clear()
+
+            # Add new tag associations
+            for tag_identifier in tag_ids:
+                tag = None
+
+                # Try to parse as UUID first
+                try:
+                    tag_uuid = uuid.UUID(tag_identifier)
+                    tag = (
+                        self.session.query(AssetTag)
+                        .filter(
+                            AssetTag.id == tag_uuid,
+                            AssetTag.database_id == self.database.id,
+                        )
+                        .first()
+                    )
+                except (ValueError, AttributeError):
+                    # If not a UUID, treat as tag name
+                    tag = (
+                        self.session.query(AssetTag)
+                        .filter(
+                            AssetTag.database_id == self.database.id,
+                            AssetTag.name.ilike(tag_identifier),
+                        )
+                        .first()
+                    )
+
+                    # Auto-create tag if it doesn't exist
+                    if not tag:
+                        tag = AssetTag(
+                            name=tag_identifier,
+                            database_id=self.database.id,
+                        )
+                        self.session.add(tag)
+                        self.session.flush()
+
+                if tag:
+                    asset.asset_tags.append(tag)
 
         # Assets created by AI are saved with reviewed=False initially
         # They will be marked as reviewed=True when user approves via REST API
@@ -454,6 +512,141 @@ class CatalogTool:
             "message": f"Created term '{proposed_state['name']}'",
             "term_id": str(new_term.id),
             "reviewed": new_term.reviewed,
+        }
+
+        return yaml.dump(result)
+
+    def list_tags(self, limit: int = 50, offset: int = 0) -> str:
+        """
+        List all available tags in the catalog
+        Args:
+            limit: Maximum number of results
+            offset: Number of results to skip for pagination
+        """
+        tags = (
+            self.session.query(AssetTag)
+            .filter(AssetTag.database_id == self.database.id)
+            .limit(limit)
+            .offset(offset)
+            .all()
+        )
+
+        results = [
+            {
+                "id": str(tag.id),
+                "name": tag.name,
+                "description": tag.description,
+                "created_at": tag.createdAt.isoformat(),
+            }
+            for tag in tags
+        ]
+
+        return yaml.dump({"tags": results})
+
+    def search_tags(self, text: str, limit: int = 50) -> str:
+        """
+        Search tags by name or description
+        Args:
+            text: Search query
+            limit: Maximum number of results
+        """
+        tags = (
+            self.session.query(AssetTag)
+            .filter(AssetTag.database_id == self.database.id)
+            .filter(
+                AssetTag.name.ilike(f"%{text}%")
+                | AssetTag.description.ilike(f"%{text}%")
+            )
+            .limit(limit)
+            .all()
+        )
+
+        results = [
+            {
+                "id": str(tag.id),
+                "name": tag.name,
+                "description": (
+                    tag.description[:100] + "..."
+                    if tag.description and len(tag.description) > 100
+                    else tag.description
+                ),
+            }
+            for tag in tags
+        ]
+
+        return yaml.dump({"tags": results})
+
+    def upsert_tag(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        id: Optional[str] = None,
+    ) -> str:
+        """
+        Create or update a reusable tag
+        Args:
+            name: Tag name (unique within database)
+            description: Optional tag description
+            id: Optional tag ID for direct updates. If provided, updates the
+                specific tag by ID
+        """
+        existing_tag = None
+
+        if id:
+            # Look up tag by ID if provided
+            existing_tag = (
+                self.session.query(AssetTag)
+                .filter(
+                    AssetTag.database_id == self.database.id,
+                    AssetTag.id == uuid.UUID(id),
+                )
+                .first()
+            )
+            if not existing_tag:
+                raise ValueError(f"Tag with id {id} not found")
+        else:
+            # Check if tag already exists with this name
+            existing_tag = (
+                self.session.query(AssetTag)
+                .filter(
+                    AssetTag.database_id == self.database.id,
+                    AssetTag.name.ilike(name),
+                )
+                .first()
+            )
+
+        if existing_tag:
+            previous_name = existing_tag.name
+            previous_description = existing_tag.description
+
+            next_name = name
+            next_description = (
+                description if description is not None else previous_description
+            )
+
+            if previous_name == next_name and previous_description == next_description:
+                return f"No updates needed for tag '{name}'"
+
+            existing_tag.name = next_name
+            existing_tag.description = next_description
+
+            self.session.flush()
+
+            return f"Updated tag '{next_name}'"
+
+        # Create new tag
+        new_tag = AssetTag(
+            name=name,
+            description=description,
+            database_id=self.database.id,
+        )
+
+        self.session.add(new_tag)
+        self.session.flush()
+
+        result = {
+            "message": f"Created tag '{name}'",
+            "tag_id": str(new_tag.id),
         }
 
         return yaml.dump(result)
