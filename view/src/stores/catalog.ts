@@ -11,13 +11,21 @@ export type Privacy = {
   llm: 'Encrypted' | 'Default'
 }
 
+export interface AssetTag {
+  id: string
+  name: string
+  description: string | null
+  createdAt?: string
+  updatedAt?: string
+}
+
 export interface CatalogAsset {
   id: string
   urn: string
   name: string | null
   description: string | null
   type: AssetType
-  tags: string[] | null
+  tags: AssetTag[]
   database_id: string
   created_by: string | null
   createdAt: string
@@ -61,6 +69,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   // ——————————————————————————————————————————————————
   const assets = ref<Record<string, CatalogAsset>>({})
   const terms = ref<Record<string, CatalogTerm>>({})
+  const tags = ref<Record<string, AssetTag>>({})
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -74,7 +83,10 @@ export const useCatalogStore = defineStore('catalog', () => {
         // Clear the catalog store
         assets.value = {}
         terms.value = {}
+        tags.value = {}
         error.value = null
+
+        fetchTags(newContext.id)
       }
     },
     { immediate: true, deep: true }
@@ -86,6 +98,7 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   const assetsArray = computed(() => Object.values(assets.value))
   const termsArray = computed(() => Object.values(terms.value))
+  const tagsArray = computed(() => Object.values(tags.value))
 
   const assetsByType = computed(() => {
     const grouped: Record<string, CatalogAsset[]> = {}
@@ -248,6 +261,124 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
+  async function deleteTerm(termId: string) {
+    try {
+      error.value = null
+
+      await axios.delete(`/api/catalogs/terms/${termId}`)
+
+      delete terms.value[termId]
+    } catch (err: unknown) {
+      const errorResponse = err as any
+      const message =
+        errorResponse?.response?.data?.error ||
+        errorResponse?.response?.data?.message ||
+        'Failed to delete term'
+      error.value = message
+      console.error('Error deleting term:', err)
+      throw err
+    }
+  }
+
+  async function fetchTags(contextId: string) {
+    try {
+      loading.value = true
+      error.value = null
+
+      const response: AxiosResponse<AssetTag[]> = await axios.get(`/api/catalogs/${contextId}/tags`)
+
+      if (contextsStore.contextSelected?.id !== contextId) {
+        return []
+      }
+
+      // Update tags in store
+      response.data.forEach((tag) => {
+        tags.value[tag.id] = tag
+      })
+
+      return response.data
+    } catch (err: unknown) {
+      const errorResponse = err as any
+      error.value = errorResponse?.response?.data?.message || 'Failed to fetch tags'
+      console.error('Error fetching tags:', err)
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function createTag(
+    contextId: string,
+    tagData: {
+      name: string
+      description?: string
+    }
+  ) {
+    try {
+      error.value = null
+
+      const response: AxiosResponse<AssetTag> = await axios.post(
+        `/api/catalogs/${contextId}/tags`,
+        tagData
+      )
+
+      tags.value[response.data.id] = response.data
+      return response.data
+    } catch (err: unknown) {
+      const errorResponse = err as any
+      error.value = errorResponse?.response?.data?.message || 'Failed to create tag'
+      console.error('Error creating tag:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function updateTag(
+    tagId: string,
+    updates: {
+      name?: string
+      description?: string
+    }
+  ) {
+    try {
+      error.value = null
+
+      const response: AxiosResponse<AssetTag> = await axios.patch(
+        `/api/catalogs/tags/${tagId}`,
+        updates
+      )
+
+      tags.value[response.data.id] = response.data
+      return response.data
+    } catch (err: unknown) {
+      const errorResponse = err as any
+      const message =
+        errorResponse?.response?.data?.error ||
+        errorResponse?.response?.data?.message ||
+        'Failed to update tag'
+      error.value = message
+      console.error('Error updating tag:', err)
+      throw err
+    }
+  }
+
+  async function deleteTag(tagId: string) {
+    try {
+      error.value = null
+
+      await axios.delete(`/api/catalogs/tags/${tagId}`)
+
+      delete tags.value[tagId]
+      return true
+    } catch (err: unknown) {
+      const errorResponse = err as any
+      error.value = errorResponse?.response?.data?.message || 'Failed to delete tag'
+      console.error('Error deleting tag:', err)
+      throw err
+    }
+  }
+
   // ——————————————————————————————————————————————————
   // RETURN
   // ——————————————————————————————————————————————————
@@ -261,6 +392,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     // getters
     assetsArray,
     termsArray,
+    tagsArray,
     assetsByType,
     tableAssets,
     columnAssets,
@@ -268,8 +400,13 @@ export const useCatalogStore = defineStore('catalog', () => {
     // actions
     fetchAssets,
     fetchTerms,
+    fetchTags,
+    createTag,
     createTerm,
     updateAsset,
-    updateTerm
+    updateTerm,
+    deleteTerm,
+    updateTag,
+    deleteTag
   }
 })

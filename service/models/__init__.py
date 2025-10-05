@@ -215,7 +215,9 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
             if asset_id:
                 asset = session.query(Asset).filter(Asset.id == asset_id).first()
                 if asset:
-                    base_dict["asset"] = asset.to_dict()
+                    asset_dict = asset.to_dict()
+                    asset_dict["tags"] = [tag.to_dict() for tag in asset.asset_tags]
+                    base_dict["asset"] = asset_dict
 
         if (
             functionCall

@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="flex-1 text-sm">
-      <div class="flex mt-2 space-x-1" v-if="assetData || termData">
+      <div class="flex mt-2 space-x-1" v-if="formattedAssetData || termData">
         <component :is="statusIcon" class="w-5 h-5" :class="statusIconClass" />
 
         <p v-if="!isReviewed" class="text-yellow-700 mb-3">
@@ -14,9 +14,9 @@
       </div>
 
       <!-- Asset Display -->
-      <div v-if="assetData" class="space-y-3">
+      <div v-if="formattedAssetData" class="space-y-3">
         <AssetBase
-          :asset="assetData"
+          :asset="formattedAssetData"
           mode="approval"
           :disable-editing="isReviewed"
           :show-approve="!isReviewed"
@@ -58,7 +58,11 @@ const props = defineProps<{
     id: string
     name: string
     description?: string | null
-    tags?: string[] | null
+    tags?: Array<{
+      id: string
+      name: string
+      description: string | null
+    }>
     type: 'TABLE' | 'COLUMN'
     reviewed: boolean
   }
@@ -79,6 +83,33 @@ const isProcessing = ref(false)
 
 const assetData = computed(() => props.asset)
 const termData = computed(() => props.term)
+
+const formattedAssetData = computed(() => {
+  if (!assetData.value) return undefined
+
+  const fullAsset = catalogStore.assets[assetData.value.id]
+
+  // Extract schema and tableName from facets
+  let schema: string | null = null
+  let tableName: string | null = null
+
+  if (fullAsset) {
+    if (assetData.value.type === 'TABLE' && fullAsset.table_facet) {
+      schema = fullAsset.table_facet.schema
+      tableName = fullAsset.table_facet.table_name
+    } else if (assetData.value.type === 'COLUMN' && fullAsset.column_facet) {
+      schema = fullAsset.column_facet.parent_table_facet?.schema ?? null
+      tableName = fullAsset.column_facet.parent_table_facet?.table_name ?? null
+    }
+  }
+
+  return {
+    ...assetData.value,
+    tags: assetData.value.tags || [],
+    schema,
+    tableName
+  }
+})
 
 const editableTermData = computed<CatalogTermState>({
   get: () => {
@@ -122,7 +153,7 @@ const statusIconClass = computed(() => (isReviewed.value ? 'text-green-500' : 't
 const handleAssetApprove = async (payload: {
   id: string
   description: string
-  tags: string[] | null
+  tag_ids: string[]
 }) => {
   const contextId = contextsStore.contextSelected?.id
   if (!contextId || !assetData.value) {
@@ -134,7 +165,7 @@ const handleAssetApprove = async (payload: {
     isProcessing.value = true
     await catalogStore.updateAsset(payload.id, {
       description: payload.description,
-      tags: payload.tags,
+      tag_ids: payload.tag_ids,
       reviewed: true
     })
 
@@ -142,7 +173,11 @@ const handleAssetApprove = async (payload: {
     if (assetData.value) {
       assetData.value.reviewed = true
       assetData.value.description = payload.description
-      assetData.value.tags = payload.tags
+      // Fetch the updated asset to get the full tag objects
+      const updatedAsset = catalogStore.assets[payload.id]
+      if (updatedAsset) {
+        assetData.value.tags = updatedAsset.tags
+      }
     }
   } catch (error) {
     console.error('Failed to approve asset:', error)

@@ -1,5 +1,6 @@
 // stores/useDatabasesStore.ts
 import axios from '@/plugins/axios'
+import type { AssetTag } from '@/stores/catalog'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
@@ -17,6 +18,7 @@ export interface Database {
   dbt_catalog: unknown
   dbt_manifest: unknown
   dbt_repo_path: string | null
+  tags?: AssetTag[]
 }
 
 export const makeEmptyDatabase = () =>

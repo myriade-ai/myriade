@@ -30,6 +30,9 @@ import {
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
   SidebarTrigger,
   useSidebar
@@ -38,7 +41,9 @@ import { logout, user } from '@/stores/auth'
 import { useContextsStore } from '@/stores/contexts'
 import { useConversationsStore } from '@/stores/conversations'
 import {
+  BookOpen,
   CalendarCog,
+  ChevronRight,
   ChevronsUpDown,
   DatabaseZap,
   Edit,
@@ -51,11 +56,11 @@ import {
   ShieldCheck,
   SquarePen,
   Trash2,
-  UserRoundPen,
-  BookOpen
+  UserRoundPen
 } from 'lucide-vue-next'
 import { computed, nextTick, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 
 const navItems: { title: string; url: string; icon: typeof SquarePen; disabled?: boolean }[] = [
   {
@@ -90,11 +95,6 @@ const navItems: { title: string; url: string; icon: typeof SquarePen; disabled?:
     title: 'Editor',
     url: '/editor',
     icon: FilePenLine
-  },
-  {
-    title: 'Catalog',
-    url: '/catalog',
-    icon: BookOpen
   }
 ]
 
@@ -123,6 +123,9 @@ const route = useRoute()
 const isActive = (id: string) => {
   return route.params.id === id || route.path === id
 }
+const isCatalogActive = computed(() => {
+  return route.path.startsWith('/catalog')
+})
 const userInfo = computed(() => {
   if (!user.value?.firstName || !user.value?.lastName) return { userInitials: '??', fullName: '??' }
   return {
@@ -223,6 +226,42 @@ async function handleDeleteConversation(conversationId: string) {
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
+          <Collapsible key="catalog" :default-open="isActive('/catalog')" class="group/collapsible">
+            <CollapsibleTrigger as-child>
+              <SidebarMenuButton :isActive="isCatalogActive">
+                <BookOpen />
+                <span>Catalog</span>
+                <ChevronRight
+                  class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+                />
+              </SidebarMenuButton>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenuSub>
+                <SidebarMenuSubItem key="assets">
+                  <SidebarMenuSubButton as-child :isActive="isActive('/catalog/assets')">
+                    <RouterLink :to="`/catalog/assets`">
+                      <span>Assets</span>
+                    </RouterLink>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+                <SidebarMenuSubItem key="terms">
+                  <SidebarMenuSubButton as-child :isActive="isActive('/catalog/terms')">
+                    <RouterLink :to="`/catalog/terms`">
+                      <span>Terms</span>
+                    </RouterLink>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+                <SidebarMenuSubItem key="tags">
+                  <SidebarMenuSubButton as-child :isActive="isActive('/catalog/tags')">
+                    <RouterLink :to="`/catalog/tags`">
+                      <span>Tags</span>
+                    </RouterLink>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              </SidebarMenuSub>
+            </CollapsibleContent>
+          </Collapsible>
         </SidebarGroupContent>
       </SidebarGroup>
       <SidebarGroup class="group-data-[collapsible=icon]:hidden">

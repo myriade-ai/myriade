@@ -133,9 +133,21 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresContext: true }
   },
   {
-    path: '/catalog',
-    name: 'CatalogPage',
-    component: loadView('CatalogPage'),
+    path: '/catalog/assets',
+    name: 'AssetPage',
+    component: loadView('AssetPage'),
+    meta: { requiresContext: true }
+  },
+  {
+    path: '/catalog/terms',
+    name: 'TermPage',
+    component: loadView('TermPage'),
+    meta: { requiresContext: true }
+  },
+  {
+    path: '/catalog/tags',
+    name: 'AssetTagPage',
+    component: loadView('AssetTagPage'),
     meta: { requiresContext: true }
   }
 ]
