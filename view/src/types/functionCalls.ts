@@ -37,11 +37,6 @@ export interface SqlQueryCall extends BaseFunctionCall {
   }
 }
 
-export interface SubmitCall extends BaseFunctionCall {
-  name: 'submit'
-  arguments: Record<string, unknown>
-}
-
 export interface CodeEditorReadFileCall extends BaseFunctionCall {
   name: string // Pattern: CodeEditor-code_editor__read_file
   arguments: {
@@ -75,7 +70,6 @@ export type FunctionCall =
   | ThinkCall
   | AskUserCall
   | SqlQueryCall
-  | SubmitCall
   | CodeEditorReadFileCall
   | CodeEditorReplaceCall
   | CodeEditorCreateFileCall
@@ -103,10 +97,6 @@ export function isAskUserCall(call: FunctionCall): call is AskUserCall {
 
 export function isSqlQueryCall(call: FunctionCall): call is SqlQueryCall {
   return call.name.endsWith('sql_query') || call.name === 'sql_query'
-}
-
-export function isSubmitCall(call: FunctionCall): call is SubmitCall {
-  return call.name === 'submit'
 }
 
 export function isCodeEditorReadFileCall(call: FunctionCall): call is CodeEditorReadFileCall {
