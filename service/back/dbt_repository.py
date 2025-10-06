@@ -253,17 +253,6 @@ class DBTRepository:
         Returns:
             Tuple of (catalog_dict, manifest_dict)
         """
-        import sys
-
-        # Check Python version compatibility
-        if sys.version_info >= (3, 13):
-            raise DBTRepositoryError(
-                "DBT is not compatible with Python 3.13 due to "
-                "snowplow_tracker dependencies. Please use Python 3.11 or 3.12, "
-                "or manually generate dbt docs using 'dbt docs generate' "
-                "in your repository and upload the resulting catalog.json and "
-                "manifest.json files."
-            )
 
         if not self.database_config:
             raise DBTRepositoryError(
