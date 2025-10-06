@@ -1,8 +1,7 @@
 import axios from '@/plugins/axios'
 import router from '@/router'
 import { useDatabasesStore } from '@/stores/databases'
-// @ts-expect-error: No types for sql-prettier
-import sqlPrettier from 'sql-prettier'
+import { formatSQL } from '@/lib/utils'
 import { computed, reactive, ref } from 'vue'
 
 export interface Query {
@@ -73,8 +72,7 @@ const loadQuery = async (id: string) => {
   const response = await axios.get(`/api/query/${id}`)
   const q = response.data
 
-  // Format SQL
-  if (q.sql) q.sql = sqlPrettier.format(q.sql)
+  if (q.sql) q.sql = formatSQL(q.sql)
 
   // Update values
   loadedQuery.value = q
