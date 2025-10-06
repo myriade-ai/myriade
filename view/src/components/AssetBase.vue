@@ -365,12 +365,14 @@ async function handleSave() {
     saving.value = true
     const updated = await catalogStore.updateAsset(payload.id, {
       description: payload.description,
-      tag_ids: payload.tag_ids
+      tag_ids: payload.tag_ids,
+      reviewed: true
     })
     internalAsset.value = {
       ...internalAsset.value,
       description: updated.description ?? payload.description,
-      tags: updated.tags
+      tags: updated.tags,
+      reviewed: true
     }
     syncDraftFromAsset()
     editMode.value = false
@@ -407,7 +409,7 @@ async function handleApprove() {
       ...internalAsset.value,
       description: updated.description ?? payload.description,
       tags: updated.tags,
-      reviewed: updated.reviewed ?? true
+      reviewed: true
     }
     syncDraftFromAsset()
     editMode.value = false

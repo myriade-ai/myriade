@@ -4,7 +4,11 @@
     <div
       ref="scrollContainer"
       class="flex justify-center px-2 sm:px-4 lg:px-0"
-      v-touch:swipe.right="toggleSidebar"
+      v-touch:swipe.right="
+        () => {
+          if (isMobile) toggleSidebar()
+        }
+      "
     >
       <div class="flex flex-col w-full min-h-[calc(100vh-4rem)]">
         <div class="flex flex-col flex-1 w-full max-w-3xl m-auto">
@@ -182,11 +186,11 @@
                     {{ editMode === 'text' ? 'SQL' : 'Text' }}
                   </Button>
 
-                  <div
-                    class="inline-flex items-center justify-center rounded-full bg-black p-2 hover:bg-gray-800"
-                  >
-                    <SendButtonWithStatus :status="sendStatus" @clicked="handleSendMessage" />
-                  </div>
+                  <SendButtonWithStatus
+                    :status="sendStatus"
+                    :disabled="isSendDisabled"
+                    @clicked="handleSendMessage"
+                  />
                 </div>
               </div>
             </div>
@@ -233,7 +237,7 @@ import { Textarea } from './ui/textarea'
 
 const route = useRoute()
 const router = useRouter()
-const { toggleSidebar } = useSidebar()
+const { toggleSidebar, isMobile } = useSidebar()
 
 const contextsStore = useContextsStore()
 const queriesStore = useQueriesStore()
@@ -258,6 +262,11 @@ const sendStatus = computed(() => {
   }
   // if conversationId is set, return status
   return conversation.value?.status ?? 'clear'
+})
+
+const isSendDisabled = computed(() => {
+  const currentInput = editMode.value === 'text' ? inputText.value : inputSQL.value
+  return currentInput.trim().length === 0
 })
 
 /** The current conversation object from the store. */
@@ -382,6 +391,11 @@ const resolveTextareaElement = (): HTMLTextAreaElement | null => {
 const showSubscriptionPrompt = computed(() => conversationsStore.subscriptionRequired)
 
 const handleEnter = (event: KeyboardEvent) => {
+  if (isSendDisabled.value) {
+    event.preventDefault()
+    return
+  }
+
   if (!event.shiftKey) {
     event.preventDefault()
     handleSendMessage()
