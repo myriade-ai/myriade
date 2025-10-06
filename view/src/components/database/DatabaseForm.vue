@@ -69,7 +69,8 @@
             <div class="flex space-x-2">
               <Input
                 type="text"
-                v-model="database.dbt_repo_path"
+                :model-value="database.dbt_repo_path || ''"
+                @update:model-value="database.dbt_repo_path = typeof $event === 'string' ? ($event || null) : null"
                 placeholder="/path/to/your/dbt/project"
                 class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
@@ -154,6 +155,7 @@ import {
   type Database,
   type Engine
 } from '@/stores/databases'
+import { useContextsStore } from '@/stores/contexts'
 import { Form } from 'vee-validate'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import ConnectionStatusAlert from './ConnectionStatusAlert.vue'
@@ -178,6 +180,7 @@ const emit = defineEmits<{
 
 // Stores
 const databasesStore = useDatabasesStore()
+const contextsStore = useContextsStore()
 
 // State
 const database = reactive<Database>(makeEmptyDatabase())
@@ -187,7 +190,6 @@ if (props.engine) {
 const isTestingConnection = ref(false)
 const isSaving = ref(false)
 const connectionStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
-const isDbtSupportOpen = ref(false)
 
 // DBT-related state
 const isValidatingRepo = ref(false)
@@ -304,6 +306,9 @@ const handleSave = async () => {
       // Set as selected and refresh list for create mode
       databasesStore.setDatabaseSelected(result)
       await databasesStore.fetchDatabases({ refresh: true })
+
+      // Also set the newly created database as the selected context
+      contextsStore.setSelectedContext(`database-${result.id}`)
     }
 
     emit('saved', result)
@@ -380,9 +385,6 @@ const generateDbtDocs = async () => {
   }
 }
 
-const toggleDbtSupport = () => {
-  isDbtSupportOpen.value = !isDbtSupportOpen.value
-}
 // Expose methods for parent components
 defineExpose({
   testConnection,
