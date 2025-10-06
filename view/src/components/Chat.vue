@@ -4,7 +4,11 @@
     <div
       ref="scrollContainer"
       class="flex justify-center px-2 sm:px-4 lg:px-0"
-      v-touch:swipe.right="toggleSidebar"
+      v-touch:swipe.right="
+        () => {
+          if (isMobile) toggleSidebar()
+        }
+      "
     >
       <div class="flex flex-col w-full min-h-[calc(100vh-4rem)]">
         <div class="flex flex-col flex-1 w-full max-w-3xl m-auto">
@@ -233,7 +237,7 @@ import { Textarea } from './ui/textarea'
 
 const route = useRoute()
 const router = useRouter()
-const { toggleSidebar } = useSidebar()
+const { toggleSidebar, isMobile } = useSidebar()
 
 const contextsStore = useContextsStore()
 const queriesStore = useQueriesStore()
