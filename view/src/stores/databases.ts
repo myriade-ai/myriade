@@ -150,6 +150,10 @@ export const useDatabasesStore = defineStore('databases', () => {
     return databases.value.every((db) => db.public)
   }
 
+  function syncDatabaseMetadata(databaseId: string) {
+    return axios.post(`/api/databases/${databaseId}/sync-metadata`).then((res) => res.data)
+  }
+
   // Return everything you want available in the store
   return {
     // state
@@ -167,6 +171,7 @@ export const useDatabasesStore = defineStore('databases', () => {
     updateDatabase,
     createDatabase,
     deleteDatabase,
-    getDatabaseById
+    getDatabaseById,
+    syncDatabaseMetadata
   }
 })

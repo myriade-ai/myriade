@@ -148,7 +148,8 @@ def sync_database_metadata_to_assets(
     """
     Sync catalog with database metadata (tables/columns)
     This method creates catalog assets from the database's tables_metadata
-    using facet-based models
+    using facet-based models. It also removes assets that no longer exist
+    in the database.
 
     Args:
         database_id: UUID of the database
@@ -156,12 +157,15 @@ def sync_database_metadata_to_assets(
         session: Optional SQLAlchemy session. If not provided, uses g.session
     """
     if not tables_metadata:
-        return "No database metadata available to sync"
+        raise ValueError("No database metadata available to sync")
 
     # Use provided session or fall back to g.session
     db_session = session if session is not None else g.session
 
     synced_count = 0
+
+    # Track all valid URNs from current metadata (both tables and columns)
+    valid_urns = set()
 
     for table_meta in tables_metadata:
         schema_name = table_meta.get("schema")
@@ -169,6 +173,7 @@ def sync_database_metadata_to_assets(
 
         # Generate URN for table
         table_urn = f"urn:table:{database_id}:{schema_name}:{table_name}"
+        valid_urns.add(table_urn)
 
         # Check if table asset already exists
         table_asset = (
@@ -210,6 +215,7 @@ def sync_database_metadata_to_assets(
             column_urn = (
                 f"urn:column:{database_id}:{schema_name}:{table_name}:{column_name}"
             )
+            valid_urns.add(column_urn)
 
             column_asset = (
                 db_session.query(Asset)
@@ -243,6 +249,27 @@ def sync_database_metadata_to_assets(
                 )
                 db_session.add(column_facet)
                 synced_count += 1
+
+    # Delete assets that no longer exist in the database
+    orphaned_assets = (
+        db_session.query(Asset)
+        .filter(
+            Asset.database_id == database_id,
+            ~Asset.urn.in_(valid_urns) if valid_urns else True,
+        )
+        .all()
+    )
+
+    for asset in orphaned_assets:
+        if asset.type == "COLUMN":
+            db_session.query(ColumnFacet).filter(
+                ColumnFacet.asset_id == asset.id
+            ).delete()
+        elif asset.type == "TABLE":
+            db_session.query(TableFacet).filter(
+                TableFacet.asset_id == asset.id
+            ).delete()
+        db_session.delete(asset)
 
     return {
         "synced_count": synced_count,
