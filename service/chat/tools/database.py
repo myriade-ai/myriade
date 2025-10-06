@@ -124,7 +124,9 @@ class DatabaseTool:
         from_response: Message | None = None,
     ) -> str:
         """
-        Run an SQL query on the database and return the result
+        Run an SQL query on the database and return the result.
+        If the query is a write operation and the configuration is set to "ask for confirmation", the user will be asked to confirm the query.
+        You will only get sample (~20 rows) of the result. You won't get the full result.
         Args:
             query: The SQL query string to be executed. Don't forget to escape this if you use double quote.
             title: The name/title of the query
