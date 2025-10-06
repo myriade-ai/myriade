@@ -14,7 +14,7 @@
           :table="table"
           :showColumns="table.name == showTableKey"
           @click="onClick(table.name)"
-          @dblclick="onDblClick(table)"
+          @search="onSearch"
           :isUsed="true"
         />
         <div class="px-4 py-2 bg-gray-50">
@@ -31,7 +31,7 @@
           :table="table"
           :showColumns="table.name == showTableKey"
           @click="onClick(table.name)"
-          @dblclick="onDblClick(table)"
+          @search="onSearch"
         />
         <div v-if="filteredTables.length == 0" class="block bg-white hover:bg-gray-50">
           <p class="px-4 py-4 sm:px-6">No tables</p>
@@ -145,7 +145,7 @@ const onClick = (key: string) => {
   }
 }
 
-const onDblClick = (table: Table) => {
+const onSearch = (table: Table) => {
   editor.query.sql = `SELECT * FROM "${table.schema}"."${table.name}";`
   searchTablesInput.value = '' // reset input
   editor.runQuery()
