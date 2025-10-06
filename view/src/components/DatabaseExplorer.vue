@@ -42,9 +42,9 @@
 </template>
 
 <script setup lang="ts">
-import { Input } from '@/components/ui/input'
-import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import DatabaseExplorerItems from '@/components/DatabaseExplorerItems.vue'
+import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { useQueryEditor } from '@/composables/useQueryEditor'
 import { useDatabasesStore } from '@/stores/databases'
 import type { Table } from '@/stores/tables'

@@ -146,6 +146,7 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import axios from '@/plugins/axios'
+import { useContextsStore } from '@/stores/contexts'
 import {
   getDatabaseTypeName,
   getDefaultDetailsForEngine,
@@ -178,6 +179,7 @@ const emit = defineEmits<{
 
 // Stores
 const databasesStore = useDatabasesStore()
+const contextsStore = useContextsStore()
 
 // State
 const database = reactive<Database>(makeEmptyDatabase())
@@ -187,7 +189,6 @@ if (props.engine) {
 const isTestingConnection = ref(false)
 const isSaving = ref(false)
 const connectionStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
-const isDbtSupportOpen = ref(false)
 
 // DBT-related state
 const isValidatingRepo = ref(false)
@@ -301,9 +302,9 @@ const handleSave = async () => {
       result = await databasesStore.updateDatabase(database.id, database)
     } else {
       result = await databasesStore.createDatabase(database)
-      // Set as selected and refresh list for create mode
-      databasesStore.setDatabaseSelected(result)
+      // Set the new database as the selected context
       await databasesStore.fetchDatabases({ refresh: true })
+      contextsStore.setSelectedContext(`database-${result.id}`)
     }
 
     emit('saved', result)
@@ -380,9 +381,6 @@ const generateDbtDocs = async () => {
   }
 }
 
-const toggleDbtSupport = () => {
-  isDbtSupportOpen.value = !isDbtSupportOpen.value
-}
 // Expose methods for parent components
 defineExpose({
   testConnection,

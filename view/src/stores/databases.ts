@@ -98,11 +98,6 @@ export const useDatabasesStore = defineStore('databases', () => {
   // --------------------------------------------------------------------------
   // ACTIONS
   // --------------------------------------------------------------------------
-  function setDatabaseSelected(newDatabase: Database) {
-    databaseSelectedId.value = newDatabase.id
-    localStorage.setItem('databaseId', String(newDatabase.id))
-  }
-
   async function fetchDatabases({ refresh }: { refresh: boolean }) {
     if (databases.value.length > 0 && !refresh) return
 
@@ -121,11 +116,6 @@ export const useDatabasesStore = defineStore('databases', () => {
 
   function fetchDatabaseTables(databaseId: string) {
     return axios.get(`/api/databases/${databaseId}/schema`).then((res) => res.data)
-  }
-
-  function selectDatabaseById(id: string) {
-    databaseSelectedId.value = id
-    localStorage.setItem('databaseId', String(id))
   }
 
   function updateDatabase(id: string, database: Database) {
@@ -164,10 +154,8 @@ export const useDatabasesStore = defineStore('databases', () => {
     sortedDatabases,
     hasOnlyPublicDatabases,
     // actions
-    setDatabaseSelected,
     fetchDatabases,
     fetchDatabaseTables,
-    selectDatabaseById,
     updateDatabase,
     createDatabase,
     deleteDatabase,
