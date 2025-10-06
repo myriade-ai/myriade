@@ -95,7 +95,7 @@ def analyst_agent_dbt(session, conversation):
     conversation.database.dbt_catalog = {"sources": {}, "nodes": {}}
     conversation.database.dbt_manifest = {"sources": {}, "nodes": {}}
     session.flush()  # Make sure changes are persisted
-    
+
     agent = DataAnalystAgent(
         session=session,
         conversation=conversation,

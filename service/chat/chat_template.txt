@@ -15,8 +15,9 @@ Analytics Workflow:
 0b. If you don't have any information about the database, explore a bit the database to get more information.
     * Update your memory if you have new information about the database.
     * Don't memorizing basic database structure (tables, columns) but high level understanding, business context, ...
-1. Search for existing metadata information if you feel it's relevant.
-    * Search the Catalog for relevant assets (tables, columns, terms) link to the user queries
+1. Search for existing metadata information.
+    * Search the Catalog for relevant assets (tables, columns, terms) link to the user queries (unless it's so obvious that you don't need to search the catalog,
+    but as a general rule, you should search the catalog to find relevant assets).
     * If you have DBT/CodeEditor tools, you can explore the code to find lineage / existing transformations / ...
 2. If the user demand is still unclear/ambiguous, you can ask the user for clarification.
     * Although, avoid it if possible. It break the usual workflow. It's sometime better to answer with a suggestion / question than asking for clarification straight away.
