@@ -64,10 +64,7 @@
             >
               <Card class="p-0 pb-3.5 pt-1">
                 <CardContent>
-                  <BaseEditorPreview
-                    :queryId="part.query_id"
-                    :databaseId="databaseSelectedId ?? undefined"
-                  ></BaseEditorPreview>
+                  <BaseEditorPreview :queryId="part.query_id"></BaseEditorPreview>
                 </CardContent>
               </Card>
             </div>
@@ -104,7 +101,6 @@
             v-else-if="props.message.functionCall"
             :functionCall="props.message.functionCall"
             :queryId="props.message.queryId"
-            :databaseSelectedId="databaseSelectedId"
           />
           <AskQueryConfirmation
             v-if="needsConfirmation && queryData && props.message.role === 'assistant'"
@@ -204,9 +200,7 @@
 </template>
 
 <script setup lang="ts">
-import axios from '@/plugins/axios'
 import { useQueriesStore } from '@/stores/queries'
-import yaml from 'js-yaml'
 import { computed, defineEmits, defineProps, onMounted, onUnmounted, ref } from 'vue'
 
 // Components
@@ -221,7 +215,6 @@ import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 // Store
 import { cn } from '@/lib/utils'
 import type { Message } from '@/stores/conversations'
-import { useDatabasesStore } from '@/stores/databases'
 import { Check, Copy, Pencil, RotateCcw, SquarePen } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import CodeFileDisplay from './CodeFileDisplay.vue'
@@ -230,7 +223,6 @@ import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { Textarea } from './ui/textarea'
 
-const { databaseSelectedId } = useDatabasesStore()
 const router = useRouter()
 
 const props = defineProps<{
@@ -240,8 +232,6 @@ const props = defineProps<{
 const emit = defineEmits(['editInlineClick', 'regenerateFromMessage', 'rejected'])
 
 // Local state
-const sqlResult = ref<Array<Record<string, string | number | boolean | null>>>([])
-const sqlCount = ref(0)
 const isEditing = ref(false)
 const editedContent = ref('')
 const isCopied = ref(false)
@@ -325,25 +315,10 @@ function editInNewTab() {
   }
 }
 
-// TODO: move to store
-async function executeSql(sql: string) {
-  try {
-    const result = await axios.post('/api/query/_run', {
-      query: sql,
-      databaseId: databaseSelectedId
-    })
-    console.log(result.data.rows)
-    sqlResult.value = result.data.rows
-    sqlCount.value = result.data.count
-  } catch (error) {
-    console.error('Error executing SQL:', error)
-  }
-}
-
 const parsedText = computed<
   Array<{ type: string; content: any; query_id?: string; chart_id?: string }>
 >(() => {
-  const regex = /```((?:sql|json|error|ya?ml-graph|echarts))\s*([\s\S]*?)\s*```/g
+  const regex = /```((?:sql|json|error|echarts))\s*([\s\S]*?)\s*```/g
   let match
   let lastIndex = 0
   const parts: Array<{ type: string; content: any; query_id?: string; chart_id?: string }> = []
@@ -372,9 +347,6 @@ const parsedText = computed<
       content = JSON.parse(match[2].trim())
     } else if (type === 'sql') {
       content = match[2].trim()
-    } else if (type === 'yml-graph' || type === 'yaml-graph') {
-      content = yaml.load(match[2].trim())
-      console.log('content', content)
     } else if (type === 'error') {
       content = match[2]
     } else if (type === 'echarts') {
@@ -403,16 +375,6 @@ const parsedText = computed<
 })
 
 onMounted(() => {
-  // If we detect yml-graph blocks, execute the SQL in them automatically
-  parsedText.value.forEach((part) => {
-    if (part.type === 'yml-graph' || part.type === 'yaml-graph') {
-      // In this example, we assume the YAML block has { sql: "..."}
-      if (part.content && part.content.sql) {
-        executeSql(part.content.sql)
-      }
-    }
-  })
-
   // Add click outside listener
   document.addEventListener('click', handleClickOutside)
 })

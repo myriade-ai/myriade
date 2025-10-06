@@ -1,7 +1,7 @@
+import { formatSQL } from '@/lib/utils'
 import axios from '@/plugins/axios'
 import router from '@/router'
-import { useDatabasesStore } from '@/stores/databases'
-import { formatSQL } from '@/lib/utils'
+import { useContextsStore } from '@/stores/contexts'
 import { computed, reactive, ref } from 'vue'
 
 export interface Query {
@@ -80,9 +80,9 @@ const loadQuery = async (id: string) => {
   query.sql = q.sql || ''
   query.is_favorite = q.is_favorite
 
-  // Select DB in the databases store
-  const databasesStore = useDatabasesStore()
-  await databasesStore.selectDatabaseById(q.databaseId)
+  // Select context from the query
+  const contextsStore = useContextsStore()
+  contextsStore.setSelectedContext(`database-${q.databaseId}`)
   databaseId.value = q.databaseId
   if (query.sql) runQuery()
 }
