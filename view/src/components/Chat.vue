@@ -1,14 +1,10 @@
 <template>
   <div>
     <PageHeader title="Chat" subtitle="Ask questions about your data and get instant answers." />
-    <div
-      ref="scrollContainer"
-      class="flex justify-center px-2 sm:px-4 lg:px-0"
-      v-touch:swipe.right="toggleSidebar"
-    >
-      <div class="flex flex-col w-full min-h-[calc(100vh-4rem)]">
-        <div class="flex flex-col flex-1 w-full max-w-3xl m-auto">
-          <div class="w-full lg:pt-4">
+    <div class="flex justify-center px-2 sm:px-4 lg:px-0" v-touch:swipe.right="toggleSidebar">
+      <div class="flex flex-col w-full h-[calc(100vh-4rem)]">
+        <div class="flex flex-col flex-1 w-full max-w-3xl m-auto overflow-hidden">
+          <div ref="scrollContainer" class="w-full lg:pt-4 flex-1 overflow-y-auto pb-4">
             <ul class="list-none">
               <template v-for="(group, index) in messageGroups" :key="index">
                 <li
@@ -109,7 +105,7 @@
 
         <div
           id="chat-input"
-          class="w-full max-w-4xl border-gray-300 bottom-0 sticky z-10 mx-auto lg:px-2 px-0 bg-white pb-4"
+          class="w-full max-w-4xl border-gray-300 bottom-0 sticky z-20 mx-auto lg:px-2 px-0 bg-white pb-4 pt-2 border-t border-gray-100 shadow-lg"
         >
           <transition
             enter-active-class="transition-all duration-300 ease-out"
