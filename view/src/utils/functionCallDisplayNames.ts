@@ -55,14 +55,6 @@ const functionCallDisplayMap: Record<string, FunctionCallDisplayInfo> = {
     category: 'interaction'
   },
 
-  // Query execution
-  submit: {
-    displayName: 'Execute Query',
-    description: 'Run the prepared query',
-    icon: '▶️',
-    category: 'execution'
-  },
-
   // Chart and visualization
   'EchartsTool-echarts__preview_render': {
     displayName: 'Create Visualization',

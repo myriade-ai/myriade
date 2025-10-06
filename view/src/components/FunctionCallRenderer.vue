@@ -32,11 +32,6 @@
       <BaseEditor :modelValue="functionCall.arguments.query" :read-only="true" />
     </div>
 
-    <!-- Submit renderer -->
-    <div v-else-if="isSubmitCall(functionCall)">
-      <BaseEditorPreview :queryId="queryId" :databaseId="databaseSelectedId ?? undefined" />
-    </div>
-
     <!-- Code editor read file renderer - compact badge only -->
     <div v-else-if="isCodeEditorReadFileCall(functionCall)" class="flex items-center gap-2">
       <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
@@ -84,7 +79,6 @@ import {
   isCodeEditorReplaceCall,
   isMemorySearchCall,
   isSqlQueryCall,
-  isSubmitCall,
   isThinkCall
 } from '@/types/functionCalls'
 import { getFunctionCallDisplayInfo } from '@/utils/functionCallDisplayNames'
@@ -92,7 +86,6 @@ import { computed } from 'vue'
 
 // Import components used by the inline renderers
 import BaseEditor from '@/components/base/BaseEditor.vue'
-import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import CodeDiffDisplay from '@/components/CodeDiffDisplay.vue'
 import CodeFileDisplay from '@/components/CodeFileDisplay.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
