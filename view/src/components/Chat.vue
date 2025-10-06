@@ -182,11 +182,11 @@
                     {{ editMode === 'text' ? 'SQL' : 'Text' }}
                   </Button>
 
-                  <div
-                    class="inline-flex items-center justify-center rounded-full bg-black p-2 hover:bg-gray-800"
-                  >
-                    <SendButtonWithStatus :status="sendStatus" @clicked="handleSendMessage" />
-                  </div>
+                  <SendButtonWithStatus
+                    :status="sendStatus"
+                    :disabled="isSendDisabled"
+                    @clicked="handleSendMessage"
+                  />
                 </div>
               </div>
             </div>
@@ -258,6 +258,11 @@ const sendStatus = computed(() => {
   }
   // if conversationId is set, return status
   return conversation.value?.status ?? 'clear'
+})
+
+const isSendDisabled = computed(() => {
+  const currentInput = editMode.value === 'text' ? inputText.value : inputSQL.value
+  return currentInput.trim().length === 0
 })
 
 /** The current conversation object from the store. */
@@ -382,6 +387,11 @@ const resolveTextareaElement = (): HTMLTextAreaElement | null => {
 const showSubscriptionPrompt = computed(() => conversationsStore.subscriptionRequired)
 
 const handleEnter = (event: KeyboardEvent) => {
+  if (isSendDisabled.value) {
+    event.preventDefault()
+    return
+  }
+
   if (!event.shiftKey) {
     event.preventDefault()
     handleSendMessage()
