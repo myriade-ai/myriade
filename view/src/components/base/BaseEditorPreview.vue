@@ -29,8 +29,7 @@ import { Button } from '../ui/button'
 const { fetchQuery, fetchQueryResults } = useQueryEditor()
 
 const props = defineProps({
-  queryId: String,
-  databaseId: String
+  queryId: String
 })
 
 const rows = ref([])

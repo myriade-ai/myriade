@@ -93,7 +93,6 @@ import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 const props = defineProps<{
   functionCall: FunctionCall
   queryId?: string
-  databaseSelectedId?: string | null
 }>()
 
 const argumentsNameToHide = [
