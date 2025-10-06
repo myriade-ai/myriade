@@ -30,6 +30,7 @@ async function exploreDatabase() {
    - Key relationships with other tables
    - Data freshness and update patterns if observable
    - Important business rules or constraints
+   - Relevant tags based on business domain, data sensitivity, usage patterns, and data quality characteristics
 
 Please start by exploring the database structure to understand our business context, then provide descriptions for the most important assets you identify. Focus on clarity and business value rather than technical implementation details.`
 
