@@ -122,9 +122,24 @@ class DBT:
         return bool(self.repo_path and self.database_config)
 
     def run_dbt_command(self, command: str):
-        """Run a DBT command.
+        """Run a DBT command in the repository.
+
+        This allows you to execute any dbt command like:
+        - "run" - Run all models
+        - "test" - Run all tests
+        - "run --select model_name" - Run a specific model
+        - "test --select model_name" - Test a specific model
+        - "compile" - Compile all models
+        - "build" - Run models and tests
+        - "docs generate" - Generate documentation
+        - "deps" - Install dependencies
+
         Args:
-            command: The DBT command to run. eg. "docs generate"
+            command: The DBT command to run (without 'dbt' prefix).
+                    Examples: "run", "test", "run --select my_model"
+
+        Returns:
+            Command output including success status, exit code, stdout and stderr
         """
         if not self.database_config:
             raise ValueError("Database configuration required to run DBT commands")

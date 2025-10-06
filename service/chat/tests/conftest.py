@@ -90,11 +90,14 @@ def analyst_agent(session, conversation):
 @pytest.fixture
 def analyst_agent_dbt(session, conversation):
     """Create a data analyst agent instance with a database and project"""
+    # Set DBT configuration before creating the agent
+    conversation.database.dbt_repo_path = "test"
+    conversation.database.dbt_catalog = {"sources": {}, "nodes": {}}
+    conversation.database.dbt_manifest = {"sources": {}, "nodes": {}}
+    session.flush()  # Make sure changes are persisted
+    
     agent = DataAnalystAgent(
         session=session,
         conversation=conversation,
     )
-    agent.conversation.database.dbt_repo_path = "test"
-    agent.conversation.database.dbt_catalog = {"sources": {}, "nodes": {}}
-    agent.conversation.database.dbt_manifest = {"sources": {}, "nodes": {}}
     return agent
