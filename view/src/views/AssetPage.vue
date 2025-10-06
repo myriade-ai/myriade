@@ -5,14 +5,17 @@ import { Button } from '@/components/ui/button'
 import { useCatalogStore } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import { useConversationsStore } from '@/stores/conversations'
-import { SparklesIcon } from 'lucide-vue-next'
-import { onMounted, watch } from 'vue'
+import { useDatabasesStore } from '@/stores/databases'
+import { RefreshCwIcon, SparklesIcon } from 'lucide-vue-next'
+import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const contextsStore = useContextsStore()
 const catalogStore = useCatalogStore()
 const conversationsStore = useConversationsStore()
+const databasesStore = useDatabasesStore()
 const router = useRouter()
+const isSyncing = ref(false)
 
 async function exploreDatabase() {
   const prompt = `Explore the database and help fill in descriptions for the most important assets in our data catalog. Before writing any asset descriptions, please:
@@ -51,18 +54,37 @@ Please start by exploring the database structure to understand our business cont
   }
 }
 
+async function syncDatabaseMetadata() {
+  if (!contextsStore.contextSelected) {
+    console.error('No context selected')
+    return
+  }
+
+  try {
+    isSyncing.value = true
+    const databaseId = contextsStore.getSelectedContextDatabaseId()
+
+    await databasesStore.syncDatabaseMetadata(databaseId)
+    await catalogStore.fetchAssets(contextsStore.contextSelected.id)
+  } catch (error: unknown) {
+    console.error('Error syncing database metadata:', error)
+  } finally {
+    isSyncing.value = false
+  }
+}
+
 watch(
   () => contextsStore.contextSelected,
   async (newContext, oldContext) => {
     if (newContext && newContext.id !== oldContext?.id) {
-      await catalogStore.fetchAssets(newContext.id, undefined)
+      await catalogStore.fetchAssets(newContext.id)
     }
   }
 )
 
 onMounted(async () => {
   if (contextsStore.contextSelected) {
-    await catalogStore.fetchAssets(contextsStore.contextSelected.id, undefined)
+    await catalogStore.fetchAssets(contextsStore.contextSelected.id)
   }
 })
 </script>
@@ -70,8 +92,12 @@ onMounted(async () => {
 <template>
   <PageHeader title="Catalog Assets" :subtitle="`${catalogStore.assetsArray.length} assets`">
     <template #actions>
+      <Button @click="syncDatabaseMetadata" variant="outline" :disabled="isSyncing">
+        <RefreshCwIcon class="h-4 w-4" :class="{ 'animate-spin': isSyncing }" />
+        {{ isSyncing ? 'Syncing...' : 'Sync Database' }}
+      </Button>
       <Button @click="exploreDatabase">
-        <SparklesIcon class="h-4 w-4 mr-2" />
+        <SparklesIcon class="h-4 w-4" />
         Explore & Describe Assets
       </Button>
     </template>

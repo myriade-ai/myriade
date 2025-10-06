@@ -1333,6 +1333,62 @@ def generate_dbt_documentation(database_id: UUID):
         return jsonify({"success": False, "message": str(e)}), 400
     except Exception as e:
         logger.error(f"Error generating DBT documentation: {e}")
+        return jsonify({"error": f"Failed to generate documentation: {str(e)}"}), 500
+
+
+@api.route("/databases/<uuid:database_id>/sync-metadata", methods=["POST"])
+@user_middleware
+def sync_database_metadata(database_id: UUID):
+    """Sync database metadata to catalog."""
+    database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access to this database
+    if (
+        database.ownerId != g.user.id
+        and database.organisationId != g.organization_id
+        and not database.public
+    ):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    try:
+        # Create data warehouse instance and load metadata
+        data_warehouse = database.create_data_warehouse()
+        new_metadata = data_warehouse.load_metadata()
+
+        if not new_metadata:
+            return jsonify({"error": "No metadata found"}), 400
+
+        # Get existing catalog metadata to preseve existing asset data
+        existing_catalog_meta = get_tables_metadata_from_catalog(database.id)
+
+        # Merge existing and new metadata
+        merged_metadata = merge_tables_metadata(existing_catalog_meta, new_metadata)
+
+        try:
+            result = sync_database_metadata_to_assets(database.id, merged_metadata)
+        except Exception as e:
+            logger.error(f"Error syncing metadata to catalog: {e}")
+            return jsonify({"error": f"Failed to sync metadata: {str(e)}"}), 500
+
+        g.session.flush()
+
+        # Handle case where result is a string (no metadata)
+        if isinstance(result, str):
+            return jsonify({"error": result}), 400
+
         return jsonify(
-            {"success": False, "message": "Failed to generate DBT documentation"}
-        ), 500
+            {
+                "success": True,
+                "message": "Database metadata synced successfully",
+                "synced_count": result.get("synced_count", 0),
+            }
+        )
+
+    except ConnectionError as e:
+        logger.error(f"Connection error syncing database metadata: {e}")
+        return jsonify({"error": f"Connection error: {str(e)}"}), 500
+    except Exception as e:
+        logger.error(f"Error syncing database metadata: {e}")
+        return jsonify({"error": f"Failed to sync metadata: {str(e)}"}), 500
