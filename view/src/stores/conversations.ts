@@ -1,3 +1,4 @@
+import { formatSQL } from '@/lib/utils'
 import axios from '@/plugins/axios'
 import { isConnected, socket } from '@/plugins/socket'
 import { updateCredits } from '@/stores/auth'
@@ -5,7 +6,6 @@ import { useContextsStore } from '@/stores/contexts'
 import { useQueriesStore } from '@/stores/queries'
 import type { AxiosResponse } from 'axios'
 import { defineStore } from 'pinia'
-import sqlPrettier from 'sql-prettier'
 import { computed, ref, watch } from 'vue'
 // Example "Status" constants
 export const STATUS = {
@@ -229,9 +229,7 @@ export const useConversationsStore = defineStore('conversations', () => {
 
     // e.g. prettify any SQL in functionCall.arguments.query
     if (incomingMsg?.functionCall?.arguments?.query) {
-      incomingMsg.functionCall.arguments.query = sqlPrettier.format(
-        incomingMsg.functionCall.arguments.query
-      )
+      incomingMsg.functionCall.arguments.query = formatSQL(incomingMsg.functionCall.arguments.query)
     }
 
     // Check if message already in conversation
