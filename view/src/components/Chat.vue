@@ -3,12 +3,13 @@
     <PageHeader title="Chat" subtitle="Ask questions about your data and get instant answers." />
     <div
       ref="scrollContainer"
-      class="flex justify-center px-2 sm:px-4 lg:px-0"
+      class="flex justify-center px-2 sm:px-4 lg:px-0 overflow-y-auto"
       v-touch:swipe.right="
         () => {
           if (isMobile) toggleSidebar()
         }
       "
+      style="height: calc(100vh - 4rem)"
     >
       <div class="flex flex-col w-full min-h-[calc(100vh-4rem)]">
         <div class="flex flex-col flex-1 w-full max-w-3xl m-auto">
@@ -218,7 +219,7 @@ import axios from '@/plugins/axios'
 import { user } from '@/stores/auth'
 import { useContextsStore } from '@/stores/contexts'
 import type { ComponentPublicInstance } from 'vue'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -366,7 +367,6 @@ const inputEditor = ref<any>(null)
 const inputText = ref('')
 const inputSQL = ref('')
 
-console.log('Input SQL:', inputSQL.value)
 const editMode = ref<'text' | 'SQL'>('text')
 
 const resolveTextareaElement = (): HTMLTextAreaElement | null => {
@@ -428,7 +428,9 @@ const handleSendMessage = async () => {
       // After 100ms, clear the input and scroll to bottom.
       setTimeout(() => {
         clearInput()
-        scrollToBottom()
+        // When user sends a message, they want to see the response
+        wasAtBottom = true
+        scrollToBottom(true)
       }, 100)
     } else {
       console.error('No conversation selected')
@@ -492,11 +494,119 @@ const focusInput = () => {
 
 /** END HANDLE EVENTS */
 
+// Scroll observer to handle initial page load
+let scrollTimeout: ReturnType<typeof setTimeout> | null = null
+let fallbackTimeout: ReturnType<typeof setTimeout> | null = null
+let mutationObserver: MutationObserver | null = null
+
+// Helper function to check if a message contains a query
+const messageHasQuery = (message: Message) => {
+  return (
+    message.queryId ||
+    (typeof message.content !== 'string' &&
+      message.content?.some((c: any) => c.type === 'query' && c.query_id))
+  )
+}
+
+// Generic function to setup mutation observer for scrolling after DOM updates
+const setupDOMScrollObserver = (debounceMs = 200, fallbackMs = 1000) => {
+  if (!scrollContainer.value) return
+
+  const targetNode = scrollContainer.value
+  let hasScrolled = false
+  let localScrollTimeout: ReturnType<typeof setTimeout> | null = null
+  let localFallbackTimeout: ReturnType<typeof setTimeout> | null = null
+  let localObserver: MutationObserver | null = null
+
+  const performScroll = () => {
+    if (!hasScrolled) {
+      hasScrolled = true
+      scrollToBottom(true)
+      if (localObserver) {
+        localObserver.disconnect()
+      }
+      if (localScrollTimeout) {
+        clearTimeout(localScrollTimeout)
+      }
+      if (localFallbackTimeout) {
+        clearTimeout(localFallbackTimeout)
+      }
+    }
+  }
+
+  localObserver = new MutationObserver(() => {
+    // Debounce: only scroll if no changes for specified ms
+    if (localScrollTimeout) clearTimeout(localScrollTimeout)
+    localScrollTimeout = setTimeout(performScroll, debounceMs)
+  })
+
+  // Observe the scroll container for any DOM changes
+  localObserver.observe(targetNode, {
+    childList: true,
+    subtree: true,
+    attributes: false
+  })
+
+  // Fallback: scroll after specified time even if no mutations settle
+  if (fallbackMs > 0) {
+    localFallbackTimeout = setTimeout(performScroll, fallbackMs)
+  }
+
+  return localObserver
+}
+
+// Function to setup mutation observer to detect when tables are rendered
+const setupScrollObserver = () => {
+  // Clean up existing observer and timeouts
+  if (mutationObserver) {
+    mutationObserver.disconnect()
+  }
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout)
+  }
+  if (fallbackTimeout) {
+    clearTimeout(fallbackTimeout)
+  }
+
+  if (!scrollContainer.value) return
+
+  // Check if there are any queries in visible messages that need DOM observation
+  let hasQueriesInVisibleMessages = false
+
+  messageGroups.value.forEach((group, index) => {
+    if (group.publicMessages.some(messageHasQuery)) {
+      hasQueriesInVisibleMessages = true
+    }
+
+    // Check internal messages only if they are currently visible (expanded)
+    if (internalMessageGroups.value[index]) {
+      if (group.internalMessages.some(messageHasQuery)) {
+        hasQueriesInVisibleMessages = true
+      }
+    }
+  })
+
+  // If no queries in visible messages, scroll immediately
+  if (!hasQueriesInVisibleMessages) {
+    scrollToBottom(true)
+    return
+  }
+
+  // Otherwise, setup observer for query result tables
+  mutationObserver = setupDOMScrollObserver(200, 0) || null
+}
+
 onMounted(async () => {
   // Access the underlying textarea element for focus and select
   nextTick(() => {
     resolveTextareaElement()?.focus()
   })
+
+  // Setup scroll tracking
+  if (scrollContainer.value) {
+    scrollContainer.value.addEventListener('scroll', handleScroll)
+    wasAtBottom = true // Initially consider at bottom
+  }
 
   // Check if there's a prompt query parameter and pre-fill the input
   if (route.query.prompt) {
@@ -511,18 +621,40 @@ onMounted(async () => {
     await fetchAISuggestions()
   } else {
     // Existing conversation
-    conversationsStore.fetchMessages(conversationId.value)
+    await conversationsStore.fetchMessages(conversationId.value)
+    // Initialize message count
+    previousMessageCount = conversation.value?.messages?.length || 0
+    // Setup observer to scroll once content settles (handles both queries and no queries)
+    nextTick(() => setupScrollObserver())
   }
-
-  scrollToBottom()
 })
 
-// If route changes (user navigates to a different ID)
+onBeforeUnmount(() => {
+  // Cleanup listener/observer/timeout
+  if (scrollContainer.value) {
+    scrollContainer.value.removeEventListener('scroll', handleScroll)
+  }
+
+  if (mutationObserver) {
+    mutationObserver.disconnect()
+  }
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout)
+  }
+  if (fallbackTimeout) {
+    clearTimeout(fallbackTimeout)
+  }
+})
+
 watch(
   () => conversationId.value,
-  (newVal) => {
+  async (newVal) => {
     if (newVal !== null && newVal !== undefined && newVal !== '') {
-      conversationsStore.fetchMessages(newVal)
+      await conversationsStore.fetchMessages(newVal)
+      // Reset message count when switching conversations
+      previousMessageCount = conversation.value?.messages?.length || 0
+      // Setup observer to scroll once content settles (handles both queries and no queries)
+      nextTick(() => setupScrollObserver())
     }
   }
 )
@@ -580,12 +712,64 @@ const stopQuery = async () => {
 // Reference to the scroll container to allow scrolling to bottom
 const scrollContainer = ref<HTMLDivElement | null>(null)
 
-const scrollToBottom = () => {
+const isUserAtBottom = () => {
+  if (!scrollContainer.value) return false
+  const { scrollTop, scrollHeight, clientHeight } = scrollContainer.value
+  // Consider user at bottom if within 100px of the bottom
+  return scrollHeight - scrollTop - clientHeight < 100
+}
+
+const scrollToBottom = (smooth = false) => {
   nextTick(() => {
     if (scrollContainer.value) {
-      scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight
+      scrollContainer.value.scrollTo({
+        top: scrollContainer.value.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto'
+      })
     }
   })
+}
+
+// Watch for new messages and auto-scroll if user is at bottom
+// Track previous message count to detect new messages
+let wasAtBottom = false
+let previousMessageCount = 0
+
+watch(
+  () => conversation.value?.messages,
+  (newMessages) => {
+    if (!newMessages) return
+
+    const currentMessageCount = newMessages.length
+
+    // Check if new messages were added
+    if (currentMessageCount > previousMessageCount) {
+      if (wasAtBottom) {
+        // User was at bottom, check if new messages contain queries
+        const newMessagesAdded = newMessages.slice(previousMessageCount)
+        const hasQueryInNewMessages = newMessagesAdded.some(messageHasQuery)
+
+        if (hasQueryInNewMessages) {
+          nextTick(() => {
+            setupDOMScrollObserver(200, 1000)
+          })
+        } else {
+          nextTick(() => {
+            scrollToBottom(true)
+          })
+        }
+      }
+    }
+
+    // Update the previous count for next time
+    previousMessageCount = currentMessageCount
+  },
+  { deep: true }
+)
+
+// Track scroll position to know if user is at bottom
+const handleScroll = () => {
+  wasAtBottom = isUserAtBottom()
 }
 </script>
 
