@@ -1,10 +1,10 @@
 <template>
   <div>
-    <PageHeader title="Database" subtitle="Manage your database connections and options.">
+    <PageHeader title="Connections" subtitle="Manage your database connections and options.">
       <template #actions>
         <Button @click="router.push('/setup')">
           <PlusIcon class="h-4 w-4" />
-          Add Database
+          Add Connection
         </Button>
       </template>
     </PageHeader>
