@@ -3,6 +3,7 @@ export interface CatalogAssetUpdatePayload {
   tag_ids?: string[]
   name?: string | null
   reviewed?: boolean
+  privacy?: string
 }
 
 export interface CatalogTermUpdatePayload {
