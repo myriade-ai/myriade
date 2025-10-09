@@ -85,12 +85,6 @@
             <div v-if="part.type === 'json'" :key="`json-${index}`" class="w-full overflow-x-auto">
               <DataTable :data="part.content" :count="part.content.length" class="bg-white mt-2" />
             </div>
-            <!-- TODO: remove -->
-            <Card v-if="part.type === 'echarts'" :key="`echarts-${index}`">
-              <CardContent>
-                <Echart :option="part.content" />
-              </CardContent>
-            </Card>
           </template>
 
           <div v-if="props.message.image" class="w-full">
@@ -210,7 +204,6 @@ import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import Chart from '@/components/Chart.vue'
 import DataTable from '@/components/DataTable.vue'
-import Echart from '@/components/Echart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 // Store
 import { cn } from '@/lib/utils'
@@ -318,7 +311,7 @@ function editInNewTab() {
 const parsedText = computed<
   Array<{ type: string; content: any; query_id?: string; chart_id?: string }>
 >(() => {
-  const regex = /```((?:sql|json|error|echarts))\s*([\s\S]*?)\s*```/g
+  const regex = /```((?:sql|json|error))\s*([\s\S]*?)\s*```/g
   let match
   let lastIndex = 0
   const parts: Array<{ type: string; content: any; query_id?: string; chart_id?: string }> = []
@@ -349,8 +342,6 @@ const parsedText = computed<
       content = match[2].trim()
     } else if (type === 'error') {
       content = match[2]
-    } else if (type === 'echarts') {
-      content = JSON.parse(match[2].trim())
     } else {
       throw new Error(`Unknown type ${type}`)
     }
