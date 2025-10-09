@@ -91,20 +91,26 @@ onMounted(async () => {
 </script>
 
 <template>
-  <PageHeader title="Catalog Assets" :subtitle="`${catalogStore.assetsArray.length} assets`">
-    <template #actions>
-      <Button @click="syncDatabaseMetadata" variant="outline" :disabled="isSyncing">
-        <RefreshCwIcon class="h-4 w-4" :class="{ 'animate-spin': isSyncing }" />
-        {{ isSyncing ? 'Syncing...' : 'Sync Database' }}
-      </Button>
-      <Button @click="exploreDatabase">
-        <SparklesIcon class="h-4 w-4" />
-        Explore & Describe Assets
-      </Button>
-    </template>
-  </PageHeader>
+  <div class="flex flex-col h-screen">
+    <PageHeader
+      class="flex-shrink-0"
+      title="Catalog Assets"
+      :subtitle="`${catalogStore.assetsArray.length} assets`"
+    >
+      <template #actions>
+        <Button @click="syncDatabaseMetadata" variant="outline" :disabled="isSyncing">
+          <RefreshCwIcon class="h-4 w-4" :class="{ 'animate-spin': isSyncing }" />
+          {{ isSyncing ? 'Syncing...' : 'Sync Database' }}
+        </Button>
+        <Button @click="exploreDatabase">
+          <SparklesIcon class="h-4 w-4" />
+          Explore & Describe Assets
+        </Button>
+      </template>
+    </PageHeader>
 
-  <div class="h-full px-4 py-4">
-    <CatalogAssetsView />
+    <div class="flex-1 min-h-0 h-full">
+      <CatalogAssetsView />
+    </div>
   </div>
 </template>
