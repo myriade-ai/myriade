@@ -125,10 +125,6 @@
   }
 }
 
-.h-screen {
-  height: calc(100dvh - var(--header-height, 4.1rem) - var(--anonymous-bar-height, 0px));
-}
-
 /* Prevent double-tap zoom on iOS */
 * {
   touch-action: manipulation;

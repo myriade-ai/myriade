@@ -884,7 +884,18 @@ def update_catalog_asset(asset_id: str):
     if asset.type == "TABLE" and asset.table_facet:
         asset_dict["table_facet"] = asset.table_facet.to_dict()
     elif asset.type == "COLUMN" and asset.column_facet:
-        asset_dict["column_facet"] = asset.column_facet.to_dict()
+        column_facet_dict = asset.column_facet.to_dict()
+
+        # Include parent table information for columns (same as GET endpoint)
+        if (
+            asset.column_facet.parent_table_asset
+            and asset.column_facet.parent_table_asset.table_facet
+        ):
+            column_facet_dict["parent_table_facet"] = (
+                asset.column_facet.parent_table_asset.table_facet.to_dict()
+            )
+
+        asset_dict["column_facet"] = column_facet_dict
 
     return jsonify(asset_dict)
 
