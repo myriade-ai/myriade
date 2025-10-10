@@ -104,7 +104,7 @@ version_toml = [
 build_command = """
     uv lock --upgrade-package "$PACKAGE_NAME"
     git add uv.lock
-    uv build
 """
 changelog_file = "./CHANGELOG.md"
 commit_message = "chore(release): bump version to {version}"
+major_on_zero = false
