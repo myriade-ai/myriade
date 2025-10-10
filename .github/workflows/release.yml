@@ -30,12 +30,8 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: "./service/uv.lock"
-      - name: Install semantic-release
-        run: |
-          uv pip install --system python-semantic-release
-      - name: Run Semantic Release
-        run: |
-          cd service
-          semantic-release version
-        env:
-          GH_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+      - name: Python Semantic Release
+        uses: python-semantic-release/python-semantic-release@v9.21.0
+        with:
+          github_token: ${{ secrets.PERSONAL_TOKEN }}
+          directory: ./service
