@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,10 +43,10 @@ import { useContextsStore } from '@/stores/contexts'
 import { useConversationsStore } from '@/stores/conversations'
 import {
   BookOpen,
+  Cable,
   CalendarCog,
   ChevronRight,
   ChevronsUpDown,
-  DatabaseZap,
   Edit,
   FilePenLine,
   FolderHeart,
@@ -60,7 +61,6 @@ import {
 } from 'lucide-vue-next'
 import { computed, nextTick, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 
 const navItems: { title: string; url: string; icon: typeof SquarePen; disabled?: boolean }[] = [
   {
@@ -374,7 +374,7 @@ async function handleDeleteConversation(conversationId: string) {
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
-                  <RouterLink to="/databases"> <DatabaseZap /><span>Databases</span></RouterLink>
+                  <RouterLink to="/databases"> <Cable /><span>Connections</span></RouterLink>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <RouterLink to="/privacy"> <HatGlasses /><span>Zk Protection</span></RouterLink>
