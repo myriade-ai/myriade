@@ -1,6 +1,86 @@
 # CHANGELOG
 
 
+## v0.48.0 (2025-10-10)
+
+### Bug Fixes
+
+- Add cursor pointer to button variants for better UX
+  ([#151](https://github.com/myriade-ai/myriade/pull/151),
+  [`fd26e40`](https://github.com/myriade-ai/myriade/commit/fd26e40af03a8c8a921cc19317958965a4c8f2f3))
+
+- Add pre css
+  ([`61d7932`](https://github.com/myriade-ai/myriade/commit/61d793249176afb3df142a9fe7fe0c574d1ef450))
+
+- Add pre css
+  ([`119b0a2`](https://github.com/myriade-ai/myriade/commit/119b0a2f64ed00efa8c3f67bba3925072caf1108))
+
+- Add relevant tags to asset description guidelines
+  ([#144](https://github.com/myriade-ai/myriade/pull/144),
+  [`67965a5`](https://github.com/myriade-ai/myriade/commit/67965a50c276fdf954946b8c4bb805e5eaba8f96))
+
+Co-authored-by: Benjamin <BenderV@users.noreply.github.com>
+
+- Block to send an empty message ([#150](https://github.com/myriade-ai/myriade/pull/150),
+  [`d8ef8f8`](https://github.com/myriade-ai/myriade/commit/d8ef8f83dab38a35dad01bcec8642bdcf670f19a))
+
+- Build command for semantic release
+  ([`04f808f`](https://github.com/myriade-ai/myriade/commit/04f808fdebb28a6ae2b90a1c3cd4f8570689f50b))
+
+- Ensure assets are marked as reviewed upon saving and approving
+  ([#146](https://github.com/myriade-ai/myriade/pull/146),
+  [`666053e`](https://github.com/myriade-ai/myriade/commit/666053e754802bf9d4013de7aedebc7cb2593c55))
+
+- Exclude specific function messages from display
+  ([#138](https://github.com/myriade-ai/myriade/pull/138),
+  [`f2bbfa9`](https://github.com/myriade-ai/myriade/commit/f2bbfa95b1cb4cce0dc8df968371e1a6daf5b0f2))
+
+- Remove version dependencies ([#141](https://github.com/myriade-ai/myriade/pull/141),
+  [`64687c0`](https://github.com/myriade-ai/myriade/commit/64687c049e543c1ac099e1c59e8d5335aef5d5f8))
+
+- Semantic build
+  ([`7988236`](https://github.com/myriade-ai/myriade/commit/7988236ce59e629c6a1be35346dd7e6dbfffaa8f))
+
+- Things
+  ([`94a8f78`](https://github.com/myriade-ai/myriade/commit/94a8f78237e09c8bb1e7e8dbac14db626c305e05))
+
+- Update sidebar toggle to trigger only in mobile/tablet
+  ([#147](https://github.com/myriade-ai/myriade/pull/147),
+  [`691b64b`](https://github.com/myriade-ai/myriade/commit/691b64be6fe5455e15eaede578e6cba8270325b6))
+
+- Uv.lock update after semantic release
+  ([`d58086b`](https://github.com/myriade-ai/myriade/commit/d58086b907a66d97a79a9872d9a894475cce1c5b))
+
+https://python-semantic-release.readthedocs.io/en/stable/configuration/configuration-guides/uv_integration.html
+
+### Features
+
+- Add DBT commands and update agent config ([#143](https://github.com/myriade-ai/myriade/pull/143),
+  [`a1d0f1e`](https://github.com/myriade-ai/myriade/commit/a1d0f1ecea3338f494ccf5cc1546832e5ffa48ec))
+
+Update DBT tool description and updates the agent's test configuration to include DBT settings.
+
+Co-authored-by: Cursor Agent <cursoragent@cursor.com>
+
+- Add refresh catalog assets button ([#140](https://github.com/myriade-ai/myriade/pull/140),
+  [`ecc8a72`](https://github.com/myriade-ai/myriade/commit/ecc8a72e8e98065cb08fdd10df0ed4697ce0f40d))
+
+- Make tags re-usable ([#137](https://github.com/myriade-ai/myriade/pull/137),
+  [`0c07945`](https://github.com/myriade-ai/myriade/commit/0c07945b203117b0315542f0b7957bb99d3bf8c9))
+
+* feat: add new shadcn components * feat: make tags re-usable
+
+- Show description for clicked selected elements inside explorer
+  ([#148](https://github.com/myriade-ai/myriade/pull/148),
+  [`99e8c84`](https://github.com/myriade-ai/myriade/commit/99e8c84269cfe28f3cc36d0511c732e1297f225b))
+
+### Refactoring
+
+- Replace sql-prettier with sql-formatter for SQL formatting
+  ([#149](https://github.com/myriade-ai/myriade/pull/149),
+  [`8b781c1`](https://github.com/myriade-ai/myriade/commit/8b781c1b5df8c7f9646d93ab0513e982ccdd1dd6))
+
+
 ## v0.47.2 (2025-10-01)
 
 ### Bug Fixes
