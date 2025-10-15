@@ -146,6 +146,54 @@
       />
     </div>
 
+    <!-- Oracle Fields -->
+    <div v-if="engine === 'oracle'" class="space-y-4">
+      <div class="text-sm text-gray-500" v-if="showEngineTitle">
+        <p>Oracle connection details</p>
+      </div>
+      <div :class="layout === 'grid' ? 'grid grid-cols-1' : 'space-y-4'">
+        <Field name="Host" v-model="details.host" rules="required" placeholder="localhost" />
+        <!-- Information box for IP whitelisting -->
+        <BaseNotification
+          v-if="!shouldHideNetworkConfig"
+          color="warning"
+          title="Cloud Database Network Configuration"
+          :message="`If necessary, please whitelist the following IP in your cloud-database network rules: ${serverIp}`"
+          class="bg-warning-50"
+        />
+        <Field
+          name="Port"
+          v-model="details.port"
+          type="number"
+          placeholder="1521"
+        />
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Field
+          :name="layout === 'grid' ? 'Username' : 'User'"
+          v-model="details.user"
+          :rules="userRequired ? 'required' : ''"
+          class="w-full"
+        />
+        <InputPassword name="Password" v-model="details.password" placeholder="Enter password" />
+      </div>
+      <div class="space-y-2">
+        <p class="text-sm text-gray-600">
+          Provide either Service Name (recommended) or SID:
+        </p>
+        <Field
+          name="Service Name"
+          v-model="details.service_name"
+          placeholder="ORCL (recommended)"
+        />
+        <Field
+          name="SID"
+          v-model="details.sid"
+          placeholder="Alternative to service name"
+        />
+      </div>
+    </div>
+
     <!-- Write Mode Selection -->
     <div class="p-4 bg-gray-50 rounded-lg max-w-lg" v-if="!enginesWithoutSafeMode.includes(engine)">
       <h3 class="text-sm font-medium text-gray-900">Write Operation Handling</h3>
