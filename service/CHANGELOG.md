@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.48.1 (2025-10-15)
+
+### Bug Fixes
+
+- Cannot build app
+  ([`c149650`](https://github.com/myriade-ai/myriade/commit/c14965079bf0b8d669dfeb64d0ac203aed1de950))
+
+
 ## v0.48.0 (2025-10-10)
 
 ### Bug Fixes
