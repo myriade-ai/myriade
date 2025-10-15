@@ -112,18 +112,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useProjectsStore } from '@/stores/projects'
 import PageHeader from '@/components/PageHeader.vue'
-import { useDatabasesStore, type Database, type Engine } from '@/stores/databases'
-import { PlusIcon } from '@heroicons/vue/20/solid'
 import Button from '@/components/ui/button/Button.vue'
 import Card from '@/components/ui/card/Card.vue'
+import CardDescription from '@/components/ui/card/CardDescription.vue'
 import CardHeader from '@/components/ui/card/CardHeader.vue'
 import CardTitle from '@/components/ui/card/CardTitle.vue'
-import CardDescription from '@/components/ui/card/CardDescription.vue'
 import Input from '@/components/ui/input/Input.vue'
+import { useDatabasesStore, type Database, type Engine } from '@/stores/databases'
+import { useProjectsStore } from '@/stores/projects'
+import { PlusIcon } from '@heroicons/vue/20/solid'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 interface Project {
   id: string | null
@@ -161,7 +161,8 @@ const getEngineColor = (engine: Engine) => {
     snowflake: 'bg-cyan-100 text-cyan-800',
     sqlite: 'bg-gray-100 text-gray-800',
     bigquery: 'bg-yellow-100 text-yellow-800',
-    motherduck: 'bg-purple-100 text-purple-800'
+    motherduck: 'bg-purple-100 text-purple-800',
+    oracle: 'bg-red-100 text-red-800'
   }
   return engineColors[engine] || 'bg-gray-100 text-gray-800'
 }

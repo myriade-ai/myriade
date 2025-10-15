@@ -4,7 +4,7 @@
     <div v-if="currentStep === 0" class="space-y-6">
       <DatabaseTypeSelector
         v-model="selectedEngine"
-        :included-types="['postgres', 'mysql', 'snowflake', 'bigquery', 'motherduck']"
+        :included-types="['postgres', 'mysql', 'snowflake', 'bigquery', 'motherduck', 'oracle']"
         @update:model-value="onDatabaseTypeSelected"
       />
     </div>
