@@ -499,6 +499,63 @@ class PostgresDatabase(SQLDatabase):
         super().__init__(uri, connect_args=self.connect_args)
 
 
+class OracleDatabase(SQLDatabase):
+    def __init__(self, uri):
+        # Oracle-specific connection arguments
+        self.connect_args = {
+            "encoding": "UTF-8",
+            "nencoding": "UTF-8",
+        }
+        super().__init__(uri, connect_args=self.connect_args)
+
+    def get_sample_data(
+        self, table_name: str, schema_name: str, limit: int = 10
+    ) -> dict | None:
+        """Oracle-specific implementation using DBMS_RANDOM.VALUE()"""
+        if not schema_name or not table_name:
+            return {
+                "error": ("Cannot sample data: missing schema or table information")
+            }
+
+        safe_limit = min(limit, 20)
+
+        try:
+            # Oracle uses DBMS_RANDOM.VALUE() for random sampling
+            # Note: schema_name in Oracle is typically the user/owner name
+            sample_query = f"""
+            SELECT *
+            FROM "{schema_name}"."{table_name}"
+            ORDER BY DBMS_RANDOM.VALUE()
+            FETCH FIRST {safe_limit} ROWS ONLY
+            """
+
+            # Execute the query using the database's unprotected method
+            rows = self._query_unprotected(sample_query.strip())
+
+            # Convert rows to list of dictionaries for better YAML output
+            columns = list(rows[0].keys()) if rows else []
+            sample_data = [dict(row) for row in rows[:safe_limit]]
+
+            sample_result = {
+                "sample_query": sample_query.strip(),
+                "sample_size": len(sample_data),
+                "columns": columns,
+                "data": sample_data,
+                "note": f"Sample shows first {safe_limit} rows from table",
+            }
+
+            return sample_result
+
+        except Exception as e:
+            return {
+                "error": f"Failed to sample data: {str(e)}",
+                "note": (
+                    "Data sampling failed. This may be due to database "
+                    "connectivity issues, permissions, or query syntax."
+                ),
+            }
+
+
 class SnowflakeDatabase(AbstractDatabase):
     def __init__(self, **kwargs):
         self.connection = DataWarehouseRegistry.get_snowflake_connection(kwargs)
@@ -895,5 +952,30 @@ class DataWarehouseFactory:
             return SQLDatabase("sqlite:///" + kwargs["filename"])
         elif dtype == "motherduck":
             return MotherDuckDatabase(**kwargs)
+        elif dtype == "oracle":
+            user = kwargs.get("user")
+            password = kwargs.get("password", "")
+            host = kwargs.get("host")
+            port = kwargs.get("port", "1521")
+            service_name = kwargs.get("service_name")
+            sid = kwargs.get("sid")
+
+            # URL-encode username and password to handle special characters
+            encoded_user = quote_plus(user) if user else ""
+            encoded_password = quote_plus(password) if password else ""
+
+            # Oracle can connect using either service_name or SID
+            if service_name:
+                # DSN-based connection with service_name (recommended)
+                uri = f"oracle+oracledb://{encoded_user}:{encoded_password}@{host}:{port}/?service_name={service_name}"
+            elif sid:
+                # SID-based connection (legacy)
+                uri = f"oracle+oracledb://{encoded_user}:{encoded_password}@{host}:{port}/{sid}"
+            else:
+                raise ValueError(
+                    "Either 'service_name' or 'sid' is required for Oracle connection"
+                )
+
+            return OracleDatabase(uri)
         else:
             raise ValueError(f"Unknown database type: {dtype}")

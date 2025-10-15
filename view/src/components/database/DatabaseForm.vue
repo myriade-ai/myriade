@@ -214,6 +214,8 @@ const canTestConnection = computed(() => {
       return details.project_id && details.service_account_json
     case 'motherduck':
       return details.token && details.database
+    case 'oracle':
+      return details.host && details.user && details.database
     default:
       database.engine satisfies never
       return false
