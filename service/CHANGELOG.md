@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.48.2 (2025-10-16)
+
+### Bug Fixes
+
+- Rename Database to Connetions
+  ([`d45fbab`](https://github.com/myriade-ai/myriade/commit/d45fbab03d796954e4bf7763bcd422a3c6748f56))
+
+### Refactoring
+
+- Catalog design
+  ([`4e8919c`](https://github.com/myriade-ai/myriade/commit/4e8919c190d11b139d0626d6daed8bbb7325e318))
+
+
 ## v0.48.1 (2025-10-15)
 
 ### Bug Fixes
