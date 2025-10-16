@@ -106,10 +106,6 @@ const displayInfo = computed(() => getFunctionCallDisplayInfo(props.functionCall
 
 <style scoped>
 .arguments {
-  font-family: monospace;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow-x: auto;
-  max-width: 100%;
+  @apply font-mono whitespace-pre-wrap break-words overflow-x-auto max-w-full;
 }
 </style>

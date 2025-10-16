@@ -377,19 +377,11 @@ onUnmounted(() => {
 
 <style>
 .sql-code {
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  padding: 2px 4px;
-  font-family: monospace;
-  white-space: pre-wrap;
+  @apply font-mono border border-gray-300 rounded px-1 py-0.5 whitespace-pre-wrap;
 }
 
 .arguments {
-  font-family: monospace;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow-x: auto;
-  max-width: 100%;
+  @apply font-mono whitespace-pre-wrap break-words overflow-x-auto max-w-full;
 }
 
 .message-display :deep(h1) {
@@ -417,12 +409,7 @@ onUnmounted(() => {
 }
 
 .message-display :deep(code) {
-  background-color: #f0f0f0;
-  padding: 0.2em 0.4em;
-  border-radius: 3px;
-  font-family: monospace;
-  word-break: break-all;
-  overflow-wrap: break-word;
+  @apply font-mono bg-gray-100 px-1.5 py-0.5 rounded-sm break-all overflow-wrap-anywhere;
 }
 
 .message-display :deep(pre) {
