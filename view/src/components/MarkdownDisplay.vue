@@ -72,16 +72,10 @@ const content = computed(() => {
     margin-bottom: 1rem;
   }
   code {
-    background-color: #f5f5f5;
-    padding: 0.2rem 0.4rem;
-    border-radius: 0.25rem;
-    font-family: monospace;
-    font-size: 0.875em;
+    @apply font-mono bg-gray-100 px-1.5 py-0.5 rounded text-sm;
   }
   pre code {
-    background-color: transparent;
-    padding: 0;
-    border-radius: 0;
+    @apply bg-transparent p-0 rounded-none;
   }
 }
 </style>

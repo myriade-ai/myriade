@@ -13,6 +13,9 @@
     'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
     'Segoe UI Symbol', 'Noto Color Emoji';
 
+  --font-mono:
+    'JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', 'Courier New', monospace;
+
   /* Custom Brand Colors */
   --color-primary: #027bcf;
   --color-background: white;
