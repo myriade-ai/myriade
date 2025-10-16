@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.49.1 (2025-10-16)
+
+### Bug Fixes
+
+- Improve rollback
+  ([`7da4037`](https://github.com/myriade-ai/myriade/commit/7da4037ccdc0066a838aa4c1fa5fbb51130d3f51))
+
+
 ## v0.49.0 (2025-10-16)
 
 ### Features
