@@ -304,7 +304,11 @@ class DataAnalystAgent:
             conversation=self.conversation,
         )
         self.session.add(message)
-        self.session.flush()
+        try:
+            self.session.flush()
+        except Exception:
+            self.session.rollback()
+            raise
         yield message
 
         yield from self._run_conversation()
