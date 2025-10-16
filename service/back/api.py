@@ -256,7 +256,13 @@ def update_database(database_id: UUID):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access to update this database
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     database.name = data["name"]
@@ -412,10 +418,13 @@ def get_schema(database_id: UUID):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access to this database
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -487,7 +496,13 @@ def get_project(project_id: UUID):
     )
 
     # # Verify user access
-    if project.creatorId != g.user.id and project.organisationId != g.organization_id:
+    if not (
+        project.creatorId == g.user.id
+        or (
+            project.organisationId is not None
+            and project.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     project_dict = project.to_dict()
@@ -537,7 +552,13 @@ def update_project(project_id: UUID):
         return jsonify({"error": "Project not found"}), 404
 
     # Verify user has access to update this project
-    if project.creatorId != g.user.id and project.organisationId != g.organization_id:
+    if not (
+        project.creatorId == g.user.id
+        or (
+            project.organisationId is not None
+            and project.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     # update name, description or tables
@@ -566,7 +587,13 @@ def delete_project(project_id: UUID):
         return jsonify({"error": "Project not found"}), 404
 
     # Verify user has access to delete this project
-    if project.creatorId != g.user.id and project.organisationId != g.organization_id:
+    if not (
+        project.creatorId == g.user.id
+        or (
+            project.organisationId is not None
+            and project.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     g.session.delete(project)
@@ -583,7 +610,13 @@ def update_database_privacy(database_id: UUID):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access (owner or organisation match)
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     payload = request.get_json()
@@ -610,10 +643,13 @@ def toggle_query_favorite(query_id: UUID):
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -644,10 +680,13 @@ def get_chart(chart_id: UUID):
         return jsonify({"error": "Chart not found"}), 404
 
     # Verify user has access to this chart
-    if (
-        chart.query.database.ownerId != g.user.id
-        and chart.query.database.organisationId != g.organization_id
-        and not chart.query.database.public
+    if not (
+        chart.query.database.ownerId == g.user.id
+        or (
+            chart.query.database.organisationId is not None
+            and chart.query.database.organisationId == g.organization_id
+        )
+        or chart.query.database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -672,10 +711,13 @@ def toggle_chart_favorite(chart_id: UUID):
         return jsonify({"error": "Chart not found"}), 404
 
     # Verify user has access to the chart's database via query relationship
-    if (
-        chart.query.database.ownerId != g.user.id
-        and chart.query.database.organisationId != g.organization_id
-        and not chart.query.database.public
+    if not (
+        chart.query.database.ownerId == g.user.id
+        or (
+            chart.query.database.organisationId is not None
+            and chart.query.database.organisationId == g.organization_id
+        )
+        or chart.query.database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -753,10 +795,13 @@ def get_catalog_assets(context_id):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -911,10 +956,13 @@ def get_catalog_terms(context_id):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -938,10 +986,13 @@ def create_catalog_term(context_id):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -1032,10 +1083,13 @@ def delete_catalog_term(term_id: str):
     database = g.session.query(Database).filter_by(id=term.database_id).first()
     if not database:
         return jsonify({"error": "Database not found"}), 404
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -1055,10 +1109,13 @@ def get_catalog_tags(context_id):
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -1077,10 +1134,13 @@ def create_catalog_tag(context_id):
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -1133,7 +1193,13 @@ def update_catalog_tag(tag_id: str):
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     data = request.get_json(silent=True) or {}
@@ -1180,7 +1246,13 @@ def delete_catalog_tag(tag_id: str):
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     g.session.delete(tag)
@@ -1200,10 +1272,13 @@ def get_business_entities():
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -1244,10 +1319,13 @@ def get_issues():
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -1280,7 +1358,13 @@ def validate_dbt_repository(database_id: UUID):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access to update this database
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     data = request.get_json()
@@ -1309,7 +1393,13 @@ def generate_dbt_documentation(database_id: UUID):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access to update this database
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     if not database.dbt_repo_path:
@@ -1356,10 +1446,13 @@ def sync_database_metadata(database_id: UUID):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access to this database
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Unauthorized"}), 403
 
