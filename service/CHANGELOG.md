@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## v0.49.0 (2025-10-16)
+
+### Features
+
+- Add Oracle database support
+  ([`3bb1623`](https://github.com/myriade-ai/myriade/commit/3bb1623ee5520fbfc627aac74316c11b011c6667))
+
+This commit introduces support for connecting to and interacting with Oracle databases. It includes
+  backend implementation for Oracle connections, frontend form elements for Oracle connection
+  details, and updates to the database type selectors and store.
+
+Co-authored-by: benderville <benderville@gmail.com>
+
+
 ## v0.48.2 (2025-10-16)
 
 ### Bug Fixes
