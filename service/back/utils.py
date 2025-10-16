@@ -136,7 +136,8 @@ def get_tables_metadata_from_catalog(
         return list(tables_map.values())
 
     except Exception:
-        # If catalog is not available or fails, return empty list
+        # If catalog is not available or fails, rollback and return empty list
+        db_session.rollback()
         return []
 
 
