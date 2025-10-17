@@ -15,6 +15,7 @@
       >
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="columns">Columns</TabsTrigger>
+        <TabsTrigger v-if="isTableAsset" value="preview">Preview</TabsTrigger>
       </TabsList>
       <div class="flex-1 overflow-y-auto">
         <TabsContent value="overview" class="space-y-4 px-2 py-2">
@@ -43,6 +44,10 @@
             @select-column="handleSelectColumn"
           />
         </TabsContent>
+
+        <TabsContent v-if="isTableAsset" value="preview" class="space-y-4">
+          <AssetPreviewTab :asset="asset" />
+        </TabsContent>
       </div>
     </Tabs>
   </div>
@@ -51,6 +56,7 @@
 <script setup lang="ts">
 import CatalogColumnsTab from '@/components/catalog/CatalogColumnsTab.vue'
 import AssetDescriptionEditor from '@/components/catalog/AssetDescriptionEditor.vue'
+import AssetPreviewTab from '@/components/catalog/AssetPreviewTab.vue'
 import CatalogDetailsHeader from '@/components/catalog/CatalogDetailsHeader.vue'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { computed } from 'vue'
@@ -61,7 +67,7 @@ import type { EditableDraft, ExplorerColumnNode } from './types'
 interface Props {
   asset: CatalogAsset | null
   columns: ExplorerColumnNode[]
-  activeTab: 'overview' | 'columns'
+  activeTab: 'overview' | 'columns' | 'preview'
   draft: EditableDraft
   isEditing: boolean
   isSaving: boolean
@@ -72,7 +78,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  'update:activeTab': [value: 'overview' | 'columns']
+  'update:activeTab': [value: 'overview' | 'columns' | 'preview']
   'select-column': [columnId: string]
   'start-edit': []
   'cancel-edit': []
@@ -83,6 +89,10 @@ const emit = defineEmits<{
 }>()
 
 // Computed properties that were previously passed as props
+const isTableAsset = computed(() => {
+  return props.asset?.type === 'TABLE'
+})
+
 const assetIcon = computed(() => {
   if (!props.asset) return TableIcon
   return props.asset.type === 'TABLE' ? TableIcon : Columns3
