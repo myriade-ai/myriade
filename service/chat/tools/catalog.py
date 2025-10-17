@@ -1,13 +1,19 @@
+import logging
 import uuid
 from enum import Enum
 from typing import List, Optional
 
 import yaml
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from back.data_warehouse import AbstractDatabase
+from config import DATABASE_URL
 from models import Database
 from models.catalog import Asset, AssetTag, Term
+from utils.embeddings import generate_asset_embedding
+
+logger = logging.getLogger(__name__)
 
 
 class AssetType(Enum):
@@ -125,20 +131,30 @@ class CatalogTool:
 
         return yaml.dump({"assets": results})
 
-    def search_assets(self, text: str, asset_type: Optional[str] = None) -> str:
+    def search_assets(self, text: str, asset_type: Optional[str] = None, use_vector_search: bool = True) -> str:
         """
         Search assets and terms by name, description, urn, tags, or definition.
-        The search is case-insensitive and matches partial strings.
+        Uses vector similarity search when available (PostgreSQL with pgvector),
+        falls back to text search otherwise.
         Returns first 50 matches.
         Args:
             text: Search query
             asset_type: Filter by type ("TABLE", "COLUMN", "TERM").
                        If None, searches both assets and terms
+            use_vector_search: Whether to use vector similarity search (default: True)
+                               Only works with PostgreSQL + pgvector
         """
         limit = 50
 
         assets = []
         terms = []
+
+        # Try vector search first if enabled and on PostgreSQL
+        vector_search_available = (
+            use_vector_search
+            and DATABASE_URL.startswith("postgres")
+            and self._is_vector_search_available()
+        )
 
         # Handle terms separately
         if asset_type == "TERM":
@@ -152,24 +168,35 @@ class CatalogTool:
             )
             terms = terms_query.all()
         else:
-            # Handle assets - search in name, description, urn, and tag names
-            assets_query = (
-                self.session.query(Asset)
-                .outerjoin(Asset.asset_tags)
-                .filter(Asset.database_id == self.database.id)
-                .filter(
-                    Asset.name.ilike(f"%{text}%")
-                    | Asset.description.ilike(f"%{text}%")
-                    | Asset.urn.ilike(f"%{text}%")
-                    | AssetTag.name.ilike(f"%{text}%")
+            # Use vector search if available
+            if vector_search_available:
+                try:
+                    assets = self._vector_search_assets(text, asset_type, limit)
+                    logger.info(f"Vector search returned {len(assets)} results")
+                except Exception as e:
+                    logger.warning(f"Vector search failed, falling back to text search: {e}")
+                    vector_search_available = False
+
+            # Fall back to text search if vector search not available or failed
+            if not vector_search_available:
+                # Handle assets - search in name, description, urn, and tag names
+                assets_query = (
+                    self.session.query(Asset)
+                    .outerjoin(Asset.asset_tags)
+                    .filter(Asset.database_id == self.database.id)
+                    .filter(
+                        Asset.name.ilike(f"%{text}%")
+                        | Asset.description.ilike(f"%{text}%")
+                        | Asset.urn.ilike(f"%{text}%")
+                        | AssetTag.name.ilike(f"%{text}%")
+                    )
+                    .distinct()
                 )
-                .distinct()
-            )
 
-            if asset_type:
-                assets_query = assets_query.filter(Asset.type == asset_type.upper())
+                if asset_type:
+                    assets_query = assets_query.filter(Asset.type == asset_type.upper())
 
-            assets = assets_query.limit(limit).all()
+                assets = assets_query.limit(limit).all()
 
             # If no specific asset type filter, also search terms
             if asset_type is None:
@@ -491,6 +518,21 @@ class CatalogTool:
 
         self.session.flush()
 
+        # Auto-generate embedding if description changed and vector search is available
+        if description is not None and DATABASE_URL.startswith("postgres"):
+            if self._is_vector_search_available():
+                try:
+                    embedding = generate_asset_embedding(asset.name or asset.urn, asset.description)
+                    if embedding is not None:
+                        self.session.execute(
+                            text("UPDATE asset SET embedding = :embedding WHERE id = :asset_id"),
+                            {"embedding": str(embedding), "asset_id": str(asset.id)}
+                        )
+                        self.session.flush()
+                        logger.info(f"Auto-generated embedding for asset {asset.id}")
+                except Exception as e:
+                    logger.warning(f"Failed to auto-generate embedding for asset {asset.id}: {e}")
+
         asset_label = asset.name or asset.urn or asset_id
         status_emoji = {
             "validated": "✓",
@@ -811,3 +853,161 @@ class CatalogTool:
             .filter(Asset.database_id == self.database.id)
             .all()
         )
+
+    def _is_vector_search_available(self) -> bool:
+        """Check if vector search is available (pgvector extension installed)"""
+        try:
+            result = self.session.execute(
+                text("SELECT 1 FROM pg_extension WHERE extname = 'vector'")
+            ).fetchone()
+            return result is not None
+        except Exception:
+            return False
+
+    def _vector_search_assets(
+        self, query_text: str, asset_type: Optional[str], limit: int
+    ) -> List[Asset]:
+        """
+        Search assets using vector similarity.
+        
+        Args:
+            query_text: Search query text
+            asset_type: Filter by asset type
+            limit: Maximum number of results
+            
+        Returns:
+            List of assets ordered by similarity
+        """
+        # Generate embedding for the query
+        query_embedding = generate_asset_embedding(query_text)
+        if query_embedding is None:
+            logger.warning("Failed to generate query embedding")
+            return []
+
+        # Build the query with vector similarity
+        # Using cosine distance (1 - cosine similarity)
+        sql = """
+            SELECT id, (1 - (embedding <=> :query_embedding)) as similarity
+            FROM asset
+            WHERE database_id = :database_id
+            AND embedding IS NOT NULL
+        """
+        
+        params = {
+            "query_embedding": str(query_embedding),
+            "database_id": str(self.database.id),
+        }
+        
+        if asset_type:
+            sql += " AND type = :asset_type"
+            params["asset_type"] = asset_type.upper()
+        
+        sql += " ORDER BY similarity DESC LIMIT :limit"
+        params["limit"] = limit
+        
+        # Execute query
+        result = self.session.execute(text(sql), params)
+        asset_ids = [row[0] for row in result]
+        
+        # Fetch full asset objects
+        if not asset_ids:
+            return []
+        
+        assets = (
+            self.session.query(Asset)
+            .filter(Asset.id.in_(asset_ids))
+            .all()
+        )
+        
+        # Preserve order from similarity search
+        asset_map = {str(asset.id): asset for asset in assets}
+        ordered_assets = [asset_map[str(aid)] for aid in asset_ids if str(aid) in asset_map]
+        
+        return ordered_assets
+
+    def generate_embeddings_for_asset(self, asset_id: str) -> str:
+        """
+        Generate and store embedding for a specific asset.
+        Only works with PostgreSQL + pgvector.
+        
+        Args:
+            asset_id: UUID of the asset
+            
+        Returns:
+            Status message
+        """
+        if not DATABASE_URL.startswith("postgres"):
+            return "Vector search is only available with PostgreSQL"
+        
+        if not self._is_vector_search_available():
+            return "pgvector extension is not installed. Please enable it first."
+        
+        asset = (
+            self.session.query(Asset)
+            .filter(
+                Asset.id == uuid.UUID(asset_id),
+                Asset.database_id == self.database.id,
+            )
+            .first()
+        )
+        
+        if not asset:
+            raise ValueError(f"Asset with id {asset_id} not found")
+        
+        # Generate embedding
+        embedding = generate_asset_embedding(asset.name or asset.urn, asset.description)
+        
+        if embedding is None:
+            return f"Failed to generate embedding for asset {asset.name or asset_id}"
+        
+        # Store embedding
+        self.session.execute(
+            text("UPDATE asset SET embedding = :embedding WHERE id = :asset_id"),
+            {"embedding": str(embedding), "asset_id": str(asset.id)}
+        )
+        self.session.flush()
+        
+        return f"Generated embedding for asset '{asset.name or asset.urn}'"
+
+    def generate_embeddings_for_all_assets(self) -> str:
+        """
+        Generate and store embeddings for all assets in the catalog.
+        Only works with PostgreSQL + pgvector.
+        
+        Returns:
+            Status message with count of processed assets
+        """
+        if not DATABASE_URL.startswith("postgres"):
+            return "Vector search is only available with PostgreSQL"
+        
+        if not self._is_vector_search_available():
+            return "pgvector extension is not installed. Please enable it first."
+        
+        assets = (
+            self.session.query(Asset)
+            .filter(Asset.database_id == self.database.id)
+            .all()
+        )
+        
+        success_count = 0
+        fail_count = 0
+        
+        for asset in assets:
+            embedding = generate_asset_embedding(asset.name or asset.urn, asset.description)
+            
+            if embedding is not None:
+                try:
+                    self.session.execute(
+                        text("UPDATE asset SET embedding = :embedding WHERE id = :asset_id"),
+                        {"embedding": str(embedding), "asset_id": str(asset.id)}
+                    )
+                    success_count += 1
+                except Exception as e:
+                    logger.error(f"Failed to store embedding for asset {asset.id}: {e}")
+                    fail_count += 1
+            else:
+                fail_count += 1
+        
+        self.session.flush()
+        
+        return f"Generated embeddings for {success_count} assets ({fail_count} failed)"
