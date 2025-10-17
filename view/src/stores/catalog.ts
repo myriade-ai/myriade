@@ -1,4 +1,5 @@
 import axios from '@/plugins/axios'
+import { socket } from '@/plugins/socket'
 import { useContextsStore } from '@/stores/contexts'
 import type { CatalogAssetUpdatePayload, CatalogTermUpdatePayload } from '@/types/catalog'
 import type { AxiosResponse } from 'axios'
@@ -409,6 +410,163 @@ export const useCatalogStore = defineStore('catalog', () => {
       throw err
     }
   }
+
+  // ——————————————————————————————————————————————————
+  // REAL-TIME UPDATES VIA SOCKET.IO
+  // ——————————————————————————————————————————————————
+
+  // Setup Socket.IO listeners for real-time catalog updates
+  const setupSocketListeners = () => {
+    // Asset updated
+    socket.on('catalog:asset:updated', (data: { asset: CatalogAsset; database_id: string }) => {
+      const currentContext = contextsStore.contextSelected
+      if (!currentContext) return
+
+      // Extract database_id from context
+      const contextDatabaseId = currentContext.id.startsWith('database-')
+        ? currentContext.id.replace('database-', '')
+        : currentContext.id.startsWith('project-')
+          ? currentContext.database?.id
+          : null
+
+      // Only update if the event is for the current context's database
+      if (contextDatabaseId === data.database_id) {
+        assets.value[data.asset.id] = data.asset
+      }
+    })
+
+    // Term created
+    socket.on('catalog:term:created', (data: { term: CatalogTerm; database_id: string }) => {
+      const currentContext = contextsStore.contextSelected
+      if (!currentContext) return
+
+      const contextDatabaseId = currentContext.id.startsWith('database-')
+        ? currentContext.id.replace('database-', '')
+        : currentContext.id.startsWith('project-')
+          ? currentContext.database?.id
+          : null
+
+      if (contextDatabaseId === data.database_id) {
+        terms.value[data.term.id] = data.term
+      }
+    })
+
+    // Term updated
+    socket.on('catalog:term:updated', (data: { term: CatalogTerm; database_id: string }) => {
+      const currentContext = contextsStore.contextSelected
+      if (!currentContext) return
+
+      const contextDatabaseId = currentContext.id.startsWith('database-')
+        ? currentContext.id.replace('database-', '')
+        : currentContext.id.startsWith('project-')
+          ? currentContext.database?.id
+          : null
+
+      if (contextDatabaseId === data.database_id) {
+        terms.value[data.term.id] = data.term
+      }
+    })
+
+    // Term deleted
+    socket.on('catalog:term:deleted', (data: { term_id: string; database_id: string }) => {
+      const currentContext = contextsStore.contextSelected
+      if (!currentContext) return
+
+      const contextDatabaseId = currentContext.id.startsWith('database-')
+        ? currentContext.id.replace('database-', '')
+        : currentContext.id.startsWith('project-')
+          ? currentContext.database?.id
+          : null
+
+      if (contextDatabaseId === data.database_id) {
+        delete terms.value[data.term_id]
+      }
+    })
+
+    // Tag created
+    socket.on('catalog:tag:created', (data: { tag: AssetTag; database_id: string }) => {
+      const currentContext = contextsStore.contextSelected
+      if (!currentContext) return
+
+      const contextDatabaseId = currentContext.id.startsWith('database-')
+        ? currentContext.id.replace('database-', '')
+        : currentContext.id.startsWith('project-')
+          ? currentContext.database?.id
+          : null
+
+      if (contextDatabaseId === data.database_id) {
+        tags.value[data.tag.id] = data.tag
+      }
+    })
+
+    // Tag updated
+    socket.on('catalog:tag:updated', (data: { tag: AssetTag; database_id: string }) => {
+      const currentContext = contextsStore.contextSelected
+      if (!currentContext) return
+
+      const contextDatabaseId = currentContext.id.startsWith('database-')
+        ? currentContext.id.replace('database-', '')
+        : currentContext.id.startsWith('project-')
+          ? currentContext.database?.id
+          : null
+
+      if (contextDatabaseId === data.database_id) {
+        tags.value[data.tag.id] = data.tag
+      }
+    })
+
+    // Tag deleted
+    socket.on('catalog:tag:deleted', (data: { tag_id: string; database_id: string }) => {
+      const currentContext = contextsStore.contextSelected
+      if (!currentContext) return
+
+      const contextDatabaseId = currentContext.id.startsWith('database-')
+        ? currentContext.id.replace('database-', '')
+        : currentContext.id.startsWith('project-')
+          ? currentContext.database?.id
+          : null
+
+      if (contextDatabaseId === data.database_id) {
+        delete tags.value[data.tag_id]
+
+        // Also remove this tag from all assets
+        Object.values(assets.value).forEach((asset) => {
+          if (asset.tags) {
+            asset.tags = asset.tags.filter((tag) => tag.id !== data.tag_id)
+          }
+        })
+      }
+    })
+
+    // Metadata synced - full catalog refresh needed
+    socket.on(
+      'catalog:metadata:synced',
+      (data: { database_id: string; synced_count: number }) => {
+        const currentContext = contextsStore.contextSelected
+        if (!currentContext) return
+
+        const contextDatabaseId = currentContext.id.startsWith('database-')
+          ? currentContext.id.replace('database-', '')
+          : currentContext.id.startsWith('project-')
+            ? currentContext.database?.id
+            : null
+
+        if (contextDatabaseId === data.database_id) {
+          // Clear and reload all catalog data
+          assets.value = {}
+          terms.value = {}
+
+          // Refetch all data
+          fetchAssets(currentContext.id)
+          fetchTerms(currentContext.id)
+          fetchTags(currentContext.id)
+        }
+      }
+    )
+  }
+
+  // Initialize socket listeners
+  setupSocketListeners()
 
   // ——————————————————————————————————————————————————
   // RETURN
