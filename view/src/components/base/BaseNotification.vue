@@ -88,7 +88,6 @@ const iconComponent = computed(() => {
 const emits = defineEmits(['close'])
 
 const handleClose = () => {
-  console.log('handleClose')
   emits('close')
 }
 </script>

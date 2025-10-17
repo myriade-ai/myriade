@@ -161,12 +161,7 @@
           :message="`If necessary, please whitelist the following IP in your cloud-database network rules: ${serverIp}`"
           class="bg-warning-50"
         />
-        <Field
-          name="Port"
-          v-model="details.port"
-          type="number"
-          placeholder="1521"
-        />
+        <Field name="Port" v-model="details.port" type="number" placeholder="1521" />
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field
@@ -178,19 +173,13 @@
         <InputPassword name="Password" v-model="details.password" placeholder="Enter password" />
       </div>
       <div class="space-y-2">
-        <p class="text-sm text-gray-600">
-          Provide either Service Name (recommended) or SID:
-        </p>
+        <p class="text-sm text-gray-600">Provide either Service Name (recommended) or SID:</p>
         <Field
           name="Service Name"
           v-model="details.service_name"
           placeholder="ORCL (recommended)"
         />
-        <Field
-          name="SID"
-          v-model="details.sid"
-          placeholder="Alternative to service name"
-        />
+        <Field name="SID" v-model="details.sid" placeholder="Alternative to service name" />
       </div>
     </div>
 

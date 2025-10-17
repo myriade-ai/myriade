@@ -23,7 +23,7 @@
         <Badge
           v-for="badge in badges"
           :key="badge.id"
-          variant="outline"
+          variant="secondary"
           class="text-[10px]"
           :title="badge.description || undefined"
         >

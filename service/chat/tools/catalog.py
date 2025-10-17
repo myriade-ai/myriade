@@ -89,7 +89,7 @@ class CatalogTool:
                     "urn": asset.urn,
                     "name": asset.name,
                     "type": asset.type,
-                    "reviewed": asset.reviewed,
+                    "status": asset.status or None,
                     "description": (
                         asset.description[:100] + "..."
                         if asset.description and len(asset.description) > 100
@@ -191,7 +191,7 @@ class CatalogTool:
                     "urn": asset.urn,
                     "name": asset.name,
                     "type": asset.type,
-                    "reviewed": asset.reviewed,
+                    "status": asset.status or None,
                     "description": (
                         asset.description[:200] + "..."
                         if asset.description and len(asset.description) > 200
@@ -209,7 +209,6 @@ class CatalogTool:
                     "id": str(term.id),
                     "name": term.name,
                     "type": "TERM",
-                    "reviewed": term.reviewed,
                     "description": (
                         term.definition[:200] + "..."
                         if term.definition and len(term.definition) > 200
@@ -256,9 +255,15 @@ class CatalogTool:
                 }
                 for tag in asset.asset_tags
             ],
-            "reviewed": asset.reviewed,
+            "status": asset.status or None,
             "created_at": asset.createdAt.isoformat(),
         }
+
+        # Add AI metadata if present
+        if asset.ai_suggestion:
+            result["ai_suggestion"] = asset.ai_suggestion
+        if asset.ai_flag_reason:
+            result["ai_flag_reason"] = asset.ai_flag_reason
 
         # Add type-specific details
         if asset.type == "TABLE" and asset.table_facet:
@@ -315,7 +320,6 @@ class CatalogTool:
             "definition": term.definition,
             "synonyms": term.synonyms,
             "business_domains": term.business_domains,
-            "reviewed": term.reviewed,
             "created_at": term.createdAt.isoformat(),
         }
 
@@ -326,15 +330,44 @@ class CatalogTool:
         asset_id: str,
         description: Optional[str] = None,
         tag_ids: Optional[list] = None,
+        suggested_tags: Optional[list] = None,
+        status: Optional[str] = None,
+        flag_reason: Optional[str] = None,
     ) -> str:
         """
-        Update properties of a catalog asset
+        Update properties of a catalog asset with AI validation workflow
         Args:
             asset_id: UUID of the asset to update
             description: New description for the asset
             tag_ids: List of tag IDs to associate with the asset. Can be:
                      - List of tag UUIDs (strings)
                      - List of tag names (will auto-create if needed)
+                     Use when you're confident about the tags
+            suggested_tags: List of EXISTING tag names for AI review (strings only).
+                           IMPORTANT: Tags MUST already exist in the catalog.
+                           These are stored for user approval, not immediately linked.
+                           When using suggested_tags, the description is also stored as
+                           ai_suggestion (not applied directly).
+            status: Asset status to set. Valid values:
+                    - "published_by_ai": AI-generated, high confidence
+                    - "needs_review": Needs quick human confirmation
+                    - "requires_validation": Needs significant human input
+                    - "human_authored": Validating existing human description
+            flag_reason: User-facing explanation of what needs confirmation or
+                         clarification. REQUIRED when status is "needs_review" or
+                         "requires_validation".
+                         Should explain WHAT you need confirmed, not WHAT you did.
+                         Examples:
+                         - "Want to confirm if duplicate IDs are expected behavior"
+                         - "Unclear if this table is for reporting or operational use"
+
+        Workflow:
+        - If status is "needs_review" or "requires_validation":
+          * Description stored as ai_suggestion for review
+          * flag_reason MUST be provided
+        - If status is "published_by_ai" or "human_authored":
+          * Description applied directly
+        - If using suggested_tags without explicit status → defaults to needs_review
         """
         asset = (
             self.session.query(Asset)
@@ -348,11 +381,71 @@ class CatalogTool:
         if not asset:
             raise ValueError(f"Asset with id {asset_id} not found")
 
-        if description is not None:
-            if isinstance(description, str):
-                asset.description = description.strip()
-            else:
-                asset.description = None
+        has_existing_description = bool(asset.description and asset.description.strip())
+        is_providing_tag_suggestions = (
+            suggested_tags is not None and len(suggested_tags) > 0
+        )
+
+        # Validate status parameter
+        valid_statuses = [
+            "published_by_ai",
+            "needs_review",
+            "requires_validation",
+            "human_authored",
+        ]
+        if status is not None and status not in valid_statuses:
+            raise ValueError(
+                f"Invalid status '{status}'. Must be one of: {valid_statuses}"
+            )
+
+        # Require flag_reason for review statuses
+        if status in ["needs_review", "requires_validation"] and not flag_reason:
+            raise ValueError(f"flag_reason is required when status is '{status}'")
+
+        # Determine how to handle the update based on status
+        if status in ["needs_review", "requires_validation"]:
+            # Store description as suggestion for human review
+            asset.status = status
+            asset.ai_flag_reason = flag_reason
+            if description:
+                asset.ai_suggestion = description.strip()
+            # Store suggested tags for review
+            if suggested_tags is not None:
+                asset.ai_suggested_tags = self._validate_suggested_tags(suggested_tags)
+
+        elif status in ["published_by_ai", "human_authored"]:
+            # Apply description directly
+            asset.status = status
+            asset.ai_flag_reason = None
+            if description is not None:
+                if isinstance(description, str):
+                    asset.description = description.strip()
+                else:
+                    asset.description = None
+
+        elif is_providing_tag_suggestions:
+            # Using suggested_tags without explicit status → default to needs_review
+            asset.status = "needs_review"
+            asset.ai_flag_reason = flag_reason or "AI suggested tags for review"
+            if description:
+                asset.ai_suggestion = description.strip()
+            if suggested_tags is not None:
+                asset.ai_suggested_tags = self._validate_suggested_tags(suggested_tags)
+
+        else:
+            # No explicit status and no suggested_tags - infer from context
+            if description is not None:
+                if isinstance(description, str):
+                    asset.description = description.strip()
+                else:
+                    asset.description = None
+
+            # Auto-determine status if not provided
+            if has_existing_description and description:
+                asset.status = "human_authored"
+            elif description:
+                asset.status = "published_by_ai"
+                asset.ai_flag_reason = None
 
         if tag_ids is not None:
             # Clear existing tag associations
@@ -396,15 +489,21 @@ class CatalogTool:
                 if tag:
                     asset.asset_tags.append(tag)
 
-        # Assets created by AI are saved with reviewed=False initially
-        # They will be marked as reviewed=True when user approves via REST API
-        asset.reviewed = False
-
         self.session.flush()
 
         asset_label = asset.name or asset.urn or asset_id
+        status_emoji = {
+            "validated": "✓",
+            "human_authored": "✍️",
+            "published_by_ai": "🤖",
+            "needs_review": "⚠️",
+            "requires_validation": "📝",
+            None: "⭕",
+        }.get(asset.status, "")
 
-        return f"Updated asset '{asset_label}'"
+        status_label = asset.status or "uncategorized"
+
+        return f"Updated asset '{asset_label}' ({status_emoji} {status_label})"
 
     def upsert_term(
         self,
@@ -474,13 +573,11 @@ class CatalogTool:
             ):
                 return f"No updates needed for term '{name}'"
 
-            # Terms created by AI are saved with reviewed=False initially
             # They will be marked as reviewed=True when user approves via REST API
             existing_term.name = next_name
             existing_term.definition = next_definition
             existing_term.synonyms = next_synonyms
             existing_term.business_domains = next_business_domains
-            existing_term.reviewed = False
 
             self.session.flush()
 
@@ -495,14 +592,12 @@ class CatalogTool:
             "business_domains": list(business_domains or []),
         }
 
-        # Terms created by AI are saved with reviewed=False initially
         new_term = Term(
             name=proposed_state["name"],
             definition=proposed_state["definition"],
             database_id=self.database.id,
             synonyms=proposed_state["synonyms"],
             business_domains=proposed_state["business_domains"],
-            reviewed=False,
         )
 
         self.session.add(new_term)
@@ -650,6 +745,58 @@ class CatalogTool:
         }
 
         return yaml.dump(result)
+
+    def _validate_suggested_tags(self, suggested_tags: list) -> List[str]:
+        """
+        Validate that suggested tags exist in the database
+        Args:
+            suggested_tags: List of tag names (strings)
+        Returns:
+            List of validated tag names
+        Raises:
+            ValueError: If any suggested tag doesn't exist in the database
+        """
+        if not suggested_tags:
+            return []
+
+        # Filter out empty strings
+        tag_names = [tag.strip() for tag in suggested_tags if tag and tag.strip()]
+
+        if not tag_names:
+            return []
+
+        # Get all existing tags for this database
+        existing_tags = (
+            self.session.query(AssetTag)
+            .filter(AssetTag.database_id == self.database.id)
+            .all()
+        )
+        existing_tag_names_lower = {tag.name.lower(): tag.name for tag in existing_tags}
+
+        # Validate each suggested tag exists
+        validated_names = []
+        non_existent_tags = []
+
+        for tag_name in tag_names:
+            tag_name_lower = tag_name.lower()
+            if tag_name_lower in existing_tag_names_lower:
+                validated_names.append(existing_tag_names_lower[tag_name_lower])
+            else:
+                non_existent_tags.append(tag_name)
+
+        # Raise error if any tags don't exist
+        if non_existent_tags:
+            available_tags = [tag.name for tag in existing_tags[:20]]
+            error_msg = (
+                f"Cannot suggest non-existent tags: {non_existent_tags}. "
+                f"Available tags for this database: {available_tags}"
+                + (" (showing first 20)" if len(existing_tags) > 20 else "")
+                + ". Please use create_tags() to create new tags first, "
+                "or select from existing tags."
+            )
+            raise ValueError(error_msg)
+
+        return validated_names
 
     def _get_terms_summary(self) -> List[Term]:
         """Get summary of terms for context"""

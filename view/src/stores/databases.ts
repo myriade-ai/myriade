@@ -4,7 +4,14 @@ import type { AssetTag } from '@/stores/catalog'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
-export type Engine = 'postgres' | 'mysql' | 'snowflake' | 'sqlite' | 'bigquery' | 'motherduck' | 'oracle'
+export type Engine =
+  | 'postgres'
+  | 'mysql'
+  | 'snowflake'
+  | 'sqlite'
+  | 'bigquery'
+  | 'motherduck'
+  | 'oracle'
 export type WriteMode = 'read-only' | 'confirmation' | 'skip-confirmation'
 
 export interface Database {

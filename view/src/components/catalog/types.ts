@@ -4,7 +4,6 @@ export interface ExplorerColumnNode {
   asset: CatalogAsset
   label: string
   meta: string
-  score: number
 }
 
 export interface EditableDraft {

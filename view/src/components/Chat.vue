@@ -366,7 +366,6 @@ const inputEditor = ref<any>(null)
 const inputText = ref('')
 const inputSQL = ref('')
 
-console.log('Input SQL:', inputSQL.value)
 const editMode = ref<'text' | 'SQL'>('text')
 
 const resolveTextareaElement = (): HTMLTextAreaElement | null => {

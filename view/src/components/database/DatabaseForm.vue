@@ -232,7 +232,6 @@ onMounted(async () => {
   if (props.databaseId) {
     const selectedDatabase = await databasesStore.getDatabaseById(props.databaseId)
     Object.assign(database, selectedDatabase)
-    console.log('database', database)
   }
 })
 

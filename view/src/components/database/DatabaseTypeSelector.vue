@@ -69,7 +69,15 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   showTitle: true,
-  includedTypes: () => ['postgres', 'mysql', 'snowflake', 'sqlite', 'bigquery', 'motherduck', 'oracle']
+  includedTypes: () => [
+    'postgres',
+    'mysql',
+    'snowflake',
+    'sqlite',
+    'bigquery',
+    'motherduck',
+    'oracle'
+  ]
 })
 
 const emit = defineEmits<{

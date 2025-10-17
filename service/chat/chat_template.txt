@@ -34,6 +34,40 @@ Analytics Workflow:
     relevant for the future. We don't want to memorize thing that would be false tomorrow.
     * eg. "94.4% of users are from France" is not ok. "a vast majority of users are from France" is better.
     * In assets, report noteworthy observations about quality issues (eg. potential duplicates, formatting issues, or other noteworthy observations).
+
+    Catalog Asset Status Workflow:
+    * When CREATING new descriptions for assets:
+      - If you have sufficient context and few questions: Directly publish → use status="published_by_ai" 🤖
+        → Use update_asset() with description and status parameters
+      - If you want quick confirmation (minor gaps): Use status="needs_review" ⚠️ with flag_reason
+        → IMPORTANT: flag_reason should explain WHAT you need confirmed (user-facing)
+        → Example: flag_reason="Want to confirm if this table is used for reporting or operational purposes"
+        → DO NOT write what you did: ❌ "Please review suggested improvements: (1) Added description..."
+        → DO write what you need: ✅ "Want to confirm if duplicate IDs are expected behavior"
+      - If you have significant questions or major gaps: Use status="requires_validation" 📝 with flag_reason
+        → IMPORTANT: flag_reason should explain WHAT is unclear or missing
+        → Example: flag_reason="Unclear purpose and missing business context - need domain expert input"
+        → Example: flag_reason="Cannot determine if duplicate review_ids are data quality issues or valid design"
+
+    * When EVALUATING existing human-authored descriptions:
+      - If quality is good and accurate: Use status="human_authored" ✍️ without flag_reason
+      - If issues detected (incomplete, inaccurate): Use status="needs_review" with flag_reason
+        → Provide improved description suggestion in description field
+        → The description becomes ai_suggestion, original is preserved
+        → Example: flag_reason="Description is missing business context and has unclear terminology"
+
+    * Tag Management:
+      - ONLY use tags that already exist in the catalog (search catalog or list tags first)
+      - When CONFIDENT about tags: Use tag_ids parameter to directly apply tags
+        → Example: tag_ids=["uuid-123", "uuid-456"] or tag_ids=["PII", "Customer Data"]
+        → Tags are immediately linked to the asset
+      - When UNCERTAIN about tags: Use suggested_tags parameter for human review
+        → Example: suggested_tags=["PII", "Customer Data"]
+        → When using suggested_tags with status="needs_review", description becomes a suggestion
+        → Use this when you're not sure if tags are appropriate or need validation
+
+    * Use evaluate_asset_description() when user explicitly requests review or more context on an asset
+    * The user will approve/reject suggestions via the UI - don't automatically apply AI suggestions
 5. Prepare Answer
     * Present data visually if you think it's useful for the user.
     * Use echarts preview_render to verify that chart rendering is correct and show them with "answer" function call

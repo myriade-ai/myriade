@@ -950,7 +950,7 @@
       }),
     }),
     dict({
-      'description': 'Update properties of a catalog asset',
+      'description': 'Update properties of a catalog asset with AI validation workflow',
       'name': 'CatalogTool-catalog__update_asset',
       'parameters': dict({
         'properties': dict({
@@ -971,6 +971,47 @@
             'default': None,
             'description': 'New description for the asset',
             'title': 'Description',
+          }),
+          'flag_reason': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'User-facing explanation of what needs confirmation or',
+            'title': 'Flag Reason',
+          }),
+          'status': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Asset status to set. Valid values:',
+            'title': 'Status',
+          }),
+          'suggested_tags': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'List of EXISTING tag names for AI review (strings only).',
+            'title': 'Suggested Tags',
           }),
           'tag_ids': dict({
             'anyOf': list([
@@ -2459,7 +2500,7 @@
       }),
     }),
     dict({
-      'description': 'Update properties of a catalog asset',
+      'description': 'Update properties of a catalog asset with AI validation workflow',
       'name': 'CatalogTool-catalog__update_asset',
       'parameters': dict({
         'properties': dict({
@@ -2480,6 +2521,47 @@
             'default': None,
             'description': 'New description for the asset',
             'title': 'Description',
+          }),
+          'flag_reason': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'User-facing explanation of what needs confirmation or',
+            'title': 'Flag Reason',
+          }),
+          'status': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Asset status to set. Valid values:',
+            'title': 'Status',
+          }),
+          'suggested_tags': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'List of EXISTING tag names for AI review (strings only).',
+            'title': 'Suggested Tags',
           }),
           'tag_ids': dict({
             'anyOf': list([

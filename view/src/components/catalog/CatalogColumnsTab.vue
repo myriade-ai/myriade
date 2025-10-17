@@ -41,6 +41,9 @@
             </div>
           </div>
         </div>
+        <div class="flex-shrink-0">
+          <AssetBadgeStatus :status="column.asset.status" badge-class="text-xs" />
+        </div>
       </div>
     </div>
   </div>
@@ -54,6 +57,7 @@
 
 <script setup lang="ts">
 import { Badge } from '@/components/ui/badge'
+import AssetBadgeStatus from '@/components/AssetBadgeStatus.vue'
 import type { ExplorerColumnNode } from './types'
 
 interface Props {
