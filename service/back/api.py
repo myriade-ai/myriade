@@ -1035,58 +1035,36 @@ def get_asset_preview(asset_id: str):
     ):
         return jsonify({"error": "Access denied"}), 403
 
-    # Build the query to fetch ~10 random rows
+    # Get table details
     schema = asset.table_facet.schema
     table_name = asset.table_facet.table_name
 
     if not table_name:
         return jsonify({"error": "Table name not found"}), 400
 
-    # Get limit from query params (default 10, max 50)
-    limit = min(int(request.args.get("limit", 10)), 50)
+    # Get limit from query params (default 10, max 20)
+    limit = min(int(request.args.get("limit", 10)), 20)
 
-    # Build qualified table name
-    if schema:
-        qualified_table = f"{schema}.{table_name}"
-    else:
-        qualified_table = table_name
-
-    # Different databases have different RANDOM() syntax
-    # Try to determine the database type and use appropriate syntax
     try:
         dw = DataWarehouseFactory.create(
             database,
             tables_metadata=get_tables_metadata_from_catalog(g.session, database.id),
         )
 
-        # Determine the random function based on database type
-        db_type = database.type.lower() if database.type else "unknown"
+        # Use the data warehouse's get_sample_data method
+        sample_result = dw.get_sample_data(table_name, schema or "", limit)
 
-        if db_type in ["postgresql", "postgres"]:
-            random_func = "RANDOM()"
-        elif db_type in ["mysql", "mariadb"]:
-            random_func = "RAND()"
-        elif db_type in ["bigquery"]:
-            random_func = "RAND()"
-        elif db_type in ["snowflake"]:
-            random_func = "RANDOM()"
-        elif db_type in ["redshift"]:
-            random_func = "RANDOM()"
-        elif db_type in ["sqlite"]:
-            random_func = "RANDOM()"
-        else:
-            # Default to RANDOM() for unknown types
-            random_func = "RANDOM()"
+        if not sample_result:
+            return jsonify({"error": "No sample data available"}), 404
 
-        # Construct the preview query
-        preview_query = (
-            f"SELECT * FROM {qualified_table} ORDER BY {random_func} LIMIT {limit}"
+        # Check for error in result
+        if "error" in sample_result:
+            return jsonify({"error": sample_result["error"]}), 500
+
+        # Return the data in a format compatible with the frontend
+        return jsonify(
+            {"rows": sample_result["data"], "count": sample_result["sample_size"]}
         )
-
-        # Execute query with privacy handling
-        rows = dw.query(preview_query, role="human")
-
-        return jsonify({"rows": rows, "count": len(rows)})
 
     except ConnectionError as e:
         return jsonify({"error": f"Connection error: {str(e)}"}), 500
