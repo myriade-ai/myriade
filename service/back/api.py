@@ -997,6 +997,88 @@ def update_catalog_asset(asset_id: str):
     return jsonify(asset_dict)
 
 
+@api.route("/catalogs/assets/<string:asset_id>/preview", methods=["GET"])
+@user_middleware
+def get_asset_preview(asset_id: str):
+    """Get preview data (~10 random rows) for a table asset"""
+
+    try:
+        asset_uuid = UUID(asset_id)
+    except ValueError:
+        return jsonify({"error": "Invalid asset id"}), 400
+
+    asset = (
+        g.session.query(Asset)
+        .filter(Asset.id == asset_uuid)
+        .options(joinedload(Asset.table_facet))
+        .first()
+    )
+
+    if not asset:
+        return jsonify({"error": "Asset not found"}), 404
+
+    # Only support table assets
+    if asset.type != "TABLE":
+        return jsonify({"error": "Preview only available for table assets"}), 400
+
+    if not asset.table_facet:
+        return jsonify({"error": "Table facet not found"}), 404
+
+    # Get database and verify access
+    database = g.session.query(Database).filter_by(id=asset.database_id).first()
+
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    # Get table details
+    schema = asset.table_facet.schema
+    table_name = asset.table_facet.table_name
+
+    if not table_name:
+        return jsonify({"error": "Table name not found"}), 400
+
+    # Get limit from query params (default 10, max 20)
+    limit = min(int(request.args.get("limit", 10)), 20)
+
+    try:
+        dw = DataWarehouseFactory.create(
+            database.engine,
+            **database.details,
+        )
+
+        # Use the data warehouse's get_sample_data method
+        sample_result = dw.get_sample_data(table_name, schema, limit)
+
+        if not sample_result:
+            return jsonify({"error": "No sample data available"}), 404
+
+        # Check for error in result
+        if "error" in sample_result:
+            return jsonify({"error": sample_result["error"]}), 500
+
+        # Return the data in a format compatible with the frontend
+        return jsonify(
+            {"rows": sample_result["data"], "count": sample_result["sample_size"]}
+        )
+
+    except ConnectionError as e:
+        return jsonify({"error": f"Connection error: {str(e)}"}), 500
+    except Exception as e:
+        logger.error(f"Error fetching preview data: {str(e)}")
+        return jsonify({"error": f"Failed to fetch preview data: {str(e)}"}), 500
+
+
 @api.route("/catalogs/<string:context_id>/terms", methods=["GET"])
 @user_middleware
 def get_catalog_terms(context_id):
