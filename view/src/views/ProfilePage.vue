@@ -81,6 +81,9 @@
         </div>
       </div>
 
+      <!-- Organization Settings (if in organization) -->
+      <OrganizationSettings v-if="user.inOrganization" class="mb-6" />
+
       <!-- Profile Details Card -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
@@ -155,6 +158,7 @@
 <script setup lang="ts">
 import { fetchUser, logout, user } from '@/stores/auth'
 import { onMounted } from 'vue'
+import OrganizationSettings from '@/components/OrganizationSettings.vue'
 
 onMounted(async () => {
   await fetchUser()

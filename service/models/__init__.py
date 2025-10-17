@@ -127,6 +127,7 @@ class Organisation(SerializerMixin, DefaultBase, Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    language: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     projects: Mapped[List["Project"]] = relationship(
         "Project",

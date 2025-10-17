@@ -327,8 +327,14 @@ def get_databases():
 @api.route("/contexts/<string:context_id>/questions", methods=["GET"])
 @user_middleware
 def get_questions(context_id):
-    # Get the preferred language from Accept-Language header
-    user_language = request.headers.get("Accept-Language")
+    """Get the preferred language: organization language
+    takes precedence over user language
+    """
+    user_language = (
+        g.organisation.language
+        if g.organisation and g.organisation.language
+        else request.headers.get("Accept-Language")
+    )
 
     # context is "project-{projectId}" or "database-{databaseId}"
     database_id, project_id = extract_context(g.session, context_id)
@@ -1542,3 +1548,33 @@ def sync_database_metadata(database_id: UUID):
     except Exception as e:
         logger.error(f"Error syncing database metadata: {e}")
         return jsonify({"error": f"Failed to sync metadata: {str(e)}"}), 500
+
+
+@api.route("/organisation", methods=["GET"])
+@user_middleware
+def get_organisation():
+    """Get organisation information for the current user."""
+    if not g.organisation:
+        return jsonify({"error": "No organisation found"}), 404
+
+    return jsonify(g.organisation.to_dict())
+
+
+@api.route("/organisation", methods=["PATCH"])
+@user_middleware
+@admin_required
+def update_organisation():
+    """Update organisation settings. Admin only."""
+    if not g.organisation:
+        return jsonify({"error": "No organisation found"}), 404
+
+    data = request.json
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    # Only allow updating language for now
+    if "language" in data:
+        g.organisation.language = data["language"]
+        g.session.flush()
+
+    return jsonify(g.organisation.to_dict())
