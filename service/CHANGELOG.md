@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.50.0 (2025-10-17)
+
+### Features
+
+- Add catalog validation ([#159](https://github.com/myriade-ai/myriade/pull/159),
+  [`b1319c0`](https://github.com/myriade-ai/myriade/commit/b1319c0a6b539cdf6858aeaa2a2add15fc01a5ec))
+
+
 ## v0.49.1 (2025-10-16)
 
 ### Bug Fixes
