@@ -437,8 +437,14 @@ export const useCatalogStore = defineStore('catalog', () => {
       return response.data
     } catch (err: unknown) {
       const errorResponse = err as any
-      error.value = errorResponse?.response?.data?.message || 'Failed to fetch stats'
-      console.error('Error fetching stats:', err)
+      const errorMessage =
+        errorResponse?.response?.data?.error ||
+        errorResponse?.response?.data?.message ||
+        'Failed to fetch stats'
+      error.value = errorMessage
+      console.error('Error fetching stats:', errorMessage, err)
+      // Set stats to null on error to prevent stale data
+      stats.value = null
       return null
     } finally {
       loading.value = false

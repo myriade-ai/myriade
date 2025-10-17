@@ -66,10 +66,12 @@ async function syncDatabaseMetadata() {
     const databaseId = contextsStore.getSelectedContextDatabaseId()
 
     await databasesStore.syncDatabaseMetadata(databaseId)
-    await Promise.all([
-      catalogStore.fetchAssets(contextsStore.contextSelected.id),
-      catalogStore.fetchStats(contextsStore.contextSelected.id)
-    ])
+    // Fetch assets first, then stats (to avoid potential race conditions)
+    await catalogStore.fetchAssets(contextsStore.contextSelected.id)
+    // Fetch stats independently - don't let it block or fail the main flow
+    catalogStore.fetchStats(contextsStore.contextSelected.id).catch((err) => {
+      console.error('Failed to fetch catalog stats:', err)
+    })
   } catch (error: unknown) {
     console.error('Error syncing database metadata:', error)
   } finally {
@@ -81,20 +83,24 @@ watch(
   () => contextsStore.contextSelected,
   async (newContext, oldContext) => {
     if (newContext && newContext.id !== oldContext?.id) {
-      await Promise.all([
-        catalogStore.fetchAssets(newContext.id),
-        catalogStore.fetchStats(newContext.id)
-      ])
+      // Fetch assets first, then stats (to avoid potential race conditions)
+      await catalogStore.fetchAssets(newContext.id)
+      // Fetch stats independently - don't let it block or fail the main flow
+      catalogStore.fetchStats(newContext.id).catch((err) => {
+        console.error('Failed to fetch catalog stats:', err)
+      })
     }
   }
 )
 
 onMounted(async () => {
   if (contextsStore.contextSelected) {
-    await Promise.all([
-      catalogStore.fetchAssets(contextsStore.contextSelected.id),
-      catalogStore.fetchStats(contextsStore.contextSelected.id)
-    ])
+    // Fetch assets first, then stats (to avoid potential race conditions)
+    await catalogStore.fetchAssets(contextsStore.contextSelected.id)
+    // Fetch stats independently - don't let it block or fail the main flow
+    catalogStore.fetchStats(contextsStore.contextSelected.id).catch((err) => {
+      console.error('Failed to fetch catalog stats:', err)
+    })
   }
 })
 </script>

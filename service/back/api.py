@@ -889,7 +889,12 @@ def get_catalog_assets(context_id):
 @user_middleware
 def get_catalog_stats(context_id):
     """Get statistics for catalog assets"""
-    database_id, _ = extract_context(g.session, context_id)
+    try:
+        database_id, _ = extract_context(g.session, context_id)
+    except (ValueError, Exception) as e:
+        logger.error(f"Error extracting context: {e}", exc_info=True)
+        return jsonify({"error": "Invalid context"}), 400
+
     database = g.session.query(Database).filter_by(id=database_id).first()
 
     if not database:
@@ -906,38 +911,42 @@ def get_catalog_stats(context_id):
     ):
         return jsonify({"error": "Access denied"}), 403
 
-    # Query all assets for this database
-    assets = g.session.query(Asset).filter(Asset.database_id == database_id).all()
+    try:
+        # Query all assets for this database
+        assets = g.session.query(Asset).filter(Asset.database_id == database_id).all()
 
-    total_assets = len(assets)
-    assets_with_description = sum(
-        1 for asset in assets if asset.description and asset.description.strip()
-    )
-    assets_to_review = sum(
-        1
-        for asset in assets
-        if asset.status in ["needs_review", "requires_validation"]
-    )
-    assets_validated = sum(1 for asset in assets if asset.status == "validated")
-    assets_with_ai_suggestions = sum(1 for asset in assets if asset.ai_suggestion)
+        total_assets = len(assets)
+        assets_with_description = sum(
+            1 for asset in assets if asset.description and asset.description.strip()
+        )
+        assets_to_review = sum(
+            1
+            for asset in assets
+            if asset.status in ["needs_review", "requires_validation"]
+        )
+        assets_validated = sum(1 for asset in assets if asset.status == "validated")
+        assets_with_ai_suggestions = sum(1 for asset in assets if asset.ai_suggestion)
 
-    # Calculate completion score (percentage of assets with descriptions)
-    completion_score = (
-        round((assets_with_description / total_assets) * 100, 1)
-        if total_assets > 0
-        else 0.0
-    )
+        # Calculate completion score (percentage of assets with descriptions)
+        completion_score = (
+            round((assets_with_description / total_assets) * 100, 1)
+            if total_assets > 0
+            else 0.0
+        )
 
-    return jsonify(
-        {
-            "total_assets": total_assets,
-            "completion_score": completion_score,
-            "assets_to_review": assets_to_review,
-            "assets_validated": assets_validated,
-            "assets_with_ai_suggestions": assets_with_ai_suggestions,
-            "assets_with_description": assets_with_description,
-        }
-    )
+        return jsonify(
+            {
+                "total_assets": total_assets,
+                "completion_score": completion_score,
+                "assets_to_review": assets_to_review,
+                "assets_validated": assets_validated,
+                "assets_with_ai_suggestions": assets_with_ai_suggestions,
+                "assets_with_description": assets_with_description,
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error calculating catalog stats: {e}", exc_info=True)
+        return jsonify({"error": "Failed to calculate stats"}), 500
 
 
 @api.route("/catalogs/assets/<string:asset_id>", methods=["PATCH"])
