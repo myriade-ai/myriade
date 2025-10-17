@@ -60,14 +60,6 @@ export function useCatalogData() {
 
   const tagOptions = computed(() => catalogStore.tagsArray)
 
-  function computeDocumentationScore(asset: CatalogAsset): number {
-    const hasDescription = Boolean(asset.description?.trim().length)
-    const hasTags = Boolean(asset.tags?.length)
-    const isReviewed = Boolean(asset.reviewed)
-    const score = (hasDescription ? 40 : 0) + (hasTags ? 30 : 0) + (isReviewed ? 30 : 0)
-    return Math.min(100, score)
-  }
-
   function assetSchema(asset: CatalogAsset): string {
     if (asset.type === 'TABLE') {
       return asset.table_facet?.schema || ''
@@ -84,9 +76,10 @@ export function useCatalogData() {
       searchQuery: string
       selectedSchema: string
       selectedTag: string
+      selectedStatus?: string
     }
   ): boolean {
-    const { searchQuery, selectedSchema, selectedTag } = options
+    const { searchQuery, selectedSchema, selectedTag, selectedStatus } = options
 
     if (selectedSchema && selectedSchema !== '__all__' && assetSchema(asset) !== selectedSchema) {
       return false
@@ -95,6 +88,10 @@ export function useCatalogData() {
     if (selectedTag && selectedTag !== '__all__') {
       const hasTag = asset.tags?.some((tag) => tag.id === selectedTag)
       if (!hasTag) return false
+    }
+
+    if (selectedStatus && selectedStatus !== '__all__') {
+      if (asset.status !== selectedStatus) return false
     }
 
     if (!searchQuery) {
@@ -119,8 +116,9 @@ export function useCatalogData() {
     searchQuery: string
     selectedSchema: string
     selectedTag: string
+    selectedStatus?: string
   }): ExplorerSchemaNode[] {
-    const { searchQuery, selectedSchema, selectedTag } = options
+    const { searchQuery, selectedSchema, selectedTag, selectedStatus } = options
     const schemaMap = new Map<string, ExplorerSchemaNode>()
 
     const ensureSchemaNode = (schemaName: string | null) => {
@@ -152,12 +150,13 @@ export function useCatalogData() {
         const columnAssets = columnsByTableId.value.get(tableAsset.id) || []
 
         const matchedColumns = columnAssets.filter((column) =>
-          assetMatchesFilters(column, { searchQuery, selectedSchema, selectedTag })
+          assetMatchesFilters(column, { searchQuery, selectedSchema, selectedTag, selectedStatus })
         )
         const tableMatches = assetMatchesFilters(tableAsset, {
           searchQuery,
           selectedSchema,
-          selectedTag
+          selectedTag,
+          selectedStatus
         })
 
         if (!tableMatches && !matchedColumns.length) {
@@ -171,8 +170,7 @@ export function useCatalogData() {
           columns: matchedColumns.map((column) => ({
             asset: column,
             label: column.column_facet?.column_name || column.name || 'Unnamed column',
-            meta: column.column_facet?.data_type || '',
-            score: computeDocumentationScore(column)
+            meta: column.column_facet?.data_type || ''
           }))
         }
 
@@ -181,8 +179,7 @@ export function useCatalogData() {
           tableNode.columns = columnAssets.slice(0, 5).map((column) => ({
             asset: column,
             label: column.column_facet?.column_name || column.name || 'Unnamed column',
-            meta: column.column_facet?.data_type || '',
-            score: computeDocumentationScore(column)
+            meta: column.column_facet?.data_type || ''
           }))
         }
 
@@ -202,7 +199,6 @@ export function useCatalogData() {
     columnsByTableId,
     schemaOptions,
     tagOptions,
-    computeDocumentationScore,
     assetSchema,
     assetMatchesFilters,
     buildFilteredTree

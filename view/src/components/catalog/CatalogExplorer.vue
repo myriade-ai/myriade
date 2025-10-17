@@ -58,7 +58,6 @@
                             "
                             type="column"
                             :meta="columnNode.meta"
-                            :score="columnNode.score"
                             @select="$emit('select-asset', columnNode.asset.id)"
                           />
                         </li>

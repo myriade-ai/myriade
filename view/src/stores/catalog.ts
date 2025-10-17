@@ -7,6 +7,14 @@ import { computed, ref, watch } from 'vue'
 
 export type AssetType = 'TABLE' | 'COLUMN'
 
+export type AssetStatus =
+  | 'validated'
+  | 'human_authored'
+  | 'published_by_ai'
+  | 'needs_review'
+  | 'requires_validation'
+  | null
+
 export type Privacy = {
   llm: 'Encrypted' | 'Default'
 }
@@ -32,7 +40,10 @@ export interface CatalogAsset {
   updatedAt: string
   table_facet?: TableFacet
   column_facet?: ColumnFacet
-  reviewed: boolean
+  status: AssetStatus
+  ai_suggestion?: string | null
+  ai_flag_reason?: string | null
+  ai_suggested_tags?: string[] | null
 }
 
 export interface TableFacet {
@@ -60,7 +71,6 @@ export interface CatalogTerm {
   business_domains: string[] | null
   createdAt: string
   updatedAt: string
-  reviewed: boolean
 }
 
 export const useCatalogStore = defineStore('catalog', () => {
@@ -379,6 +389,27 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
+  async function dismissFlag(assetId: string) {
+    try {
+      error.value = null
+
+      const response: AxiosResponse<CatalogAsset> = await axios.patch(
+        `/api/catalogs/assets/${assetId}`,
+        {
+          dismiss_flag: true
+        }
+      )
+
+      assets.value[response.data.id] = response.data
+      return response.data
+    } catch (err: unknown) {
+      const errorResponse = err as any
+      error.value = errorResponse?.response?.data?.message || 'Failed to dismiss flag'
+      console.error('Error dismissing flag:', err)
+      throw err
+    }
+  }
+
   // ——————————————————————————————————————————————————
   // RETURN
   // ——————————————————————————————————————————————————
@@ -407,6 +438,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     updateTerm,
     deleteTerm,
     updateTag,
-    deleteTag
+    deleteTag,
+    dismissFlag
   }
 })

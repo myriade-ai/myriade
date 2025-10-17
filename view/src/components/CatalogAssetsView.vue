@@ -43,6 +43,7 @@
               v-model:search-query="searchQuery"
               v-model:selected-schema="selectedSchema"
               v-model:selected-tag="selectedTag"
+              v-model:selected-status="selectedStatus"
               :schema-options="schemaOptions"
               :tag-options="tagOptions"
               :has-active-filters="hasActiveFilters"
@@ -67,6 +68,8 @@
               @cancel-edit="cancelAssetEdit"
               @save="saveAssetDetails"
               @update:draft="updateAssetDraft"
+              @dismiss-flag="dismissAssetFlag"
+              @approve-suggestion="approveAssetSuggestion"
             />
 
             <!-- List View (no asset selected) -->
@@ -109,6 +112,7 @@ const error = computed(() => catalogStore.error)
 const searchQuery = ref('')
 const selectedSchema = ref('__all__')
 const selectedTag = ref('__all__')
+const selectedStatus = ref('__all__')
 const activeTab = ref<'overview' | 'columns'>('overview')
 const selectedAssetId = ref<string | null>(null)
 const explorerCollapsed = ref(false)
@@ -133,7 +137,6 @@ const {
   columnsByTableId,
   schemaOptions,
   tagOptions,
-  computeDocumentationScore,
   buildFilteredTree,
   assetMatchesFilters
 } = catalogData
@@ -143,7 +146,8 @@ const hasActiveFilters = computed(() =>
   Boolean(
     searchQuery.value.trim() ||
       (selectedSchema.value && selectedSchema.value !== '__all__') ||
-      (selectedTag.value && selectedTag.value !== '__all__')
+      (selectedTag.value && selectedTag.value !== '__all__') ||
+      (selectedStatus.value && selectedStatus.value !== '__all__')
   )
 )
 
@@ -151,7 +155,8 @@ const filteredTree = computed(() =>
   buildFilteredTree({
     searchQuery: searchQuery.value,
     selectedSchema: selectedSchema.value,
-    selectedTag: selectedTag.value
+    selectedTag: selectedTag.value,
+    selectedStatus: selectedStatus.value
   })
 )
 
@@ -178,14 +183,18 @@ const columnsForSelectedTable = computed(() => {
   return tableColumns.map((column) => ({
     asset: column,
     label: column.column_facet?.column_name || column.name || 'Unnamed column',
-    meta: column.column_facet?.data_type || '',
-    score: computeDocumentationScore(column)
+    meta: column.column_facet?.data_type || ''
   }))
 })
 
 const assetHasChanges = computed(() => {
   const asset = selectedAsset.value
   if (!asset) return false
+
+  // If there's an AI suggestion, always show changes (needs approval)
+  if (asset.ai_suggestion) {
+    return true
+  }
 
   const currentDescription = (asset.description ?? '').trim()
   const draftDescription = assetDraft.description.trim()
@@ -222,13 +231,21 @@ const tablesForOverview = computed(() => {
     })
   }
 
+  // Filter by status if selected
+  if (selectedStatus.value && selectedStatus.value !== '__all__') {
+    tables = tables.filter((table) => {
+      return table.status === selectedStatus.value
+    })
+  }
+
   // Filter by search query
   if (searchQuery.value.trim()) {
     tables = tables.filter((table) =>
       assetMatchesFilters(table, {
         searchQuery: searchQuery.value,
         selectedSchema: selectedSchema.value,
-        selectedTag: selectedTag.value
+        selectedTag: selectedTag.value,
+        selectedStatus: selectedStatus.value
       })
     )
   }
@@ -283,6 +300,7 @@ watch(
       searchQuery.value = ''
       selectedSchema.value = '__all__'
       selectedTag.value = '__all__'
+      selectedStatus.value = '__all__'
       selectedAssetId.value = null
     }
   }
@@ -301,16 +319,21 @@ watch(
       return
     }
 
-    assetDraft.description = asset.description ?? ''
+    // Initialize with AI suggestion if available, otherwise use current description
+    assetDraft.description = asset.ai_suggestion?.trim() || asset.description || ''
     assetDraft.tags = [...(asset.tags || [])]
     assetEditing.value = false
   },
   { immediate: true }
 )
 
-// No need for complex column drafts management anymore
+// Reset selection when filters change while viewing asset details
+watch([searchQuery, selectedSchema, selectedTag, selectedStatus], () => {
+  if (selectedAssetId.value) {
+    selectedAssetId.value = null
+  }
+})
 
-// Functions
 function expandForAsset(assetId: string) {
   const asset = catalogStore.assets[assetId]
   if (!asset || !explorerRef.value) return
@@ -343,6 +366,7 @@ function clearFilters() {
   searchQuery.value = ''
   selectedSchema.value = '__all__'
   selectedTag.value = '__all__'
+  selectedStatus.value = '__all__'
 }
 
 async function refresh() {
@@ -364,7 +388,8 @@ function startAssetEdit() {
 function cancelAssetEdit() {
   const asset = selectedAsset.value
   if (!asset) return
-  assetDraft.description = asset.description ?? ''
+  // Restore AI suggestion if available, otherwise use current description
+  assetDraft.description = asset.ai_suggestion?.trim() || asset.description || ''
   assetDraft.tags = [...(asset.tags || [])]
   assetEditing.value = false
   assetEditError.value = null
@@ -393,14 +418,66 @@ async function saveAssetDetails() {
       tag_ids: assetDraft.tags.map((tag) => tag.id)
     }
 
+    // If there's AI metadata (suggestion or flag reason), clear it when saving (approving)
+    const needsReview = ['needs_review', 'requires_validation'].includes(asset.status || '')
+    const hasAiMetadata = asset.ai_suggestion || asset.ai_flag_reason
+    if (needsReview || hasAiMetadata) {
+      updatePayload.ai_suggestion = null
+      updatePayload.ai_flag_reason = null
+    }
+
     const updated = await catalogStore.updateAsset(asset.id, updatePayload)
 
+    // Update draft with the saved description (not AI suggestion anymore)
     assetDraft.description = updated.description ?? assetDraft.description
     assetDraft.tags = [...(updated.tags || [])]
     assetEditing.value = false
   } catch (error) {
     console.error('Failed to update asset details', error)
     assetEditError.value = 'Failed to save changes. Please try again.'
+  } finally {
+    assetSaving.value = false
+  }
+}
+
+async function dismissAssetFlag() {
+  const asset = selectedAsset.value
+  if (!asset || assetSaving.value) return
+
+  try {
+    assetSaving.value = true
+    assetEditError.value = null
+    await catalogStore.dismissFlag(asset.id)
+  } catch (error) {
+    console.error('Failed to dismiss flag:', error)
+    assetEditError.value = 'Failed to dismiss flag. Please try again.'
+  } finally {
+    assetSaving.value = false
+  }
+}
+
+async function approveAssetSuggestion(payload: { description: string; tagIds: string[] }) {
+  const asset = selectedAsset.value
+  if (!asset || assetSaving.value) return
+
+  try {
+    assetSaving.value = true
+    assetEditError.value = null
+
+    const updated = await catalogStore.updateAsset(asset.id, {
+      description: payload.description,
+      tag_ids: payload.tagIds,
+      ai_suggestion: null,
+      ai_flag_reason: null,
+      ai_suggested_tags: null
+    })
+
+    // Update draft with the saved description
+    assetDraft.description = updated.description ?? payload.description
+    assetDraft.tags = [...(updated.tags || [])]
+  } catch (error) {
+    console.error('Failed to approve suggestion:', error)
+    assetEditError.value = 'Failed to approve suggestion. Please try again.'
   } finally {
     assetSaving.value = false
   }

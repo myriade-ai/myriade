@@ -1,25 +1,10 @@
 <template>
   <div>
     <div class="flex-1 text-sm">
-      <div class="flex mt-2 space-x-1" v-if="formattedAssetData || termData">
-        <component :is="statusIcon" class="w-5 h-5" :class="statusIconClass" />
-
-        <p v-if="!isReviewed" class="text-yellow-700 mb-3">
-          This catalog update needs your approval to be marked as reviewed.
-        </p>
-
-        <p v-else-if="isReviewed" class="text-green-700 mb-3">
-          Catalog update approved and marked as reviewed.
-        </p>
-      </div>
-
       <!-- Asset Display -->
       <div v-if="formattedAssetData" class="space-y-3">
         <AssetBase
           :asset="formattedAssetData"
-          mode="approval"
-          :disable-editing="isReviewed"
-          :show-approve="!isReviewed"
           :is-processing="isProcessing"
           @approve="handleAssetApprove"
           @navigate-to-catalog="handleNavigateToCatalog"
@@ -30,7 +15,7 @@
       <div v-else-if="termData" class="space-y-3">
         <TermBase
           v-model="editableTermData"
-          :is-editable="!isReviewed"
+          :is-editable="true"
           :is-processing="isProcessing"
           @approve="handleTermApprove"
         />
@@ -40,10 +25,9 @@
 </template>
 
 <script setup lang="ts">
-import { useCatalogStore } from '@/stores/catalog'
+import { useCatalogStore, type AssetStatus } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import type { CatalogTermState } from '@/types/catalog'
-import { CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AssetBase from './AssetBase.vue'
@@ -52,7 +36,7 @@ import TermBase from './TermBase.vue'
 const props = defineProps<{
   functionCall?: {
     name: string
-    arguments: Record<string, any>
+    arguments: Record<string, unknown>
   }
   asset?: {
     id: string
@@ -64,7 +48,10 @@ const props = defineProps<{
       description: string | null
     }>
     type: 'TABLE' | 'COLUMN'
-    reviewed: boolean
+    status?: AssetStatus
+    ai_suggestion?: string | null
+    ai_flag_reason?: string | null
+    ai_suggested_tags?: string[] | null
   }
   term?: {
     id: string
@@ -72,7 +59,6 @@ const props = defineProps<{
     definition: string
     synonyms?: string[] | null
     business_domains?: string[] | null
-    reviewed: boolean
   }
 }>()
 
@@ -87,19 +73,37 @@ const termData = computed(() => props.term)
 const formattedAssetData = computed(() => {
   if (!assetData.value) return undefined
 
-  const fullAsset = catalogStore.assets[assetData.value.id]
-
   // Extract schema and tableName from facets
   let schema: string | null = null
   let tableName: string | null = null
 
-  if (fullAsset) {
-    if (assetData.value.type === 'TABLE' && fullAsset.table_facet) {
-      schema = fullAsset.table_facet.schema
-      tableName = fullAsset.table_facet.table_name
-    } else if (assetData.value.type === 'COLUMN' && fullAsset.column_facet) {
-      schema = fullAsset.column_facet.parent_table_facet?.schema ?? null
-      tableName = fullAsset.column_facet.parent_table_facet?.table_name ?? null
+  // First try to get from the asset prop itself (from backend message)
+  const asset = assetData.value as {
+    table_facet?: { schema?: string; table_name?: string }
+    column_facet?: {
+      parent_table_facet?: { schema?: string; table_name?: string }
+    }
+  }
+
+  if (assetData.value.type === 'TABLE' && asset.table_facet) {
+    schema = asset.table_facet.schema ?? null
+    tableName = asset.table_facet.table_name ?? null
+  } else if (assetData.value.type === 'COLUMN' && asset.column_facet) {
+    schema = asset.column_facet.parent_table_facet?.schema ?? null
+    tableName = asset.column_facet.parent_table_facet?.table_name ?? null
+  }
+
+  // Fallback to catalog store if not found in prop
+  if (!schema && !tableName) {
+    const fullAsset = catalogStore.assets[assetData.value.id]
+    if (fullAsset) {
+      if (assetData.value.type === 'TABLE' && fullAsset.table_facet) {
+        schema = fullAsset.table_facet.schema
+        tableName = fullAsset.table_facet.table_name
+      } else if (assetData.value.type === 'COLUMN' && fullAsset.column_facet) {
+        schema = fullAsset.column_facet.parent_table_facet?.schema ?? null
+        tableName = fullAsset.column_facet.parent_table_facet?.table_name ?? null
+      }
     }
   }
 
@@ -119,8 +123,7 @@ const editableTermData = computed<CatalogTermState>({
         name: '',
         definition: '',
         synonyms: [],
-        business_domains: [],
-        reviewed: false
+        business_domains: []
       }
     }
     return {
@@ -128,8 +131,7 @@ const editableTermData = computed<CatalogTermState>({
       name: termData.value.name,
       definition: termData.value.definition,
       synonyms: termData.value.synonyms || [],
-      business_domains: termData.value.business_domains || [],
-      reviewed: termData.value.reviewed
+      business_domains: termData.value.business_domains || []
     }
   },
   set: (value: CatalogTermState) => {
@@ -141,19 +143,14 @@ const editableTermData = computed<CatalogTermState>({
   }
 })
 
-const isReviewed = computed(() => {
-  if (assetData.value) return assetData.value.reviewed
-  if (termData.value) return termData.value.reviewed
-  return false
-})
-
-const statusIcon = computed(() => (isReviewed.value ? CheckCircleIcon : ExclamationTriangleIcon))
-const statusIconClass = computed(() => (isReviewed.value ? 'text-green-500' : 'text-yellow-400'))
-
 const handleAssetApprove = async (payload: {
   id: string
   description: string
   tag_ids: string[]
+  approve_suggestion?: boolean
+  ai_suggestion?: null
+  ai_flag_reason?: null
+  ai_suggested_tags?: null
 }) => {
   const contextId = contextsStore.contextSelected?.id
   if (!contextId || !assetData.value) {
@@ -163,20 +160,33 @@ const handleAssetApprove = async (payload: {
 
   try {
     isProcessing.value = true
+
+    // Forward the payload to the catalog store
+    // If the payload includes ai_suggestion/ai_flag_reason/ai_suggested_tags as null, they will be cleared
     await catalogStore.updateAsset(payload.id, {
       description: payload.description,
       tag_ids: payload.tag_ids,
-      reviewed: true
+      ...(payload.approve_suggestion !== undefined && {
+        approve_suggestion: payload.approve_suggestion
+      }),
+      ...(payload.ai_suggestion !== undefined && { ai_suggestion: payload.ai_suggestion }),
+      ...(payload.ai_flag_reason !== undefined && { ai_flag_reason: payload.ai_flag_reason }),
+      ...(payload.ai_suggested_tags !== undefined && {
+        ai_suggested_tags: payload.ai_suggested_tags
+      })
     })
 
-    // Update local asset data to reflect the approval
+    // Update local asset data
     if (assetData.value) {
-      assetData.value.reviewed = true
       assetData.value.description = payload.description
-      // Fetch the updated asset to get the full tag objects
+      // Fetch the updated asset to get the full tag objects and status
       const updatedAsset = catalogStore.assets[payload.id]
       if (updatedAsset) {
         assetData.value.tags = updatedAsset.tags
+        assetData.value.status = updatedAsset.status
+        assetData.value.ai_suggestion = updatedAsset.ai_suggestion
+        assetData.value.ai_flag_reason = updatedAsset.ai_flag_reason
+        assetData.value.ai_suggested_tags = updatedAsset.ai_suggested_tags
       }
     }
   } catch (error) {
@@ -199,15 +209,13 @@ const handleTermApprove = async () => {
     await catalogStore.updateTerm(termData.value.id, {
       definition: currentTermData.definition,
       synonyms: currentTermData.synonyms,
-      business_domains: currentTermData.business_domains,
-      reviewed: true
+      business_domains: currentTermData.business_domains
     })
 
     if (termData.value) {
       termData.value.definition = currentTermData.definition
       termData.value.synonyms = currentTermData.synonyms
       termData.value.business_domains = currentTermData.business_domains
-      termData.value.reviewed = true
     }
   } catch (error) {
     console.error('Failed to approve term:', error)
@@ -221,7 +229,7 @@ const handleNavigateToCatalog = (payload: { id: string }) => {
   if (!assetId) return
 
   void router.push({
-    name: 'CatalogPage',
+    name: 'AssetPage',
     query: { assetId }
   })
 }

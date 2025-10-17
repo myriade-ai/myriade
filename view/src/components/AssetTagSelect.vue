@@ -114,7 +114,7 @@ async function handleKeyDown(event: KeyboardEvent) {
 <template>
   <Combobox v-model:open="open" :ignore-filter="true" :disabled="disabled">
     <ComboboxAnchor as-child>
-      <TagsInput :model-value="modelValue.map((tag) => tag.name)" class="px-2 gap-2 w-full">
+      <TagsInput class="px-2 gap-2 w-full">
         <div class="flex items-center w-full">
           <div class="flex gap-2 flex-wrap items-center flex-1 min-w-0">
             <TagsInputItem

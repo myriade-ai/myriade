@@ -882,7 +882,7 @@ def get_catalog_assets(context_id):
 @api.route("/catalogs/assets/<string:asset_id>", methods=["PATCH"])
 @user_middleware
 def update_catalog_asset(asset_id: str):
-    """Update mutable fields of a catalog asset."""
+    """Update mutable fields of a catalog asset with validation workflow support."""
 
     try:
         asset_uuid = UUID(asset_id)
@@ -896,11 +896,60 @@ def update_catalog_asset(asset_id: str):
 
     data = request.get_json(silent=True) or {}
 
+    # Handle approval workflow actions
+    if data.get("approve_suggestion"):
+        # User approves AI suggestion - move ai_suggestion to description
+        if asset.ai_suggestion:
+            asset.description = asset.ai_suggestion
+            asset.ai_suggestion = None
+            asset.ai_flag_reason = None
+            asset.status = "validated"
+
+        # Process suggested tags: link existing tags only
+        if asset.ai_suggested_tags:
+            asset.asset_tags.clear()
+            for tag_name in asset.ai_suggested_tags:  # Now simple strings
+                if not tag_name:
+                    continue
+
+                # Check if tag exists (case-insensitive)
+                tag = (
+                    g.session.query(AssetTag)
+                    .filter(
+                        AssetTag.database_id == asset.database_id,
+                        AssetTag.name.ilike(tag_name),
+                    )
+                    .first()
+                )
+
+                # Only link if tag exists (defensive programming)
+                if tag:
+                    asset.asset_tags.append(tag)
+                else:
+                    logger.warning(
+                        f"Suggested tag '{tag_name}' not found for asset {asset.id}"
+                    )
+
+            # Clear suggested tags after processing
+            asset.ai_suggested_tags = None
+
+    elif data.get("dismiss_flag"):
+        # User dismisses the AI flag - clear AI fields and set status to None
+        if asset.status in ["needs_review", "requires_validation"]:
+            asset.status = None
+            asset.ai_suggestion = None
+            asset.ai_flag_reason = None
+            asset.ai_suggested_tags = None
+
+    # Standard field updates
     if "name" in data:
         asset.name = data["name"]
 
     if "description" in data:
         asset.description = data["description"]
+        # If user manually edits, mark as validated
+        if not data.get("approve_suggestion") and not data.get("reject_suggestion"):
+            asset.status = "validated"
 
     if "tag_ids" in data:
         asset.asset_tags.clear()
@@ -918,9 +967,6 @@ def update_catalog_asset(asset_id: str):
             )
             if tag:
                 asset.asset_tags.append(tag)
-
-    if "reviewed" in data:
-        asset.reviewed = data["reviewed"]
 
     g.session.flush()
 
