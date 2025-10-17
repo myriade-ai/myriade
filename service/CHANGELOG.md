@@ -1,6 +1,16 @@
 # CHANGELOG
 
 
+## v0.51.0 (2025-10-17)
+
+### Features
+
+- Add organization language setting and API ([#166](https://github.com/myriade-ai/myriade/pull/166),
+  [`3082149`](https://github.com/myriade-ai/myriade/commit/3082149d7981fff793123e8d5ee306937aa69c78))
+
+Co-authored-by: Cursor Agent <cursoragent@cursor.com>
+
+
 ## v0.50.0 (2025-10-17)
 
 ### Features
