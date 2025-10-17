@@ -1053,12 +1053,12 @@ def get_asset_preview(asset_id: str):
 
     try:
         dw = DataWarehouseFactory.create(
-            database,
-            tables_metadata=get_tables_metadata_from_catalog(g.session, database.id),
+            database.engine,
+            **database.details,
         )
 
         # Use the data warehouse's get_sample_data method
-        sample_result = dw.get_sample_data(table_name, schema or "", limit)
+        sample_result = dw.get_sample_data(table_name, schema, limit)
 
         if not sample_result:
             return jsonify({"error": "No sample data available"}), 404

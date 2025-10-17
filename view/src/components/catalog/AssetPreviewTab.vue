@@ -17,10 +17,6 @@
       v-else-if="previewData && previewData.rows.length > 0"
       class="flex flex-col gap-3 flex-1 min-h-0"
     >
-      <div class="text-sm text-slate-600">
-        Showing {{ previewData.count }} random row{{ previewData.count !== 1 ? 's' : '' }}
-      </div>
-
       <div class="overflow-auto flex-1 rounded-md border border-slate-200">
         <table class="w-full text-sm">
           <thead class="bg-slate-50 sticky top-0">
@@ -62,11 +58,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import axios from '@/plugins/axios'
-import type { CatalogAsset } from '@/stores/catalog'
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import { Button } from '@/components/ui/button'
+import axios from '@/plugins/axios'
+import type { CatalogAsset } from '@/stores/catalog'
+import { computed, ref, watch } from 'vue'
 
 interface Props {
   asset: CatalogAsset | null
