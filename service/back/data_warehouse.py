@@ -1,4 +1,5 @@
 import json
+import logging
 import sys
 import threading
 from abc import ABC, abstractmethod
@@ -10,6 +11,8 @@ from sqlalchemy import text
 
 from back.privacy import encrypt_rows
 from back.rewrite_sql import rewrite_sql
+
+logger = logging.getLogger(__name__)
 
 MAX_SIZE = 2 * 1024 * 1024  # 2MB in bytes
 
@@ -235,7 +238,7 @@ class AbstractDatabase(ABC):
             """
 
             # Execute the query using the database's unprotected method
-            rows = self._query_unprotected(sample_query.strip())
+            rows, _ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -252,6 +255,11 @@ class AbstractDatabase(ABC):
             return sample_result
 
         except Exception as e:
+            # Log the full traceback for debugging
+            logger.error(
+                f"Failed to sample data from {schema_name}.{table_name}: {str(e)}",
+                exc_info=True,
+            )
             return {
                 "error": f"Failed to sample data: {str(e)}",
                 "note": (
@@ -312,7 +320,7 @@ class AbstractDatabase(ABC):
                         )
             # Rewrite the query only if we have rules to apply
             if privacy_rules:
-                sql = rewrite_sql(sql, privacy_rules)
+                sql = rewrite_sql(sql, privacy_rules, dialect=self.dialect)
 
         # Execute query without write protection
         rows = self._query_unprotected(sql)
@@ -467,7 +475,7 @@ class SQLDatabase(AbstractDatabase):
                 """
 
             # Execute the query using the database's unprotected method
-            rows = self._query_unprotected(sample_query.strip())
+            rows, _ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -484,6 +492,12 @@ class SQLDatabase(AbstractDatabase):
             return sample_result
 
         except Exception as e:
+            # Log the full traceback for debugging
+            logger.error(
+                f"Failed to sample data from {schema_name}.{table_name} "
+                f"(SQLDatabase): {str(e)}",
+                exc_info=True,
+            )
             return {
                 "error": f"Failed to sample data: {str(e)}",
                 "note": (
@@ -530,7 +544,7 @@ class OracleDatabase(SQLDatabase):
             """
 
             # Execute the query using the database's unprotected method
-            rows = self._query_unprotected(sample_query.strip())
+            rows, _ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -547,6 +561,12 @@ class OracleDatabase(SQLDatabase):
             return sample_result
 
         except Exception as e:
+            # Log the full traceback for debugging
+            logger.error(
+                f"Failed to sample data from {schema_name}.{table_name} "
+                f"(OracleDatabase): {str(e)}",
+                exc_info=True,
+            )
             return {
                 "error": f"Failed to sample data: {str(e)}",
                 "note": (
@@ -738,7 +758,7 @@ class BigQueryDatabase(AbstractDatabase):
             """
 
             # Execute the query using the database's unprotected method
-            rows = self._query_unprotected(sample_query.strip())
+            rows, _ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -755,6 +775,12 @@ class BigQueryDatabase(AbstractDatabase):
             return sample_result
 
         except Exception as e:
+            # Log the full traceback for debugging
+            logger.error(
+                f"Failed to sample data from {schema_name}.{table_name} "
+                f"(BigQueryDatabase): {str(e)}",
+                exc_info=True,
+            )
             return {
                 "error": f"Failed to sample data: {str(e)}",
                 "note": (
