@@ -17,10 +17,10 @@
         <TabsTrigger value="columns">Columns</TabsTrigger>
       </TabsList>
       <div class="flex-1 overflow-y-auto">
-        <TabsContent value="overview" class="space-y-4 px-4 py-2">
-          <!-- Column Overview -->
-          <CatalogColumnOverview
-            v-if="asset?.type === 'COLUMN'"
+        <TabsContent value="overview" class="space-y-4 px-2 py-2">
+          <!-- Asset Overview (works for both tables and columns) -->
+          <AssetDescriptionEditor
+            v-if="asset"
             :asset="asset"
             :draft="draft"
             :is-editing="isEditing"
@@ -31,22 +31,8 @@
             @cancel-edit="$emit('cancel-edit')"
             @save="$emit('save')"
             @update:draft="$emit('update:draft', $event)"
-          />
-
-          <!-- Table/Asset Overview -->
-          <CatalogTableOverview
-            v-else-if="asset"
-            :asset="asset"
-            :draft="draft"
-            :is-editing="isEditing"
-            :is-saving="isSaving"
-            :has-changes="hasChanges"
-            :error="error"
-            :columns-count="columns.length"
-            @start-edit="$emit('start-edit')"
-            @cancel-edit="$emit('cancel-edit')"
-            @save="$emit('save')"
-            @update:draft="$emit('update:draft', $event)"
+            @dismiss-flag="$emit('dismiss-flag')"
+            @approve-suggestion="$emit('approve-suggestion', $event)"
           />
         </TabsContent>
 
@@ -64,9 +50,8 @@
 
 <script setup lang="ts">
 import CatalogColumnsTab from '@/components/catalog/CatalogColumnsTab.vue'
-import CatalogColumnOverview from '@/components/catalog/CatalogColumnOverview.vue'
+import AssetDescriptionEditor from '@/components/catalog/AssetDescriptionEditor.vue'
 import CatalogDetailsHeader from '@/components/catalog/CatalogDetailsHeader.vue'
-import CatalogTableOverview from '@/components/catalog/CatalogTableOverview.vue'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { computed } from 'vue'
 import type { CatalogAsset } from '@/stores/catalog'
@@ -93,6 +78,8 @@ const emit = defineEmits<{
   'cancel-edit': []
   save: []
   'update:draft': [draft: EditableDraft]
+  'dismiss-flag': []
+  'approve-suggestion': [payload: { description: string; tagIds: string[] }]
 }>()
 
 // Computed properties that were previously passed as props

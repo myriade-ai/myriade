@@ -8,22 +8,26 @@
           class="px-4 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-slate-50 hover:via-white hover:to-stone-50 transition-all duration-200 hover:shadow-sm"
           @click="$emit('select-table', table.id)"
         >
-          <div class="flex items-center justify-between">
+          <div class="flex items-start justify-between">
             <div class="flex items-center gap-3 flex-1 min-w-0">
               <component :is="TableIcon" class="h-5 w-5 text-primary-600 flex-shrink-0" />
               <div class="flex-1 min-w-0">
                 <h3 class="font-medium truncate">
                   {{ table.name || table.table_facet?.table_name || 'Unnamed table' }}
                 </h3>
-                <p class="text-sm text-muted-foreground truncate">
-                  {{ table.table_facet?.schema || 'default' }}.{{ table.table_facet?.table_name }}
-                </p>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-sm text-muted-foreground whitespace-nowrap"
+                    >{{ getColumnCount(table.id) }} columns</span
+                  >
+                  <span class="text-muted-foreground">·</span>
+                  <p class="text-sm text-muted-foreground truncate">
+                    {{ table.table_facet?.schema || 'default' }}.{{ table.table_facet?.table_name }}
+                  </p>
+                </div>
               </div>
             </div>
-            <div class="flex items-center gap-4 flex-shrink-0 ml-4">
-              <span class="text-sm text-muted-foreground whitespace-nowrap"
-                >{{ getColumnCount(table.id) }} columns</span
-              >
+            <div class="flex items-center gap-2 flex-shrink-0 ml-4">
+              <AssetBadgeStatus :status="table.status" badge-class="text-xs" />
             </div>
           </div>
           <p v-if="table.description" class="mt-2 text-sm text-muted-foreground line-clamp-2">
@@ -49,6 +53,7 @@
 
 <script setup lang="ts">
 import { Badge } from '@/components/ui/badge'
+import AssetBadgeStatus from '@/components/AssetBadgeStatus.vue'
 import type { CatalogAsset } from '@/stores/catalog'
 import { Table as TableIcon } from 'lucide-vue-next'
 

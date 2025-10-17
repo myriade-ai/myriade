@@ -15,31 +15,19 @@
         <span class="truncate text-foreground">{{ label }}</span>
       </div>
       <span v-if="meta" class="text-xs text-muted-foreground">{{ meta }}</span>
-      <span v-else-if="score !== undefined" class="text-xs text-muted-foreground"
-        >{{ score }}%</span
-      >
-    </div>
-    <div v-if="badges?.length" class="flex flex-wrap gap-1">
-      <Badge v-for="badge in badges" :key="badge.id" variant="outline" class="text-[10px]">
-        {{ badge.name }}
-      </Badge>
     </div>
   </button>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Badge } from '@/components/ui/badge'
 import { Columns3, Table as TableIcon } from 'lucide-vue-next'
-import type { AssetTag } from '@/stores/catalog'
 
 const props = defineProps<{
   label: string
   type: 'table' | 'column'
   isSelected?: boolean
-  badges?: AssetTag[]
   meta?: string
-  score?: number
 }>()
 
 const emit = defineEmits<{
