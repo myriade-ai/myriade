@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.52.0 (2025-10-17)
+
+### Features
+
+- Add asset preview panel to catalog page ([#170](https://github.com/myriade-ai/myriade/pull/170),
+  [`dbb9512`](https://github.com/myriade-ai/myriade/commit/dbb95120b36471abe49edd251e56eae7890923fa))
+
+
 ## v0.51.0 (2025-10-17)
 
 ### Features
