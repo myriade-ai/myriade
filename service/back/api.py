@@ -42,6 +42,14 @@ from models.quality import BusinessEntity, Issue
 logger = logging.getLogger(__name__)
 api = Blueprint("back_api", __name__)
 
+
+# Helper function to get socketio instance
+def get_socketio():
+    """Get the socketio instance from the app context"""
+    from flask import current_app
+
+    return current_app.extensions.get("socketio")
+
 AGENTLYS_PROVIDER = os.getenv("AGENTLYS_PROVIDER", "proxy")
 
 
@@ -994,6 +1002,14 @@ def update_catalog_asset(asset_id: str):
 
         asset_dict["column_facet"] = column_facet_dict
 
+    # Emit Socket.IO event for real-time updates
+    socketio = get_socketio()
+    if socketio:
+        socketio.emit(
+            "catalog:asset:updated",
+            {"asset": asset_dict, "database_id": str(asset.database_id)},
+        )
+
     return jsonify(asset_dict)
 
 
@@ -1159,6 +1175,14 @@ def create_catalog_term(context_id):
     g.session.add(new_term)
     g.session.flush()
 
+    # Emit Socket.IO event for real-time updates
+    socketio = get_socketio()
+    if socketio:
+        socketio.emit(
+            "catalog:term:created",
+            {"term": new_term.to_dict(), "database_id": str(database_id)},
+        )
+
     return jsonify(new_term.to_dict()), 201
 
 
@@ -1196,6 +1220,14 @@ def update_catalog_term(term_id: str):
 
     g.session.flush()
 
+    # Emit Socket.IO event for real-time updates
+    socketio = get_socketio()
+    if socketio:
+        socketio.emit(
+            "catalog:term:updated",
+            {"term": term.to_dict(), "database_id": str(term.database_id)},
+        )
+
     return jsonify(term.to_dict())
 
 
@@ -1227,8 +1259,19 @@ def delete_catalog_term(term_id: str):
     ):
         return jsonify({"error": "Access denied"}), 403
 
+    database_id = term.database_id
+    term_id = str(term.id)
+
     g.session.delete(term)
     g.session.flush()
+
+    # Emit Socket.IO event for real-time updates
+    socketio = get_socketio()
+    if socketio:
+        socketio.emit(
+            "catalog:term:deleted",
+            {"term_id": term_id, "database_id": str(database_id)},
+        )
 
     return jsonify({"success": True})
 
@@ -1305,6 +1348,14 @@ def create_catalog_tag(context_id):
     g.session.add(new_tag)
     g.session.flush()
 
+    # Emit Socket.IO event for real-time updates
+    socketio = get_socketio()
+    if socketio:
+        socketio.emit(
+            "catalog:tag:created",
+            {"tag": new_tag.to_dict(), "database_id": str(database_id)},
+        )
+
     return jsonify(new_tag.to_dict()), 201
 
 
@@ -1358,6 +1409,14 @@ def update_catalog_tag(tag_id: str):
 
     g.session.flush()
 
+    # Emit Socket.IO event for real-time updates
+    socketio = get_socketio()
+    if socketio:
+        socketio.emit(
+            "catalog:tag:updated",
+            {"tag": tag.to_dict(), "database_id": str(tag.database_id)},
+        )
+
     return jsonify(tag.to_dict())
 
 
@@ -1389,8 +1448,19 @@ def delete_catalog_tag(tag_id: str):
     ):
         return jsonify({"error": "Access denied"}), 403
 
+    database_id = tag.database_id
+    tag_id = str(tag.id)
+
     g.session.delete(tag)
     g.session.flush()
+
+    # Emit Socket.IO event for real-time updates
+    socketio = get_socketio()
+    if socketio:
+        socketio.emit(
+            "catalog:tag:deleted",
+            {"tag_id": tag_id, "database_id": str(database_id)},
+        )
 
     return jsonify({"success": True})
 
@@ -1615,6 +1685,14 @@ def sync_database_metadata(database_id: UUID):
         # Handle case where result is a string (no metadata)
         if isinstance(result, str):
             return jsonify({"error": result}), 400
+
+        # Emit Socket.IO event for real-time updates - catalog needs full refresh
+        socketio = get_socketio()
+        if socketio:
+            socketio.emit(
+                "catalog:metadata:synced",
+                {"database_id": str(database_id), "synced_count": result.get("synced_count", 0)},
+            )
 
         return jsonify(
             {
