@@ -73,6 +73,15 @@ export interface CatalogTerm {
   updatedAt: string
 }
 
+export interface CatalogStats {
+  total_assets: number
+  completion_score: number
+  assets_to_review: number
+  assets_validated: number
+  assets_with_ai_suggestions: number
+  assets_with_description: number
+}
+
 export const useCatalogStore = defineStore('catalog', () => {
   // ——————————————————————————————————————————————————
   // STATE
@@ -82,6 +91,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   const tags = ref<Record<string, AssetTag>>({})
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const stats = ref<CatalogStats | null>(null)
 
   // Watch for context changes and fetch catalog data
   const contextsStore = useContextsStore()
@@ -410,6 +420,37 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
+  async function fetchStats(contextId: string) {
+    try {
+      loading.value = true
+      error.value = null
+
+      const response: AxiosResponse<CatalogStats> = await axios.get(
+        `/api/catalogs/${contextId}/stats`
+      )
+
+      if (contextsStore.contextSelected?.id !== contextId) {
+        return null
+      }
+
+      stats.value = response.data
+      return response.data
+    } catch (err: unknown) {
+      const errorResponse = err as any
+      const errorMessage =
+        errorResponse?.response?.data?.error ||
+        errorResponse?.response?.data?.message ||
+        'Failed to fetch stats'
+      error.value = errorMessage
+      console.error('Error fetching stats:', errorMessage, err)
+      // Set stats to null on error to prevent stale data
+      stats.value = null
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
   // ——————————————————————————————————————————————————
   // RETURN
   // ——————————————————————————————————————————————————
@@ -419,6 +460,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     terms,
     loading,
     error,
+    stats,
 
     // getters
     assetsArray,
@@ -432,6 +474,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     fetchAssets,
     fetchTerms,
     fetchTags,
+    fetchStats,
     createTag,
     createTerm,
     updateAsset,
