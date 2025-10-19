@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.52.1 (2025-10-19)
+
+### Bug Fixes
+
+- Add sample privacy ([#171](https://github.com/myriade-ai/myriade/pull/171),
+  [`635e46e`](https://github.com/myriade-ai/myriade/commit/635e46e32079ec031d3a075991f5857efe11c720))
+
+
 ## v0.52.0 (2025-10-17)
 
 ### Features
