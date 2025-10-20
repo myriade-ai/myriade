@@ -382,10 +382,6 @@ if [ "$SSL_CONFIGURED" = false ]; then
         echo "  • Installing your own SSL certificates"
         echo "  • Checking DNS configuration"
         echo ""
-        print_info "Quick reference - Fix DNS and retry Let's Encrypt:"
-        echo "  1. Configure your domain's A record to point to: $SERVER_IP"
-        echo "  2. Wait for DNS propagation (5-30 minutes)"
-        echo "  3. Run: ${INSTALL_DIR}/setup/install_certificate.sh ${DOMAIN_NAME}"
     fi
     echo ""
 fi
