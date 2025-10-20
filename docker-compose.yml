@@ -25,10 +25,8 @@ services:
       # Database
       DATABASE_URL: postgresql://human:pass@db:5432/ada
 
-      # Required
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-
       # Optional - defaults provided in .env.docker
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       HOST: ${HOST:-http://localhost:8080}
       GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
