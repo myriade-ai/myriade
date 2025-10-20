@@ -5,7 +5,7 @@ import requests
 from flask import Blueprint, g, jsonify, make_response, redirect, request
 
 from auth.infra_utils import make_authenticated_proxy_request
-from config import ENV, HOST, INFRA_URL
+from config import ENV, HOST, INFRA_URL, USE_LOCAL_AUTH
 from middleware import user_middleware
 
 logger = logging.getLogger(__name__)
@@ -15,6 +15,13 @@ api = Blueprint("auth", __name__)
 
 @api.route("/auth")
 def auth():
+    # Local development mode: return mock auth URL
+    if USE_LOCAL_AUTH:
+        callback_host = HOST if HOST else request.url_root.rstrip("/")
+        return jsonify({
+            "authUrl": f"{callback_host}/api/auth/complete?token=dev-local-token"
+        })
+
     # Use auth proxy service
     callback_host = HOST if HOST else request.url_root.rstrip("/")
 
@@ -43,6 +50,22 @@ def auth_complete():
     if not temp_token:
         error_params = urlencode({"error": "Missing token parameter"})
         return redirect(f"/auth-error?{error_params}")
+
+    # Local development mode: skip token exchange, just set mock session
+    if USE_LOCAL_AUTH:
+        logger.info("Local dev mode: Setting mock session cookie")
+        response = make_response(redirect("/logged"))
+        response.set_cookie(
+            "session",
+            "dev-local-session",
+            secure=False,  # Not HTTPS in local dev
+            httponly=True,
+            samesite="lax",
+            max_age=60 * 60 * 24 * 7,  # 7 days
+            domain=None,
+            path="/",
+        )
+        return response
 
     try:
         # Exchange temporary token for auth data
@@ -88,11 +111,30 @@ def auth_complete():
 
 @api.route("/auth/logout", methods=["POST"])
 def logout():
+    callback_host = HOST if HOST else request.url_root.rstrip("/")
+
+    # Local development mode: just clear the cookie
+    if USE_LOCAL_AUTH:
+        logger.info("Local dev mode: Clearing session cookie")
+        response = make_response(
+            jsonify({
+                "message": "Logged out successfully",
+                "logout_url": f"{callback_host}?logged-out=true"
+            })
+        )
+        response.delete_cookie(
+            "session",
+            path="/",
+            domain=None,
+            secure=False,
+            samesite="lax",
+        )
+        return response
+
     if not request.cookies.get("session"):
         return jsonify({"message": "No session cookie"}), 500
 
     session_cookie = request.cookies["session"]
-    callback_host = HOST if HOST else request.url_root.rstrip("/")
 
     # Always clear session from validation cache first
     from auth.auth import _invalidate_session_cache

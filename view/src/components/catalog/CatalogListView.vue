@@ -6,7 +6,7 @@
           v-for="table in tables"
           :key="table.id"
           class="px-4 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-slate-50 hover:via-white hover:to-stone-50 transition-all duration-200 hover:shadow-sm"
-          @click="$emit('select-table', table.id)"
+          @click="handleRowClick(table.id)"
         >
           <div class="flex items-start justify-between">
             <div class="flex items-center gap-3 flex-1 min-w-0">
@@ -64,7 +64,11 @@ interface Props {
 
 defineProps<Props>()
 
-defineEmits<{
+const emit = defineEmits<{
   'select-table': [tableId: string]
 }>()
+
+function handleRowClick(tableId: string) {
+  emit('select-table', tableId)
+}
 </script>

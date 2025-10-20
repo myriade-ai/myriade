@@ -9,6 +9,7 @@ from flask import g, jsonify, make_response, request
 from config import (
     ENV,
     INFRA_URL,
+    USE_LOCAL_AUTH,
 )
 
 logger = logging.getLogger(__name__)
@@ -94,9 +95,37 @@ class SealedSessionUser:
         self.last_name = user_data.get("last_name")
 
 
+def _create_local_dev_auth():
+    """Create mock authentication response for local development"""
+    mock_user_data = {
+        "id": "dev-user-001",
+        "email": "dev@localhost.local",
+        "first_name": "Dev",
+        "last_name": "User",
+    }
+
+    mock_validation_data = {
+        "user": mock_user_data,
+        "organization_id": None,  # Can be set to test org mode
+        "access_token": "dev-local-token",
+        "refresh_token": "dev-local-refresh",
+        "session_id": "dev-session-001",
+        "role": "admin",  # Default to admin for dev
+    }
+
+    return SealedSessionAuthResponse("dev-local-session", mock_validation_data)
+
+
 def with_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Local development mode: bypass WorkOS authentication
+        if USE_LOCAL_AUTH:
+            logger.info("Using local development authentication")
+            auth_response = _create_local_dev_auth()
+            _set_user_context(auth_response)
+            return f(*args, **kwargs)
+
         # Validate session cookie exists
         session_cookie = request.cookies.get("session")
         if not session_cookie:
@@ -263,6 +292,11 @@ def _create_response_with_cookie(response, sealed_session):
 
 def socket_auth(*args, **kwargs):
     """Authenticate socket connections using sealed sessions"""
+    # Local development mode: bypass WorkOS authentication
+    if USE_LOCAL_AUTH:
+        logger.info("Using local development authentication for socket")
+        return _create_local_dev_auth()
+
     if not request.cookies.get("session"):
         raise UnauthorizedError("No session cookie")
 

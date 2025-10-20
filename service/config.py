@@ -37,3 +37,6 @@ LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
 # JWT Configuration for auth tokens
 AUTH_CLIENT_ID = os.environ.get("AUTH_CLIENT_ID", "")
+
+# Local Development Authentication
+USE_LOCAL_AUTH = os.environ.get("USE_LOCAL_AUTH", "false").lower() == "true"

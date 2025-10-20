@@ -30,7 +30,23 @@
     </div>
     <div class="flex items-start gap-2">
       <AssetBadgeStatus :status="asset.status" badge-class="text-sm" />
-      <Button v-if="showReviewButton" variant="ghost" size="sm" class="-mt-1" @click="reviewWithAI">
+      <Button
+        v-if="catalogStore.selectionMode"
+        :variant="isSelected ? 'default' : 'ghost'"
+        size="sm"
+        class="-mt-1"
+        @click="addToAnalysis"
+      >
+        <PlusIcon class="h-4 w-4" />
+        {{ isSelected ? 'Added to Analysis' : 'Add to Analysis' }}
+      </Button>
+      <Button
+        v-else-if="showReviewButton"
+        variant="ghost"
+        size="sm"
+        class="-mt-1"
+        @click="reviewWithAI"
+      >
         <SparklesIcon class="h-4 w-4" />
         Review with AI
       </Button>
@@ -43,11 +59,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import AssetBadgeStatus from '@/components/AssetBadgeStatus.vue'
 import type { CatalogAsset } from '@/stores/catalog'
+import { useCatalogStore } from '@/stores/catalog'
 import { useConversationsStore } from '@/stores/conversations'
 import { useContextsStore } from '@/stores/contexts'
 import { computed, type Component } from 'vue'
 import { useRouter } from 'vue-router'
-import { SparklesIcon } from 'lucide-vue-next'
+import { SparklesIcon, PlusIcon } from 'lucide-vue-next'
+
+const catalogStore = useCatalogStore()
 
 interface Props {
   asset: CatalogAsset
@@ -67,6 +86,16 @@ const showReviewButton = computed(() => {
   const status = props.asset.status
   return !status || status === 'human_authored' || status === 'validated'
 })
+
+const isSelected = computed(() => {
+  return catalogStore.isAssetSelected(props.asset.id)
+})
+
+function addToAnalysis() {
+  // Toggle selection for this asset
+  const includeChildren = props.asset.type === 'TABLE'
+  catalogStore.toggleAssetSelection(props.asset.id, includeChildren)
+}
 
 async function reviewWithAI() {
   const contextId = contextsStore.contextSelected?.id
