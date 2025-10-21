@@ -34,7 +34,7 @@ import { computed } from 'vue'
 
 interface Props {
   selectedStatus: string
-  assetsByStatus: Record<AssetStatus, any[]>
+  assetsByStatus: Record<Exclude<AssetStatus, null>, any[]>
 }
 
 const props = defineProps<Props>()

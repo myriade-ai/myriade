@@ -22,7 +22,7 @@
               column.asset.column_facet?.data_type || 'N/A'
             }}</Badge>
           </div>
-          <p class="text-sm text-muted-foreground leading-6">
+          <p class="text-sm text-muted-foreground leading-6 line-clamp-4">
             {{ column.asset.description || 'No column documentation yet.' }}
           </p>
           <div class="space-y-2">

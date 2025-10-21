@@ -83,6 +83,10 @@ export const useCatalogStore = defineStore('catalog', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
+  // Selection mode state
+  const selectionMode = ref(false)
+  const selectedAssetIds = ref<string[]>([])
+
   // Watch for context changes and fetch catalog data
   const contextsStore = useContextsStore()
 
@@ -123,6 +127,23 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   const tableAssets = computed(() => assetsByType.value.TABLE || [])
   const columnAssets = computed(() => assetsByType.value.COLUMN || [])
+
+  const selectedAssets = computed(() => {
+    return selectedAssetIds.value.map((id) => assets.value[id]).filter(Boolean)
+  })
+
+  const selectedAssetsGrouped = computed(() => {
+    const tables: CatalogAsset[] = []
+    const columns: CatalogAsset[] = []
+    selectedAssets.value.forEach((asset) => {
+      if (asset.type === 'TABLE') {
+        tables.push(asset)
+      } else if (asset.type === 'COLUMN') {
+        columns.push(asset)
+      }
+    })
+    return { tables, columns }
+  })
 
   // ——————————————————————————————————————————————————
   // ACTIONS
@@ -410,6 +431,87 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
+  // Selection mode actions
+  function toggleSelectionMode() {
+    selectionMode.value = !selectionMode.value
+    if (!selectionMode.value) {
+      // Clear selection when exiting selection mode
+      selectedAssetIds.value = []
+    }
+  }
+
+  function toggleAssetSelection(assetId: string, includeChildren: boolean = false) {
+    const asset = assets.value[assetId]
+    if (!asset) return
+
+    const isSelected = selectedAssetIds.value.includes(assetId)
+
+    if (isSelected) {
+      // Deselect the asset
+      selectedAssetIds.value = selectedAssetIds.value.filter((id) => id !== assetId)
+
+      // If it's a table and includeChildren is true, deselect all columns
+      if (includeChildren && asset.type === 'TABLE') {
+        const columnIds = columnAssets.value
+          .filter((column) => column.column_facet?.parent_table_asset_id === assetId)
+          .map((col) => col.id)
+        selectedAssetIds.value = selectedAssetIds.value.filter((id) => !columnIds.includes(id))
+      }
+    } else {
+      // Select the asset
+      selectedAssetIds.value = [...selectedAssetIds.value, assetId]
+
+      // If it's a table and includeChildren is true, select all columns
+      if (includeChildren && asset.type === 'TABLE') {
+        const columnIds = columnAssets.value
+          .filter((column) => column.column_facet?.parent_table_asset_id === assetId)
+          .map((col) => col.id)
+        selectedAssetIds.value = [...selectedAssetIds.value, ...columnIds]
+      }
+    }
+  }
+
+  function selectTableWithColumns(tableId: string) {
+    const table = assets.value[tableId]
+    if (!table || table.type !== 'TABLE') return
+
+    const columnIds = columnAssets.value
+      .filter((column) => column.column_facet?.parent_table_asset_id === tableId)
+      .map((col) => col.id)
+
+    // Add table and all columns (avoiding duplicates)
+    const newIds = [tableId, ...columnIds].filter((id) => !selectedAssetIds.value.includes(id))
+    selectedAssetIds.value = [...selectedAssetIds.value, ...newIds]
+  }
+
+  function clearSelection() {
+    selectedAssetIds.value = []
+  }
+
+  function isAssetSelected(assetId: string): boolean {
+    return selectedAssetIds.value.includes(assetId)
+  }
+
+  function getTableSelectionState(tableId: string): 'none' | 'partial' | 'all' {
+    const table = assets.value[tableId]
+    if (!table || table.type !== 'TABLE') return 'none'
+
+    const columns = columnAssets.value.filter(
+      (col) => col.column_facet?.parent_table_asset_id === tableId
+    )
+
+    if (columns.length === 0) {
+      return selectedAssetIds.value.includes(tableId) ? 'all' : 'none'
+    }
+
+    const selectedColumns = columns.filter((col) => selectedAssetIds.value.includes(col.id))
+    const tableSelected = selectedAssetIds.value.includes(tableId)
+
+    if (selectedColumns.length === 0 && !tableSelected) return 'none'
+    if (selectedColumns.length === columns.length && tableSelected) return 'all'
+    return 'partial'
+  }
+
   // ——————————————————————————————————————————————————
   // RETURN
   // ——————————————————————————————————————————————————
@@ -419,6 +521,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     terms,
     loading,
     error,
+    selectionMode,
+    selectedAssetIds,
 
     // getters
     assetsArray,
@@ -427,6 +531,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     assetsByType,
     tableAssets,
     columnAssets,
+    selectedAssets,
+    selectedAssetsGrouped,
 
     // actions
     fetchAssets,
@@ -439,6 +545,14 @@ export const useCatalogStore = defineStore('catalog', () => {
     deleteTerm,
     updateTag,
     deleteTag,
-    dismissFlag
+    dismissFlag,
+
+    // selection actions
+    toggleSelectionMode,
+    toggleAssetSelection,
+    selectTableWithColumns,
+    clearSelection,
+    isAssetSelected,
+    getTableSelectionState
   }
 })
