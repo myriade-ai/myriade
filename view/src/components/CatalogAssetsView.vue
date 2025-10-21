@@ -96,17 +96,41 @@ import { Button } from '@/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { useCatalogStore } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
+import type { CatalogAsset } from '@/stores/catalog'
 import type { CatalogAssetUpdatePayload } from '@/types/catalog'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { EditableDraft } from './catalog/types'
+import { useCatalogAssetsQuery } from './catalog/useCatalogQuery'
 import { useCatalogData } from './catalog/useCatalogData'
+import { useQueryClient } from '@tanstack/vue-query'
+
+interface Props {
+  isLoading?: boolean
+  isFetching?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  isLoading: false,
+  isFetching: false
+})
 
 const catalogStore = useCatalogStore()
 const contextsStore = useContextsStore()
+const queryClient = useQueryClient()
 
-const loading = computed(() => catalogStore.loading)
-const error = computed(() => catalogStore.error)
+// Use TanStack Query as the data source
+const { data: assetsData, isLoading: queryLoading, error: queryError } = useCatalogAssetsQuery()
+
+const loading = computed(() => {
+  if (props.isLoading !== undefined) {
+    // Show loading only if we're loading AND we have no data yet
+    return props.isLoading && (!assetsData.value || assetsData.value.length === 0)
+  }
+  return queryLoading.value && (!assetsData.value || assetsData.value.length === 0)
+})
+
+const error = computed(() => queryError.value?.message || catalogStore.error)
 
 // State
 const searchQuery = ref('')
@@ -130,15 +154,16 @@ const assetDraft = reactive<EditableDraft>({
 const route = useRoute()
 const router = useRouter()
 
-// Use catalog data composable
-const catalogData = useCatalogData()
+// Use catalog data composable with TanStack Query as the source
+const catalogData = useCatalogData(computed(() => assetsData.value))
 const {
   tableById,
   columnsByTableId,
   schemaOptions,
   tagOptions,
   buildFilteredTree,
-  assetMatchesFilters
+  assetMatchesFilters,
+  indexes
 } = catalogData
 
 // Computed
@@ -162,7 +187,7 @@ const filteredTree = computed(() =>
 
 const selectedAsset = computed(() => {
   if (!selectedAssetId.value) return null
-  return catalogStore.assets[selectedAssetId.value] ?? null
+  return indexes.assetsByIdMap.value.get(selectedAssetId.value) ?? null
 })
 
 const selectedTable = computed(() => {
@@ -172,7 +197,7 @@ const selectedTable = computed(() => {
   if (asset.type === 'COLUMN') {
     const tableId = asset.column_facet?.parent_table_asset_id
     if (!tableId) return null
-    return catalogStore.assets[tableId] ?? null
+    return indexes.tablesByIdMap.value.get(tableId) ?? null
   }
   return null
 })
@@ -214,7 +239,8 @@ const assetHasChanges = computed(() => {
 })
 
 const tablesForOverview = computed(() => {
-  let tables = catalogStore.tableAssets
+  // Use indexed tables list instead of catalogStore.tableAssets
+  let tables = indexes.tablesList.value
 
   // Filter by schema if selected
   if (selectedSchema.value && selectedSchema.value !== '__all__') {
@@ -335,7 +361,7 @@ watch([searchQuery, selectedSchema, selectedTag, selectedStatus], () => {
 })
 
 function expandForAsset(assetId: string) {
-  const asset = catalogStore.assets[assetId]
+  const asset = indexes.assetsByIdMap.value.get(assetId)
   if (!asset || !explorerRef.value) return
   const table =
     asset.type === 'TABLE'
@@ -371,7 +397,10 @@ function clearFilters() {
 
 async function refresh() {
   if (!contextsStore.contextSelected) return
-  await catalogStore.fetchAssets(contextsStore.contextSelected.id)
+  // Invalidate TanStack Query cache to trigger refetch
+  await queryClient.invalidateQueries({
+    queryKey: ['catalog', 'assets', contextsStore.contextSelected.id]
+  })
 }
 
 function getTableColumnCount(tableId: string): number {
@@ -428,6 +457,13 @@ async function saveAssetDetails() {
 
     const updated = await catalogStore.updateAsset(asset.id, updatePayload)
 
+    // Update the query cache directly instead of refetching
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => (a.id === updated.id ? updated : a))
+    })
+
     // Update draft with the saved description (not AI suggestion anymore)
     assetDraft.description = updated.description ?? assetDraft.description
     assetDraft.tags = [...(updated.tags || [])]
@@ -447,7 +483,14 @@ async function dismissAssetFlag() {
   try {
     assetSaving.value = true
     assetEditError.value = null
-    await catalogStore.dismissFlag(asset.id)
+    const updated = await catalogStore.dismissFlag(asset.id)
+
+    // Update the query cache directly instead of refetching
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => (a.id === updated.id ? updated : a))
+    })
   } catch (error) {
     console.error('Failed to dismiss flag:', error)
     assetEditError.value = 'Failed to dismiss flag. Please try again.'
@@ -470,6 +513,13 @@ async function approveAssetSuggestion(payload: { description: string; tagIds: st
       ai_suggestion: null,
       ai_flag_reason: null,
       ai_suggested_tags: null
+    })
+
+    // Update the query cache directly instead of refetching
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => (a.id === updated.id ? updated : a))
     })
 
     // Update draft with the saved description

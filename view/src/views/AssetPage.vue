@@ -2,20 +2,23 @@
 import CatalogAssetsView from '@/components/CatalogAssetsView.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { Button } from '@/components/ui/button'
-import { useCatalogStore } from '@/stores/catalog'
+import { useCatalogAssetsQuery } from '@/components/catalog/useCatalogQuery'
 import { useContextsStore } from '@/stores/contexts'
 import { useConversationsStore } from '@/stores/conversations'
 import { useDatabasesStore } from '@/stores/databases'
 import { RefreshCwIcon, SparklesIcon } from 'lucide-vue-next'
-import { onMounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const contextsStore = useContextsStore()
-const catalogStore = useCatalogStore()
 const conversationsStore = useConversationsStore()
 const databasesStore = useDatabasesStore()
 const router = useRouter()
 const isSyncing = ref(false)
+
+const { data: assets, isLoading, isFetching, refetch } = useCatalogAssetsQuery()
+
+const assetsCount = computed(() => assets.value?.length ?? 0)
 
 async function exploreDatabase() {
   const prompt = `Explore the database and help fill in descriptions for the most important assets in our data catalog. Before writing any asset descriptions, please:
@@ -66,37 +69,18 @@ async function syncDatabaseMetadata() {
     const databaseId = contextsStore.getSelectedContextDatabaseId()
 
     await databasesStore.syncDatabaseMetadata(databaseId)
-    await catalogStore.fetchAssets(contextsStore.contextSelected.id)
+    await refetch()
   } catch (error: unknown) {
     console.error('Error syncing database metadata:', error)
   } finally {
     isSyncing.value = false
   }
 }
-
-watch(
-  () => contextsStore.contextSelected,
-  async (newContext, oldContext) => {
-    if (newContext && newContext.id !== oldContext?.id) {
-      await catalogStore.fetchAssets(newContext.id)
-    }
-  }
-)
-
-onMounted(async () => {
-  if (contextsStore.contextSelected) {
-    await catalogStore.fetchAssets(contextsStore.contextSelected.id)
-  }
-})
 </script>
 
 <template>
   <div class="flex flex-col h-screen">
-    <PageHeader
-      class="flex-shrink-0"
-      title="Catalog Assets"
-      :subtitle="`${catalogStore.assetsArray.length} assets`"
-    >
+    <PageHeader class="flex-shrink-0" title="Catalog Assets" :subtitle="`${assetsCount} assets`">
       <template #actions>
         <Button @click="syncDatabaseMetadata" variant="outline" :disabled="isSyncing">
           <RefreshCwIcon class="h-4 w-4" :class="{ 'animate-spin': isSyncing }" />
@@ -110,7 +94,7 @@ onMounted(async () => {
     </PageHeader>
 
     <div class="flex-1 min-h-0 h-full">
-      <CatalogAssetsView />
+      <CatalogAssetsView :is-loading="isLoading" :is-fetching="isFetching" />
     </div>
   </div>
 </template>
