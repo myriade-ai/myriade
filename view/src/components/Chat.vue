@@ -13,7 +13,7 @@
       <div class="flex flex-col w-full min-h-[calc(100vh-4rem)]">
         <div class="flex flex-col flex-1 w-full max-w-3xl m-auto">
           <div class="w-full lg:pt-4">
-            <ul class="list-none">
+            <ul class="list-none space-y-4">
               <template v-for="(group, index) in messageGroups" :key="index">
                 <li
                   v-for="message in group.publicMessages"

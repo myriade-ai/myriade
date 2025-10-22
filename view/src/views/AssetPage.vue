@@ -66,7 +66,12 @@ async function syncDatabaseMetadata() {
     const databaseId = contextsStore.getSelectedContextDatabaseId()
 
     await databasesStore.syncDatabaseMetadata(databaseId)
+    // Fetch assets first, then stats (to avoid potential race conditions)
     await catalogStore.fetchAssets(contextsStore.contextSelected.id)
+    // Fetch stats independently - don't let it block or fail the main flow
+    catalogStore.fetchStats(contextsStore.contextSelected.id).catch((err) => {
+      console.error('Failed to fetch catalog stats:', err)
+    })
   } catch (error: unknown) {
     console.error('Error syncing database metadata:', error)
   } finally {
@@ -78,25 +83,31 @@ watch(
   () => contextsStore.contextSelected,
   async (newContext, oldContext) => {
     if (newContext && newContext.id !== oldContext?.id) {
+      // Fetch assets first, then stats (to avoid potential race conditions)
       await catalogStore.fetchAssets(newContext.id)
+      // Fetch stats independently - don't let it block or fail the main flow
+      catalogStore.fetchStats(newContext.id).catch((err) => {
+        console.error('Failed to fetch catalog stats:', err)
+      })
     }
   }
 )
 
 onMounted(async () => {
   if (contextsStore.contextSelected) {
+    // Fetch assets first, then stats (to avoid potential race conditions)
     await catalogStore.fetchAssets(contextsStore.contextSelected.id)
+    // Fetch stats independently - don't let it block or fail the main flow
+    catalogStore.fetchStats(contextsStore.contextSelected.id).catch((err) => {
+      console.error('Failed to fetch catalog stats:', err)
+    })
   }
 })
 </script>
 
 <template>
   <div class="flex flex-col h-screen">
-    <PageHeader
-      class="flex-shrink-0"
-      title="Catalog Assets"
-      :subtitle="`${catalogStore.assetsArray.length} assets`"
-    >
+    <PageHeader class="flex-shrink-0" title="Catalog Assets">
       <template #actions>
         <Button @click="syncDatabaseMetadata" variant="outline" :disabled="isSyncing">
           <RefreshCwIcon class="h-4 w-4" :class="{ 'animate-spin': isSyncing }" />
@@ -108,6 +119,53 @@ onMounted(async () => {
         </Button>
       </template>
     </PageHeader>
+
+    <!-- Stats Bar -->
+    <div
+      v-if="catalogStore.stats"
+      class="flex gap-4 px-4 py-3 border-b bg-gray-50/50 flex-shrink-0"
+    >
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium text-gray-700">Total Assets:</span>
+        <span class="text-sm font-semibold text-gray-900">{{
+          catalogStore.stats.total_assets
+        }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium text-gray-700">Completion Score:</span>
+        <span
+          class="text-sm font-semibold"
+          :class="
+            catalogStore.stats.completion_score >= 70
+              ? 'text-green-600'
+              : catalogStore.stats.completion_score >= 40
+                ? 'text-yellow-600'
+                : 'text-red-600'
+          "
+          >{{ catalogStore.stats.completion_score }}%</span
+        >
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium text-gray-700">To Review:</span>
+        <span
+          class="text-sm font-semibold"
+          :class="catalogStore.stats.assets_to_review > 0 ? 'text-orange-600' : 'text-gray-900'"
+          >{{ catalogStore.stats.assets_to_review }}</span
+        >
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium text-gray-700">Validated:</span>
+        <span class="text-sm font-semibold text-gray-900">{{
+          catalogStore.stats.assets_validated
+        }}</span>
+      </div>
+      <div v-if="catalogStore.stats.assets_with_ai_suggestions > 0" class="flex items-center gap-2">
+        <span class="text-sm font-medium text-gray-700">AI Suggestions:</span>
+        <span class="text-sm font-semibold text-purple-600">{{
+          catalogStore.stats.assets_with_ai_suggestions
+        }}</span>
+      </div>
+    </div>
 
     <div class="flex-1 min-h-0 h-full">
       <CatalogAssetsView />
