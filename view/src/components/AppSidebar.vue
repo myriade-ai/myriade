@@ -70,18 +70,6 @@ const navItems: { title: string; url: string; icon: typeof SquarePen; disabled?:
     disabled: false
   },
   {
-    title: 'Control',
-    url: '/control',
-    icon: ShieldCheck,
-    disabled: true
-  },
-  {
-    title: 'Issues',
-    url: '/issues',
-    icon: Inbox,
-    disabled: true
-  },
-  {
     title: 'Projects',
     url: '/projects',
     icon: CalendarCog
@@ -95,6 +83,18 @@ const navItems: { title: string; url: string; icon: typeof SquarePen; disabled?:
     title: 'Editor',
     url: '/editor',
     icon: FilePenLine
+  },
+  {
+    title: 'Control',
+    url: '/control',
+    icon: ShieldCheck,
+    disabled: false
+  },
+  {
+    title: 'Issues',
+    url: '/issues',
+    icon: Inbox,
+    disabled: false
   }
 ]
 

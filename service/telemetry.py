@@ -68,7 +68,7 @@ def get_latest_version() -> Optional[str]:
         return latest
     except Exception as e:
         logger.warning("Failed to check latest version", extra={"error": str(e)})
-        return _telemetry_cache.get("latest_version")
+        return _telemetry_cache.get("latest_version", "unknown")
 
 
 def get_db_backends() -> List[str]:
