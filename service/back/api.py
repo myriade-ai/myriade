@@ -1116,10 +1116,7 @@ def get_asset_preview(asset_id: str):
     limit = min(int(request.args.get("limit", 10)), 20)
 
     try:
-        dw = DataWarehouseFactory.create(
-            database.engine,
-            **database.details,
-        )
+        dw = database.create_data_warehouse()
 
         # Use the data warehouse's get_sample_data method
         sample_result = dw.get_sample_data(table_name, schema, limit)
