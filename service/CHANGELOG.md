@@ -1,6 +1,15 @@
 # CHANGELOG
 
 
+## v0.53.0 (2025-10-23)
+
+### Features
+
+- Implement RSA key authentication for snowflake
+  ([#176](https://github.com/myriade-ai/myriade/pull/176),
+  [`fcc6464`](https://github.com/myriade-ai/myriade/commit/fcc646476d460878173e89d22a033d421c38b5b2))
+
+
 ## v0.52.2 (2025-10-23)
 
 ### Bug Fixes
