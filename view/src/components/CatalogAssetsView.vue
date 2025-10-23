@@ -52,6 +52,45 @@
               @toggle-explorer="explorerCollapsed = false"
             />
 
+            <!-- Stats Bar (shows stats for filtered view) -->
+            <div
+              v-if="filteredStats && hasActiveFilters"
+              class="flex gap-4 px-4 py-2 border-b bg-blue-50/50 flex-shrink-0 text-sm"
+            >
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-gray-700">Filtered:</span>
+                <span class="font-semibold text-gray-900">{{ filteredStats.total_assets }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-gray-700">Completion:</span>
+                <span
+                  class="font-semibold"
+                  :class="
+                    filteredStats.completion_score >= 70
+                      ? 'text-green-600'
+                      : filteredStats.completion_score >= 40
+                        ? 'text-yellow-600'
+                        : 'text-red-600'
+                  "
+                  >{{ filteredStats.completion_score }}%</span
+                >
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-gray-700">To Review:</span>
+                <span
+                  class="font-semibold"
+                  :class="filteredStats.assets_to_review > 0 ? 'text-orange-600' : 'text-gray-900'"
+                  >{{ filteredStats.assets_to_review }}</span
+                >
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-gray-700">Validated:</span>
+                <span class="font-semibold text-gray-900">{{
+                  filteredStats.assets_validated
+                }}</span>
+              </div>
+            </div>
+
             <!-- Details View (when asset selected) -->
             <CatalogDetailsView
               v-if="selectedAsset"
@@ -94,16 +133,17 @@ import CatalogListView from '@/components/catalog/CatalogListView.vue'
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import { Button } from '@/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
+import type { CatalogAsset } from '@/stores/catalog'
 import { useCatalogStore } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
-import type { CatalogAsset } from '@/stores/catalog'
 import type { CatalogAssetUpdatePayload } from '@/types/catalog'
+import { computeCatalogStats } from '@/utils/catalog-stats'
+import { useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { EditableDraft } from './catalog/types'
-import { useCatalogAssetsQuery } from './catalog/useCatalogQuery'
 import { useCatalogData } from './catalog/useCatalogData'
-import { useQueryClient } from '@tanstack/vue-query'
+import { useCatalogAssetsQuery } from './catalog/useCatalogQuery'
 
 interface Props {
   isLoading?: boolean
@@ -236,6 +276,64 @@ const assetHasChanges = computed(() => {
   }
 
   return currentTagIds.some((id, index) => id !== draftTagIds[index])
+})
+
+// Compute filtered assets (all types, not just tables) for stats
+const filteredAssets = computed(() => {
+  if (!assetsData.value) return []
+
+  let assets = assetsData.value
+
+  // Filter by schema if selected
+  if (selectedSchema.value && selectedSchema.value !== '__all__') {
+    assets = assets.filter((asset) => {
+      if (asset.type === 'TABLE') {
+        const schema = asset.table_facet?.schema || ''
+        return schema === selectedSchema.value
+      } else if (asset.type === 'COLUMN') {
+        const parentTable = asset.column_facet?.parent_table_facet
+        const schema = parentTable?.schema || ''
+        return schema === selectedSchema.value
+      }
+      return false
+    })
+  }
+
+  // Filter by tag if selected
+  if (selectedTag.value && selectedTag.value !== '__all__') {
+    assets = assets.filter((asset) => {
+      return asset.tags?.some((tag) => tag.id === selectedTag.value)
+    })
+  }
+
+  // Filter by status if selected
+  if (selectedStatus.value && selectedStatus.value !== '__all__') {
+    assets = assets.filter((asset) => {
+      return asset.status === selectedStatus.value
+    })
+  }
+
+  // Filter by search query
+  if (searchQuery.value.trim()) {
+    assets = assets.filter((asset) =>
+      assetMatchesFilters(asset, {
+        searchQuery: searchQuery.value,
+        selectedSchema: selectedSchema.value,
+        selectedTag: selectedTag.value,
+        selectedStatus: selectedStatus.value
+      })
+    )
+  }
+
+  return assets
+})
+
+// Compute stats for filtered assets
+const filteredStats = computed(() => {
+  if (!filteredAssets.value || filteredAssets.value.length === 0) {
+    return null
+  }
+  return computeCatalogStats(filteredAssets.value)
 })
 
 const tablesForOverview = computed(() => {
