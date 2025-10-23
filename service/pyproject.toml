@@ -108,7 +108,7 @@ version_toml = [
 ]
 build_command = """
     python -m pip install -e '.[build]'
-    uv lock --upgrade-package "$PACKAGE_NAME"
+    python -m uv lock --upgrade-package "$PACKAGE_NAME"
     git add uv.lock
 """
 changelog_file = "./CHANGELOG.md"
