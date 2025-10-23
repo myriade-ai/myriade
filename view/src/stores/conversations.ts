@@ -32,13 +32,15 @@ export interface Message {
   id: string
   createdAt: Date
   role: 'user' | 'assistant' | 'function' | 'system'
-  content: string
+  // Content could be string or array of this type: {type: 'text'|'query'|'image', query_id?: string}
+  content: string | any
   isAnswer?: boolean
   functionCall?: {
     name: string
     arguments: any
     metadata?: Record<string, unknown>
   }
+  conversationId: string
   functionCallId?: string
   queryId?: string
   image?: string // base64 encoded image
