@@ -80,8 +80,8 @@
 </template>
 
 <script setup lang="ts">
-import { Badge } from '@/components/ui/badge'
 import AssetBadgeStatus from '@/components/AssetBadgeStatus.vue'
+import { Badge } from '@/components/ui/badge'
 import type { CatalogAsset } from '@/stores/catalog'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { Table as TableIcon } from 'lucide-vue-next'

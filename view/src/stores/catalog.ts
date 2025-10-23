@@ -84,6 +84,10 @@ export const useCatalogStore = defineStore('catalog', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
+  // Selection mode state
+  const selectionMode = ref(false)
+  const selectedAssetIds = ref<string[]>([])
+
   // Watch for context changes
   const contextsStore = useContextsStore()
 
@@ -95,6 +99,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         terms.value = {}
         tags.value = {}
         error.value = null
+        selectedAssetIds.value = []
 
         fetchTags(newContext.id)
       }
@@ -108,7 +113,6 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   const termsArray = computed(() => Object.values(terms.value))
   const tagsArray = computed(() => Object.values(tags.value))
-
   // ——————————————————————————————————————————————————
   // ACTIONS
   // ——————————————————————————————————————————————————
@@ -362,6 +366,44 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
+  // Selection mode actions
+  function toggleSelectionMode() {
+    selectionMode.value = !selectionMode.value
+    if (!selectionMode.value) {
+      // Clear selection when exiting selection mode
+      selectedAssetIds.value = []
+    }
+  }
+
+  function toggleAssetSelection(assetId: string) {
+    const isSelected = selectedAssetIds.value.includes(assetId)
+
+    if (isSelected) {
+      // Deselect the asset
+      selectedAssetIds.value = selectedAssetIds.value.filter((id) => id !== assetId)
+    } else {
+      // Select the asset
+      selectedAssetIds.value = [...selectedAssetIds.value, assetId]
+    }
+  }
+
+  function addAssetSelection(assetIds: string[]) {
+    const newIds = assetIds.filter((id) => !selectedAssetIds.value.includes(id))
+    selectedAssetIds.value = [...selectedAssetIds.value, ...newIds]
+  }
+
+  function removeAssetSelection(assetIds: string[]) {
+    selectedAssetIds.value = selectedAssetIds.value.filter((id) => !assetIds.includes(id))
+  }
+
+  function clearSelection() {
+    selectedAssetIds.value = []
+  }
+
+  function isAssetSelected(assetId: string): boolean {
+    return selectedAssetIds.value.includes(assetId)
+  }
+
   // ——————————————————————————————————————————————————
   // RETURN
   // ——————————————————————————————————————————————————
@@ -370,6 +412,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     terms,
     loading,
     error,
+    selectionMode,
+    selectedAssetIds,
 
     // getters
     termsArray,
@@ -385,6 +429,14 @@ export const useCatalogStore = defineStore('catalog', () => {
     deleteTerm,
     updateTag,
     deleteTag,
-    dismissFlag // NOTE: Caller must invalidate TanStack Query cache
+    dismissFlag, // NOTE: Caller must invalidate TanStack Query cache
+
+    // selection actions
+    toggleSelectionMode,
+    toggleAssetSelection,
+    addAssetSelection,
+    removeAssetSelection,
+    clearSelection,
+    isAssetSelected
   }
 })
