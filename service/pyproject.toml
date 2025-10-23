@@ -5,7 +5,6 @@ version = "0.54.1"
 authors = [
     {name = "Benjamin Derville", email = "benderville@gmail.com"}
 ]
-license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = "==3.13.*"
 dependencies = [
@@ -44,7 +43,7 @@ all = [
     "oracledb>=2.0.0",
 ]
 build = [
-    "uv~=0.8.17",
+    "uv~=0.9.5",
 ]
 
 [dependency-groups]
@@ -107,8 +106,7 @@ version_toml = [
     "pyproject.toml:project.version",
 ]
 build_command = """
-    python -m pip install -e '.[build]'
-    python -m uv lock --upgrade-package "$PACKAGE_NAME"
+    uv lock --upgrade-package "$PACKAGE_NAME"
     git add uv.lock
 """
 changelog_file = "./CHANGELOG.md"
