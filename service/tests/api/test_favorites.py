@@ -21,9 +21,9 @@ def test_create_query_for_favorite_testing(app_server, test_db_id, snapshot):
     assert response.status_code == 200
     response_data = response.json()
     created_query_id_for_favorite_test = response_data.get("id")
-    assert (
-        created_query_id_for_favorite_test is not None
-    ), "Query ID should not be None after creation"
+    assert created_query_id_for_favorite_test is not None, (
+        "Query ID should not be None after creation"
+    )
 
     # Snapshot the created query (optional, but good for consistency)
     assert normalise_json(response_data) == snapshot
@@ -32,9 +32,9 @@ def test_create_query_for_favorite_testing(app_server, test_db_id, snapshot):
 def test_toggle_query_favorite_and_list(app_server, test_db_id, snapshot):
     """Test toggling a query's favorite status and listing favorites."""
     global created_query_id_for_favorite_test
-    assert (
-        created_query_id_for_favorite_test is not None
-    ), "Query ID for favorite test not set."
+    assert created_query_id_for_favorite_test is not None, (
+        "Query ID for favorite test not set."
+    )
 
     # 1. Favorite the query
     response_fav = requests.post(
