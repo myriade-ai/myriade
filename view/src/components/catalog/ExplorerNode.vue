@@ -49,8 +49,6 @@ const iconComponent = computed(() => {
 })
 
 function handleSelect() {
-  // Always emit 'select' for row clicks
-  // The chevron handles toggling separately via @click.stop on the ChevronRight icon
   emit('select')
 }
 </script>

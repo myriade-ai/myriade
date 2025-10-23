@@ -282,6 +282,29 @@ class CatalogTool:
                 if sample_data:
                     result["sample_data"] = sample_data
 
+            # Add child columns with description preview
+            child_columns = (
+                self.session.query(Asset)
+                .filter(
+                    Asset.database_id == self.database.id,
+                    Asset.type == "COLUMN",
+                    Asset.column_facet.has(parent_table_asset_id=asset.id),
+                )
+                .all()
+            )
+            result["columns"] = [
+                {
+                    "id": str(col.id),
+                    "name": col.name,
+                    "description_preview": (
+                        col.description[:50] + "..."
+                        if col.description and len(col.description) > 50
+                        else col.description
+                    ),
+                }
+                for col in child_columns
+            ]
+
         elif asset.type == "COLUMN" and asset.column_facet:
             facet = asset.column_facet
             result.update(
