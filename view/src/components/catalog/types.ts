@@ -14,7 +14,6 @@ export interface EditableDraft {
 export interface ExplorerTableNode {
   key: string
   asset: CatalogAsset
-  badges: AssetTag[]
   columns: ExplorerColumnNode[]
 }
 

@@ -50,6 +50,7 @@ export interface TableFacet {
   asset_id: string
   schema: string | null
   table_name: string | null
+  columns_total_count?: number | null
 }
 
 export interface ColumnFacet {
@@ -73,27 +74,17 @@ export interface CatalogTerm {
   updatedAt: string
 }
 
-export interface CatalogStats {
-  total_assets: number
-  completion_score: number
-  assets_to_review: number
-  assets_validated: number
-  assets_with_ai_suggestions: number
-  assets_with_description: number
-}
-
 export const useCatalogStore = defineStore('catalog', () => {
   // ——————————————————————————————————————————————————
   // STATE
   // ——————————————————————————————————————————————————
-  const assets = ref<Record<string, CatalogAsset>>({})
+  // This store only manages terms, tags, and non-asset metadata
   const terms = ref<Record<string, CatalogTerm>>({})
   const tags = ref<Record<string, AssetTag>>({})
   const loading = ref(false)
   const error = ref<string | null>(null)
-  const stats = ref<CatalogStats | null>(null)
 
-  // Watch for context changes and fetch catalog data
+  // Watch for context changes
   const contextsStore = useContextsStore()
 
   watch(
@@ -101,7 +92,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     (newContext, oldContext) => {
       if (newContext && newContext.id && newContext.id !== oldContext?.id) {
         // Clear the catalog store
-        assets.value = {}
         terms.value = {}
         tags.value = {}
         error.value = null
@@ -116,62 +106,12 @@ export const useCatalogStore = defineStore('catalog', () => {
   // GETTERS
   // ——————————————————————————————————————————————————
 
-  const assetsArray = computed(() => Object.values(assets.value))
   const termsArray = computed(() => Object.values(terms.value))
   const tagsArray = computed(() => Object.values(tags.value))
-
-  const assetsByType = computed(() => {
-    const grouped: Record<string, CatalogAsset[]> = {}
-    assetsArray.value.forEach((asset) => {
-      if (!grouped[asset.type]) {
-        grouped[asset.type] = []
-      }
-      grouped[asset.type].push(asset)
-    })
-    return grouped
-  })
-
-  const tableAssets = computed(() => assetsByType.value.TABLE || [])
-  const columnAssets = computed(() => assetsByType.value.COLUMN || [])
 
   // ——————————————————————————————————————————————————
   // ACTIONS
   // ——————————————————————————————————————————————————
-
-  async function fetchAssets(contextId: string, type?: 'TABLE' | 'COLUMN') {
-    try {
-      loading.value = true
-      error.value = null
-
-      const params: Record<string, unknown> = {}
-      if (type) params.type = type
-
-      const response: AxiosResponse<CatalogAsset[]> = await axios.get(
-        `/api/catalogs/${contextId}/assets`,
-        {
-          params
-        }
-      )
-
-      if (contextsStore.contextSelected?.id !== contextId) {
-        return []
-      }
-
-      // Update assets in store
-      response.data.forEach((asset) => {
-        assets.value[asset.id] = asset
-      })
-
-      return response.data
-    } catch (err: unknown) {
-      const errorResponse = err as any
-      error.value = errorResponse?.response?.data?.message || 'Failed to fetch assets'
-      console.error('Error fetching assets:', err)
-      return []
-    } finally {
-      loading.value = false
-    }
-  }
 
   async function fetchTerms(contextId: string, limit: number = 50) {
     try {
@@ -244,7 +184,8 @@ export const useCatalogStore = defineStore('catalog', () => {
         updates
       )
 
-      assets.value[response.data.id] = response.data
+      // NOTE: No longer updating local store state
+      // Caller should invalidate TanStack Query cache to refetch
       return response.data
     } catch (err: unknown) {
       const errorResponse = err as any
@@ -410,7 +351,8 @@ export const useCatalogStore = defineStore('catalog', () => {
         }
       )
 
-      assets.value[response.data.id] = response.data
+      // NOTE: No longer updating local store state
+      // Caller should invalidate TanStack Query cache to refetch
       return response.data
     } catch (err: unknown) {
       const errorResponse = err as any
@@ -420,68 +362,29 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  async function fetchStats(contextId: string) {
-    try {
-      loading.value = true
-      error.value = null
-
-      const response: AxiosResponse<CatalogStats> = await axios.get(
-        `/api/catalogs/${contextId}/stats`
-      )
-
-      if (contextsStore.contextSelected?.id !== contextId) {
-        return null
-      }
-
-      stats.value = response.data
-      return response.data
-    } catch (err: unknown) {
-      const errorResponse = err as any
-      const errorMessage =
-        errorResponse?.response?.data?.error ||
-        errorResponse?.response?.data?.message ||
-        'Failed to fetch stats'
-      error.value = errorMessage
-      console.error('Error fetching stats:', errorMessage, err)
-      // Set stats to null on error to prevent stale data
-      stats.value = null
-      return null
-    } finally {
-      loading.value = false
-    }
-  }
-
   // ——————————————————————————————————————————————————
   // RETURN
   // ——————————————————————————————————————————————————
   return {
     // state
-    assets,
     terms,
     loading,
     error,
-    stats,
 
     // getters
-    assetsArray,
     termsArray,
     tagsArray,
-    assetsByType,
-    tableAssets,
-    columnAssets,
 
     // actions
-    fetchAssets,
     fetchTerms,
     fetchTags,
-    fetchStats,
     createTag,
     createTerm,
-    updateAsset,
+    updateAsset, // NOTE: Caller must invalidate TanStack Query cache
     updateTerm,
     deleteTerm,
     updateTag,
     deleteTag,
-    dismissFlag
+    dismissFlag // NOTE: Caller must invalidate TanStack Query cache
   }
 })

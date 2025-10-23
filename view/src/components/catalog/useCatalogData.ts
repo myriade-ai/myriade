@@ -1,11 +1,21 @@
 import { useCatalogStore, type CatalogAsset } from '@/stores/catalog'
 import { useDatabasesStore } from '@/stores/databases'
-import { computed } from 'vue'
-import type { ExplorerSchemaNode, ExplorerTableNode } from './types'
+import { computed, type ComputedRef } from 'vue'
+import type { ExplorerColumnNode, ExplorerSchemaNode, ExplorerTableNode } from './types'
+import { useCatalogIndexed } from './useCatalogIndexed'
 
-export function useCatalogData() {
+/**
+ * High-level composable for catalog data access
+ * Provides indexes, filters, and business logic for catalog assets
+ *
+ * @param assetsSource - Reactive source of assets from TanStack Query (useCatalogAssetsQuery)
+ */
+export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefined>) {
   const catalogStore = useCatalogStore()
   const databasesStore = useDatabasesStore()
+
+  // Build optimized indexes from assets
+  const indexes = useCatalogIndexed(assetsSource)
 
   const databaseNameById = computed(() => {
     const map = new Map<string, string>()
@@ -15,49 +25,10 @@ export function useCatalogData() {
     return map
   })
 
-  const tableById = computed(() => {
-    const map = new Map<string, CatalogAsset>()
-    catalogStore.tableAssets.forEach((asset) => {
-      map.set(asset.id, asset)
-    })
-    return map
-  })
-
-  const columnsByTableId = computed(() => {
-    const map = new Map<string, CatalogAsset[]>()
-    catalogStore.columnAssets.forEach((asset) => {
-      const tableId = asset.column_facet?.parent_table_asset_id
-      if (!tableId) return
-      if (!map.has(tableId)) {
-        map.set(tableId, [])
-      }
-      map.get(tableId)!.push(asset)
-    })
-    // Sort by ordinal when present
-    for (const cols of map.values()) {
-      cols.sort((a, b) => {
-        const ordinalA = a.column_facet?.ordinal ?? Number.MAX_SAFE_INTEGER
-        const ordinalB = b.column_facet?.ordinal ?? Number.MAX_SAFE_INTEGER
-        if (ordinalA === ordinalB) {
-          return (a.column_facet?.column_name || '').localeCompare(
-            b.column_facet?.column_name || ''
-          )
-        }
-        return ordinalA - ordinalB
-      })
-    }
-    return map
-  })
-
-  const schemaOptions = computed(() => {
-    const schemas = new Set<string>()
-    catalogStore.tableAssets.forEach((asset) => {
-      const schema = asset.table_facet?.schema || ''
-      schemas.add(schema)
-    })
-    return Array.from(schemas).sort((a, b) => a.localeCompare(b))
-  })
-
+  // Re-export indexes with existing names for backward compatibility
+  const tableById = indexes.tablesByIdMap
+  const columnsByTableId = indexes.columnsByTableIdMap
+  const schemaOptions = indexes.schemaOptions
   const tagOptions = computed(() => catalogStore.tagsArray)
 
   function assetSchema(asset: CatalogAsset): string {
@@ -133,9 +104,8 @@ export function useCatalogData() {
       return schemaMap.get(schemaKey)!
     }
 
-    const searchActive = Boolean(searchQuery.trim())
-
-    catalogStore.tableAssets
+    // Use indexed tables list instead of catalogStore.tableAssets
+    indexes.tablesList.value
       .slice()
       .sort((a, b) => {
         const schemaA = a.table_facet?.schema || ''
@@ -147,8 +117,9 @@ export function useCatalogData() {
       })
       .forEach((tableAsset) => {
         const schemaNode = ensureSchemaNode(tableAsset.table_facet?.schema || '')
-        const columnAssets = columnsByTableId.value.get(tableAsset.id) || []
 
+        // For search filtering, check both table and its columns
+        const columnAssets = columnsByTableId.value.get(tableAsset.id) || []
         const matchedColumns = columnAssets.filter((column) =>
           assetMatchesFilters(column, { searchQuery, selectedSchema, selectedTag, selectedStatus })
         )
@@ -159,28 +130,22 @@ export function useCatalogData() {
           selectedStatus
         })
 
+        // Only include table if it matches or has matching columns
         if (!tableMatches && !matchedColumns.length) {
           return
         }
 
+        // Build column nodes with metadata
+        const columnNodes: ExplorerColumnNode[] = matchedColumns.map((columnAsset) => ({
+          asset: columnAsset,
+          label: columnAsset.column_facet?.column_name || columnAsset.name || 'Unnamed column',
+          meta: columnAsset.column_facet?.data_type || ''
+        }))
+
         const tableNode: ExplorerTableNode = {
           key: `table:${tableAsset.id}`,
           asset: tableAsset,
-          badges: tableAsset.tags || [],
-          columns: matchedColumns.map((column) => ({
-            asset: column,
-            label: column.column_facet?.column_name || column.name || 'Unnamed column',
-            meta: column.column_facet?.data_type || ''
-          }))
-        }
-
-        if (!matchedColumns.length && searchActive && tableMatches && columnAssets.length) {
-          // When search matches table but not specific columns, show first few columns for context
-          tableNode.columns = columnAssets.slice(0, 5).map((column) => ({
-            asset: column,
-            label: column.column_facet?.column_name || column.name || 'Unnamed column',
-            meta: column.column_facet?.data_type || ''
-          }))
+          columns: columnNodes
         }
 
         schemaNode.tables.push(tableNode)
@@ -201,6 +166,8 @@ export function useCatalogData() {
     tagOptions,
     assetSchema,
     assetMatchesFilters,
-    buildFilteredTree
+    buildFilteredTree,
+    // Expose indexes for advanced usage
+    indexes
   }
 }
