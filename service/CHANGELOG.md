@@ -1,6 +1,16 @@
 # CHANGELOG
 
 
+## v0.54.0 (2025-10-23)
+
+### Features
+
+- Select assets for explore inside cart ([#174](https://github.com/myriade-ai/myriade/pull/174),
+  [`7c1a91b`](https://github.com/myriade-ai/myriade/commit/7c1a91b5e4197e9ca7740f86652e51d23914b8df))
+
+Co-authored-by: Benjamin DERVILLE <benderville@gmail.com>
+
+
 ## v0.53.0 (2025-10-23)
 
 ### Features
