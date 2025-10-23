@@ -83,10 +83,23 @@ class DataAnalystAgent:
         else:
             provider = AGENTLYS_PROVIDER
 
+        # Get organization language if available
+        organization_language = self._get_organization_language()
+
+        # Build context with organization language if available
+        template_context = self.context or ""
+        if organization_language:
+            language_instruction = f"\n\n# Organization Language\nThe organization requires all documentation and responses to be in: {organization_language}"  # noqa
+            template_context = (
+                template_context + language_instruction
+                if template_context
+                else language_instruction
+            )
+
         self.agent = Agentlys.from_template(
             os.path.join(os.path.dirname(__file__), "..", "chat", "chat_template.txt"),
             provider=provider,
-            context=self.context,
+            context=template_context,
             use_tools_only=True,
             model=model,
         )
@@ -155,6 +168,20 @@ class DataAnalystAgent:
         if self.conversation.project:
             notes = Notes(self.session, self.agent, self.conversation.project)
             self.agent.add_tool(notes, "notes")
+
+    def _get_organization_language(self):
+        """Get the organization language if the database belongs to an organization."""
+        from models import Organisation
+
+        if self.conversation.database.organisationId:
+            organisation = (
+                self.session.query(Organisation)
+                .filter_by(id=self.conversation.database.organisationId)
+                .first()
+            )
+            if organisation and organisation.language:
+                return organisation.language
+        return None
 
     def check_stop_flag(self):
         from chat.lock import check_and_clear_stop_flag
@@ -304,7 +331,11 @@ class DataAnalystAgent:
             conversation=self.conversation,
         )
         self.session.add(message)
-        self.session.flush()
+        try:
+            self.session.flush()
+        except Exception:
+            self.session.rollback()
+            raise
         yield message
 
         yield from self._run_conversation()

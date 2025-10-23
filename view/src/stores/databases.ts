@@ -4,7 +4,14 @@ import type { AssetTag } from '@/stores/catalog'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
-export type Engine = 'postgres' | 'mysql' | 'snowflake' | 'sqlite' | 'bigquery' | 'motherduck'
+export type Engine =
+  | 'postgres'
+  | 'mysql'
+  | 'snowflake'
+  | 'sqlite'
+  | 'bigquery'
+  | 'motherduck'
+  | 'oracle'
 export type WriteMode = 'read-only' | 'confirmation' | 'skip-confirmation'
 
 export interface Database {
@@ -15,8 +22,8 @@ export interface Database {
   details: Record<string, string | number | undefined | null> | null
   public: boolean
   write_mode: WriteMode
-  dbt_catalog: unknown
-  dbt_manifest: unknown
+  dbt_catalog?: unknown
+  dbt_manifest?: unknown
   dbt_repo_path: string | null
   tags?: AssetTag[]
 }
@@ -46,6 +53,7 @@ export const getDefaultDetailsForEngine = (engine: Engine) => {
         account: '',
         user: '',
         password: '',
+        auth_method: 'password',
         database: '',
         schema: '',
         role: '',
@@ -57,6 +65,8 @@ export const getDefaultDetailsForEngine = (engine: Engine) => {
       return { project_id: '', service_account_json: null }
     case 'motherduck':
       return { token: '', database: '' }
+    case 'oracle':
+      return { host: '', port: 1521, user: '', password: '', service_name: '', sid: '' }
     default:
       engine satisfies never
       throw new Error('Unsupported engine')
@@ -70,7 +80,8 @@ export const getDatabaseTypeName = (engine: Engine) => {
     snowflake: 'Snowflake',
     sqlite: 'SQLite',
     bigquery: 'BigQuery',
-    motherduck: 'MotherDuck'
+    motherduck: 'MotherDuck',
+    oracle: 'Oracle'
   }
   return engineNames[engine] || engine
 }

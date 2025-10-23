@@ -7,6 +7,14 @@ import { computed, ref, watch } from 'vue'
 
 export type AssetType = 'TABLE' | 'COLUMN'
 
+export type AssetStatus =
+  | 'validated'
+  | 'human_authored'
+  | 'published_by_ai'
+  | 'needs_review'
+  | 'requires_validation'
+  | null
+
 export type Privacy = {
   llm: 'Encrypted' | 'Default'
 }
@@ -32,13 +40,17 @@ export interface CatalogAsset {
   updatedAt: string
   table_facet?: TableFacet
   column_facet?: ColumnFacet
-  reviewed: boolean
+  status: AssetStatus
+  ai_suggestion?: string | null
+  ai_flag_reason?: string | null
+  ai_suggested_tags?: string[] | null
 }
 
 export interface TableFacet {
   asset_id: string
   schema: string | null
   table_name: string | null
+  columns_total_count?: number | null
 }
 
 export interface ColumnFacet {
@@ -60,20 +72,23 @@ export interface CatalogTerm {
   business_domains: string[] | null
   createdAt: string
   updatedAt: string
-  reviewed: boolean
 }
 
 export const useCatalogStore = defineStore('catalog', () => {
   // ——————————————————————————————————————————————————
   // STATE
   // ——————————————————————————————————————————————————
-  const assets = ref<Record<string, CatalogAsset>>({})
+  // This store only manages terms, tags, and non-asset metadata
   const terms = ref<Record<string, CatalogTerm>>({})
   const tags = ref<Record<string, AssetTag>>({})
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // Watch for context changes and fetch catalog data
+  // Selection mode state
+  const selectionMode = ref(false)
+  const selectedAssetIds = ref<string[]>([])
+
+  // Watch for context changes
   const contextsStore = useContextsStore()
 
   watch(
@@ -81,10 +96,10 @@ export const useCatalogStore = defineStore('catalog', () => {
     (newContext, oldContext) => {
       if (newContext && newContext.id && newContext.id !== oldContext?.id) {
         // Clear the catalog store
-        assets.value = {}
         terms.value = {}
         tags.value = {}
         error.value = null
+        selectedAssetIds.value = []
 
         fetchTags(newContext.id)
       }
@@ -96,62 +111,11 @@ export const useCatalogStore = defineStore('catalog', () => {
   // GETTERS
   // ——————————————————————————————————————————————————
 
-  const assetsArray = computed(() => Object.values(assets.value))
   const termsArray = computed(() => Object.values(terms.value))
   const tagsArray = computed(() => Object.values(tags.value))
-
-  const assetsByType = computed(() => {
-    const grouped: Record<string, CatalogAsset[]> = {}
-    assetsArray.value.forEach((asset) => {
-      if (!grouped[asset.type]) {
-        grouped[asset.type] = []
-      }
-      grouped[asset.type].push(asset)
-    })
-    return grouped
-  })
-
-  const tableAssets = computed(() => assetsByType.value.TABLE || [])
-  const columnAssets = computed(() => assetsByType.value.COLUMN || [])
-
   // ——————————————————————————————————————————————————
   // ACTIONS
   // ——————————————————————————————————————————————————
-
-  async function fetchAssets(contextId: string, type?: 'TABLE' | 'COLUMN') {
-    try {
-      loading.value = true
-      error.value = null
-
-      const params: Record<string, unknown> = {}
-      if (type) params.type = type
-
-      const response: AxiosResponse<CatalogAsset[]> = await axios.get(
-        `/api/catalogs/${contextId}/assets`,
-        {
-          params
-        }
-      )
-
-      if (contextsStore.contextSelected?.id !== contextId) {
-        return []
-      }
-
-      // Update assets in store
-      response.data.forEach((asset) => {
-        assets.value[asset.id] = asset
-      })
-
-      return response.data
-    } catch (err: unknown) {
-      const errorResponse = err as any
-      error.value = errorResponse?.response?.data?.message || 'Failed to fetch assets'
-      console.error('Error fetching assets:', err)
-      return []
-    } finally {
-      loading.value = false
-    }
-  }
 
   async function fetchTerms(contextId: string, limit: number = 50) {
     try {
@@ -224,7 +188,8 @@ export const useCatalogStore = defineStore('catalog', () => {
         updates
       )
 
-      assets.value[response.data.id] = response.data
+      // NOTE: No longer updating local store state
+      // Caller should invalidate TanStack Query cache to refetch
       return response.data
     } catch (err: unknown) {
       const errorResponse = err as any
@@ -379,34 +344,99 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
+  async function dismissFlag(assetId: string) {
+    try {
+      error.value = null
+
+      const response: AxiosResponse<CatalogAsset> = await axios.patch(
+        `/api/catalogs/assets/${assetId}`,
+        {
+          dismiss_flag: true
+        }
+      )
+
+      // NOTE: No longer updating local store state
+      // Caller should invalidate TanStack Query cache to refetch
+      return response.data
+    } catch (err: unknown) {
+      const errorResponse = err as any
+      error.value = errorResponse?.response?.data?.message || 'Failed to dismiss flag'
+      console.error('Error dismissing flag:', err)
+      throw err
+    }
+  }
+
+  // Selection mode actions
+  function toggleSelectionMode() {
+    selectionMode.value = !selectionMode.value
+    if (!selectionMode.value) {
+      // Clear selection when exiting selection mode
+      selectedAssetIds.value = []
+    }
+  }
+
+  function toggleAssetSelection(assetId: string) {
+    const isSelected = selectedAssetIds.value.includes(assetId)
+
+    if (isSelected) {
+      // Deselect the asset
+      selectedAssetIds.value = selectedAssetIds.value.filter((id) => id !== assetId)
+    } else {
+      // Select the asset
+      selectedAssetIds.value = [...selectedAssetIds.value, assetId]
+    }
+  }
+
+  function addAssetSelection(assetIds: string[]) {
+    const newIds = assetIds.filter((id) => !selectedAssetIds.value.includes(id))
+    selectedAssetIds.value = [...selectedAssetIds.value, ...newIds]
+  }
+
+  function removeAssetSelection(assetIds: string[]) {
+    selectedAssetIds.value = selectedAssetIds.value.filter((id) => !assetIds.includes(id))
+  }
+
+  function clearSelection() {
+    selectedAssetIds.value = []
+  }
+
+  function isAssetSelected(assetId: string): boolean {
+    return selectedAssetIds.value.includes(assetId)
+  }
+
   // ——————————————————————————————————————————————————
   // RETURN
   // ——————————————————————————————————————————————————
   return {
     // state
-    assets,
     terms,
     loading,
     error,
+    selectionMode,
+    selectedAssetIds,
 
     // getters
-    assetsArray,
     termsArray,
     tagsArray,
-    assetsByType,
-    tableAssets,
-    columnAssets,
 
     // actions
-    fetchAssets,
     fetchTerms,
     fetchTags,
     createTag,
     createTerm,
-    updateAsset,
+    updateAsset, // NOTE: Caller must invalidate TanStack Query cache
     updateTerm,
     deleteTerm,
     updateTag,
-    deleteTag
+    deleteTag,
+    dismissFlag, // NOTE: Caller must invalidate TanStack Query cache
+
+    // selection actions
+    toggleSelectionMode,
+    toggleAssetSelection,
+    addAssetSelection,
+    removeAssetSelection,
+    clearSelection,
+    isAssetSelected
   }
 })

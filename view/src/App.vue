@@ -66,7 +66,7 @@ onMounted(() => {
 
 const layout = computed(() => {
   if (route.name === undefined) {
-    return '' // Empty so we don't have flickering
+    return defaultLayout
   }
 
   return route.meta.layout === 'empty' ? emptyLayout : defaultLayout

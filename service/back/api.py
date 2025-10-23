@@ -7,7 +7,7 @@ import anthropic
 from agentlys import Agentlys
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, contains_eager, joinedload, selectinload
 from sqlalchemy.sql.expression import true
 
 import telemetry
@@ -36,7 +36,7 @@ from models import (
     Query,
     UserFavorite,
 )
-from models.catalog import Asset, AssetTag, ColumnFacet, Term
+from models.catalog import Asset, AssetTag, ColumnFacet, TableFacet, Term
 from models.quality import BusinessEntity, Issue
 
 logger = logging.getLogger(__name__)
@@ -200,7 +200,7 @@ def create_database_route():
     if initial_metadata:
         sync_database_metadata_to_assets(database.id, initial_metadata)
 
-    return jsonify(database.to_dict())
+    return jsonify(database.to_dict(exclude=["dbt_catalog", "dbt_manifest"]))
 
 
 @api.route("/databases/test-connection", methods=["POST"])
@@ -256,7 +256,13 @@ def update_database(database_id: UUID):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access to update this database
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     database.name = data["name"]
@@ -294,7 +300,7 @@ def update_database(database_id: UUID):
 
     g.session.flush()
 
-    return jsonify(database.to_dict())
+    return jsonify(database.to_dict(exclude=["dbt_catalog", "dbt_manifest"]))
 
 
 @api.route("/databases", methods=["GET"])
@@ -314,15 +320,24 @@ def get_databases():
         .all()
     )
     # Convert each Database object to its dictionary representation
-    databases_list = [db.to_dict() for db in databases_query]
+    # Exclude large dbt fields that aren't needed in the list view
+    databases_list = [
+        db.to_dict(exclude=["dbt_catalog", "dbt_manifest"]) for db in databases_query
+    ]
     return jsonify(databases_list)
 
 
 @api.route("/contexts/<string:context_id>/questions", methods=["GET"])
 @user_middleware
 def get_questions(context_id):
-    # Get the preferred language from Accept-Language header
-    user_language = request.headers.get("Accept-Language")
+    """Get the preferred language: organization language
+    takes precedence over user language
+    """
+    user_language = (
+        g.organisation.language
+        if g.organisation and g.organisation.language
+        else request.headers.get("Accept-Language")
+    )
 
     # context is "project-{projectId}" or "database-{databaseId}"
     database_id, project_id = extract_context(g.session, context_id)
@@ -412,10 +427,13 @@ def get_schema(database_id: UUID):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access to this database
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -487,7 +505,13 @@ def get_project(project_id: UUID):
     )
 
     # # Verify user access
-    if project.creatorId != g.user.id and project.organisationId != g.organization_id:
+    if not (
+        project.creatorId == g.user.id
+        or (
+            project.organisationId is not None
+            and project.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     project_dict = project.to_dict()
@@ -537,7 +561,13 @@ def update_project(project_id: UUID):
         return jsonify({"error": "Project not found"}), 404
 
     # Verify user has access to update this project
-    if project.creatorId != g.user.id and project.organisationId != g.organization_id:
+    if not (
+        project.creatorId == g.user.id
+        or (
+            project.organisationId is not None
+            and project.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     # update name, description or tables
@@ -566,7 +596,13 @@ def delete_project(project_id: UUID):
         return jsonify({"error": "Project not found"}), 404
 
     # Verify user has access to delete this project
-    if project.creatorId != g.user.id and project.organisationId != g.organization_id:
+    if not (
+        project.creatorId == g.user.id
+        or (
+            project.organisationId is not None
+            and project.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     g.session.delete(project)
@@ -583,7 +619,13 @@ def update_database_privacy(database_id: UUID):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access (owner or organisation match)
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     payload = request.get_json()
@@ -610,10 +652,13 @@ def toggle_query_favorite(query_id: UUID):
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -644,10 +689,13 @@ def get_chart(chart_id: UUID):
         return jsonify({"error": "Chart not found"}), 404
 
     # Verify user has access to this chart
-    if (
-        chart.query.database.ownerId != g.user.id
-        and chart.query.database.organisationId != g.organization_id
-        and not chart.query.database.public
+    if not (
+        chart.query.database.ownerId == g.user.id
+        or (
+            chart.query.database.organisationId is not None
+            and chart.query.database.organisationId == g.organization_id
+        )
+        or chart.query.database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -672,10 +720,13 @@ def toggle_chart_favorite(chart_id: UUID):
         return jsonify({"error": "Chart not found"}), 404
 
     # Verify user has access to the chart's database via query relationship
-    if (
-        chart.query.database.ownerId != g.user.id
-        and chart.query.database.organisationId != g.organization_id
-        and not chart.query.database.public
+    if not (
+        chart.query.database.ownerId == g.user.id
+        or (
+            chart.query.database.organisationId is not None
+            and chart.query.database.organisationId == g.organization_id
+        )
+        or chart.query.database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -745,7 +796,8 @@ def get_favorites():
 @api.route("/catalogs/<string:context_id>/assets", methods=["GET"])
 @user_middleware
 def get_catalog_assets(context_id):
-    """Get catalog assets for a context with optional filtering"""
+    """Get all catalog assets for a context"""
+
     database_id, _ = extract_context(g.session, context_id)
     database = g.session.query(Database).filter_by(id=database_id).first()
 
@@ -753,83 +805,117 @@ def get_catalog_assets(context_id):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
-    asset_type = request.args.get("type")  # TABLE, COLUMN
-
+    # Build query to fetch all assets with both facets
+    # Use selectinload for parent_table_asset to avoid N+1 queries on columns
     query = (
         g.session.query(Asset)
         .filter(Asset.database_id == database_id)
+        .outerjoin(Asset.table_facet)
+        .outerjoin(Asset.column_facet)
         .options(
-            # Eagerly load facets and tags
-            joinedload(Asset.table_facet),
-            joinedload(Asset.column_facet)
-            .joinedload(ColumnFacet.parent_table_asset)
-            .joinedload(Asset.table_facet),
-            joinedload(Asset.asset_tags),
+            contains_eager(Asset.table_facet),
+            contains_eager(Asset.column_facet)
+            .selectinload(ColumnFacet.parent_table_asset)
+            .selectinload(Asset.table_facet),
+            selectinload(Asset.asset_tags),
+        )
+        .order_by(
+            Asset.type.desc(),
+            TableFacet.schema,
+            TableFacet.table_name,
+            ColumnFacet.ordinal,
         )
     )
 
-    if asset_type:
-        query = query.filter(Asset.type == asset_type.upper())
-
     assets = query.all()
 
-    # Convert to dictionaries with facet data
+    # Convert to dictionaries with facet data - optimized manual serialization
     result = []
+
+    # Cache database_id string conversion (all assets have same database_id)
+    database_id_str = str(database_id)
+
+    # Manual serialization for better performance
     for asset in assets:
-        asset_dict = asset.to_dict()
+        asset_id_str = str(asset.id)
 
-        asset_dict["tags"] = [tag.to_dict() for tag in asset.asset_tags]
+        # Manual serialization for better performance
+        asset_dict = {
+            "id": asset_id_str,
+            "urn": asset.urn,
+            "type": asset.type,
+            "name": asset.name,
+            "description": asset.description,
+            "database_id": database_id_str,
+            "status": asset.status,
+            "ai_suggestion": asset.ai_suggestion,
+            "ai_flag_reason": asset.ai_flag_reason,
+            "ai_suggested_tags": asset.ai_suggested_tags,
+        }
 
-        # Add facet-specific data
-        if asset.type == "TABLE" and asset.table_facet:
-            asset_dict["table_facet"] = asset.table_facet.to_dict()
-        elif asset.type == "COLUMN" and asset.column_facet:
-            column_facet_dict = asset.column_facet.to_dict()
+        # Serialize tags (pre-build to avoid repeated list construction)
+        tags = asset.asset_tags
+        if tags:
+            asset_dict["tags"] = [
+                {
+                    "id": str(tag.id),
+                    "name": tag.name,
+                    "description": tag.description,
+                    "database_id": database_id_str,
+                }
+                for tag in tags
+            ]
+        else:
+            asset_dict["tags"] = []
 
-            # Include parent table information for columns
-            if (
-                asset.column_facet.parent_table_asset
-                and asset.column_facet.parent_table_asset.table_facet
-            ):
-                column_facet_dict["parent_table_facet"] = (
-                    asset.column_facet.parent_table_asset.table_facet.to_dict()
-                )
+        # Add facet-specific data - optimize by reducing attribute access
+        asset_type = asset.type
+        if asset_type == "TABLE":
+            tf = asset.table_facet
+            if tf:
+                asset_dict["table_facet"] = {
+                    "asset_id": asset_id_str,
+                    "database_id": database_id_str,
+                    "schema": tf.schema,
+                    "table_name": tf.table_name,
+                }
+        elif asset_type == "COLUMN":
+            cf = asset.column_facet
+            if cf:
+                column_facet_dict = {
+                    "asset_id": asset_id_str,
+                    "parent_table_asset_id": str(cf.parent_table_asset_id),
+                    "column_name": cf.column_name,
+                    "ordinal": cf.ordinal,
+                    "data_type": cf.data_type,
+                    "privacy": cf.privacy,
+                }
 
-            asset_dict["column_facet"] = column_facet_dict
+                # Include parent table information for columns
+                pta = cf.parent_table_asset
+                if pta:
+                    ptf = pta.table_facet
+                    if ptf:
+                        column_facet_dict["parent_table_facet"] = {
+                            "asset_id": str(ptf.asset_id),
+                            "database_id": database_id_str,
+                            "schema": ptf.schema,
+                            "table_name": ptf.table_name,
+                        }
+
+                asset_dict["column_facet"] = column_facet_dict
 
         result.append(asset_dict)
-
-    # Sort assets by: Schema then tables first, then columns by their ordinal within
-    # their tables
-
-    def get_sort_key(asset):
-        if asset["type"] == "TABLE":
-            table_name = asset.get("table_facet", {}).get("table_name", "")
-            schema_name = asset.get("table_facet", {}).get("schema", "")
-            return (schema_name, table_name, 0, None)  # 0 for tables (comes first)
-        elif asset["type"] == "COLUMN":
-            column_facet = asset.get("column_facet", {})
-            parent_table_facet = column_facet.get("parent_table_facet", {})
-            table_name = parent_table_facet.get("table_name", "")
-            schema_name = parent_table_facet.get("schema", "")
-            ordinal = column_facet.get("ordinal", None)
-            return (
-                schema_name,
-                table_name,
-                1,
-                ordinal if ordinal is not None else 9999,
-            )
-        else:
-            return ("", "", 2, None)
-
-    result.sort(key=get_sort_key)
 
     return jsonify(result)
 
@@ -837,7 +923,7 @@ def get_catalog_assets(context_id):
 @api.route("/catalogs/assets/<string:asset_id>", methods=["PATCH"])
 @user_middleware
 def update_catalog_asset(asset_id: str):
-    """Update mutable fields of a catalog asset."""
+    """Update mutable fields of a catalog asset with validation workflow support."""
 
     try:
         asset_uuid = UUID(asset_id)
@@ -851,11 +937,60 @@ def update_catalog_asset(asset_id: str):
 
     data = request.get_json(silent=True) or {}
 
+    # Handle approval workflow actions
+    if data.get("approve_suggestion"):
+        # User approves AI suggestion - move ai_suggestion to description
+        if asset.ai_suggestion:
+            asset.description = asset.ai_suggestion
+            asset.ai_suggestion = None
+            asset.ai_flag_reason = None
+            asset.status = "validated"
+
+        # Process suggested tags: link existing tags only
+        if asset.ai_suggested_tags:
+            asset.asset_tags.clear()
+            for tag_name in asset.ai_suggested_tags:  # Now simple strings
+                if not tag_name:
+                    continue
+
+                # Check if tag exists (case-insensitive)
+                tag = (
+                    g.session.query(AssetTag)
+                    .filter(
+                        AssetTag.database_id == asset.database_id,
+                        AssetTag.name.ilike(tag_name),
+                    )
+                    .first()
+                )
+
+                # Only link if tag exists (defensive programming)
+                if tag:
+                    asset.asset_tags.append(tag)
+                else:
+                    logger.warning(
+                        f"Suggested tag '{tag_name}' not found for asset {asset.id}"
+                    )
+
+            # Clear suggested tags after processing
+            asset.ai_suggested_tags = None
+
+    elif data.get("dismiss_flag"):
+        # User dismisses the AI flag - clear AI fields and set status to None
+        if asset.status in ["needs_review", "requires_validation"]:
+            asset.status = None
+            asset.ai_suggestion = None
+            asset.ai_flag_reason = None
+            asset.ai_suggested_tags = None
+
+    # Standard field updates
     if "name" in data:
         asset.name = data["name"]
 
     if "description" in data:
         asset.description = data["description"]
+        # If user manually edits, mark as validated
+        if not data.get("approve_suggestion") and not data.get("reject_suggestion"):
+            asset.status = "validated"
 
     if "tag_ids" in data:
         asset.asset_tags.clear()
@@ -874,9 +1009,6 @@ def update_catalog_asset(asset_id: str):
             if tag:
                 asset.asset_tags.append(tag)
 
-    if "reviewed" in data:
-        asset.reviewed = data["reviewed"]
-
     g.session.flush()
 
     asset_dict = asset.to_dict()
@@ -884,9 +1016,99 @@ def update_catalog_asset(asset_id: str):
     if asset.type == "TABLE" and asset.table_facet:
         asset_dict["table_facet"] = asset.table_facet.to_dict()
     elif asset.type == "COLUMN" and asset.column_facet:
-        asset_dict["column_facet"] = asset.column_facet.to_dict()
+        column_facet_dict = asset.column_facet.to_dict()
+
+        # Include parent table information for columns (same as GET endpoint)
+        if (
+            asset.column_facet.parent_table_asset
+            and asset.column_facet.parent_table_asset.table_facet
+        ):
+            column_facet_dict["parent_table_facet"] = (
+                asset.column_facet.parent_table_asset.table_facet.to_dict()
+            )
+
+        asset_dict["column_facet"] = column_facet_dict
 
     return jsonify(asset_dict)
+
+
+@api.route("/catalogs/assets/<string:asset_id>/preview", methods=["GET"])
+@user_middleware
+def get_asset_preview(asset_id: str):
+    """Get preview data (~10 random rows) for a table asset"""
+
+    try:
+        asset_uuid = UUID(asset_id)
+    except ValueError:
+        return jsonify({"error": "Invalid asset id"}), 400
+
+    asset = (
+        g.session.query(Asset)
+        .filter(Asset.id == asset_uuid)
+        .options(joinedload(Asset.table_facet))
+        .first()
+    )
+
+    if not asset:
+        return jsonify({"error": "Asset not found"}), 404
+
+    # Only support table assets
+    if asset.type != "TABLE":
+        return jsonify({"error": "Preview only available for table assets"}), 400
+
+    if not asset.table_facet:
+        return jsonify({"error": "Table facet not found"}), 404
+
+    # Get database and verify access
+    database = g.session.query(Database).filter_by(id=asset.database_id).first()
+
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    # Get table details
+    schema = asset.table_facet.schema
+    table_name = asset.table_facet.table_name
+
+    if not table_name:
+        return jsonify({"error": "Table name not found"}), 400
+
+    # Get limit from query params (default 10, max 20)
+    limit = min(int(request.args.get("limit", 10)), 20)
+
+    try:
+        dw = database.create_data_warehouse()
+
+        # Use the data warehouse's get_sample_data method
+        sample_result = dw.get_sample_data(table_name, schema, limit)
+
+        if not sample_result:
+            return jsonify({"error": "No sample data available"}), 404
+
+        # Check for error in result
+        if "error" in sample_result:
+            return jsonify({"error": sample_result["error"]}), 500
+
+        # Return the data in a format compatible with the frontend
+        return jsonify(
+            {"rows": sample_result["data"], "count": sample_result["sample_size"]}
+        )
+
+    except ConnectionError as e:
+        return jsonify({"error": f"Connection error: {str(e)}"}), 500
+    except Exception as e:
+        logger.error(f"Error fetching preview data: {str(e)}")
+        return jsonify({"error": f"Failed to fetch preview data: {str(e)}"}), 500
 
 
 @api.route("/catalogs/<string:context_id>/terms", methods=["GET"])
@@ -900,10 +1122,13 @@ def get_catalog_terms(context_id):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -927,10 +1152,13 @@ def create_catalog_term(context_id):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -1021,10 +1249,13 @@ def delete_catalog_term(term_id: str):
     database = g.session.query(Database).filter_by(id=term.database_id).first()
     if not database:
         return jsonify({"error": "Database not found"}), 404
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -1044,10 +1275,13 @@ def get_catalog_tags(context_id):
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -1066,10 +1300,13 @@ def create_catalog_tag(context_id):
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -1122,7 +1359,13 @@ def update_catalog_tag(tag_id: str):
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     data = request.get_json(silent=True) or {}
@@ -1169,7 +1412,13 @@ def delete_catalog_tag(tag_id: str):
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     g.session.delete(tag)
@@ -1189,10 +1438,13 @@ def get_business_entities():
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -1233,10 +1485,13 @@ def get_issues():
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Access denied"}), 403
 
@@ -1269,7 +1524,13 @@ def validate_dbt_repository(database_id: UUID):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access to update this database
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     data = request.get_json()
@@ -1298,7 +1559,13 @@ def generate_dbt_documentation(database_id: UUID):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access to update this database
-    if database.ownerId != g.user.id and database.organisationId != g.organization_id:
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     if not database.dbt_repo_path:
@@ -1345,10 +1612,13 @@ def sync_database_metadata(database_id: UUID):
         return jsonify({"error": "Database not found"}), 404
 
     # Verify user has access to this database
-    if (
-        database.ownerId != g.user.id
-        and database.organisationId != g.organization_id
-        and not database.public
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
     ):
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -1392,3 +1662,33 @@ def sync_database_metadata(database_id: UUID):
     except Exception as e:
         logger.error(f"Error syncing database metadata: {e}")
         return jsonify({"error": f"Failed to sync metadata: {str(e)}"}), 500
+
+
+@api.route("/organisation", methods=["GET"])
+@user_middleware
+def get_organisation():
+    """Get organisation information for the current user."""
+    if not g.organisation:
+        return jsonify({"error": "No organisation found"}), 404
+
+    return jsonify(g.organisation.to_dict())
+
+
+@api.route("/organisation", methods=["PATCH"])
+@user_middleware
+@admin_required
+def update_organisation():
+    """Update organisation settings. Admin only."""
+    if not g.organisation:
+        return jsonify({"error": "No organisation found"}), 404
+
+    data = request.json
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    # Only allow updating language for now
+    if "language" in data:
+        g.organisation.language = data["language"]
+        g.session.flush()
+
+    return jsonify(g.organisation.to_dict())

@@ -1,13 +1,13 @@
 [project]
 name = "myriade-service"
 description = "backend for Myriade analytic solution"
-version = "0.47.2"
+version = "0.54.1"
 authors = [
     {name = "Benjamin Derville", email = "benderville@gmail.com"}
 ]
-license = { file = "LICENSE" }
+license = { text = "FCL-1.0-ALv2" }
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = "==3.13.*"
 dependencies = [
     "requests>=2.28.2",
     "SQLAlchemy>=2.0.6",
@@ -35,11 +35,16 @@ mysql = [
 ]
 snowflake = ["snowflake-connector-python>=3.15.0"]
 bigquery = ["google-cloud-bigquery>=3.34.0"]
+oracle = ["oracledb>=2.0.0"]
 # Note: Postgres is included by default as the database of the project
 all = [
     "pymysql>=1.1.1",
     "snowflake-connector-python>=3.15.0",
     "google-cloud-bigquery>=3.34.0",
+    "oracledb>=2.0.0",
+]
+build = [
+    "uv~=0.9.5",
 ]
 
 [dependency-groups]
@@ -102,6 +107,7 @@ version_toml = [
     "pyproject.toml:project.version",
 ]
 build_command = """
+    python -m pip install -e '.[build]'
     uv lock --upgrade-package "$PACKAGE_NAME"
     git add uv.lock
     uv build

@@ -99,7 +99,12 @@ class Database(SerializerMixin, DefaultBase, Base):
         if "details" in result and result["details"]:
             sanitized_details = result["details"].copy()
             # Remove sensitive keys
-            sensitive_keys = ["password", "service_account_json"]
+            sensitive_keys = [
+                "password",
+                "service_account_json",
+                "private_key_pem",
+                "private_key_passphrase",
+            ]
             for key in sensitive_keys:
                 sanitized_details.pop(key, None)
             result["details"] = sanitized_details
@@ -127,6 +132,7 @@ class Organisation(SerializerMixin, DefaultBase, Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    language: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     projects: Mapped[List["Project"]] = relationship(
         "Project",
@@ -213,10 +219,66 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
         ):
             asset_id = functionCall["arguments"].get("asset_id")
             if asset_id:
-                asset = session.query(Asset).filter(Asset.id == asset_id).first()
+                from sqlalchemy.orm import joinedload
+
+                from models.catalog import ColumnFacet
+
+                # Eagerly load facets and parent table info for columns
+                asset = (
+                    session.query(Asset)
+                    .options(
+                        joinedload(Asset.table_facet),
+                        joinedload(Asset.column_facet).joinedload(
+                            ColumnFacet.parent_table_asset
+                        ),
+                    )
+                    .filter(Asset.id == asset_id)
+                    .first()
+                )
+
+                # If it's a column, also load the parent table's table_facet
+                if (
+                    asset
+                    and asset.column_facet
+                    and asset.column_facet.parent_table_asset
+                ):
+                    # Ensure parent table's table_facet is loaded
+                    if not asset.column_facet.parent_table_asset.table_facet:
+                        parent = (
+                            session.query(Asset)
+                            .options(joinedload(Asset.table_facet))
+                            .filter(
+                                Asset.id == asset.column_facet.parent_table_asset_id
+                            )
+                            .first()
+                        )
+                        if parent:
+                            asset.column_facet.parent_table_asset = parent
                 if asset:
                     asset_dict = asset.to_dict()
                     asset_dict["tags"] = [tag.to_dict() for tag in asset.asset_tags]
+                    # Include validation workflow fields
+                    asset_dict["status"] = asset.status
+                    asset_dict["ai_suggestion"] = asset.ai_suggestion
+                    asset_dict["ai_flag_reason"] = asset.ai_flag_reason
+
+                    # Add facet-specific data (schema/table info)
+                    if asset.type == "TABLE" and asset.table_facet:
+                        asset_dict["table_facet"] = asset.table_facet.to_dict()
+                    elif asset.type == "COLUMN" and asset.column_facet:
+                        column_facet_dict = asset.column_facet.to_dict()
+
+                        # Include parent table information for columns
+                        if (
+                            asset.column_facet.parent_table_asset
+                            and asset.column_facet.parent_table_asset.table_facet
+                        ):
+                            column_facet_dict["parent_table_facet"] = (
+                                asset.column_facet.parent_table_asset.table_facet.to_dict()
+                            )
+
+                        asset_dict["column_facet"] = column_facet_dict
+
                     base_dict["asset"] = asset_dict
 
         if (

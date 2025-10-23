@@ -63,5 +63,25 @@ const content = computed(() => {
     border: 1px solid #dee2e6;
     padding: 0.2rem;
   }
+  pre {
+    background-color: #f5f5f5;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+  }
+  code {
+    background-color: #f5f5f5;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-family: monospace;
+    font-size: 0.875em;
+  }
+  pre code {
+    background-color: transparent;
+    padding: 0;
+    border-radius: 0;
+  }
 }
 </style>

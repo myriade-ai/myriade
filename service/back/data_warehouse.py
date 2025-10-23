@@ -1,4 +1,5 @@
 import json
+import logging
 import sys
 import threading
 from abc import ABC, abstractmethod
@@ -6,10 +7,14 @@ from urllib.parse import quote_plus
 
 import sqlalchemy
 import sqlglot
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 from sqlalchemy import text
 
 from back.privacy import encrypt_rows
 from back.rewrite_sql import rewrite_sql
+
+logger = logging.getLogger(__name__)
 
 MAX_SIZE = 2 * 1024 * 1024  # 2MB in bytes
 
@@ -235,7 +240,7 @@ class AbstractDatabase(ABC):
             """
 
             # Execute the query using the database's unprotected method
-            rows = self._query_unprotected(sample_query.strip())
+            rows, _ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -252,6 +257,11 @@ class AbstractDatabase(ABC):
             return sample_result
 
         except Exception as e:
+            # Log the full traceback for debugging
+            logger.error(
+                f"Failed to sample data from {schema_name}.{table_name}: {str(e)}",
+                exc_info=True,
+            )
             return {
                 "error": f"Failed to sample data: {str(e)}",
                 "note": (
@@ -312,7 +322,7 @@ class AbstractDatabase(ABC):
                         )
             # Rewrite the query only if we have rules to apply
             if privacy_rules:
-                sql = rewrite_sql(sql, privacy_rules)
+                sql = rewrite_sql(sql, privacy_rules, dialect=self.dialect)
 
         # Execute query without write protection
         rows = self._query_unprotected(sql)
@@ -467,7 +477,7 @@ class SQLDatabase(AbstractDatabase):
                 """
 
             # Execute the query using the database's unprotected method
-            rows = self._query_unprotected(sample_query.strip())
+            rows, _ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -484,6 +494,12 @@ class SQLDatabase(AbstractDatabase):
             return sample_result
 
         except Exception as e:
+            # Log the full traceback for debugging
+            logger.error(
+                f"Failed to sample data from {schema_name}.{table_name} "
+                f"(SQLDatabase): {str(e)}",
+                exc_info=True,
+            )
             return {
                 "error": f"Failed to sample data: {str(e)}",
                 "note": (
@@ -499,8 +515,103 @@ class PostgresDatabase(SQLDatabase):
         super().__init__(uri, connect_args=self.connect_args)
 
 
+class OracleDatabase(SQLDatabase):
+    def __init__(self, uri):
+        # Oracle-specific connection arguments
+        self.connect_args = {
+            "encoding": "UTF-8",
+            "nencoding": "UTF-8",
+        }
+        super().__init__(uri, connect_args=self.connect_args)
+
+    def get_sample_data(
+        self, table_name: str, schema_name: str, limit: int = 10
+    ) -> dict | None:
+        """Oracle-specific implementation using DBMS_RANDOM.VALUE()"""
+        if not schema_name or not table_name:
+            return {
+                "error": ("Cannot sample data: missing schema or table information")
+            }
+
+        safe_limit = min(limit, 20)
+
+        try:
+            # Oracle uses DBMS_RANDOM.VALUE() for random sampling
+            # Note: schema_name in Oracle is typically the user/owner name
+            sample_query = f"""
+            SELECT *
+            FROM "{schema_name}"."{table_name}"
+            ORDER BY DBMS_RANDOM.VALUE()
+            FETCH FIRST {safe_limit} ROWS ONLY
+            """
+
+            # Execute the query using the database's unprotected method
+            rows, _ = self._query_with_privacy(sample_query.strip())
+
+            # Convert rows to list of dictionaries for better YAML output
+            columns = list(rows[0].keys()) if rows else []
+            sample_data = [dict(row) for row in rows[:safe_limit]]
+
+            sample_result = {
+                "sample_query": sample_query.strip(),
+                "sample_size": len(sample_data),
+                "columns": columns,
+                "data": sample_data,
+                "note": f"Sample shows first {safe_limit} rows from table",
+            }
+
+            return sample_result
+
+        except Exception as e:
+            # Log the full traceback for debugging
+            logger.error(
+                f"Failed to sample data from {schema_name}.{table_name} "
+                f"(OracleDatabase): {str(e)}",
+                exc_info=True,
+            )
+            return {
+                "error": f"Failed to sample data: {str(e)}",
+                "note": (
+                    "Data sampling failed. This may be due to database "
+                    "connectivity issues, permissions, or query syntax."
+                ),
+            }
+
+
 class SnowflakeDatabase(AbstractDatabase):
     def __init__(self, **kwargs):
+        # Remove frontend-only parameters that shouldn't be passed to Snowflake
+        kwargs.pop("auth_method", None)
+
+        # Process RSA key authentication if provided
+        if "private_key_pem" in kwargs:
+            # Get the PEM key string
+            private_key_pem = kwargs.pop("private_key_pem")
+            private_key_passphrase = kwargs.pop("private_key_passphrase", None)
+
+            # Convert string to bytes
+            key_bytes = private_key_pem.encode("utf-8")
+
+            # Load the PEM private key
+            passphrase_bytes = (
+                private_key_passphrase.encode("utf-8")
+                if private_key_passphrase
+                else None
+            )
+            p_key = serialization.load_pem_private_key(
+                key_bytes, password=passphrase_bytes, backend=default_backend()
+            )
+
+            # Convert to DER format (PKCS8)
+            pkb = p_key.private_bytes(
+                encoding=serialization.Encoding.DER,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+
+            # Add the DER-formatted key to kwargs
+            kwargs["private_key"] = pkb
+
         self.connection = DataWarehouseRegistry.get_snowflake_connection(kwargs)
         self.metadata = []
 
@@ -681,7 +792,7 @@ class BigQueryDatabase(AbstractDatabase):
             """
 
             # Execute the query using the database's unprotected method
-            rows = self._query_unprotected(sample_query.strip())
+            rows, _ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -698,6 +809,12 @@ class BigQueryDatabase(AbstractDatabase):
             return sample_result
 
         except Exception as e:
+            # Log the full traceback for debugging
+            logger.error(
+                f"Failed to sample data from {schema_name}.{table_name} "
+                f"(BigQueryDatabase): {str(e)}",
+                exc_info=True,
+            )
             return {
                 "error": f"Failed to sample data: {str(e)}",
                 "note": (
@@ -895,5 +1012,30 @@ class DataWarehouseFactory:
             return SQLDatabase("sqlite:///" + kwargs["filename"])
         elif dtype == "motherduck":
             return MotherDuckDatabase(**kwargs)
+        elif dtype == "oracle":
+            user = kwargs.get("user")
+            password = kwargs.get("password", "")
+            host = kwargs.get("host")
+            port = kwargs.get("port", "1521")
+            service_name = kwargs.get("service_name")
+            sid = kwargs.get("sid")
+
+            # URL-encode username and password to handle special characters
+            encoded_user = quote_plus(user) if user else ""
+            encoded_password = quote_plus(password) if password else ""
+
+            # Oracle can connect using either service_name or SID
+            if service_name:
+                # DSN-based connection with service_name (recommended)
+                uri = f"oracle+oracledb://{encoded_user}:{encoded_password}@{host}:{port}/?service_name={service_name}"
+            elif sid:
+                # SID-based connection (legacy)
+                uri = f"oracle+oracledb://{encoded_user}:{encoded_password}@{host}:{port}/{sid}"
+            else:
+                raise ValueError(
+                    "Either 'service_name' or 'sid' is required for Oracle connection"
+                )
+
+            return OracleDatabase(uri)
         else:
             raise ValueError(f"Unknown database type: {dtype}")

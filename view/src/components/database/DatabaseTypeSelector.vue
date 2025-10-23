@@ -69,7 +69,15 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   showTitle: true,
-  includedTypes: () => ['postgres', 'mysql', 'snowflake', 'sqlite', 'bigquery', 'motherduck']
+  includedTypes: () => [
+    'postgres',
+    'mysql',
+    'snowflake',
+    'sqlite',
+    'bigquery',
+    'motherduck',
+    'oracle'
+  ]
 })
 
 const emit = defineEmits<{
@@ -124,6 +132,14 @@ const allDatabaseTypes: DatabaseType[] = [
     icon: CommandLineIcon,
     iconBg: 'bg-purple-100',
     iconColor: 'text-purple-600'
+  },
+  {
+    value: 'oracle',
+    name: 'Oracle',
+    description: 'Enterprise database system',
+    icon: CircleStackIcon,
+    iconBg: 'bg-red-100',
+    iconColor: 'text-red-600'
   }
 ]
 

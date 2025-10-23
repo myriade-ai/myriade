@@ -66,10 +66,13 @@ def database_middleware(f):
             return jsonify({"error": "Database not found"}), 404
 
         # Verify user has access to this database
-        if (
-            database.ownerId != g.user.id
-            and database.organisationId != g.organization_id
-            and not database.public
+        if not (
+            database.ownerId == g.user.id
+            or (
+                database.organisationId is not None
+                and database.organisationId == g.organization_id
+            )
+            or database.public
         ):
             return jsonify({"error": "Access denied"}), 403
 
@@ -98,10 +101,13 @@ def query_middleware(f):
             return jsonify({"error": "Database not found"}), 404
 
         # Verify user has access to this database
-        if (
-            database.ownerId != g.user.id
-            and database.organisationId != g.organization_id
-            and not database.public
+        if not (
+            database.ownerId == g.user.id
+            or (
+                database.organisationId is not None
+                and database.organisationId == g.organization_id
+            )
+            or database.public
         ):
             return jsonify({"error": "Access denied"}), 403
 
