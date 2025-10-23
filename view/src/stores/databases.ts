@@ -53,6 +53,7 @@ export const getDefaultDetailsForEngine = (engine: Engine) => {
         account: '',
         user: '',
         password: '',
+        auth_method: 'password',
         database: '',
         schema: '',
         role: '',
