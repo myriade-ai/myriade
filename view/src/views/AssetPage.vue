@@ -1,18 +1,20 @@
 <script setup lang="ts">
+import { useCatalogAssetsQuery } from '@/components/catalog/useCatalogQuery'
 import CatalogAssetsView from '@/components/CatalogAssetsView.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { Button } from '@/components/ui/button'
-import { useCatalogAssetsQuery } from '@/components/catalog/useCatalogQuery'
+import { useCatalogStore } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import { useConversationsStore } from '@/stores/conversations'
 import { useDatabasesStore } from '@/stores/databases'
 import { RefreshCwIcon, SparklesIcon } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const contextsStore = useContextsStore()
 const conversationsStore = useConversationsStore()
 const databasesStore = useDatabasesStore()
+const catalogStore = useCatalogStore()
 const router = useRouter()
 const isSyncing = ref(false)
 
@@ -70,12 +72,37 @@ async function syncDatabaseMetadata() {
 
     await databasesStore.syncDatabaseMetadata(databaseId)
     await refetch()
+    // Fetch assets first, then stats (to avoid potential race conditions)
+    catalogStore.fetchStats(contextsStore.contextSelected.id).catch((err) => {
+      console.error('Failed to fetch catalog stats:', err)
+    })
   } catch (error: unknown) {
     console.error('Error syncing database metadata:', error)
   } finally {
     isSyncing.value = false
   }
 }
+
+watch(
+  () => contextsStore.contextSelected,
+  async (newContext, oldContext) => {
+    if (newContext && newContext.id !== oldContext?.id) {
+      // Fetch stats independently - don't let it block or fail the main flow
+      catalogStore.fetchStats(newContext.id).catch((err) => {
+        console.error('Failed to fetch catalog stats:', err)
+      })
+    }
+  }
+)
+
+onMounted(async () => {
+  if (contextsStore.contextSelected) {
+    // Fetch stats independently - don't let it block or fail the main flow
+    catalogStore.fetchStats(contextsStore.contextSelected.id).catch((err) => {
+      console.error('Failed to fetch catalog stats:', err)
+    })
+  }
+})
 </script>
 
 <template>
@@ -92,6 +119,53 @@ async function syncDatabaseMetadata() {
         </Button>
       </template>
     </PageHeader>
+
+    <!-- Stats Bar -->
+    <div
+      v-if="catalogStore.stats"
+      class="flex gap-4 px-4 py-3 border-b bg-gray-50/50 flex-shrink-0"
+    >
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium text-gray-700">Total Assets:</span>
+        <span class="text-sm font-semibold text-gray-900">{{
+          catalogStore.stats.total_assets
+        }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium text-gray-700">Completion Score:</span>
+        <span
+          class="text-sm font-semibold"
+          :class="
+            catalogStore.stats.completion_score >= 70
+              ? 'text-green-600'
+              : catalogStore.stats.completion_score >= 40
+                ? 'text-yellow-600'
+                : 'text-red-600'
+          "
+          >{{ catalogStore.stats.completion_score }}%</span
+        >
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium text-gray-700">To Review:</span>
+        <span
+          class="text-sm font-semibold"
+          :class="catalogStore.stats.assets_to_review > 0 ? 'text-orange-600' : 'text-gray-900'"
+          >{{ catalogStore.stats.assets_to_review }}</span
+        >
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium text-gray-700">Validated:</span>
+        <span class="text-sm font-semibold text-gray-900">{{
+          catalogStore.stats.assets_validated
+        }}</span>
+      </div>
+      <div v-if="catalogStore.stats.assets_with_ai_suggestions > 0" class="flex items-center gap-2">
+        <span class="text-sm font-medium text-gray-700">AI Suggestions:</span>
+        <span class="text-sm font-semibold text-purple-600">{{
+          catalogStore.stats.assets_with_ai_suggestions
+        }}</span>
+      </div>
+    </div>
 
     <div class="flex-1 min-h-0 h-full">
       <CatalogAssetsView :is-loading="isLoading" :is-fetching="isFetching" />
