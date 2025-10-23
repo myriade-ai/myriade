@@ -108,9 +108,9 @@ def test_authorization_null_organization_vulnerability(app_server, session):
         r = requests.get(
             f"{app_server}/databases/{db_id}/schema", cookies={"session": "MOCK_B"}
         )
-        assert (
-            r.status_code == 403
-        ), "User B should not be able to access User A's database"
+        assert r.status_code == 403, (
+            "User B should not be able to access User A's database"
+        )
         assert r.json()["error"] == "Access denied"
 
         # Try to update the database (write operation)
@@ -125,9 +125,9 @@ def test_authorization_null_organization_vulnerability(app_server, session):
             },
             cookies={"session": "MOCK_B"},
         )
-        assert (
-            r.status_code == 403
-        ), "User B should not be able to update User A's database"
+        assert r.status_code == 403, (
+            "User B should not be able to update User A's database"
+        )
         assert r.json()["error"] == "Access denied"
 
         # Try to sync metadata (write operation that was vulnerable)
@@ -135,9 +135,9 @@ def test_authorization_null_organization_vulnerability(app_server, session):
             f"{app_server}/databases/{db_id}/sync-metadata",
             cookies={"session": "MOCK_B"},
         )
-        assert (
-            r.status_code == 403
-        ), "User B should not be able to sync metadata for User A's database"
+        assert r.status_code == 403, (
+            "User B should not be able to sync metadata for User A's database"
+        )
 
     # User A should still be able to access their own database
     with patch("auth.auth._authenticate_session") as mock_auth:
@@ -146,9 +146,9 @@ def test_authorization_null_organization_vulnerability(app_server, session):
         r = requests.get(
             f"{app_server}/databases/{db_id}/schema", cookies={"session": "MOCK_A"}
         )
-        assert (
-            r.status_code == 200
-        ), "User A should be able to access their own database"
+        assert r.status_code == 200, (
+            "User A should be able to access their own database"
+        )
 
     # Clean up
     with patch("auth.auth._authenticate_session") as mock_auth:

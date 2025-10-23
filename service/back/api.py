@@ -7,7 +7,7 @@ import anthropic
 from agentlys import Agentlys
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, contains_eager, joinedload, selectinload
 from sqlalchemy.sql.expression import true
 
 import telemetry
@@ -36,7 +36,7 @@ from models import (
     Query,
     UserFavorite,
 )
-from models.catalog import Asset, AssetTag, ColumnFacet, Term
+from models.catalog import Asset, AssetTag, ColumnFacet, TableFacet, Term
 from models.quality import BusinessEntity, Issue
 
 logger = logging.getLogger(__name__)
@@ -208,7 +208,7 @@ def create_database_route():
     if initial_metadata:
         sync_database_metadata_to_assets(database.id, initial_metadata)
 
-    return jsonify(database.to_dict())
+    return jsonify(database.to_dict(exclude=["dbt_catalog", "dbt_manifest"]))
 
 
 @api.route("/databases/test-connection", methods=["POST"])
@@ -308,7 +308,7 @@ def update_database(database_id: UUID):
 
     g.session.flush()
 
-    return jsonify(database.to_dict())
+    return jsonify(database.to_dict(exclude=["dbt_catalog", "dbt_manifest"]))
 
 
 @api.route("/databases", methods=["GET"])
@@ -328,7 +328,10 @@ def get_databases():
         .all()
     )
     # Convert each Database object to its dictionary representation
-    databases_list = [db.to_dict() for db in databases_query]
+    # Exclude large dbt fields that aren't needed in the list view
+    databases_list = [
+        db.to_dict(exclude=["dbt_catalog", "dbt_manifest"]) for db in databases_query
+    ]
     return jsonify(databases_list)
 
 
@@ -801,7 +804,8 @@ def get_favorites():
 @api.route("/catalogs/<string:context_id>/assets", methods=["GET"])
 @user_middleware
 def get_catalog_assets(context_id):
-    """Get catalog assets for a context with optional filtering"""
+    """Get all catalog assets for a context"""
+
     database_id, _ = extract_context(g.session, context_id)
     database = g.session.query(Database).filter_by(id=database_id).first()
 
@@ -819,76 +823,107 @@ def get_catalog_assets(context_id):
     ):
         return jsonify({"error": "Access denied"}), 403
 
-    asset_type = request.args.get("type")  # TABLE, COLUMN
-
+    # Build query to fetch all assets with both facets
+    # Use selectinload for parent_table_asset to avoid N+1 queries on columns
     query = (
         g.session.query(Asset)
         .filter(Asset.database_id == database_id)
+        .outerjoin(Asset.table_facet)
+        .outerjoin(Asset.column_facet)
         .options(
-            # Eagerly load facets and tags
-            joinedload(Asset.table_facet),
-            joinedload(Asset.column_facet)
-            .joinedload(ColumnFacet.parent_table_asset)
-            .joinedload(Asset.table_facet),
-            joinedload(Asset.asset_tags),
+            contains_eager(Asset.table_facet),
+            contains_eager(Asset.column_facet)
+            .selectinload(ColumnFacet.parent_table_asset)
+            .selectinload(Asset.table_facet),
+            selectinload(Asset.asset_tags),
+        )
+        .order_by(
+            Asset.type.desc(),
+            TableFacet.schema,
+            TableFacet.table_name,
+            ColumnFacet.ordinal,
         )
     )
 
-    if asset_type:
-        query = query.filter(Asset.type == asset_type.upper())
-
     assets = query.all()
 
-    # Convert to dictionaries with facet data
+    # Convert to dictionaries with facet data - optimized manual serialization
     result = []
+
+    # Cache database_id string conversion (all assets have same database_id)
+    database_id_str = str(database_id)
+
+    # Manual serialization for better performance
     for asset in assets:
-        asset_dict = asset.to_dict()
+        asset_id_str = str(asset.id)
 
-        asset_dict["tags"] = [tag.to_dict() for tag in asset.asset_tags]
+        # Manual serialization for better performance
+        asset_dict = {
+            "id": asset_id_str,
+            "urn": asset.urn,
+            "type": asset.type,
+            "name": asset.name,
+            "description": asset.description,
+            "database_id": database_id_str,
+            "status": asset.status,
+            "ai_suggestion": asset.ai_suggestion,
+            "ai_flag_reason": asset.ai_flag_reason,
+            "ai_suggested_tags": asset.ai_suggested_tags,
+        }
 
-        # Add facet-specific data
-        if asset.type == "TABLE" and asset.table_facet:
-            asset_dict["table_facet"] = asset.table_facet.to_dict()
-        elif asset.type == "COLUMN" and asset.column_facet:
-            column_facet_dict = asset.column_facet.to_dict()
+        # Serialize tags (pre-build to avoid repeated list construction)
+        tags = asset.asset_tags
+        if tags:
+            asset_dict["tags"] = [
+                {
+                    "id": str(tag.id),
+                    "name": tag.name,
+                    "description": tag.description,
+                    "database_id": database_id_str,
+                }
+                for tag in tags
+            ]
+        else:
+            asset_dict["tags"] = []
 
-            # Include parent table information for columns
-            if (
-                asset.column_facet.parent_table_asset
-                and asset.column_facet.parent_table_asset.table_facet
-            ):
-                column_facet_dict["parent_table_facet"] = (
-                    asset.column_facet.parent_table_asset.table_facet.to_dict()
-                )
+        # Add facet-specific data - optimize by reducing attribute access
+        asset_type = asset.type
+        if asset_type == "TABLE":
+            tf = asset.table_facet
+            if tf:
+                asset_dict["table_facet"] = {
+                    "asset_id": asset_id_str,
+                    "database_id": database_id_str,
+                    "schema": tf.schema,
+                    "table_name": tf.table_name,
+                }
+        elif asset_type == "COLUMN":
+            cf = asset.column_facet
+            if cf:
+                column_facet_dict = {
+                    "asset_id": asset_id_str,
+                    "parent_table_asset_id": str(cf.parent_table_asset_id),
+                    "column_name": cf.column_name,
+                    "ordinal": cf.ordinal,
+                    "data_type": cf.data_type,
+                    "privacy": cf.privacy,
+                }
 
-            asset_dict["column_facet"] = column_facet_dict
+                # Include parent table information for columns
+                pta = cf.parent_table_asset
+                if pta:
+                    ptf = pta.table_facet
+                    if ptf:
+                        column_facet_dict["parent_table_facet"] = {
+                            "asset_id": str(ptf.asset_id),
+                            "database_id": database_id_str,
+                            "schema": ptf.schema,
+                            "table_name": ptf.table_name,
+                        }
+
+                asset_dict["column_facet"] = column_facet_dict
 
         result.append(asset_dict)
-
-    # Sort assets by: Schema then tables first, then columns by their ordinal within
-    # their tables
-
-    def get_sort_key(asset):
-        if asset["type"] == "TABLE":
-            table_name = asset.get("table_facet", {}).get("table_name", "")
-            schema_name = asset.get("table_facet", {}).get("schema", "")
-            return (schema_name, table_name, 0, None)  # 0 for tables (comes first)
-        elif asset["type"] == "COLUMN":
-            column_facet = asset.get("column_facet", {})
-            parent_table_facet = column_facet.get("parent_table_facet", {})
-            table_name = parent_table_facet.get("table_name", "")
-            schema_name = parent_table_facet.get("schema", "")
-            ordinal = column_facet.get("ordinal", None)
-            return (
-                schema_name,
-                table_name,
-                1,
-                ordinal if ordinal is not None else 9999,
-            )
-        else:
-            return ("", "", 2, None)
-
-    result.sort(key=get_sort_key)
 
     return jsonify(result)
 
@@ -1068,10 +1103,7 @@ def get_asset_preview(asset_id: str):
     limit = min(int(request.args.get("limit", 10)), 20)
 
     try:
-        dw = DataWarehouseFactory.create(
-            database.engine,
-            **database.details,
-        )
+        dw = database.create_data_warehouse()
 
         # Use the data warehouse's get_sample_data method
         sample_result = dw.get_sample_data(table_name, schema, limit)
