@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.54.1 (2025-10-23)
+
+### Bug Fixes
+
+- Build
+  ([`0c3d6d1`](https://github.com/myriade-ai/myriade/commit/0c3d6d18d4eb24cac34e8bcd7e8b304b7c586797))
+
+
 ## v0.54.0 (2025-10-23)
 
 ### Features
