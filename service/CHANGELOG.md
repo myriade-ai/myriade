@@ -1,6 +1,54 @@
 # CHANGELOG
 
 
+## v0.52.2 (2025-10-23)
+
+### Bug Fixes
+
+- Catalog page too slow ([#173](https://github.com/myriade-ai/myriade/pull/173),
+  [`6338917`](https://github.com/myriade-ai/myriade/commit/6338917c34d2a3235206dbff5fdc3ccb0d1c707c))
+
+* fix: catalog page too slow * fix: catalog stats from assets
+
+### Build System
+
+- **deps-dev**: Bump vite ([#175](https://github.com/myriade-ai/myriade/pull/175),
+  [`1752649`](https://github.com/myriade-ai/myriade/commit/17526490a0d38874d72100dbd72525972180e8c8))
+
+Bumps the npm_and_yarn group with 1 update in the /view directory:
+  [vite](https://github.com/vitejs/vite/tree/HEAD/packages/vite).
+
+Updates `vite` from 6.3.6 to 6.4.1 - [Release notes](https://github.com/vitejs/vite/releases) -
+  [Changelog](https://github.com/vitejs/vite/blob/main/packages/vite/CHANGELOG.md) -
+  [Commits](https://github.com/vitejs/vite/commits/create-vite@6.4.1/packages/vite)
+
+--- updated-dependencies: - dependency-name: vite dependency-version: 6.4.1
+
+dependency-type: direct:development
+
+dependency-group: npm_and_yarn ...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+
+Co-authored-by: Benjamin <BenderV@users.noreply.github.com>
+
+### Documentation
+
+- Add info run server linux
+  ([`6c90842`](https://github.com/myriade-ai/myriade/commit/6c90842423be830f8ea023cd4fd0c3b0ab7e0fb8))
+
+- Fix url
+  ([`4de8e91`](https://github.com/myriade-ai/myriade/commit/4de8e918d2bf9b5e12d5929152e3e36dd7ddec66))
+
+- Update
+  ([`f8d67b0`](https://github.com/myriade-ai/myriade/commit/f8d67b0c8e33466162fc87b971304fd4e77d2a4e))
+
+- Update
+  ([`872925d`](https://github.com/myriade-ai/myriade/commit/872925df017f35b66ef41285e8aa927e13d02540))
+
+
 ## v0.52.1 (2025-10-19)
 
 ### Bug Fixes

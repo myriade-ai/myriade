@@ -9,24 +9,24 @@
           <div class="flex flex-col gap-1">
             <h3 class="font-semibold text-sm">Selected Assets</h3>
             <div class="flex items-center gap-2 text-xs text-muted-foreground">
-              <template v-if="catalogStore.selectedAssets.length > 0">
-                <span v-if="catalogStore.selectedAssetsGrouped.tables.length > 0">
-                  {{ catalogStore.selectedAssetsGrouped.tables.length }} table{{
-                    catalogStore.selectedAssetsGrouped.tables.length !== 1 ? 's' : ''
+              <template v-if="selectedAssets.length > 0">
+                <span v-if="selectedAssetsGrouped.tables.length > 0">
+                  {{ selectedAssetsGrouped.tables.length }} table{{
+                    selectedAssetsGrouped.tables.length !== 1 ? 's' : ''
                   }}
                 </span>
                 <span
                   v-if="
-                    catalogStore.selectedAssetsGrouped.tables.length > 0 &&
-                    catalogStore.selectedAssetsGrouped.columns.length > 0
+                    selectedAssetsGrouped.tables.length > 0 &&
+                    selectedAssetsGrouped.columns.length > 0
                   "
                   class="text-slate-300"
                 >
                   •
                 </span>
-                <span v-if="catalogStore.selectedAssetsGrouped.columns.length > 0">
-                  {{ catalogStore.selectedAssetsGrouped.columns.length }} column{{
-                    catalogStore.selectedAssetsGrouped.columns.length !== 1 ? 's' : ''
+                <span v-if="selectedAssetsGrouped.columns.length > 0">
+                  {{ selectedAssetsGrouped.columns.length }} column{{
+                    selectedAssetsGrouped.columns.length !== 1 ? 's' : ''
                   }}
                 </span>
               </template>
@@ -37,7 +37,7 @@
             variant="ghost"
             size="icon"
             class="h-6 w-6"
-            @click="catalogStore.clearSelection"
+            @click="closeSelectionPanel"
             title="Clear selection"
           >
             <XIcon class="h-4 w-4" />
@@ -48,7 +48,7 @@
       <div class="max-h-64 overflow-y-auto p-2 space-y-1">
         <!-- Empty State -->
         <div
-          v-if="catalogStore.selectedAssets.length === 0"
+          v-if="selectedAssets.length === 0"
           class="flex flex-col items-center justify-center py-8 px-4 text-center"
         >
           <div class="rounded-full bg-slate-100 p-3 mb-3">
@@ -61,10 +61,10 @@
         </div>
 
         <!-- Tables -->
-        <div v-if="catalogStore.selectedAssetsGrouped.tables.length > 0">
+        <div v-if="selectedAssetsGrouped.tables.length > 0">
           <p class="text-xs font-medium text-muted-foreground px-2 py-1">Tables</p>
           <div
-            v-for="table in catalogStore.selectedAssetsGrouped.tables"
+            v-for="table in selectedAssetsGrouped.tables"
             :key="table.id"
             class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-slate-50 group"
           >
@@ -76,7 +76,7 @@
               variant="ghost"
               size="icon"
               class="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-              @click="catalogStore.toggleAssetSelection(table.id, true)"
+              @click="catalogStore.toggleAssetSelection(table.id)"
               title="Remove from selection"
             >
               <XIcon class="h-3 w-3" />
@@ -85,10 +85,10 @@
         </div>
 
         <!-- Columns -->
-        <div v-if="catalogStore.selectedAssetsGrouped.columns.length > 0">
+        <div v-if="selectedAssetsGrouped.columns.length > 0">
           <p class="text-xs font-medium text-muted-foreground px-2 py-1 mt-2">Columns</p>
           <div
-            v-for="column in catalogStore.selectedAssetsGrouped.columns"
+            v-for="column in selectedAssetsGrouped.columns"
             :key="column.id"
             class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-slate-50 group"
           >
@@ -102,7 +102,7 @@
               variant="ghost"
               size="icon"
               class="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-              @click="catalogStore.toggleAssetSelection(column.id, false)"
+              @click="catalogStore.toggleAssetSelection(column.id)"
               title="Remove from selection"
             >
               <XIcon class="h-3 w-3" />
@@ -116,16 +116,12 @@
       >
         <p class="text-xs text-muted-foreground">
           {{
-            catalogStore.selectedAssets.length > 0
+            selectedAssets.length > 0
               ? 'Ready to review these assets with AI'
               : 'Select assets to start analysis'
           }}
         </p>
-        <Button
-          @click="analyzeSelected"
-          size="sm"
-          :disabled="catalogStore.selectedAssets.length === 0"
-        >
+        <Button @click="analyzeSelected" size="sm" :disabled="selectedAssets.length === 0">
           <SparklesIcon class="h-4 w-4" />
           Analyze Selected
         </Button>
@@ -135,11 +131,13 @@
 </template>
 
 <script setup lang="ts">
+import { useCatalogAssetsQuery } from '@/components/catalog/useCatalogQuery'
 import { Button } from '@/components/ui/button'
-import { useCatalogStore } from '@/stores/catalog'
+import { useCatalogStore, type CatalogAsset } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import { useConversationsStore } from '@/stores/conversations'
 import { Columns3, SparklesIcon, Table, XIcon } from 'lucide-vue-next'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 const catalogStore = useCatalogStore()
@@ -147,8 +145,36 @@ const conversationsStore = useConversationsStore()
 const contextsStore = useContextsStore()
 const router = useRouter()
 
+// Get assets from TanStack Query
+const { data: assets } = useCatalogAssetsQuery()
+
+function closeSelectionPanel() {
+  catalogStore.clearSelection()
+  catalogStore.selectionMode = false
+}
+
+// Compute selected assets based on selectedAssetIds
+const selectedAssets = computed(() => {
+  if (!assets.value) return []
+  return assets.value.filter((asset) => catalogStore.selectedAssetIds.includes(asset.id))
+})
+
+// Group selected assets by type
+const selectedAssetsGrouped = computed(() => {
+  const tables: CatalogAsset[] = []
+  const columns: CatalogAsset[] = []
+  selectedAssets.value.forEach((asset) => {
+    if (asset.type === 'TABLE') {
+      tables.push(asset)
+    } else if (asset.type === 'COLUMN') {
+      columns.push(asset)
+    }
+  })
+  return { tables, columns }
+})
+
 async function analyzeSelected() {
-  const { tables, columns } = catalogStore.selectedAssetsGrouped
+  const { tables, columns } = selectedAssetsGrouped.value
 
   const tablesList = tables
     .map((t) => `- ${t.name || t.table_facet?.table_name} (id: ${t.id})`)

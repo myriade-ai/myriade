@@ -41,7 +41,6 @@
                     "
                     icon="table"
                     :expanded="isExpanded(tableNode.key)"
-                    :badges="tableNode.badges"
                     :is-selected="selectedAssetId === tableNode.asset.id"
                     @toggle="toggleNode(tableNode.key)"
                     @select="$emit('select-asset', tableNode.asset.id)"

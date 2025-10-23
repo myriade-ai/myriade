@@ -50,6 +50,7 @@ export interface TableFacet {
   asset_id: string
   schema: string | null
   table_name: string | null
+  columns_total_count?: number | null
 }
 
 export interface ColumnFacet {
@@ -77,7 +78,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   // ——————————————————————————————————————————————————
   // STATE
   // ——————————————————————————————————————————————————
-  const assets = ref<Record<string, CatalogAsset>>({})
+  // This store only manages terms, tags, and non-asset metadata
   const terms = ref<Record<string, CatalogTerm>>({})
   const tags = ref<Record<string, AssetTag>>({})
   const loading = ref(false)
@@ -87,7 +88,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   const selectionMode = ref(false)
   const selectedAssetIds = ref<string[]>([])
 
-  // Watch for context changes and fetch catalog data
+  // Watch for context changes
   const contextsStore = useContextsStore()
 
   watch(
@@ -95,10 +96,10 @@ export const useCatalogStore = defineStore('catalog', () => {
     (newContext, oldContext) => {
       if (newContext && newContext.id && newContext.id !== oldContext?.id) {
         // Clear the catalog store
-        assets.value = {}
         terms.value = {}
         tags.value = {}
         error.value = null
+        selectedAssetIds.value = []
 
         fetchTags(newContext.id)
       }
@@ -110,79 +111,11 @@ export const useCatalogStore = defineStore('catalog', () => {
   // GETTERS
   // ——————————————————————————————————————————————————
 
-  const assetsArray = computed(() => Object.values(assets.value))
   const termsArray = computed(() => Object.values(terms.value))
   const tagsArray = computed(() => Object.values(tags.value))
-
-  const assetsByType = computed(() => {
-    const grouped: Record<string, CatalogAsset[]> = {}
-    assetsArray.value.forEach((asset) => {
-      if (!grouped[asset.type]) {
-        grouped[asset.type] = []
-      }
-      grouped[asset.type].push(asset)
-    })
-    return grouped
-  })
-
-  const tableAssets = computed(() => assetsByType.value.TABLE || [])
-  const columnAssets = computed(() => assetsByType.value.COLUMN || [])
-
-  const selectedAssets = computed(() => {
-    return selectedAssetIds.value.map((id) => assets.value[id]).filter(Boolean)
-  })
-
-  const selectedAssetsGrouped = computed(() => {
-    const tables: CatalogAsset[] = []
-    const columns: CatalogAsset[] = []
-    selectedAssets.value.forEach((asset) => {
-      if (asset.type === 'TABLE') {
-        tables.push(asset)
-      } else if (asset.type === 'COLUMN') {
-        columns.push(asset)
-      }
-    })
-    return { tables, columns }
-  })
-
   // ——————————————————————————————————————————————————
   // ACTIONS
   // ——————————————————————————————————————————————————
-
-  async function fetchAssets(contextId: string, type?: 'TABLE' | 'COLUMN') {
-    try {
-      loading.value = true
-      error.value = null
-
-      const params: Record<string, unknown> = {}
-      if (type) params.type = type
-
-      const response: AxiosResponse<CatalogAsset[]> = await axios.get(
-        `/api/catalogs/${contextId}/assets`,
-        {
-          params
-        }
-      )
-
-      if (contextsStore.contextSelected?.id !== contextId) {
-        return []
-      }
-
-      // Update assets in store
-      response.data.forEach((asset) => {
-        assets.value[asset.id] = asset
-      })
-
-      return response.data
-    } catch (err: unknown) {
-      const errorResponse = err as any
-      error.value = errorResponse?.response?.data?.message || 'Failed to fetch assets'
-      console.error('Error fetching assets:', err)
-      return []
-    } finally {
-      loading.value = false
-    }
-  }
 
   async function fetchTerms(contextId: string, limit: number = 50) {
     try {
@@ -255,7 +188,8 @@ export const useCatalogStore = defineStore('catalog', () => {
         updates
       )
 
-      assets.value[response.data.id] = response.data
+      // NOTE: No longer updating local store state
+      // Caller should invalidate TanStack Query cache to refetch
       return response.data
     } catch (err: unknown) {
       const errorResponse = err as any
@@ -421,7 +355,8 @@ export const useCatalogStore = defineStore('catalog', () => {
         }
       )
 
-      assets.value[response.data.id] = response.data
+      // NOTE: No longer updating local store state
+      // Caller should invalidate TanStack Query cache to refetch
       return response.data
     } catch (err: unknown) {
       const errorResponse = err as any
@@ -440,48 +375,25 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  function toggleAssetSelection(assetId: string, includeChildren: boolean = false) {
-    const asset = assets.value[assetId]
-    if (!asset) return
-
+  function toggleAssetSelection(assetId: string) {
     const isSelected = selectedAssetIds.value.includes(assetId)
 
     if (isSelected) {
       // Deselect the asset
       selectedAssetIds.value = selectedAssetIds.value.filter((id) => id !== assetId)
-
-      // If it's a table and includeChildren is true, deselect all columns
-      if (includeChildren && asset.type === 'TABLE') {
-        const columnIds = columnAssets.value
-          .filter((column) => column.column_facet?.parent_table_asset_id === assetId)
-          .map((col) => col.id)
-        selectedAssetIds.value = selectedAssetIds.value.filter((id) => !columnIds.includes(id))
-      }
     } else {
       // Select the asset
       selectedAssetIds.value = [...selectedAssetIds.value, assetId]
-
-      // If it's a table and includeChildren is true, select all columns
-      if (includeChildren && asset.type === 'TABLE') {
-        const columnIds = columnAssets.value
-          .filter((column) => column.column_facet?.parent_table_asset_id === assetId)
-          .map((col) => col.id)
-        selectedAssetIds.value = [...selectedAssetIds.value, ...columnIds]
-      }
     }
   }
 
-  function selectTableWithColumns(tableId: string) {
-    const table = assets.value[tableId]
-    if (!table || table.type !== 'TABLE') return
-
-    const columnIds = columnAssets.value
-      .filter((column) => column.column_facet?.parent_table_asset_id === tableId)
-      .map((col) => col.id)
-
-    // Add table and all columns (avoiding duplicates)
-    const newIds = [tableId, ...columnIds].filter((id) => !selectedAssetIds.value.includes(id))
+  function addAssetSelection(assetIds: string[]) {
+    const newIds = assetIds.filter((id) => !selectedAssetIds.value.includes(id))
     selectedAssetIds.value = [...selectedAssetIds.value, ...newIds]
+  }
+
+  function removeAssetSelection(assetIds: string[]) {
+    selectedAssetIds.value = selectedAssetIds.value.filter((id) => !assetIds.includes(id))
   }
 
   function clearSelection() {
@@ -492,32 +404,11 @@ export const useCatalogStore = defineStore('catalog', () => {
     return selectedAssetIds.value.includes(assetId)
   }
 
-  function getTableSelectionState(tableId: string): 'none' | 'partial' | 'all' {
-    const table = assets.value[tableId]
-    if (!table || table.type !== 'TABLE') return 'none'
-
-    const columns = columnAssets.value.filter(
-      (col) => col.column_facet?.parent_table_asset_id === tableId
-    )
-
-    if (columns.length === 0) {
-      return selectedAssetIds.value.includes(tableId) ? 'all' : 'none'
-    }
-
-    const selectedColumns = columns.filter((col) => selectedAssetIds.value.includes(col.id))
-    const tableSelected = selectedAssetIds.value.includes(tableId)
-
-    if (selectedColumns.length === 0 && !tableSelected) return 'none'
-    if (selectedColumns.length === columns.length && tableSelected) return 'all'
-    return 'partial'
-  }
-
   // ——————————————————————————————————————————————————
   // RETURN
   // ——————————————————————————————————————————————————
   return {
     // state
-    assets,
     terms,
     loading,
     error,
@@ -525,34 +416,27 @@ export const useCatalogStore = defineStore('catalog', () => {
     selectedAssetIds,
 
     // getters
-    assetsArray,
     termsArray,
     tagsArray,
-    assetsByType,
-    tableAssets,
-    columnAssets,
-    selectedAssets,
-    selectedAssetsGrouped,
 
     // actions
-    fetchAssets,
     fetchTerms,
     fetchTags,
     createTag,
     createTerm,
-    updateAsset,
+    updateAsset, // NOTE: Caller must invalidate TanStack Query cache
     updateTerm,
     deleteTerm,
     updateTag,
     deleteTag,
-    dismissFlag,
+    dismissFlag, // NOTE: Caller must invalidate TanStack Query cache
 
     // selection actions
     toggleSelectionMode,
     toggleAssetSelection,
-    selectTableWithColumns,
+    addAssetSelection,
+    removeAssetSelection,
     clearSelection,
-    isAssetSelected,
-    getTableSelectionState
+    isAssetSelected
   }
 })

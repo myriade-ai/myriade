@@ -211,8 +211,11 @@ import {
   type AssetStatus,
   type AssetTag,
   type AssetType,
+  type CatalogAsset,
   type Privacy
 } from '@/stores/catalog'
+import { useContextsStore } from '@/stores/contexts'
+import { useQueryClient } from '@tanstack/vue-query'
 import { Columns3, Database, ExternalLink, Info } from 'lucide-vue-next'
 import { computed, reactive, ref, watch, type Component } from 'vue'
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'
@@ -262,6 +265,8 @@ const emit = defineEmits<{
 }>()
 
 const catalogStore = useCatalogStore()
+const contextsStore = useContextsStore()
+const queryClient = useQueryClient()
 const approving = ref(false)
 const isProcessing = computed(() => (props.isProcessing ?? false) || approving.value)
 
@@ -370,7 +375,14 @@ function handleNavigateToCatalog() {
 async function handleDismissFlag() {
   try {
     approving.value = true
-    await catalogStore.dismissFlag(props.asset.id)
+    const updated = await catalogStore.dismissFlag(props.asset.id)
+
+    // Update the query cache directly instead of refetching
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => (a.id === updated.id ? updated : a))
+    })
   } catch (error) {
     console.error('Failed to dismiss flag', error)
   } finally {
