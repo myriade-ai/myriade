@@ -200,7 +200,7 @@ def create_database_route():
     if initial_metadata:
         sync_database_metadata_to_assets(database.id, initial_metadata)
 
-    return jsonify(database.to_dict())
+    return jsonify(database.to_dict(exclude=["dbt_catalog", "dbt_manifest"]))
 
 
 @api.route("/databases/test-connection", methods=["POST"])
@@ -300,7 +300,7 @@ def update_database(database_id: UUID):
 
     g.session.flush()
 
-    return jsonify(database.to_dict())
+    return jsonify(database.to_dict(exclude=["dbt_catalog", "dbt_manifest"]))
 
 
 @api.route("/databases", methods=["GET"])
@@ -320,7 +320,10 @@ def get_databases():
         .all()
     )
     # Convert each Database object to its dictionary representation
-    databases_list = [db.to_dict() for db in databases_query]
+    # Exclude large dbt fields that aren't needed in the list view
+    databases_list = [
+        db.to_dict(exclude=["dbt_catalog", "dbt_manifest"]) for db in databases_query
+    ]
     return jsonify(databases_list)
 
 
