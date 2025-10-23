@@ -19,17 +19,6 @@
         <component :is="iconComponent" class="h-4 w-4 flex-shrink-0 text-primary-600" />
         <span class="break-words">{{ label }}</span>
       </div>
-      <div v-if="badges?.length" class="ml-4 flex flex-wrap gap-1">
-        <Badge
-          v-for="badge in badges"
-          :key="badge.id"
-          variant="secondary"
-          class="text-[10px]"
-          :title="badge.description || undefined"
-        >
-          {{ badge.name }}
-        </Badge>
-      </div>
     </button>
     <div v-if="expanded">
       <slot />
@@ -40,15 +29,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Database, FolderTree, Table as TableIcon, ChevronRight } from 'lucide-vue-next'
-import { Badge } from '@/components/ui/badge'
-import type { AssetTag } from '@/stores/catalog'
 
 const props = defineProps<{
   label: string
   icon: 'database' | 'schema' | 'table'
   expanded: boolean
   isSelected?: boolean
-  badges?: AssetTag[]
 }>()
 
 const emit = defineEmits<{
@@ -63,8 +49,6 @@ const iconComponent = computed(() => {
 })
 
 function handleSelect() {
-  // Always emit 'select' for row clicks
-  // The chevron handles toggling separately via @click.stop on the ChevronRight icon
   emit('select')
 }
 </script>

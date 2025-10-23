@@ -15,7 +15,9 @@ def _clean(identifier: str | None) -> str:
         return ""
 
 
-def rewrite_sql(sql: str, columns_privacy: List[Dict[str, str]]) -> str:
+def rewrite_sql(
+    sql: str, columns_privacy: List[Dict[str, str]], dialect: str | None = None
+) -> str:
     # ---------------------------------------------------------------- privacy map
     privacy: Dict[str, Dict[str, bool]] = defaultdict(dict)
     for rule in columns_privacy:
@@ -134,4 +136,15 @@ def rewrite_sql(sql: str, columns_privacy: List[Dict[str, str]]) -> str:
         if sub is not None:
             tbl.replace(sub)
 
-    return root.sql()
+    # Map common dialect names to sqlglot dialect names
+    dialect_map = {
+        "postgresql": "postgres",
+        "mysql": "mysql",
+        "sqlite": "sqlite",
+        "mssql": "tsql",
+        "snowflake": "snowflake",
+        "bigquery": "bigquery",
+        "motherduck": "duckdb",
+    }
+    sqlglot_dialect = dialect_map.get(dialect, dialect) if dialect else None
+    return root.sql(dialect=sqlglot_dialect)

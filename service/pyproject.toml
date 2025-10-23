@@ -1,7 +1,7 @@
 [project]
 name = "myriade-service"
 description = "backend for Myriade analytic solution"
-version = "0.50.0"
+version = "0.54.1"
 authors = [
     {name = "Benjamin Derville", email = "benderville@gmail.com"}
 ]
@@ -50,7 +50,7 @@ all = [
     "pgvector>=0.2.0",
 ]
 build = [
-    "uv~=0.8.17",
+    "uv~=0.9.5",
 ]
 
 [dependency-groups]
@@ -113,9 +113,10 @@ version_toml = [
     "pyproject.toml:project.version",
 ]
 build_command = """
-    python -m pip install -e '.[build]'
+    pip install -e '.[build]'
     uv lock --upgrade-package "$PACKAGE_NAME"
     git add uv.lock
+    uv build
 """
 changelog_file = "./CHANGELOG.md"
 commit_message = "chore(release): bump version to {version}"

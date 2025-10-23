@@ -99,7 +99,12 @@ class Database(SerializerMixin, DefaultBase, Base):
         if "details" in result and result["details"]:
             sanitized_details = result["details"].copy()
             # Remove sensitive keys
-            sensitive_keys = ["password", "service_account_json"]
+            sensitive_keys = [
+                "password",
+                "service_account_json",
+                "private_key_pem",
+                "private_key_passphrase",
+            ]
             for key in sensitive_keys:
                 sanitized_details.pop(key, None)
             result["details"] = sanitized_details
@@ -127,6 +132,7 @@ class Organisation(SerializerMixin, DefaultBase, Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    language: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     projects: Mapped[List["Project"]] = relationship(
         "Project",

@@ -22,8 +22,8 @@ export interface Database {
   details: Record<string, string | number | undefined | null> | null
   public: boolean
   write_mode: WriteMode
-  dbt_catalog: unknown
-  dbt_manifest: unknown
+  dbt_catalog?: unknown
+  dbt_manifest?: unknown
   dbt_repo_path: string | null
   tags?: AssetTag[]
 }
@@ -53,6 +53,7 @@ export const getDefaultDetailsForEngine = (engine: Engine) => {
         account: '',
         user: '',
         password: '',
+        auth_method: 'password',
         database: '',
         schema: '',
         role: '',

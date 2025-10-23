@@ -8,6 +8,7 @@ import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import { createMetaManager } from 'vue-meta'
 import Vue3TouchEvents, { type Vue3TouchEventsOptions } from 'vue3-touch-events'
+import { VueQueryPlugin } from '@tanstack/vue-query'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -38,4 +39,5 @@ app.use<Vue3TouchEventsOptions>(Vue3TouchEvents, {
 })
 app.use(Notifications)
 app.use(createMetaManager())
+app.use(VueQueryPlugin)
 app.mount('#app')

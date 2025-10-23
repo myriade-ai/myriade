@@ -29,12 +29,12 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { AssetStatus } from '@/types/catalog'
-import { AlertCircle, Clock, Flag } from 'lucide-vue-next'
+import { AlertCircle, Clock } from 'lucide-vue-next'
 import { computed } from 'vue'
 
 interface Props {
   selectedStatus: string
-  assetsByStatus: Record<AssetStatus, any[]>
+  assetsByStatus: Record<Exclude<AssetStatus, null>, any[]>
 }
 
 const props = defineProps<Props>()

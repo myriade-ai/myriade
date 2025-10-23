@@ -25,9 +25,10 @@
 </template>
 
 <script setup lang="ts">
-import { useCatalogStore, type AssetStatus } from '@/stores/catalog'
+import { useCatalogStore, type AssetStatus, type CatalogAsset } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import type { CatalogTermState } from '@/types/catalog'
+import { useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AssetBase from './AssetBase.vue'
@@ -65,6 +66,7 @@ const props = defineProps<{
 const router = useRouter()
 const catalogStore = useCatalogStore()
 const contextsStore = useContextsStore()
+const queryClient = useQueryClient()
 const isProcessing = ref(false)
 
 const assetData = computed(() => props.asset)
@@ -93,19 +95,9 @@ const formattedAssetData = computed(() => {
     tableName = asset.column_facet.parent_table_facet?.table_name ?? null
   }
 
-  // Fallback to catalog store if not found in prop
-  if (!schema && !tableName) {
-    const fullAsset = catalogStore.assets[assetData.value.id]
-    if (fullAsset) {
-      if (assetData.value.type === 'TABLE' && fullAsset.table_facet) {
-        schema = fullAsset.table_facet.schema
-        tableName = fullAsset.table_facet.table_name
-      } else if (assetData.value.type === 'COLUMN' && fullAsset.column_facet) {
-        schema = fullAsset.column_facet.parent_table_facet?.schema ?? null
-        tableName = fullAsset.column_facet.parent_table_facet?.table_name ?? null
-      }
-    }
-  }
+  // NOTE: Fallback to catalog store removed as assets are now managed by TanStack Query
+  // This component receives all necessary data from the chat message props
+  // If schema/tableName are missing, they should be included in the function call args
 
   return {
     ...assetData.value,
@@ -163,7 +155,7 @@ const handleAssetApprove = async (payload: {
 
     // Forward the payload to the catalog store
     // If the payload includes ai_suggestion/ai_flag_reason/ai_suggested_tags as null, they will be cleared
-    await catalogStore.updateAsset(payload.id, {
+    const updated = await catalogStore.updateAsset(payload.id, {
       description: payload.description,
       tag_ids: payload.tag_ids,
       ...(payload.approve_suggestion !== undefined && {
@@ -176,18 +168,20 @@ const handleAssetApprove = async (payload: {
       })
     })
 
+    // Update the query cache directly instead of refetching
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => (a.id === updated.id ? updated : a))
+    })
+
     // Update local asset data
     if (assetData.value) {
       assetData.value.description = payload.description
-      // Fetch the updated asset to get the full tag objects and status
-      const updatedAsset = catalogStore.assets[payload.id]
-      if (updatedAsset) {
-        assetData.value.tags = updatedAsset.tags
-        assetData.value.status = updatedAsset.status
-        assetData.value.ai_suggestion = updatedAsset.ai_suggestion
-        assetData.value.ai_flag_reason = updatedAsset.ai_flag_reason
-        assetData.value.ai_suggested_tags = updatedAsset.ai_suggested_tags
-      }
+      assetData.value.status = updated.status
+      assetData.value.ai_suggestion = updated.ai_suggestion
+      assetData.value.ai_flag_reason = updated.ai_flag_reason
+      assetData.value.ai_suggested_tags = updated.ai_suggested_tags
     }
   } catch (error) {
     console.error('Failed to approve asset:', error)

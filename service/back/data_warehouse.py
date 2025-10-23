@@ -1,4 +1,5 @@
 import json
+import logging
 import sys
 import threading
 from abc import ABC, abstractmethod
@@ -6,10 +7,14 @@ from urllib.parse import quote_plus
 
 import sqlalchemy
 import sqlglot
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 from sqlalchemy import text
 
 from back.privacy import encrypt_rows
 from back.rewrite_sql import rewrite_sql
+
+logger = logging.getLogger(__name__)
 
 MAX_SIZE = 2 * 1024 * 1024  # 2MB in bytes
 
@@ -235,7 +240,7 @@ class AbstractDatabase(ABC):
             """
 
             # Execute the query using the database's unprotected method
-            rows = self._query_unprotected(sample_query.strip())
+            rows, _ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -252,6 +257,11 @@ class AbstractDatabase(ABC):
             return sample_result
 
         except Exception as e:
+            # Log the full traceback for debugging
+            logger.error(
+                f"Failed to sample data from {schema_name}.{table_name}: {str(e)}",
+                exc_info=True,
+            )
             return {
                 "error": f"Failed to sample data: {str(e)}",
                 "note": (
@@ -312,7 +322,7 @@ class AbstractDatabase(ABC):
                         )
             # Rewrite the query only if we have rules to apply
             if privacy_rules:
-                sql = rewrite_sql(sql, privacy_rules)
+                sql = rewrite_sql(sql, privacy_rules, dialect=self.dialect)
 
         # Execute query without write protection
         rows = self._query_unprotected(sql)
@@ -467,7 +477,7 @@ class SQLDatabase(AbstractDatabase):
                 """
 
             # Execute the query using the database's unprotected method
-            rows = self._query_unprotected(sample_query.strip())
+            rows, _ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -484,6 +494,12 @@ class SQLDatabase(AbstractDatabase):
             return sample_result
 
         except Exception as e:
+            # Log the full traceback for debugging
+            logger.error(
+                f"Failed to sample data from {schema_name}.{table_name} "
+                f"(SQLDatabase): {str(e)}",
+                exc_info=True,
+            )
             return {
                 "error": f"Failed to sample data: {str(e)}",
                 "note": (
@@ -530,7 +546,7 @@ class OracleDatabase(SQLDatabase):
             """
 
             # Execute the query using the database's unprotected method
-            rows = self._query_unprotected(sample_query.strip())
+            rows, _ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -547,6 +563,12 @@ class OracleDatabase(SQLDatabase):
             return sample_result
 
         except Exception as e:
+            # Log the full traceback for debugging
+            logger.error(
+                f"Failed to sample data from {schema_name}.{table_name} "
+                f"(OracleDatabase): {str(e)}",
+                exc_info=True,
+            )
             return {
                 "error": f"Failed to sample data: {str(e)}",
                 "note": (
@@ -558,6 +580,38 @@ class OracleDatabase(SQLDatabase):
 
 class SnowflakeDatabase(AbstractDatabase):
     def __init__(self, **kwargs):
+        # Remove frontend-only parameters that shouldn't be passed to Snowflake
+        kwargs.pop("auth_method", None)
+
+        # Process RSA key authentication if provided
+        if "private_key_pem" in kwargs:
+            # Get the PEM key string
+            private_key_pem = kwargs.pop("private_key_pem")
+            private_key_passphrase = kwargs.pop("private_key_passphrase", None)
+
+            # Convert string to bytes
+            key_bytes = private_key_pem.encode("utf-8")
+
+            # Load the PEM private key
+            passphrase_bytes = (
+                private_key_passphrase.encode("utf-8")
+                if private_key_passphrase
+                else None
+            )
+            p_key = serialization.load_pem_private_key(
+                key_bytes, password=passphrase_bytes, backend=default_backend()
+            )
+
+            # Convert to DER format (PKCS8)
+            pkb = p_key.private_bytes(
+                encoding=serialization.Encoding.DER,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+
+            # Add the DER-formatted key to kwargs
+            kwargs["private_key"] = pkb
+
         self.connection = DataWarehouseRegistry.get_snowflake_connection(kwargs)
         self.metadata = []
 
@@ -738,7 +792,7 @@ class BigQueryDatabase(AbstractDatabase):
             """
 
             # Execute the query using the database's unprotected method
-            rows = self._query_unprotected(sample_query.strip())
+            rows, _ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -755,6 +809,12 @@ class BigQueryDatabase(AbstractDatabase):
             return sample_result
 
         except Exception as e:
+            # Log the full traceback for debugging
+            logger.error(
+                f"Failed to sample data from {schema_name}.{table_name} "
+                f"(BigQueryDatabase): {str(e)}",
+                exc_info=True,
+            )
             return {
                 "error": f"Failed to sample data: {str(e)}",
                 "note": (

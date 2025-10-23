@@ -7,7 +7,7 @@
         ? 'bg-gradient-to-r from-blue-50 to-slate-100 text-primary-900 ring-1 ring-primary-400 shadow-sm'
         : 'text-muted-foreground hover:bg-gradient-to-r hover:from-slate-100 hover:to-stone-100'
     ]"
-    @click="emit('select')"
+    @click="handleClick"
   >
     <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-2 truncate">
@@ -35,4 +35,8 @@ const emit = defineEmits<{
 }>()
 
 const iconComponent = computed(() => (props.type === 'table' ? TableIcon : Columns3))
+
+function handleClick() {
+  emit('select')
+}
 </script>
