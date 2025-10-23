@@ -5,7 +5,7 @@ version = "0.54.1"
 authors = [
     {name = "Benjamin Derville", email = "benderville@gmail.com"}
 ]
-license = { file = "LICENSE" }
+license = { text = "FCL-1.0-ALv2" }
 readme = "README.md"
 requires-python = "==3.13.*"
 dependencies = [
@@ -44,7 +44,7 @@ all = [
     "oracledb>=2.0.0",
 ]
 build = [
-    "uv~=0.8.17",
+    "uv~=0.9.5",
 ]
 
 [dependency-groups]
@@ -108,8 +108,9 @@ version_toml = [
 ]
 build_command = """
     python -m pip install -e '.[build]'
-    python -m uv lock --upgrade-package "$PACKAGE_NAME"
+    uv lock --upgrade-package "$PACKAGE_NAME"
     git add uv.lock
+    uv build
 """
 changelog_file = "./CHANGELOG.md"
 commit_message = "chore(release): bump version to {version}"

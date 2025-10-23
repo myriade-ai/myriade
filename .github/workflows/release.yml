@@ -31,7 +31,7 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "./service/uv.lock"
       - name: Python Semantic Release
-        uses: python-semantic-release/python-semantic-release@v9.21.0
+        uses: python-semantic-release/python-semantic-release@v10.4.1
         with:
           github_token: ${{ secrets.PERSONAL_TOKEN }}
           directory: ./service
