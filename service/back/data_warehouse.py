@@ -7,6 +7,8 @@ from urllib.parse import quote_plus
 
 import sqlalchemy
 import sqlglot
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 from sqlalchemy import text
 
 from back.privacy import encrypt_rows
@@ -578,6 +580,38 @@ class OracleDatabase(SQLDatabase):
 
 class SnowflakeDatabase(AbstractDatabase):
     def __init__(self, **kwargs):
+        # Remove frontend-only parameters that shouldn't be passed to Snowflake
+        kwargs.pop("auth_method", None)
+
+        # Process RSA key authentication if provided
+        if "private_key_pem" in kwargs:
+            # Get the PEM key string
+            private_key_pem = kwargs.pop("private_key_pem")
+            private_key_passphrase = kwargs.pop("private_key_passphrase", None)
+
+            # Convert string to bytes
+            key_bytes = private_key_pem.encode("utf-8")
+
+            # Load the PEM private key
+            passphrase_bytes = (
+                private_key_passphrase.encode("utf-8")
+                if private_key_passphrase
+                else None
+            )
+            p_key = serialization.load_pem_private_key(
+                key_bytes, password=passphrase_bytes, backend=default_backend()
+            )
+
+            # Convert to DER format (PKCS8)
+            pkb = p_key.private_bytes(
+                encoding=serialization.Encoding.DER,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+
+            # Add the DER-formatted key to kwargs
+            kwargs["private_key"] = pkb
+
         self.connection = DataWarehouseRegistry.get_snowflake_connection(kwargs)
         self.metadata = []
 
