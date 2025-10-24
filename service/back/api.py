@@ -888,6 +888,7 @@ def get_catalog_assets(context_id):
                     "database_id": database_id_str,
                     "schema": tf.schema,
                     "table_name": tf.table_name,
+                    "table_type": tf.table_type,
                 }
         elif asset_type == "COLUMN":
             cf = asset.column_facet
@@ -911,6 +912,7 @@ def get_catalog_assets(context_id):
                             "database_id": database_id_str,
                             "schema": ptf.schema,
                             "table_name": ptf.table_name,
+                            "table_type": ptf.table_type,
                         }
 
                 asset_dict["column_facet"] = column_facet_dict
