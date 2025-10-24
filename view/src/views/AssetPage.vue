@@ -9,12 +9,16 @@ import { useContextsStore } from '@/stores/contexts'
 import { useDatabasesStore } from '@/stores/databases'
 import { computeCatalogStats } from '@/utils/catalog-stats'
 import { RefreshCwIcon, SparklesIcon } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 const contextsStore = useContextsStore()
 const catalogStore = useCatalogStore()
 const databasesStore = useDatabasesStore()
-const isSyncing = ref(false)
+const syncStatus = ref<'idle' | 'syncing' | 'completed' | 'failed'>('idle')
+const syncProgress = ref(0)
+const syncError = ref<string | null>(null)
+
+let pollInterval: ReturnType<typeof setInterval> | null = null
 
 const { data: assets, isLoading, isFetching, refetch } = useCatalogAssetsQuery()
 
@@ -28,6 +32,60 @@ const stats = computed(() => {
   return computeCatalogStats(assets.value)
 })
 
+const syncButtonText = computed(() => {
+  switch (syncStatus.value) {
+    case 'syncing':
+      return `Syncing... ${syncProgress.value}%`
+    case 'completed':
+      return 'Sync Database'
+    case 'failed':
+      return 'Retry Sync'
+    default:
+      return 'Sync Database'
+  }
+})
+
+async function pollSyncStatus(databaseId: string) {
+  try {
+    const status = await databasesStore.getSyncStatus(databaseId)
+    syncStatus.value = status.sync_status || 'idle'
+    syncProgress.value = status.sync_progress || 0
+    syncError.value = status.sync_error || null
+
+    // If sync completed or failed, stop polling
+    if (syncStatus.value === 'completed' || syncStatus.value === 'failed') {
+      if (pollInterval) {
+        clearInterval(pollInterval)
+        pollInterval = null
+      }
+
+      // Refresh assets after successful sync
+      if (syncStatus.value === 'completed') {
+        await refetch()
+      }
+    }
+  } catch (error: unknown) {
+    console.error('Error polling sync status:', error)
+  }
+}
+
+function startPolling(databaseId: string) {
+  // Poll every 2 seconds
+  pollInterval = setInterval(() => {
+    pollSyncStatus(databaseId)
+  }, 2000)
+
+  // Also poll immediately
+  pollSyncStatus(databaseId)
+}
+
+function stopPolling() {
+  if (pollInterval) {
+    clearInterval(pollInterval)
+    pollInterval = null
+  }
+}
+
 async function syncDatabaseMetadata() {
   if (!contextsStore.contextSelected) {
     console.error('No context selected')
@@ -35,26 +93,66 @@ async function syncDatabaseMetadata() {
   }
 
   try {
-    isSyncing.value = true
     const databaseId = contextsStore.getSelectedContextDatabaseId()
 
+    // Start the sync (returns immediately with 202)
     await databasesStore.syncDatabaseMetadata(databaseId)
-    await refetch()
+
+    // Update local state
+    syncStatus.value = 'syncing'
+    syncProgress.value = 0
+    syncError.value = null
+
+    // Start polling for status updates
+    startPolling(databaseId)
   } catch (error: unknown) {
-    console.error('Error syncing database metadata:', error)
-  } finally {
-    isSyncing.value = false
+    console.error('Error starting database metadata sync:', error)
+    syncStatus.value = 'failed'
+    const err = error as { response?: { data?: { error?: string } } }
+    syncError.value = err?.response?.data?.error || 'Failed to start sync'
   }
 }
+
+// Check sync status on mount and start polling if already syncing
+onMounted(async () => {
+  if (!contextsStore.contextSelected) {
+    return
+  }
+
+  try {
+    const databaseId = contextsStore.getSelectedContextDatabaseId()
+    const status = await databasesStore.getSyncStatus(databaseId)
+
+    syncStatus.value = status.sync_status || 'idle'
+    syncProgress.value = status.sync_progress || 0
+    syncError.value = status.sync_error || null
+
+    // If database is already syncing, start polling
+    if (syncStatus.value === 'syncing') {
+      startPolling(databaseId)
+    }
+  } catch (error: unknown) {
+    console.error('Error checking initial sync status:', error)
+  }
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  stopPolling()
+})
 </script>
 
 <template>
   <div class="flex flex-col h-screen">
     <PageHeader class="flex-shrink-0" title="Catalog Assets" :subtitle="`${assetsCount} assets`">
       <template #actions>
-        <Button @click="syncDatabaseMetadata" variant="outline" :disabled="isSyncing">
-          <RefreshCwIcon class="h-4 w-4" :class="{ 'animate-spin': isSyncing }" />
-          {{ isSyncing ? 'Syncing...' : 'Sync Database' }}
+        <Button
+          @click="syncDatabaseMetadata"
+          variant="outline"
+          :disabled="syncStatus === 'syncing'"
+        >
+          <RefreshCwIcon class="h-4 w-4" :class="{ 'animate-spin': syncStatus === 'syncing' }" />
+          {{ syncButtonText }}
         </Button>
         <Button
           @click="catalogStore.toggleSelectionMode"

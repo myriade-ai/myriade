@@ -2,7 +2,10 @@ import json
 import logging
 import sys
 import threading
+import time
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Callable, Optional
 from urllib.parse import quote_plus
 
 import sqlalchemy
@@ -113,6 +116,7 @@ class DataWarehouseRegistry:
     _engines = {}
     _clients = {}
     _snowflake_connections = {}
+    _snowflake_connection_pools = {}
     _lock = threading.Lock()
 
     @classmethod
@@ -182,14 +186,137 @@ class DataWarehouseRegistry:
             return cls._snowflake_connections[key]
 
     @classmethod
+    def get_snowflake_connection_pool(cls, connection_params, pool_size=50):
+        """
+        Get or create a Snowflake connection pool.
+
+        Args:
+            connection_params: Dict of Snowflake connection parameters
+            pool_size: Number of connections in the pool
+
+        Returns:
+            SnowflakeConnectionPool instance
+        """
+        with cls._lock:
+            key = hash(tuple(sorted(connection_params.items())))
+            if key not in cls._snowflake_connection_pools:
+                cls._snowflake_connection_pools[key] = SnowflakeConnectionPool(
+                    connection_params, pool_size=pool_size
+                )
+            return cls._snowflake_connection_pools[key]
+
+    @classmethod
     def close_all_snowflake(cls):
         with cls._lock:
+            # Close single connections
             for conn in cls._snowflake_connections.values():
                 try:
                     conn.close()
                 except Exception:
                     pass
             cls._snowflake_connections.clear()
+
+            # Close connection pools
+            for pool in cls._snowflake_connection_pools.values():
+                try:
+                    pool.close_all()
+                except Exception:
+                    pass
+            cls._snowflake_connection_pools.clear()
+
+
+class SnowflakeConnectionPool:
+    """Thread-safe connection pool for Snowflake parallel queries."""
+
+    def __init__(self, connection_params, pool_size=50):
+        """
+        Initialize connection pool.
+
+        Args:
+            connection_params: Dict of Snowflake connection parameters
+            pool_size: Number of connections to maintain in pool
+        """
+        self.connection_params = connection_params
+        self.pool_size = pool_size
+        self.available_connections = []
+        self.all_connections = []
+        self.lock = threading.Lock()
+        self._initialize_pool()
+
+    def _initialize_pool(self):
+        """Create initial pool of connections."""
+        import snowflake.connector
+
+        logger.info(
+            f"Initializing Snowflake connection pool with {self.pool_size} connections"
+        )
+        for i in range(self.pool_size):
+            try:
+                conn = snowflake.connector.connect(**self.connection_params)
+                self.available_connections.append(conn)
+                self.all_connections.append(conn)
+                logger.debug(f"Created connection {i + 1}/{self.pool_size}")
+            except Exception as e:
+                logger.error(
+                    f"Failed to create connection {i + 1}/{self.pool_size}: {e}"
+                )
+                # Continue with fewer connections rather than failing completely
+                break
+
+        logger.info(
+            f"Connection pool initialized with {len(self.all_connections)} connections"
+        )
+
+    def get_connection(self, timeout=30):
+        """
+        Get a connection from the pool.
+
+        Args:
+            timeout: Maximum seconds to wait for available connection
+
+        Returns:
+            Snowflake connection object
+
+        Raises:
+            TimeoutError: If no connection available within timeout
+        """
+        start_time = time.time()
+        while True:
+            with self.lock:
+                if self.available_connections:
+                    return self.available_connections.pop()
+
+            # No connection available, check timeout
+            if time.time() - start_time > timeout:
+                raise TimeoutError(
+                    f"Could not acquire connection from pool within {timeout}s"
+                )
+
+            # Wait a bit before trying again
+            time.sleep(0.1)
+
+    def return_connection(self, conn):
+        """
+        Return a connection to the pool.
+
+        Args:
+            conn: Snowflake connection to return
+        """
+        with self.lock:
+            if conn in self.all_connections and conn not in self.available_connections:
+                self.available_connections.append(conn)
+
+    def close_all(self):
+        """Close all connections in the pool."""
+        with self.lock:
+            for conn in self.all_connections:
+                try:
+                    conn.close()
+                except Exception as e:
+                    logger.warning(f"Error closing connection: {e}")
+            self.available_connections.clear()
+            self.all_connections.clear()
+        logger.info("Connection pool closed")
 
 
 class AbstractDatabase(ABC):
@@ -206,7 +333,9 @@ class AbstractDatabase(ABC):
         pass
 
     @abstractmethod
-    def load_metadata(self) -> list[dict]:
+    def load_metadata(
+        self, progress_callback: Optional[Callable[[int, int, str], None]] = None
+    ) -> list[dict]:
         pass
 
     @abstractmethod
@@ -378,7 +507,15 @@ class SQLDatabase(AbstractDatabase):
         # "postgresql", "mysql", "sqlite", "mssql", "motherduck"
         return self.engine.name
 
-    def load_metadata(self):
+    def load_metadata(self, progress_callback=None):
+        total_tables = 0
+        # First pass: count total tables
+        for schema in self.inspector.get_schema_names():
+            if schema == "information_schema":
+                continue
+            total_tables += len(self.inspector.get_table_names(schema=schema))
+
+        current_count = 0
         for schema in self.inspector.get_schema_names():
             if schema in self.SKIP_SCHEMAS:
                 continue
@@ -426,6 +563,10 @@ class SQLDatabase(AbstractDatabase):
                         }
                     )
 
+                    # Call progress callback if provided
+                    current_count += 1
+                    if progress_callback:
+                        progress_callback(current_count, total_tables, name)
         return self.metadata
 
     def _query_unprotected(self, query) -> list[dict]:
@@ -608,6 +749,12 @@ class OracleDatabase(SQLDatabase):
 
 
 class SnowflakeDatabase(AbstractDatabase):
+    # Parallelization settings
+    SCHEMA_WORKER_COUNT = 20  # Concurrent schema table fetches
+    COLUMN_WORKER_COUNT = 50  # Concurrent column fetches
+    CONNECTION_POOL_SIZE = 50  # Connection pool size
+    MAX_RETRIES = 3  # Retry failed queries
+
     def __init__(self, **kwargs):
         # Remove frontend-only parameters that shouldn't be passed to Snowflake
         kwargs.pop("auth_method", None)
@@ -644,44 +791,246 @@ class SnowflakeDatabase(AbstractDatabase):
         # Store connection params for reconnection on token expiry
         self.connection_params = kwargs
         self.connection = DataWarehouseRegistry.get_snowflake_connection(kwargs)
+
+        # Connection pool will be created lazily when needed
+        self._connection_pool = None
+
         self.metadata = []
 
     @property
     def dialect(self):
         return "snowflake"
 
-    # TODO: should run the process asynchronously
-    def load_metadata(self):
-        query = "SHOW TABLES IN DATABASE {}".format(self.connection.database)
-        tables, _ = self.query(query)
-        for table in tables[:30]:  # TODO: remove this limit
+    @property
+    def connection_pool(self):
+        """Lazy initialization of connection pool (when needed for parallel ops)."""
+        if self._connection_pool is None:
+            logger.info(
+                f"Initializing Snowflake connection pool with "
+                f"{self.CONNECTION_POOL_SIZE} connections"
+            )
+            self._connection_pool = DataWarehouseRegistry.get_snowflake_connection_pool(
+                self.connection_params, pool_size=self.CONNECTION_POOL_SIZE
+            )
+        return self._connection_pool
+
+    def _execute_with_retry(self, cursor, query, max_retries=None):
+        """
+        Execute a query with retry logic for transient failures.
+
+        Args:
+            cursor: Snowflake cursor object
+            query: SQL query to execute
+            max_retries: Maximum retry attempts (defaults to self.MAX_RETRIES)
+
+        Returns:
+            Cursor after successful execution
+
+        Raises:
+            Exception: If all retries fail
+        """
+        if max_retries is None:
+            max_retries = self.MAX_RETRIES
+
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                cursor.execute(query)
+                return cursor
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 1  # Linear backoff: 1s, 2s, 3s
+                    logger.warning(
+                        f"Query failed (attempt {attempt + 1}/{max_retries}): {e}. "
+                        f"Retrying in {wait_time}s..."
+                    )
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"Query failed after {max_retries} attempts: {e}")
+
+        # All retries failed
+        raise last_error
+
+    def load_metadata(self, progress_callback=None):
+        """
+        Load metadata from Snowflake database with pagination support.
+        Handles >10K tables by fetching schema by schema, and handles >10K schemas.
+
+        Args:
+            progress_callback: Optional callback function(current, total, table_name)
+                              called after each table is processed
+        """
+        batch_size = 10000  # Snowflake's SHOW command limit
+
+        # Get list of schemas - handle pagination if needed
+        logger.info(f"Fetching schemas from database {self.connection.database}")
+        schemas_query = f"SHOW SCHEMAS IN DATABASE {self.connection.database}"
+        schemas, _ = self.query(schemas_query)
+
+        # Filter out system schemas
+        user_schemas = [s for s in schemas if s["name"] not in ["INFORMATION_SCHEMA"]]
+
+        logger.info(f"Found {len(user_schemas)} user schemas to process")
+
+        # Collect all tables from all schemas in parallel
+        all_tables = []
+
+        def fetch_tables_for_schema(schema):
+            """Fetch tables for a single schema using connection from pool."""
+            schema_name = schema["name"]
+            conn = None
+            try:
+                # Get connection from pool
+                conn = self.connection_pool.get_connection()
+                cursor = conn.cursor()
+
+                # Fetch tables for this schema with retry logic
+                schema_tables_query = (
+                    f"SHOW TABLES IN SCHEMA {self.connection.database}.{schema_name}"
+                )
+                self._execute_with_retry(cursor, schema_tables_query)
+
+                # Convert cursor results to list of dicts
+                columns = [col[0] for col in cursor.description]
+                schema_tables = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+                cursor.close()
+
+                # If we hit the limit, log a warning
+                if len(schema_tables) >= batch_size:
+                    logger.warning(
+                        f"Schema {schema_name} has {len(schema_tables)} tables "
+                        f"(may be truncated at {batch_size} limit)"
+                    )
+
+                logger.info(
+                    f"Found {len(schema_tables)} tables in schema {schema_name}"
+                )
+
+                return (schema_name, schema_tables)
+
+            except Exception as e:
+                logger.error(f"Failed to fetch tables from schema {schema_name}: {e}")
+                return (schema_name, [])
+
+            finally:
+                # Return connection to pool
+                if conn:
+                    self.connection_pool.return_connection(conn)
+
+        # Execute schema queries in parallel
+        logger.info(
+            f"Fetching tables from {len(user_schemas)} schemas "
+            f"using {self.SCHEMA_WORKER_COUNT} workers"
+        )
+        with ThreadPoolExecutor(max_workers=self.SCHEMA_WORKER_COUNT) as executor:
+            futures = [
+                executor.submit(fetch_tables_for_schema, schema)
+                for schema in user_schemas
+            ]
+
+            # Collect results as they complete
+            for idx, future in enumerate(as_completed(futures), 1):
+                schema_name, schema_tables = future.result()
+                all_tables.extend(schema_tables)
+                logger.debug(
+                    f"Completed schema {idx}/{len(user_schemas)}: {schema_name}"
+                )
+
+        total_tables = len(all_tables)
+        logger.info(f"Loading metadata for {total_tables} tables from Snowflake")
+
+        # Thread-safe counter for progress tracking
+        progress_lock = threading.Lock()
+        processed_count = 0
+
+        def fetch_columns_for_table(table):
+            """Fetch columns for a single table using connection from pool."""
+            nonlocal processed_count
             schema = table["schema_name"]
             table_name = table["name"]
             # Snowflake's SHOW TABLES returns 'kind' column: 'TABLE' or 'VIEW'
-            table_type = table.get("kind").upper()
+            table_type = table.get("kind", "TABLE")
+            conn = None
 
-            columns = []
-            result, _ = self.query(f"SHOW COLUMNS IN {schema}.{table_name}")
-            for column in result:
-                column["data_type"] = json.loads(column["data_type"])
-                columns.append(
-                    {
-                        "name": column["column_name"],
-                        "type": column["data_type"]["type"],
-                        "nullable": column["data_type"]["nullable"],
-                        "comment": column["comment"],
-                    }
+            try:
+                # Get connection from pool
+                conn = self.connection_pool.get_connection()
+                cursor = conn.cursor()
+
+                # Fetch columns for this table with retry logic
+                self._execute_with_retry(
+                    cursor, f"SHOW COLUMNS IN {schema}.{table_name}"
                 )
 
-            self.metadata.append(
-                {
+                # Convert cursor results to list of dicts
+                columns = []
+                col_names = [col[0] for col in cursor.description]
+                for row in cursor.fetchall():
+                    column = dict(zip(col_names, row))
+                    column["data_type"] = json.loads(column["data_type"])
+                    columns.append(
+                        {
+                            "name": column["column_name"],
+                            "type": column["data_type"]["type"],
+                            "nullable": column["data_type"]["nullable"],
+                            "comment": column["comment"],
+                        }
+                    )
+
+                cursor.close()
+
+                # Thread-safe progress update
+                with progress_lock:
+                    processed_count += 1
+                    current = processed_count
+
+                    # Call progress callback if provided
+                    if progress_callback:
+                        progress_callback(
+                            current, total_tables, f"{schema}.{table_name}"
+                        )
+
+                return {
                     "schema": schema,
                     "name": table_name,
                     "table_type": table_type,
                     "columns": columns,
                 }
-            )
 
+            except Exception as e:
+                logger.warning(
+                    f"Failed to load metadata for {schema}.{table_name}: {e}"
+                )
+                return None
+
+            finally:
+                # Return connection to pool
+                if conn:
+                    self.connection_pool.return_connection(conn)
+
+        # Execute column queries in parallel
+        logger.info(
+            f"Fetching columns from {total_tables} tables "
+            f"using {self.COLUMN_WORKER_COUNT} workers"
+        )
+        with ThreadPoolExecutor(max_workers=self.COLUMN_WORKER_COUNT) as executor:
+            futures = [
+                executor.submit(fetch_columns_for_table, table) for table in all_tables
+            ]
+
+            # Collect results as they complete
+            for future in as_completed(futures):
+                try:
+                    metadata = future.result()
+                    if metadata:
+                        self.metadata.append(metadata)
+                except Exception as e:
+                    logger.error(f"Error processing table metadata: {e}")
+                    continue
+
+        logger.info(f"Successfully loaded metadata for {len(self.metadata)} tables")
         return self.metadata
 
     def _query_unprotected(self, query):
@@ -780,10 +1129,19 @@ class BigQueryDatabase(AbstractDatabase):
     def dialect(self):
         return "bigquery"
 
-    def load_metadata(self):
+    def load_metadata(self, progress_callback=None):
         """Load metadata for all datasets and tables in the project"""
         datasets = list(self.client.list_datasets())
 
+        # First pass: count total tables
+        total_tables = 0
+        for dataset in datasets:
+            dataset_id = dataset.dataset_id
+            dataset_ref = self.client.dataset(dataset_id)
+            tables = list(self.client.list_tables(dataset_ref))
+            total_tables += len(tables)
+
+        current_count = 0
         for dataset in datasets:
             dataset_id = dataset.dataset_id
             dataset_ref = self.client.dataset(dataset_id)
@@ -814,6 +1172,11 @@ class BigQueryDatabase(AbstractDatabase):
                         "columns": columns,
                     }
                 )
+
+                # Call progress callback if provided
+                current_count += 1
+                if progress_callback:
+                    progress_callback(current_count, total_tables, table.table_id)
 
         return self.metadata
 
@@ -925,7 +1288,7 @@ class MotherDuckDatabase(AbstractDatabase):
     def dialect(self):
         return "motherduck"
 
-    def load_metadata(self):
+    def load_metadata(self, progress_callback=None):
         """Load metadata from MotherDuck database"""
         # Use DuckDB information schema queries
         schemas_query = (
@@ -937,6 +1300,20 @@ class MotherDuckDatabase(AbstractDatabase):
         if not schemas:
             return []
 
+        # First pass: count total tables
+        total_tables = 0
+        for schema_row in schemas:
+            schema_name = schema_row["schema_name"]
+            tables_query = f"""
+                SELECT table_name, table_type
+                FROM information_schema.tables
+                WHERE table_schema = '{schema_name}'
+            """
+            tables, _ = self.query(tables_query)
+            if tables:
+                total_tables += len(tables)
+
+        current_count = 0
         for schema_row in schemas:
             schema_name = schema_row["schema_name"]
 
@@ -986,6 +1363,11 @@ class MotherDuckDatabase(AbstractDatabase):
                         "description": None,
                     }
                 )
+
+                # Call progress callback if provided
+                current_count += 1
+                if progress_callback:
+                    progress_callback(current_count, total_tables, table_name)
 
         return self.metadata
 

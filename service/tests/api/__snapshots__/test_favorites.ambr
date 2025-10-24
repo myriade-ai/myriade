@@ -15,14 +15,12 @@
     ]),
     'queries': list([
       dict({
-        'completedAt': None,
         'count': None,
         'databaseId': 'a0000000-0000-0000-0000-000000000001',
         'exception': None,
         'operationType': None,
         'rows': None,
         'sql': 'SELECT 100 AS fav_col;',
-        'startedAt': None,
         'status': 'completed',
         'title': 'Test Query for Favorites',
       }),
