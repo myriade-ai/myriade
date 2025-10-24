@@ -353,6 +353,14 @@ class AbstractDatabase(ABC):
 
 
 class SQLDatabase(AbstractDatabase):
+    SKIP_SCHEMAS = {
+        "information_schema",
+        "pg_catalog",
+        "pg_toast",
+        "pg_internal",
+        "sys",
+    }  # noqa: E501
+
     def __init__(self, uri, **kwargs):
         try:
             self.engine = DataWarehouseRegistry.get_sqlalchemy_engine(uri, **kwargs)
@@ -372,31 +380,52 @@ class SQLDatabase(AbstractDatabase):
 
     def load_metadata(self):
         for schema in self.inspector.get_schema_names():
-            if schema == "information_schema":
+            if schema in self.SKIP_SCHEMAS:
                 continue
-            for table in self.inspector.get_table_names(schema=schema):
-                columns = []
-                for column in self.inspector.get_columns(table, schema):
-                    columns.append(
+
+            tables = self.inspector.get_table_names(schema=schema)
+            views = self.inspector.get_view_names(schema=schema)
+
+            get_mviews = getattr(self.inspector, "get_materialized_view_names", None)
+            try:
+                mviews = get_mviews(schema=schema) if get_mviews else []
+            except NotImplementedError:
+                mviews = []
+
+            def table_comment(name, schema=schema):
+                try:
+                    c = self.inspector.get_table_comment(name, schema)
+                    return (c or {}).get("text")
+                except Exception:
+                    return None
+
+            for table_type, names in (
+                ("table", tables),
+                ("view", views),
+                ("materialized_view", mviews),
+            ):
+                for name in names:
+                    cols = []
+                    for col in self.inspector.get_columns(name, schema=schema):
+                        cols.append(
+                            {
+                                "name": col["name"],
+                                "type": str(col["type"]),
+                                "nullable": col["nullable"],
+                                "description": col.get("comment"),
+                            }
+                        )
+
+                    self.metadata.append(
                         {
-                            "name": column["name"],
-                            "type": str(column["type"]),
-                            "nullable": column["nullable"],
-                            "description": column.get("comment"),
+                            "name": name,
+                            "description": table_comment(name),
+                            "schema": schema,
+                            "table_type": table_type,
+                            "columns": cols,
                         }
                     )
 
-                self.metadata.append(
-                    {
-                        "name": table,
-                        "description": None,  # TODO
-                        "schema": schema,
-                        "is_view": False,
-                        "columns": columns,
-                    }
-                )
-
-            # TODO add support for views
         return self.metadata
 
     def _query_unprotected(self, query) -> list[dict]:
@@ -628,6 +657,8 @@ class SnowflakeDatabase(AbstractDatabase):
         for table in tables[:30]:  # TODO: remove this limit
             schema = table["schema_name"]
             table_name = table["name"]
+            # Snowflake's SHOW TABLES returns 'kind' column: 'TABLE' or 'VIEW'
+            table_type = table.get("kind").upper()
 
             columns = []
             result, _ = self.query(f"SHOW COLUMNS IN {schema}.{table_name}")
@@ -646,7 +677,7 @@ class SnowflakeDatabase(AbstractDatabase):
                 {
                     "schema": schema,
                     "name": table_name,
-                    "is_view": False,
+                    "table_type": table_type,
                     "columns": columns,
                 }
             )
@@ -779,7 +810,7 @@ class BigQueryDatabase(AbstractDatabase):
                         "name": table.table_id,
                         "description": table.description,
                         "schema": dataset_id,
-                        "is_view": table.table_type == "VIEW",
+                        "table_type": table.table_type,
                         "columns": columns,
                     }
                 )
@@ -922,7 +953,7 @@ class MotherDuckDatabase(AbstractDatabase):
 
             for table_row in tables:
                 table_name = table_row["table_name"]
-                is_view = table_row["table_type"] == "VIEW"
+                table_type = table_row["table_type"]
 
                 # Get columns for each table
                 columns_query = f"""
@@ -950,7 +981,7 @@ class MotherDuckDatabase(AbstractDatabase):
                     {
                         "name": table_name,
                         "schema": schema_name,
-                        "is_view": is_view,
+                        "table_type": table_type,
                         "columns": formatted_columns,
                         "description": None,
                     }

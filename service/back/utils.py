@@ -117,8 +117,8 @@ def get_tables_metadata_from_catalog(
                 "name": table_facet.table_name,
                 "schema": table_facet.schema,
                 "description": asset.description,
+                "table_type": table_facet.table_type,
                 "columns": [],
-                "is_view": False,  # Default, could be enhanced later
             }
 
         # Add columns to their tables
@@ -204,9 +204,19 @@ def sync_database_metadata_to_assets(
                 database_id=database_id,
                 schema=schema_name,
                 table_name=table_name,
+                table_type=table_meta.get("table_type"),
             )
             db_session.add(table_facet)
             synced_count += 1
+        else:
+            # Update existing table facet's table_type field if it changed
+            table_facet = (
+                db_session.query(TableFacet)
+                .filter(TableFacet.asset_id == table_asset.id)
+                .first()
+            )
+            if table_facet:
+                table_facet.table_type = table_meta.get("table_type").upper()
 
         # Create/update column assets
         for i, column in enumerate(table_meta.get("columns", [])):
