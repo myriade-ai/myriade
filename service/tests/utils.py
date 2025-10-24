@@ -16,6 +16,19 @@ MAX_LIST_DICT_ITEMS = 20
 def normalise_json(obj, parent_key=None):
     """Recursively drop or mask values that are not stable between runs,
     truncate large data, and optionally snapshot only keys for certain parent keys."""
+
+    def is_volatile_key(key):
+        """Return True for keys whose values are unstable between runs.
+
+        This includes keys explicitly listed in VOLATILE_KEYS and common
+        timestamp-like keys that end with '_at' or 'At'.
+        """
+        if key in VOLATILE_KEYS:
+            return True
+        if isinstance(key, str) and (key.endswith("_at") or key.endswith("At")):
+            return True
+        return False
+
     if isinstance(obj, dict):
         if parent_key in SCHEMA_ONLY_KEYS:
             # For schema-only keys, snapshot child keys with a placeholder value
@@ -28,14 +41,14 @@ def normalise_json(obj, parent_key=None):
             truncated_dict = {
                 k: normalise_json(v, k)
                 for k, v in items[:MAX_LIST_DICT_ITEMS]
-                if k not in VOLATILE_KEYS
+                if not is_volatile_key(k)
             }
             truncated_dict[f"<truncated_items_{len(items) - MAX_LIST_DICT_ITEMS}>"] = (
                 "..."
             )
             return truncated_dict
 
-        return {k: normalise_json(v, k) for k, v in items if k not in VOLATILE_KEYS}
+        return {k: normalise_json(v, k) for k, v in items if not is_volatile_key(k)}
 
     if isinstance(obj, list):
         if len(obj) > MAX_LIST_DICT_ITEMS and parent_key not in VOLATILE_KEYS:
