@@ -612,6 +612,8 @@ class SnowflakeDatabase(AbstractDatabase):
             # Add the DER-formatted key to kwargs
             kwargs["private_key"] = pkb
 
+        # Store connection params for reconnection on token expiry
+        self.connection_params = kwargs
         self.connection = DataWarehouseRegistry.get_snowflake_connection(kwargs)
         self.metadata = []
 
@@ -655,38 +657,80 @@ class SnowflakeDatabase(AbstractDatabase):
         """
         Run a query against Snowflake without write protection.
         Limits the result to MAX_SIZE (approx. 2MB).
+        Handles token expiration by reconnecting and retrying once.
+        """
+        try:
+            return self._execute_query(query)
+        except Exception as e:
+            if self._is_token_expired(e):
+                logger.warning(
+                    "Snowflake authentication token expired. Reconnecting and retrying..."  # noqa: E501
+                )
+                self._reconnect()
+                return self._execute_query(query)
+            raise
+
+    def _execute_query(self, query):
+        """
+        Execute a Snowflake query and return results.
         Correctly calculates data size based on sum of individual row sizes.
         """
         with self.connection.cursor() as cursor:
-            try:
-                cursor.execute(query)
+            cursor.execute(query)
 
-                column_names = [desc[0] for desc in cursor.description]
-                rows_list: list[dict] = []
-                total_size: int = 0
+            column_names = [desc[0] for desc in cursor.description]
+            rows_list: list[dict] = []
+            total_size: int = 0
 
-                while True:
-                    fetched_batch_tuples = cursor.fetchmany(1000)
-                    if not fetched_batch_tuples:
-                        break  # No more rows to fetch
+            while True:
+                fetched_batch_tuples = cursor.fetchmany(1000)
+                if not fetched_batch_tuples:
+                    break  # No more rows to fetch
 
-                    for item_tuple in fetched_batch_tuples:
-                        row_dict = dict(zip(column_names, item_tuple))
-                        row_size = sizeof(row_dict)
+                for item_tuple in fetched_batch_tuples:
+                    row_dict = dict(zip(column_names, item_tuple))
+                    row_size = sizeof(row_dict)
 
-                        if total_size + row_size > MAX_SIZE:
-                            # Return partial data
-                            return rows_list
+                    if total_size + row_size > MAX_SIZE:
+                        # Return partial data
+                        return rows_list
 
-                        rows_list.append(row_dict)
-                        total_size += row_size
+                    rows_list.append(row_dict)
+                    total_size += row_size
 
-                    if len(fetched_batch_tuples) < 1000:
-                        break  # Last batch fetched
+                if len(fetched_batch_tuples) < 1000:
+                    break  # Last batch fetched
 
-                return rows_list
-            except Exception as e:
-                raise e
+            return rows_list
+
+    def _is_token_expired(self, error):
+        """Check if the error is a Snowflake token expiration error."""
+        error_code = getattr(error, "errno", None)
+        error_msg = str(error).lower()
+
+        return (
+            error_code == 390114
+            or "390114" in str(error)
+            or "token has expired" in error_msg
+            or "authentication token has expired" in error_msg
+        )
+
+    def _reconnect(self):
+        """Reconnect to Snowflake by invalidating cached connection and creating a new one."""  # noqa: E501
+        with DataWarehouseRegistry._lock:
+            key = hash(tuple(sorted(self.connection_params.items())))
+            # Remove stale connection from cache
+            if key in DataWarehouseRegistry._snowflake_connections:
+                try:
+                    DataWarehouseRegistry._snowflake_connections[key].close()
+                except Exception:
+                    pass
+                del DataWarehouseRegistry._snowflake_connections[key]
+
+        # Get fresh connection
+        self.connection = DataWarehouseRegistry.get_snowflake_connection(
+            self.connection_params
+        )
 
 
 class BigQueryDatabase(AbstractDatabase):
