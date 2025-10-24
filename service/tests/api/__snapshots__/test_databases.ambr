@@ -13,6 +13,11 @@
       'organisationId': 'mock',
       'ownerId': 'admin',
       'public': False,
+      'sync_completed_at': '2025-10-24T15:08:27.883913+00:00',
+      'sync_error': "SQLDatabase.load_metadata() got an unexpected keyword argument 'progress_callback'",
+      'sync_progress': 0,
+      'sync_started_at': '2025-10-24T15:08:27.879660+00:00',
+      'sync_status': 'failed',
       'write_mode': 'confirmation',
     }),
   ])

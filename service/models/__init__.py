@@ -86,6 +86,17 @@ class Database(SerializerMixin, DefaultBase, Base):
         server_default="confirmation",
     )
 
+    # Metadata sync status tracking
+    sync_status: Mapped[Optional[str]] = mapped_column(
+        Enum("idle", "syncing", "completed", "failed", name="sync_status_enum"),
+        default="idle",
+        server_default="idle",
+    )
+    sync_progress: Mapped[Optional[int]] = mapped_column(Integer, default=0)
+    sync_started_at: Mapped[Optional[datetime]] = mapped_column(UtcDateTime)
+    sync_completed_at: Mapped[Optional[datetime]] = mapped_column(UtcDateTime)
+    sync_error: Mapped[Optional[str]] = mapped_column(String)
+
     issues: Mapped[List[Issue]] = relationship(back_populates="database")
 
     def to_dict(self, *, include_relations=False, exclude=None):
