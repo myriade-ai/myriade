@@ -39,7 +39,7 @@
                       tableNode.asset.table_facet?.table_name ||
                       'Unnamed table'
                     "
-                    icon="table"
+                    :icon="tableNode.asset.table_facet?.table_type === 'VIEW' ? 'view' : 'table'"
                     :expanded="isExpanded(tableNode.key)"
                     :is-selected="selectedAssetId === tableNode.asset.id"
                     @toggle="toggleNode(tableNode.key)"

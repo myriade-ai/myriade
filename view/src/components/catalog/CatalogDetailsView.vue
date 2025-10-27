@@ -54,14 +54,19 @@
 </template>
 
 <script setup lang="ts">
-import CatalogColumnsTab from '@/components/catalog/CatalogColumnsTab.vue'
 import AssetDescriptionEditor from '@/components/catalog/AssetDescriptionEditor.vue'
 import AssetPreviewTab from '@/components/catalog/AssetPreviewTab.vue'
+import CatalogColumnsTab from '@/components/catalog/CatalogColumnsTab.vue'
 import CatalogDetailsHeader from '@/components/catalog/CatalogDetailsHeader.vue'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { computed } from 'vue'
 import type { CatalogAsset } from '@/stores/catalog'
-import { Columns3, Table as TableIcon } from 'lucide-vue-next'
+import {
+  CircleQuestionMarkIcon,
+  Columns3,
+  Table as TableIcon,
+  View as ViewIcon
+} from 'lucide-vue-next'
+import { computed } from 'vue'
 import type { EditableDraft, ExplorerColumnNode } from './types'
 
 interface Props {
@@ -93,10 +98,21 @@ const isTableAsset = computed(() => {
   return props.asset?.type === 'TABLE'
 })
 
-const assetIcon = computed(() => {
-  if (!props.asset) return TableIcon
-  return props.asset.type === 'TABLE' ? TableIcon : Columns3
-})
+const getAssetIcon = (asset: CatalogAsset | null) => {
+  if (!asset) return CircleQuestionMarkIcon
+  if (asset.type === 'TABLE') {
+    if (asset.table_facet?.table_type === 'VIEW') {
+      return ViewIcon
+    }
+    return TableIcon
+  }
+  if (asset.type === 'COLUMN') {
+    return Columns3
+  }
+  return CircleQuestionMarkIcon
+}
+
+const assetIcon = computed(() => getAssetIcon(props.asset))
 
 const assetLabel = computed(() => {
   const asset = props.asset

@@ -27,12 +27,18 @@
 </template>
 
 <script setup lang="ts">
+import {
+  ChevronRight,
+  Database,
+  FolderTree,
+  Table as TableIcon,
+  View as ViewIcon
+} from 'lucide-vue-next'
 import { computed } from 'vue'
-import { Database, FolderTree, Table as TableIcon, ChevronRight } from 'lucide-vue-next'
 
 const props = defineProps<{
   label: string
-  icon: 'database' | 'schema' | 'table'
+  icon: 'database' | 'schema' | 'table' | 'view'
   expanded: boolean
   isSelected?: boolean
 }>()
@@ -45,6 +51,7 @@ const emit = defineEmits<{
 const iconComponent = computed(() => {
   if (props.icon === 'database') return Database
   if (props.icon === 'table') return TableIcon
+  if (props.icon === 'view') return ViewIcon
   return FolderTree
 })
 

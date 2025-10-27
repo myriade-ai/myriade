@@ -225,7 +225,7 @@ async function fetchSchema() {
     // Map API response to the interface expected by the UI
     tables.value = rawTables.map((t: any) => ({
       ...t,
-      type: t.is_view ? 'VIEW' : 'TABLE',
+      table_type: t.table_type,
       columns: t.columns.map((c: any) => {
         const basePrivacy: Record<string, PrivacyOptionKey> = c.privacy ?? {}
         // Fill missing groups with Default

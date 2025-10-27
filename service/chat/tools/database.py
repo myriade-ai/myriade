@@ -83,7 +83,7 @@ class DatabaseTool:
                 "name": table["name"],
                 "schema": table["schema"],
                 "columns": [column["name"] for column in table["columns"]],
-                "is_view": table["is_view"],
+                "table_type": table["table_type"],
             }
             if table.get("description") is not None:
                 description_snippet = (
