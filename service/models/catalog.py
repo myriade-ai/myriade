@@ -89,6 +89,7 @@ class TableFacet(SerializerMixin, Base):
     )
     schema: Mapped[Optional[str]] = mapped_column(String)
     table_name: Mapped[Optional[str]] = mapped_column(String)
+    table_type: Mapped[Optional[str]] = mapped_column(String)
 
     __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
 

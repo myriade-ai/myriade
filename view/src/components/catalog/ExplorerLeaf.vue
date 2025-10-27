@@ -20,12 +20,11 @@
 </template>
 
 <script setup lang="ts">
+import { Columns3 } from 'lucide-vue-next'
 import { computed } from 'vue'
-import { Columns3, Table as TableIcon } from 'lucide-vue-next'
 
-const props = defineProps<{
+defineProps<{
   label: string
-  type: 'table' | 'column'
   isSelected?: boolean
   meta?: string
 }>()
@@ -34,7 +33,7 @@ const emit = defineEmits<{
   (e: 'select'): void
 }>()
 
-const iconComponent = computed(() => (props.type === 'table' ? TableIcon : Columns3))
+const iconComponent = computed(() => Columns3)
 
 function handleClick() {
   emit('select')
