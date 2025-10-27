@@ -3,6 +3,8 @@ import logging
 import sys
 import threading
 from abc import ABC, abstractmethod
+from datetime import date, datetime
+from typing import Any
 from urllib.parse import quote_plus
 
 import sqlalchemy
@@ -47,6 +49,41 @@ class ConnectionError(Exception):
 def sizeof(obj):
     # This function returns the size of an object in bytes
     return sys.getsizeof(obj)
+
+
+def _sanitize_for_serialization(obj: Any) -> Any:
+    """
+    Recursively sanitize objects to make them serializable (JSON/YAML safe).
+    Handles memoryview, bytes, datetime objects, and nested structures.
+
+    This is used by get_sample_data to ensure database results can be
+    safely serialized without errors.
+    """
+    if obj is None:
+        return None
+    elif isinstance(obj, (memoryview, bytes, bytearray)):
+        # Convert binary data to a readable string representation
+        if isinstance(obj, memoryview):
+            obj = obj.tobytes()
+        return f"<binary data: {len(obj)} bytes>"
+    elif isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    elif isinstance(obj, dict):
+        return {key: _sanitize_for_serialization(value) for key, value in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [_sanitize_for_serialization(item) for item in obj]
+    elif isinstance(obj, (str, int, float, bool)):
+        return obj
+    else:
+        # For any other type, attempt to keep as-is or convert to string
+        # This handles UUID, Decimal, and other database types
+        try:
+            # Test if it's JSON serializable
+            json.dumps(obj)
+            return obj
+        except (TypeError, ValueError):
+            # If not serializable, convert to string
+            return str(obj)
 
 
 def detect_write_operations(sql: str) -> tuple[bool, str | None]:
@@ -453,8 +490,8 @@ class SQLDatabase(AbstractDatabase):
                     row_size = sizeof(row_dict)
 
                     if total_size + row_size > MAX_SIZE:
-                        # Return partial data
-                        return rows
+                        # Return partial data (sanitize before returning)
+                        return _sanitize_for_serialization(rows)
 
                     rows.append(row_dict)
                     total_size += row_size
@@ -473,7 +510,7 @@ class SQLDatabase(AbstractDatabase):
                 # Re-raise other iteration errors
                 raise iter_error
 
-            return rows
+            return _sanitize_for_serialization(rows)
 
     def get_sample_data(
         self, table_name: str, schema_name: str, limit: int = 10
@@ -723,8 +760,8 @@ class SnowflakeDatabase(AbstractDatabase):
                     row_size = sizeof(row_dict)
 
                     if total_size + row_size > MAX_SIZE:
-                        # Return partial data
-                        return rows_list
+                        # Return partial data (sanitize before returning)
+                        return _sanitize_for_serialization(rows_list)
 
                     rows_list.append(row_dict)
                     total_size += row_size
@@ -732,7 +769,7 @@ class SnowflakeDatabase(AbstractDatabase):
                 if len(fetched_batch_tuples) < 1000:
                     break  # Last batch fetched
 
-            return rows_list
+            return _sanitize_for_serialization(rows_list)
 
     def _is_token_expired(self, error):
         """Check if the error is a Snowflake token expiration error."""
@@ -838,13 +875,13 @@ class BigQueryDatabase(AbstractDatabase):
             row_size = sizeof(row_dict)
 
             if total_size + row_size > MAX_SIZE:
-                # Return partial data when size limit is reached
-                return rows_list
+                # Return partial data when size limit is reached (sanitize first)
+                return _sanitize_for_serialization(rows_list)
 
             rows_list.append(row_dict)
             total_size += row_size
 
-        return rows_list
+        return _sanitize_for_serialization(rows_list)
 
     def get_sample_data(
         self, table_name: str, schema_name: str, limit: int = 10
@@ -1026,8 +1063,8 @@ class MotherDuckDatabase(AbstractDatabase):
                     row_size = sizeof(row_dict)
 
                     if total_size + row_size > MAX_SIZE:
-                        # Return partial data when size limit is reached
-                        return rows_list
+                        # Return partial data (sanitize first)
+                        return _sanitize_for_serialization(rows_list)
 
                     rows_list.append(row_dict)
                     total_size += row_size
@@ -1035,7 +1072,7 @@ class MotherDuckDatabase(AbstractDatabase):
                 if len(batch) < batch_size:
                     break
 
-            return rows_list
+            return _sanitize_for_serialization(rows_list)
         except Exception as e:
             raise e
         finally:
