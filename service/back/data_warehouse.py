@@ -2,7 +2,6 @@ import json
 import logging
 import sys
 import threading
-import time
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, Optional
@@ -116,7 +115,6 @@ class DataWarehouseRegistry:
     _engines = {}
     _clients = {}
     _snowflake_connections = {}
-    _snowflake_connection_pools = {}
     _lock = threading.Lock()
 
     @classmethod
@@ -186,26 +184,6 @@ class DataWarehouseRegistry:
             return cls._snowflake_connections[key]
 
     @classmethod
-    def get_snowflake_connection_pool(cls, connection_params, pool_size=50):
-        """
-        Get or create a Snowflake connection pool.
-
-        Args:
-            connection_params: Dict of Snowflake connection parameters
-            pool_size: Number of connections in the pool
-
-        Returns:
-            SnowflakeConnectionPool instance
-        """
-        with cls._lock:
-            key = hash(tuple(sorted(connection_params.items())))
-            if key not in cls._snowflake_connection_pools:
-                cls._snowflake_connection_pools[key] = SnowflakeConnectionPool(
-                    connection_params, pool_size=pool_size
-                )
-            return cls._snowflake_connection_pools[key]
-
-    @classmethod
     def close_all_snowflake(cls):
         with cls._lock:
             # Close single connections
@@ -215,108 +193,6 @@ class DataWarehouseRegistry:
                 except Exception:
                     pass
             cls._snowflake_connections.clear()
-
-            # Close connection pools
-            for pool in cls._snowflake_connection_pools.values():
-                try:
-                    pool.close_all()
-                except Exception:
-                    pass
-            cls._snowflake_connection_pools.clear()
-
-
-class SnowflakeConnectionPool:
-    """Thread-safe connection pool for Snowflake parallel queries."""
-
-    def __init__(self, connection_params, pool_size=50):
-        """
-        Initialize connection pool.
-
-        Args:
-            connection_params: Dict of Snowflake connection parameters
-            pool_size: Number of connections to maintain in pool
-        """
-        self.connection_params = connection_params
-        self.pool_size = pool_size
-        self.available_connections = []
-        self.all_connections = []
-        self.lock = threading.Lock()
-        self._initialize_pool()
-
-    def _initialize_pool(self):
-        """Create initial pool of connections."""
-        import snowflake.connector
-
-        logger.info(
-            f"Initializing Snowflake connection pool with {self.pool_size} connections"
-        )
-        for i in range(self.pool_size):
-            try:
-                conn = snowflake.connector.connect(**self.connection_params)
-                self.available_connections.append(conn)
-                self.all_connections.append(conn)
-                logger.debug(f"Created connection {i + 1}/{self.pool_size}")
-            except Exception as e:
-                logger.error(
-                    f"Failed to create connection {i + 1}/{self.pool_size}: {e}"
-                )
-                # Continue with fewer connections rather than failing completely
-                break
-
-        logger.info(
-            f"Connection pool initialized with {len(self.all_connections)} connections"
-        )
-
-    def get_connection(self, timeout=30):
-        """
-        Get a connection from the pool.
-
-        Args:
-            timeout: Maximum seconds to wait for available connection
-
-        Returns:
-            Snowflake connection object
-
-        Raises:
-            TimeoutError: If no connection available within timeout
-        """
-        start_time = time.time()
-        while True:
-            with self.lock:
-                if self.available_connections:
-                    return self.available_connections.pop()
-
-            # No connection available, check timeout
-            if time.time() - start_time > timeout:
-                raise TimeoutError(
-                    f"Could not acquire connection from pool within {timeout}s"
-                )
-
-            # Wait a bit before trying again
-            time.sleep(0.1)
-
-    def return_connection(self, conn):
-        """
-        Return a connection to the pool.
-
-        Args:
-            conn: Snowflake connection to return
-        """
-        with self.lock:
-            if conn in self.all_connections and conn not in self.available_connections:
-                self.available_connections.append(conn)
-
-    def close_all(self):
-        """Close all connections in the pool."""
-        with self.lock:
-            for conn in self.all_connections:
-                try:
-                    conn.close()
-                except Exception as e:
-                    logger.warning(f"Error closing connection: {e}")
-            self.available_connections.clear()
-            self.all_connections.clear()
-        logger.info("Connection pool closed")
 
 
 class AbstractDatabase(ABC):
@@ -752,8 +628,6 @@ class SnowflakeDatabase(AbstractDatabase):
     # Parallelization settings
     SCHEMA_WORKER_COUNT = 20  # Concurrent schema table fetches
     COLUMN_WORKER_COUNT = 50  # Concurrent column fetches
-    CONNECTION_POOL_SIZE = 50  # Connection pool size
-    MAX_RETRIES = 3  # Retry failed queries
 
     def __init__(self, **kwargs):
         # Remove frontend-only parameters that shouldn't be passed to Snowflake
@@ -792,65 +666,11 @@ class SnowflakeDatabase(AbstractDatabase):
         self.connection_params = kwargs
         self.connection = DataWarehouseRegistry.get_snowflake_connection(kwargs)
 
-        # Connection pool will be created lazily when needed
-        self._connection_pool = None
-
         self.metadata = []
 
     @property
     def dialect(self):
         return "snowflake"
-
-    @property
-    def connection_pool(self):
-        """Lazy initialization of connection pool (when needed for parallel ops)."""
-        if self._connection_pool is None:
-            logger.info(
-                f"Initializing Snowflake connection pool with "
-                f"{self.CONNECTION_POOL_SIZE} connections"
-            )
-            self._connection_pool = DataWarehouseRegistry.get_snowflake_connection_pool(
-                self.connection_params, pool_size=self.CONNECTION_POOL_SIZE
-            )
-        return self._connection_pool
-
-    def _execute_with_retry(self, cursor, query, max_retries=None):
-        """
-        Execute a query with retry logic for transient failures.
-
-        Args:
-            cursor: Snowflake cursor object
-            query: SQL query to execute
-            max_retries: Maximum retry attempts (defaults to self.MAX_RETRIES)
-
-        Returns:
-            Cursor after successful execution
-
-        Raises:
-            Exception: If all retries fail
-        """
-        if max_retries is None:
-            max_retries = self.MAX_RETRIES
-
-        last_error = None
-        for attempt in range(max_retries):
-            try:
-                cursor.execute(query)
-                return cursor
-            except Exception as e:
-                last_error = e
-                if attempt < max_retries - 1:
-                    wait_time = (attempt + 1) * 1  # Linear backoff: 1s, 2s, 3s
-                    logger.warning(
-                        f"Query failed (attempt {attempt + 1}/{max_retries}): {e}. "
-                        f"Retrying in {wait_time}s..."
-                    )
-                    time.sleep(wait_time)
-                else:
-                    logger.error(f"Query failed after {max_retries} attempts: {e}")
-
-        # All retries failed
-        raise last_error
 
     def load_metadata(self, progress_callback=None):
         """
@@ -877,25 +697,14 @@ class SnowflakeDatabase(AbstractDatabase):
         all_tables = []
 
         def fetch_tables_for_schema(schema):
-            """Fetch tables for a single schema using connection from pool."""
+            """Fetch tables for a single schema."""
             schema_name = schema["name"]
-            conn = None
             try:
-                # Get connection from pool
-                conn = self.connection_pool.get_connection()
-                cursor = conn.cursor()
-
-                # Fetch tables for this schema with retry logic
+                # Fetch tables for this schema
                 schema_tables_query = (
                     f"SHOW TABLES IN SCHEMA {self.connection.database}.{schema_name}"
                 )
-                self._execute_with_retry(cursor, schema_tables_query)
-
-                # Convert cursor results to list of dicts
-                columns = [col[0] for col in cursor.description]
-                schema_tables = [dict(zip(columns, row)) for row in cursor.fetchall()]
-
-                cursor.close()
+                schema_tables = self._execute_query(schema_tables_query)
 
                 # If we hit the limit, log a warning
                 if len(schema_tables) >= batch_size:
@@ -913,11 +722,6 @@ class SnowflakeDatabase(AbstractDatabase):
             except Exception as e:
                 logger.error(f"Failed to fetch tables from schema {schema_name}: {e}")
                 return (schema_name, [])
-
-            finally:
-                # Return connection to pool
-                if conn:
-                    self.connection_pool.return_connection(conn)
 
         # Execute schema queries in parallel
         logger.info(
@@ -946,40 +750,29 @@ class SnowflakeDatabase(AbstractDatabase):
         processed_count = 0
 
         def fetch_columns_for_table(table):
-            """Fetch columns for a single table using connection from pool."""
+            """Fetch columns for a single table."""
             nonlocal processed_count
             schema = table["schema_name"]
             table_name = table["name"]
             # Snowflake's SHOW TABLES returns 'kind' column: 'TABLE' or 'VIEW'
             table_type = table.get("kind", "TABLE")
-            conn = None
 
             try:
-                # Get connection from pool
-                conn = self.connection_pool.get_connection()
-                cursor = conn.cursor()
+                # Fetch columns for this table
+                result = self._execute_query(f"SHOW COLUMNS IN {schema}.{table_name}")
 
-                # Fetch columns for this table with retry logic
-                self._execute_with_retry(
-                    cursor, f"SHOW COLUMNS IN {schema}.{table_name}"
-                )
-
-                # Convert cursor results to list of dicts
+                # Convert result rows to column metadata format
                 columns = []
-                col_names = [col[0] for col in cursor.description]
-                for row in cursor.fetchall():
-                    column = dict(zip(col_names, row))
-                    column["data_type"] = json.loads(column["data_type"])
+                for row in result:
+                    data_type = json.loads(row["data_type"])
                     columns.append(
                         {
-                            "name": column["column_name"],
-                            "type": column["data_type"]["type"],
-                            "nullable": column["data_type"]["nullable"],
-                            "comment": column["comment"],
+                            "name": row["column_name"],
+                            "type": data_type["type"],
+                            "nullable": data_type["nullable"],
+                            "comment": row["comment"],
                         }
                     )
-
-                cursor.close()
 
                 # Thread-safe progress update
                 with progress_lock:
@@ -1004,11 +797,6 @@ class SnowflakeDatabase(AbstractDatabase):
                     f"Failed to load metadata for {schema}.{table_name}: {e}"
                 )
                 return None
-
-            finally:
-                # Return connection to pool
-                if conn:
-                    self.connection_pool.return_connection(conn)
 
         # Execute column queries in parallel
         logger.info(

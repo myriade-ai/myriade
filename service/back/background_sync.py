@@ -13,6 +13,8 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from models import Database
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +38,6 @@ def run_metadata_sync_background(
             merge_tables_metadata,
             sync_database_metadata_to_assets,
         )
-        from models import Database
 
         # Create a new session for this thread
         session: Session = session_factory()

@@ -18,6 +18,7 @@ from back.dbt_repository import (
     generate_dbt_docs,
     validate_dbt_repo,
 )
+from back.session import get_db_session
 from back.utils import (
     create_database,
     get_tables_metadata_from_catalog,
@@ -199,8 +200,6 @@ def create_database_route():
     g.session.commit()
 
     # Start background sync for initial metadata load
-    from back.session import get_db_session
-
     run_metadata_sync_background(
         database_id=database.id,
         session_factory=get_db_session,
@@ -304,9 +303,6 @@ def update_database(database_id: UUID):
     # IMPORTANT: Commit the database before starting background thread
     # The background thread needs to be able to query the database record
     g.session.commit()
-
-    # Start background sync for metadata reload after database update
-    from back.session import get_db_session
 
     run_metadata_sync_background(
         database_id=database.id,
@@ -1647,8 +1643,6 @@ def sync_database_metadata(database_id: UUID):
             jsonify(
                 {
                     "error": "Sync already in progress",
-                    "sync_status": database.sync_status,
-                    "sync_progress": database.sync_progress,
                 }
             ),
             409,
@@ -1660,9 +1654,6 @@ def sync_database_metadata(database_id: UUID):
         data_warehouse.test_connection()
     except ConnectionError as e:
         return jsonify({"error": f"Connection error: {str(e)}"}), 500
-
-    # Start background sync
-    from back.session import get_db_session
 
     # Start the background task
     run_metadata_sync_background(
@@ -1676,8 +1667,6 @@ def sync_database_metadata(database_id: UUID):
             {
                 "success": True,
                 "message": "Metadata sync started in background",
-                "sync_status": "syncing",
-                "sync_progress": 0,
             }
         ),
         202,
