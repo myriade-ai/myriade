@@ -2,7 +2,6 @@ import json
 import logging
 import sys
 import threading
-import time
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, Optional
@@ -116,7 +115,6 @@ class DataWarehouseRegistry:
     _engines = {}
     _clients = {}
     _snowflake_connections = {}
-    _snowflake_connection_pools = {}
     _lock = threading.Lock()
 
     @classmethod
@@ -186,26 +184,6 @@ class DataWarehouseRegistry:
             return cls._snowflake_connections[key]
 
     @classmethod
-    def get_snowflake_connection_pool(cls, connection_params, pool_size=50):
-        """
-        Get or create a Snowflake connection pool.
-
-        Args:
-            connection_params: Dict of Snowflake connection parameters
-            pool_size: Number of connections in the pool
-
-        Returns:
-            SnowflakeConnectionPool instance
-        """
-        with cls._lock:
-            key = hash(tuple(sorted(connection_params.items())))
-            if key not in cls._snowflake_connection_pools:
-                cls._snowflake_connection_pools[key] = SnowflakeConnectionPool(
-                    connection_params, pool_size=pool_size
-                )
-            return cls._snowflake_connection_pools[key]
-
-    @classmethod
     def close_all_snowflake(cls):
         with cls._lock:
             # Close single connections
@@ -215,108 +193,6 @@ class DataWarehouseRegistry:
                 except Exception:
                     pass
             cls._snowflake_connections.clear()
-
-            # Close connection pools
-            for pool in cls._snowflake_connection_pools.values():
-                try:
-                    pool.close_all()
-                except Exception:
-                    pass
-            cls._snowflake_connection_pools.clear()
-
-
-class SnowflakeConnectionPool:
-    """Thread-safe connection pool for Snowflake parallel queries."""
-
-    def __init__(self, connection_params, pool_size=50):
-        """
-        Initialize connection pool.
-
-        Args:
-            connection_params: Dict of Snowflake connection parameters
-            pool_size: Number of connections to maintain in pool
-        """
-        self.connection_params = connection_params
-        self.pool_size = pool_size
-        self.available_connections = []
-        self.all_connections = []
-        self.lock = threading.Lock()
-        self._initialize_pool()
-
-    def _initialize_pool(self):
-        """Create initial pool of connections."""
-        import snowflake.connector
-
-        logger.info(
-            f"Initializing Snowflake connection pool with {self.pool_size} connections"
-        )
-        for i in range(self.pool_size):
-            try:
-                conn = snowflake.connector.connect(**self.connection_params)
-                self.available_connections.append(conn)
-                self.all_connections.append(conn)
-                logger.debug(f"Created connection {i + 1}/{self.pool_size}")
-            except Exception as e:
-                logger.error(
-                    f"Failed to create connection {i + 1}/{self.pool_size}: {e}"
-                )
-                # Continue with fewer connections rather than failing completely
-                break
-
-        logger.info(
-            f"Connection pool initialized with {len(self.all_connections)} connections"
-        )
-
-    def get_connection(self, timeout=30):
-        """
-        Get a connection from the pool.
-
-        Args:
-            timeout: Maximum seconds to wait for available connection
-
-        Returns:
-            Snowflake connection object
-
-        Raises:
-            TimeoutError: If no connection available within timeout
-        """
-        start_time = time.time()
-        while True:
-            with self.lock:
-                if self.available_connections:
-                    return self.available_connections.pop()
-
-            # No connection available, check timeout
-            if time.time() - start_time > timeout:
-                raise TimeoutError(
-                    f"Could not acquire connection from pool within {timeout}s"
-                )
-
-            # Wait a bit before trying again
-            time.sleep(0.1)
-
-    def return_connection(self, conn):
-        """
-        Return a connection to the pool.
-
-        Args:
-            conn: Snowflake connection to return
-        """
-        with self.lock:
-            if conn in self.all_connections and conn not in self.available_connections:
-                self.available_connections.append(conn)
-
-    def close_all(self):
-        """Close all connections in the pool."""
-        with self.lock:
-            for conn in self.all_connections:
-                try:
-                    conn.close()
-                except Exception as e:
-                    logger.warning(f"Error closing connection: {e}")
-            self.available_connections.clear()
-            self.all_connections.clear()
-        logger.info("Connection pool closed")
 
 
 class AbstractDatabase(ABC):
