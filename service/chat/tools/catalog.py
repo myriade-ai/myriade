@@ -514,6 +514,11 @@ class CatalogTool:
 
         self.session.flush()
 
+        # Broadcast real-time update to users viewing this database
+        from back.catalog_events import emit_asset_updated
+
+        emit_asset_updated(asset, "ai-assistant")
+
         asset_label = asset.name or asset.urn or asset_id
         status_emoji = {
             "validated": "✓",
@@ -750,6 +755,11 @@ class CatalogTool:
 
             self.session.flush()
 
+            # Broadcast real-time update to users viewing this database
+            from back.catalog_events import emit_tag_updated
+
+            emit_tag_updated(existing_tag, "ai-assistant")
+
             return f"Updated tag '{next_name}'"
 
         # Create new tag
@@ -761,6 +771,11 @@ class CatalogTool:
 
         self.session.add(new_tag)
         self.session.flush()
+
+        # Broadcast real-time update to users viewing this database
+        from back.catalog_events import emit_tag_updated
+
+        emit_tag_updated(new_tag, "ai-assistant")
 
         result = {
             "message": f"Created tag '{name}'",

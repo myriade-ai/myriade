@@ -12,6 +12,11 @@ from sqlalchemy.sql.expression import true
 
 import telemetry
 from back.background_sync import run_metadata_sync_background
+from back.catalog_events import (
+    emit_asset_updated,
+    emit_tag_deleted,
+    emit_tag_updated,
+)
 from back.data_warehouse import ConnectionError, DataWarehouseFactory
 from back.dbt_repository import (
     DBTRepositoryError,
@@ -1026,6 +1031,9 @@ def update_catalog_asset(asset_id: str):
 
     g.session.flush()
 
+    # Broadcast real-time update to other users viewing this database
+    emit_asset_updated(asset, g.user.id)
+
     asset_dict = asset.to_dict()
     asset_dict["tags"] = [tag.to_dict() for tag in asset.asset_tags]
     if asset.type == "TABLE" and asset.table_facet:
@@ -1352,6 +1360,9 @@ def create_catalog_tag(context_id):
     g.session.add(new_tag)
     g.session.flush()
 
+    # Broadcast tag creation to other users viewing this database
+    emit_tag_updated(new_tag, g.user.id)
+
     return jsonify(new_tag.to_dict()), 201
 
 
@@ -1405,6 +1416,9 @@ def update_catalog_tag(tag_id: str):
 
     g.session.flush()
 
+    # Broadcast tag update to other users viewing this database
+    emit_tag_updated(tag, g.user.id)
+
     return jsonify(tag.to_dict())
 
 
@@ -1438,6 +1452,9 @@ def delete_catalog_tag(tag_id: str):
 
     g.session.delete(tag)
     g.session.flush()
+
+    # Broadcast tag deletion to other users viewing this database
+    emit_tag_deleted(tag_uuid, tag.database_id, g.user.id)
 
     return jsonify({"success": True})
 

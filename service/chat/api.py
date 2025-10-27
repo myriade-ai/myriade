@@ -9,6 +9,7 @@ from pydantic import validate_call
 
 from app import socketio
 from auth.auth import UnauthorizedError, socket_auth
+from back.api import extract_context
 from back.session import with_session
 from chat.analyst_agent import DataAnalystAgent
 from chat.lock import (
@@ -17,7 +18,7 @@ from chat.lock import (
     set_stop_flag,
 )
 from chat.tools.database import cancel_query
-from models import Conversation, ConversationMessage, Query
+from models import Conversation, ConversationMessage, Database, Project, Query
 
 api = Blueprint("chat_api", __name__)
 logger = logging.getLogger(__name__)
@@ -100,6 +101,107 @@ def conversation_auth_required(f):
                 {"message": "Authorization failed", "conversationId": conversation_id},
             )
             return
+
+        return f(session, *args, **kwargs)
+
+    return decorated_function
+
+
+def context_auth_required(f):
+    """Decorator to verify user has access to the database/context in
+    Socket.IO events.
+
+    Verifies access to both project and database if context is project-based.
+    """
+
+    @wraps(f)
+    @with_session
+    def decorated_function(session, *args, **kwargs):
+        # Extract context_id from arguments
+        context_id = None
+        if len(args) > 0 and isinstance(args[0], str):
+            context_id = args[0]
+        elif "context_id" in kwargs:
+            context_id = kwargs["context_id"]
+
+        if not context_id:
+            emit("error", {"message": "Context ID required"})
+            return
+
+        # Verify authentication
+        if "user" not in flask_session:
+            emit("error", {"message": "Authentication required"})
+            return
+
+        try:
+            # Extract database_id and project_id from context_id
+            database_id, project_id = extract_context(session, context_id)
+
+            user_id = flask_session["user"].id
+            organization_id = flask_session.get("organization_id")
+
+            # If it's a project context, verify access to the project first
+            if project_id:
+                project = session.query(Project).filter_by(id=project_id).first()
+                if not project:
+                    emit(
+                        "error",
+                        {
+                            "message": "Project not found",
+                            "contextId": context_id,
+                        },
+                    )
+                    return
+
+                # Check if user has access to the project
+                project_has_access = project.creatorId == user_id or (
+                    organization_id and project.organisationId == organization_id
+                )
+
+                if not project_has_access:
+                    emit(
+                        "error",
+                        {"message": "Access denied", "contextId": context_id},
+                    )
+                    return
+
+            database = session.query(Database).filter_by(id=database_id).first()
+            if not database:
+                emit(
+                    "error",
+                    {
+                        "message": "Database not found",
+                        "contextId": context_id,
+                    },
+                )
+                return
+
+            database_has_access = (
+                database.ownerId == user_id
+                or (organization_id and database.organisationId == organization_id)
+                or database.public
+            )
+
+            if not database_has_access:
+                emit(
+                    "error",
+                    {"message": "Access denied", "contextId": context_id},
+                )
+                return
+
+        except Exception as e:
+            logger.error(f"Authorization failed: {e}", exc_info=True)
+            emit(
+                "error",
+                {
+                    "message": "Authorization failed",
+                    "contextId": context_id,
+                },
+            )
+            return
+
+        kwargs["database_id"] = database_id
+        kwargs["project_id"] = project_id
 
         return f(session, *args, **kwargs)
 
