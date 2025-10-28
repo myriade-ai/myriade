@@ -30,7 +30,7 @@ def wrap_sql_result(rows, count):
     rows = rows[:20]
     # Then we take every row until the total size is less than JSON_OUTPUT_SIZE_LIMIT
     results_limited = limit_data_size(rows, character_limit=JSON_OUTPUT_SIZE_LIMIT)
-    results_dumps = json.dumps(results_limited, default=str)
+    results_dumps = json.dumps(results_limited)
 
     # Send the result back to the chatbot as the new question
     execution_response = RESULT_TEMPLATE.format(

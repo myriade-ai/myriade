@@ -15,10 +15,20 @@ from sqlalchemy import text
 
 from back.privacy import encrypt_rows
 from back.rewrite_sql import rewrite_sql
+from db import JSONEncoder
 
 logger = logging.getLogger(__name__)
 
 MAX_SIZE = 2 * 1024 * 1024  # 2MB in bytes
+
+
+def _serialize_row(row: dict) -> dict:
+    """
+    Serialize a single row to ensure all values are JSON/YAML-serializable.
+    Converts Decimal, datetime, timedelta, UUID, etc. using the centralized JSONEncoder.
+    This happens at the data layer, so consumers don't need to worry about it.
+    """
+    return json.loads(json.dumps(row, cls=JSONEncoder))
 
 
 class SizeLimitError(Exception):
@@ -466,11 +476,11 @@ class SQLDatabase(AbstractDatabase):
                     return rows
 
                 for row_mapping in result:  # Iterate over SQLAlchemy Row objects
-                    row_dict = dict(row_mapping._mapping)  # Convert to dict
+                    row_dict = _serialize_row(dict(row_mapping._mapping))
                     row_size = sizeof(row_dict)
 
                     if total_size + row_size > MAX_SIZE:
-                        # Return partial data
+                        # Return partial data (already serialized)
                         return rows
 
                     rows.append(row_dict)
@@ -856,11 +866,11 @@ class SnowflakeDatabase(AbstractDatabase):
                     break  # No more rows to fetch
 
                 for item_tuple in fetched_batch_tuples:
-                    row_dict = dict(zip(column_names, item_tuple))
+                    row_dict = _serialize_row(dict(zip(column_names, item_tuple)))
                     row_size = sizeof(row_dict)
 
                     if total_size + row_size > MAX_SIZE:
-                        # Return partial data
+                        # Return partial data (already serialized)
                         return rows_list
 
                     rows_list.append(row_dict)
@@ -985,11 +995,11 @@ class BigQueryDatabase(AbstractDatabase):
 
         # Iterate through results in batches
         for row in query_job:
-            row_dict = dict(row)
+            row_dict = _serialize_row(dict(row))
             row_size = sizeof(row_dict)
 
             if total_size + row_size > MAX_SIZE:
-                # Return partial data when size limit is reached
+                # Return partial data (already serialized)
                 return rows_list
 
             rows_list.append(row_dict)
@@ -1191,12 +1201,12 @@ class MotherDuckDatabase(AbstractDatabase):
                     break
 
                 for row in batch:
-                    # Convert row to dict using column names
-                    row_dict = dict(zip(column_names, row))
+                    # Convert row to dict and serialize
+                    row_dict = _serialize_row(dict(zip(column_names, row)))
                     row_size = sizeof(row_dict)
 
                     if total_size + row_size > MAX_SIZE:
-                        # Return partial data when size limit is reached
+                        # Return partial data (already serialized)
                         return rows_list
 
                     rows_list.append(row_dict)

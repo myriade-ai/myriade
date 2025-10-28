@@ -7,7 +7,6 @@ from PIL import Image
 
 from back.data_warehouse import AbstractDatabase
 from chat.tools.chart_types import ChartOptions
-from db import JSONEncoder
 from models import Chart, ConversationMessage, Database, Query
 
 
@@ -71,9 +70,9 @@ class EchartsTool:
         rows, _ = self.data_warehouse.query(query.sql, role="llm")
         chart_options = chart_options.copy()
         chart_options["dataset"] = {  # type: ignore
-            "source": rows,
+            "source": rows,  # Already serialized at the data layer
         }
-        json_str = json.dumps(chart_options, cls=JSONEncoder)  # Convert to string
+        json_str = json.dumps(chart_options)  # Convert to string
         try:
             current_dir = os.path.dirname(os.path.abspath(__file__))
             render_script_path = os.path.join(

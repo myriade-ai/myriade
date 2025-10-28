@@ -1,34 +1,32 @@
 import json
-import uuid
 from contextlib import contextmanager
-from datetime import date, datetime
+from datetime import datetime
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from config import DATABASE_URL
+from db import JSONEncoder
 
 
 def json_serial(d):
-    def _default(obj):
-        """JSON serializer, supports datetime and date objects"""
-
-        if isinstance(obj, (datetime, date)):
-            return obj.isoformat()
-        if isinstance(obj, uuid.UUID):
-            return str(obj)
-        raise TypeError("Type %s not serializable" % type(obj))
-
-    return json.dumps(d, default=_default)
+    """Serialize using the centralized JSONEncoder for consistency"""
+    return json.dumps(d, cls=JSONEncoder)
 
 
 def json_deserial(d):
+    """Deserialize with timezone-aware datetime parsing to match JSONEncoder"""
+
     def date_hook(json_dict):
         for key, value in json_dict.items():
-            try:
-                json_dict[key] = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
-            except Exception:
-                pass
+            if isinstance(value, str):
+                try:
+                    # Use fromisoformat to handle timezone-aware ISO strings
+                    # e.g., "2024-11-05T12:00:00+00:00"
+                    json_dict[key] = datetime.fromisoformat(value)
+                except (ValueError, TypeError):
+                    # Not a datetime string, keep as-is
+                    pass
         return json_dict
 
     return json.loads(d, object_hook=date_hook)
