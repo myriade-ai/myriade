@@ -58,12 +58,12 @@ export const getDefaultDetailsForEngine = (engine: Engine) => {
       return {
         account: '',
         user: '',
-        password: '',
-        auth_method: 'password',
         database: '',
         schema: '',
         role: '',
-        warehouse: ''
+        warehouse: '',
+        private_key_pem: null,
+        private_key_passphrase: ''
       }
     case 'sqlite':
       return { filename: '' }
