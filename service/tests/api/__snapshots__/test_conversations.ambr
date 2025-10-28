@@ -2,6 +2,11 @@
 # name: test_create_conversation
   dict({
     'databaseId': '00000000-0000-0000-0000-000000000000',
+    'github_base_branch': None,
+    'github_branch': None,
+    'github_pr_number': None,
+    'github_pr_url': None,
+    'github_repo_full_name': None,
     'name': None,
     'ownerId': 'admin',
     'projectId': None,

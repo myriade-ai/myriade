@@ -152,6 +152,13 @@ class Organisation(SerializerMixin, DefaultBase, Base):
         cascade="all, delete-orphan",
         # order_by="Project.createdAt",
     )
+    github_integration: Mapped[Optional["GithubIntegration"]] = relationship(
+        "GithubIntegration",
+        back_populates="organisation",
+        cascade="all, delete-orphan",
+        lazy="joined",
+        uselist=False,
+    )
 
 
 @dataclass
@@ -355,6 +362,11 @@ class Conversation(SerializerMixin, DefaultBase, Base):
 
     owner: Mapped[Optional["User"]] = relationship()
     database: Mapped["Database"] = relationship()
+    github_branch: Mapped[Optional[str]] = mapped_column(String)
+    github_base_branch: Mapped[Optional[str]] = mapped_column(String)
+    github_repo_full_name: Mapped[Optional[str]] = mapped_column(String)
+    github_pr_url: Mapped[Optional[str]] = mapped_column(String)
+    github_pr_number: Mapped[Optional[int]] = mapped_column(Integer)
     messages: Mapped[List["ConversationMessage"]] = relationship(
         "ConversationMessage",
         back_populates="conversation",
@@ -363,6 +375,35 @@ class Conversation(SerializerMixin, DefaultBase, Base):
         order_by="ConversationMessage.createdAt",
     )
     project: Mapped[Optional["Project"]] = relationship()
+    github_branch: Mapped[Optional[str]] = mapped_column(String)
+    github_base_branch: Mapped[Optional[str]] = mapped_column(String)
+    github_repo_full_name: Mapped[Optional[str]] = mapped_column(String)
+    github_pr_url: Mapped[Optional[str]] = mapped_column(String)
+    github_pr_number: Mapped[Optional[int]] = mapped_column(Integer)
+
+
+@dataclass
+class GithubIntegration(SerializerMixin, DefaultBase, Base):
+    __tablename__ = "github_integration"
+
+    _json_exclude = SerializerMixin._json_exclude | {"access_token"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    organisationId: Mapped[str] = mapped_column(
+        String, ForeignKey("organisation.id"), unique=True, nullable=False
+    )
+    access_token: Mapped[Optional[str]] = mapped_column(String)
+    repo_owner: Mapped[Optional[str]] = mapped_column(String)
+    repo_name: Mapped[Optional[str]] = mapped_column(String)
+    default_branch: Mapped[Optional[str]] = mapped_column(String)
+
+    organisation: Mapped[Organisation] = relationship(
+        "Organisation", back_populates="github_integration"
+    )
 
 
 @dataclass

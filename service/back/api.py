@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from typing import Any
 from uuid import UUID
 
 import anthropic
@@ -23,6 +24,12 @@ from back.dbt_repository import (
     generate_dbt_docs,
     validate_dbt_repo,
 )
+from back.github_manager import (
+    GithubIntegrationError,
+    create_pull_request_for_conversation,
+    get_github_integration,
+    list_repositories,
+)
 from back.session import get_db_session
 from back.utils import (
     create_database,
@@ -37,6 +44,7 @@ from models import (
     Conversation,
     ConversationMessage,
     Database,
+    GithubIntegration,
     Project,
     ProjectTables,
     Query,
@@ -67,6 +75,25 @@ def extract_context(session: Session, context_id: str) -> tuple[UUID, UUID | Non
         return UUID(database_id), None
     else:
         raise ValueError(f"Invalid context_id: {context_id}")
+
+
+def _github_settings_payload(integration: GithubIntegration | None) -> dict[str, Any]:
+    if not integration:
+        return {"connected": False, "hasToken": False}
+
+    repo_full_name = (
+        f"{integration.repo_owner}/{integration.repo_name}"
+        if integration.repo_owner and integration.repo_name
+        else None
+    )
+    return {
+        "connected": bool(repo_full_name),
+        "hasToken": bool(integration.access_token),
+        "repoOwner": integration.repo_owner,
+        "repoName": integration.repo_name,
+        "repoFullName": repo_full_name,
+        "defaultBranch": integration.default_branch,
+    }
 
 
 @api.route("/conversations", methods=["POST"])
@@ -164,6 +191,66 @@ def delete_conversation(conversation_id: UUID):
     g.session.query(Conversation).filter_by(id=conversation_id).delete()
     g.session.flush()
     return jsonify({"success": True})
+
+
+@api.route("/conversations/<uuid:conversation_id>/github/pr", methods=["POST"])
+@user_middleware
+def create_conversation_pull_request(conversation_id: UUID):
+    conversation = (
+        g.session.query(Conversation)
+        .options(joinedload(Conversation.database))
+        .filter(Conversation.id == conversation_id)
+        .first()
+    )
+    if not conversation:
+        return jsonify({"error": "Conversation not found"}), 404
+
+    user_owns_conversation = conversation.ownerId == g.user.id
+    database = conversation.database
+    user_in_same_org = (
+        database.organisationId is not None
+        and g.organization_id is not None
+        and database.organisationId == g.organization_id
+    )
+
+    if not (user_owns_conversation or user_in_same_org):
+        return jsonify({"error": "Cannot modify conversations you don't own"}), 403
+
+    if conversation.github_pr_number:
+        return jsonify({"error": "A pull request already exists for this conversation."}), 400
+
+    data = request.get_json(silent=True) or {}
+    title = data.get("title")
+    commit_message = data.get("commitMessage") or title
+    body = data.get("body")
+
+    if not title:
+        return jsonify({"error": "title is required"}), 400
+    if not commit_message:
+        commit_message = title
+
+    integration = get_github_integration(
+        g.session, getattr(database, "organisationId", None)
+    )
+    if not integration or not integration.access_token:
+        return jsonify({"error": "GitHub integration is not configured"}), 400
+
+    try:
+        create_pull_request_for_conversation(
+            g.session, conversation, title, commit_message, body
+        )
+    except GithubIntegrationError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    return jsonify(
+        {
+            "github_pr_url": conversation.github_pr_url,
+            "github_pr_number": conversation.github_pr_number,
+            "github_branch": conversation.github_branch,
+            "github_base_branch": conversation.github_base_branch,
+            "github_repo_full_name": conversation.github_repo_full_name,
+        }
+    )
 
 
 @api.route("/databases", methods=["POST"])
@@ -1806,3 +1893,91 @@ def update_organisation():
         g.session.flush()
 
     return jsonify(g.organisation.to_dict())
+
+
+@api.route("/github/settings", methods=["GET"])
+@user_middleware
+@admin_required
+def get_github_settings():
+    if not g.organisation:
+        return jsonify({"error": "No organisation found"}), 404
+
+    integration = get_github_integration(g.session, g.organisation.id)
+    return jsonify(_github_settings_payload(integration))
+
+
+@api.route("/github/settings", methods=["PUT"])
+@user_middleware
+@admin_required
+def update_github_settings():
+    if not g.organisation:
+        return jsonify({"error": "No organisation found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    integration = get_github_integration(g.session, g.organisation.id)
+    if not integration:
+        integration = GithubIntegration(organisationId=g.organisation.id)
+        g.session.add(integration)
+
+    repo_changed = False
+
+    if "access_token" in data:
+        token = data.get("access_token")
+        integration.access_token = token or None
+
+    if "repo_owner" in data and "repo_name" in data:
+        new_owner = data.get("repo_owner") or None
+        new_name = data.get("repo_name") or None
+        repo_changed = (
+            integration.repo_owner != new_owner or integration.repo_name != new_name
+        )
+        integration.repo_owner = new_owner
+        integration.repo_name = new_name
+        if new_owner and new_name:
+            integration.default_branch = (
+                data.get("default_branch") or integration.default_branch
+            )
+        else:
+            integration.default_branch = None
+    elif "default_branch" in data:
+        integration.default_branch = data.get("default_branch") or integration.default_branch
+
+    g.session.flush()
+
+    if repo_changed:
+        conversations = (
+            g.session.query(Conversation)
+            .join(Database, Conversation.databaseId == Database.id)
+            .filter(Database.organisationId == g.organisation.id)
+            .all()
+        )
+        for conv in conversations:
+            conv.github_branch = None
+            conv.github_base_branch = None
+            conv.github_repo_full_name = None
+            conv.github_pr_url = None
+            conv.github_pr_number = None
+        g.session.flush()
+
+    return jsonify(_github_settings_payload(integration))
+
+
+@api.route("/github/repos", methods=["GET"])
+@user_middleware
+@admin_required
+def list_github_repos():
+    if not g.organisation:
+        return jsonify({"error": "No organisation found"}), 404
+
+    integration = get_github_integration(g.session, g.organisation.id)
+    token = integration.access_token if integration else None
+    if not token:
+        return jsonify({"error": "GitHub access token is not configured"}), 400
+
+    search = request.args.get("search")
+    try:
+        repositories = list_repositories(token, search=search)
+    except GithubIntegrationError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    return jsonify({"repositories": repositories})

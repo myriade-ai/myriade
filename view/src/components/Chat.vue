@@ -1,6 +1,36 @@
 <template>
   <div>
-    <PageHeader title="Chat" subtitle="Ask questions about your data and get instant answers." />
+    <PageHeader title="Chat" subtitle="Ask questions about your data and get instant answers.">
+      <template #actions>
+        <div v-if="conversationHasGithub" class="flex items-center gap-2">
+          <span
+            v-if="githubBranch"
+            class="hidden md:inline text-xs text-gray-500"
+          >
+            Branch: {{ githubBranch }}
+          </span>
+          <Button
+            v-if="githubPrUrl"
+            as="a"
+            variant="outline"
+            size="sm"
+            :href="githubPrUrl"
+            target="_blank"
+            rel="noopener"
+          >
+            View PR
+          </Button>
+          <Button
+            v-else
+            variant="outline"
+            size="sm"
+            @click="openPrDialog"
+          >
+            Create PR
+          </Button>
+        </div>
+      </template>
+    </PageHeader>
     <div
       ref="scrollContainer"
       class="flex justify-center px-2 sm:px-4 lg:px-0"
@@ -198,6 +228,39 @@
         </div>
       </div>
 
+      <Dialog v-model:open="showPrDialog">
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create pull request</DialogTitle>
+          </DialogHeader>
+          <div class="space-y-4">
+            <div>
+              <label class="text-xs font-medium text-gray-600">Title</label>
+              <Input v-model="prTitle" placeholder="Summarize the changes" />
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-600">Commit message (optional)</label>
+              <Input v-model="prCommitMessage" placeholder="Commit message" />
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-600">Description (optional)</label>
+              <Textarea
+                v-model="prBody"
+                rows="4"
+                placeholder="Explain the updates made during this conversation"
+              />
+            </div>
+            <p v-if="prError" class="text-sm text-error-600">{{ prError }}</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" @click="showPrDialog = false">Cancel</Button>
+            <Button @click="handleCreatePullRequest" :disabled="creatingPr">
+              {{ creatingPr ? 'Creating…' : 'Create PR' }}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <!-- Connection status notification -->
       <div
         v-if="!isConnected"
@@ -231,7 +294,15 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
 import PageHeader from './PageHeader.vue'
 import { Button } from './ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from './ui/dialog'
 import { Card } from './ui/card'
+import { Input } from './ui/input'
 import { useSidebar } from './ui/sidebar'
 import { Textarea } from './ui/textarea'
 
@@ -321,6 +392,70 @@ const messageGroups = computed(() => {
 
   return groups
 })
+
+const githubBranch = computed(() => conversation.value?.githubBranch ?? null)
+const githubRepoFullName = computed(() => conversation.value?.githubRepoFullName ?? null)
+const githubPrUrl = computed(() => conversation.value?.githubPrUrl ?? null)
+const conversationHasGithub = computed(
+  () => !!githubRepoFullName.value || !!githubBranch.value
+)
+
+const showPrDialog = ref(false)
+const prTitle = ref('')
+const prBody = ref('')
+const prCommitMessage = ref('')
+const prError = ref<string | null>(null)
+const creatingPr = ref(false)
+
+const defaultPrTitle = computed(() => {
+  if (conversation.value?.name) {
+    return `Update: ${conversation.value.name}`
+  }
+  if (githubBranch.value) {
+    return `Update ${githubBranch.value}`
+  }
+  return 'Conversation updates'
+})
+
+const defaultCommitMessage = computed(() => {
+  if (githubBranch.value) {
+    return `Apply updates from ${githubBranch.value}`
+  }
+  return 'Apply conversation changes'
+})
+
+const openPrDialog = () => {
+  prError.value = null
+  prTitle.value = defaultPrTitle.value
+  prCommitMessage.value = defaultCommitMessage.value
+  showPrDialog.value = true
+}
+
+const handleCreatePullRequest = async () => {
+  if (!conversationId.value) return
+  const title = prTitle.value.trim()
+  if (!title) {
+    prError.value = 'A pull request title is required.'
+    return
+  }
+  try {
+    creatingPr.value = true
+    prError.value = null
+    await conversationsStore.createGithubPullRequest(conversationId.value, {
+      title,
+      body: prBody.value.trim() || undefined,
+      commitMessage: prCommitMessage.value.trim() || undefined
+    })
+    showPrDialog.value = false
+    prBody.value = ''
+    prCommitMessage.value = ''
+    prTitle.value = ''
+  } catch (err: any) {
+    prError.value = err.response?.data?.error || err.message || 'Failed to create pull request'
+  } finally {
+    creatingPr.value = false
+  }
+}
 
 const shouldDisplayMessage = (message: Message) => {
   const isEmptyFunctionResponse =
