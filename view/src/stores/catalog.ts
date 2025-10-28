@@ -1,7 +1,9 @@
 import axios from '@/plugins/axios'
+import { socket } from '@/plugins/socket'
 import { useContextsStore } from '@/stores/contexts'
 import type { CatalogAssetUpdatePayload, CatalogTermUpdatePayload } from '@/types/catalog'
 import type { AxiosResponse } from 'axios'
+import { useQueryClient } from '@tanstack/vue-query'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
@@ -88,6 +90,10 @@ export const useCatalogStore = defineStore('catalog', () => {
   const selectionMode = ref(false)
   const selectedAssetIds = ref<string[]>([])
 
+  // Real-time synchronization state
+  const currentRoom = ref<string | null>(null)
+  const queryClient = useQueryClient()
+
   // Watch for context changes
   const contextsStore = useContextsStore()
 
@@ -95,11 +101,22 @@ export const useCatalogStore = defineStore('catalog', () => {
     () => contextsStore.contextSelected,
     (newContext, oldContext) => {
       if (newContext && newContext.id && newContext.id !== oldContext?.id) {
+        // Leave old room if we were in one
+        if (currentRoom.value && oldContext?.id) {
+          socket.emit('catalog:leave', oldContext.id)
+        }
+
         // Clear the catalog store
         terms.value = {}
         tags.value = {}
         error.value = null
         selectedAssetIds.value = []
+
+        // Join new room for real-time updates
+        if (newContext.id) {
+          socket.emit('catalog:join', newContext.id)
+          currentRoom.value = newContext.id
+        }
 
         fetchTags(newContext.id)
       }
@@ -403,6 +420,103 @@ export const useCatalogStore = defineStore('catalog', () => {
   function isAssetSelected(assetId: string): boolean {
     return selectedAssetIds.value.includes(assetId)
   }
+
+  // ——————————————————————————————————————————————————
+  // REAL-TIME EVENT HANDLERS
+  // ——————————————————————————————————————————————————
+
+  function setupRealtimeListeners() {
+    socket.on(
+      'catalog:asset:updated',
+      (data: { asset: CatalogAsset; updated_by: string; timestamp: string }) => {
+        const currentContextId = contextsStore.contextSelected?.id
+        if (!currentContextId) return
+
+        queryClient.setQueryData<CatalogAsset[]>(
+          ['catalog', 'assets', currentContextId],
+          (oldData) => {
+            if (!oldData) return oldData
+
+            return oldData.map((asset) => (asset.id === data.asset.id ? data.asset : asset))
+          }
+        )
+      }
+    )
+
+    socket.on('catalog:tag:updated', (data: { tag: AssetTag; updated_by: string }) => {
+      tags.value[data.tag.id] = data.tag
+
+      const currentContextId = contextsStore.contextSelected?.id
+      if (!currentContextId) return
+
+      queryClient.setQueryData<CatalogAsset[]>(
+        ['catalog', 'assets', currentContextId],
+        (oldData) => {
+          if (!oldData) return oldData
+
+          return oldData.map((asset) => ({
+            ...asset,
+            tags: asset.tags.map((tag) => (tag.id === data.tag.id ? data.tag : tag))
+          }))
+        }
+      )
+    })
+
+    // Tag deleted - remove from local state and assets
+    socket.on('catalog:tag:deleted', (data: { tag_id: string; updated_by: string }) => {
+      // Remove from local state
+      delete tags.value[data.tag_id]
+
+      // Update assets cache: remove this tag from all assets
+      const currentContextId = contextsStore.contextSelected?.id
+      if (!currentContextId) return
+
+      queryClient.setQueryData<CatalogAsset[]>(
+        ['catalog', 'assets', currentContextId],
+        (oldData) => {
+          if (!oldData) return oldData
+
+          // Remove deleted tag from all assets
+          return oldData.map((asset) => {
+            const hasTag = asset.tags.some((tag) => tag.id === data.tag_id)
+            if (!hasTag) return asset
+
+            // Remove the deleted tag
+            const newTags = asset.tags.filter((tag) => tag.id !== data.tag_id)
+            return { ...asset, tags: newTags }
+          })
+        }
+      )
+    })
+
+    // Sync completed - refetch all assets to get latest state
+    socket.on('catalog:sync:completed', () => {
+      const currentContextId = contextsStore.contextSelected?.id
+      if (!currentContextId) return
+
+      queryClient.invalidateQueries({
+        queryKey: ['catalog', 'assets', currentContextId]
+      })
+    })
+
+    // Room joined confirmation
+    socket.on('catalog:joined', (data: { context_id: string; room: string }) => {
+      currentRoom.value = data.context_id
+    })
+
+    // Room left confirmation
+    socket.on('catalog:left', () => {
+      currentRoom.value = null
+    })
+
+    // Error handling
+    socket.on('catalog:error', (data: { message: string }) => {
+      console.error('[Catalog] Socket error:', data.message)
+      error.value = data.message
+    })
+  }
+
+  setupRealtimeListeners()
 
   // ——————————————————————————————————————————————————
   // RETURN
