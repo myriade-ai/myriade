@@ -27,8 +27,11 @@ from back.dbt_repository import (
 from back.github_manager import (
     GithubIntegrationError,
     create_pull_request_for_conversation,
+    exchange_oauth_code,
     get_github_integration,
     list_repositories,
+    start_oauth_flow,
+    ensure_valid_access_token,
 )
 from back.session import get_db_session
 from back.utils import (
@@ -79,7 +82,15 @@ def extract_context(session: Session, context_id: str) -> tuple[UUID, UUID | Non
 
 def _github_settings_payload(integration: GithubIntegration | None) -> dict[str, Any]:
     if not integration:
-        return {"connected": False, "hasToken": False}
+        return {
+            "connected": False,
+            "hasToken": False,
+            "repoOwner": None,
+            "repoName": None,
+            "repoFullName": None,
+            "defaultBranch": None,
+            "tokenExpiresAt": None,
+        }
 
     repo_full_name = (
         f"{integration.repo_owner}/{integration.repo_name}"
@@ -93,7 +104,23 @@ def _github_settings_payload(integration: GithubIntegration | None) -> dict[str,
         "repoName": integration.repo_name,
         "repoFullName": repo_full_name,
         "defaultBranch": integration.default_branch,
+        "tokenExpiresAt": integration.token_expires_at.isoformat()
+        if integration.token_expires_at
+        else None,
     }
+
+
+def _user_can_manage_database(database: Database) -> bool:
+    if database.ownerId == g.user.id:
+        return True
+    if (
+        database.organisationId is not None
+        and g.organization_id is not None
+        and database.organisationId == g.organization_id
+        and g.auth_user.role == "admin"
+    ):
+        return True
+    return False
 
 
 @api.route("/conversations", methods=["POST"])
@@ -229,11 +256,14 @@ def create_conversation_pull_request(conversation_id: UUID):
     if not commit_message:
         commit_message = title
 
-    integration = get_github_integration(
-        g.session, getattr(database, "organisationId", None)
-    )
-    if not integration or not integration.access_token:
-        return jsonify({"error": "GitHub integration is not configured"}), 400
+    integration = get_github_integration(g.session, database.id)
+    if (
+        not integration
+        or not integration.access_token
+        or not integration.repo_owner
+        or not integration.repo_name
+    ):
+        return jsonify({"error": "GitHub integration is not configured for this database"}), 400
 
     try:
         create_pull_request_for_conversation(
@@ -1895,37 +1925,40 @@ def update_organisation():
     return jsonify(g.organisation.to_dict())
 
 
-@api.route("/github/settings", methods=["GET"])
+@api.route("/databases/<uuid:database_id>/github/settings", methods=["GET"])
 @user_middleware
-@admin_required
-def get_github_settings():
-    if not g.organisation:
-        return jsonify({"error": "No organisation found"}), 404
+def get_database_github_settings(database_id: UUID):
+    database = g.session.query(Database).filter(Database.id == database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
 
-    integration = get_github_integration(g.session, g.organisation.id)
+    if not _user_can_manage_database(database):
+        return jsonify({"error": "Access denied"}), 403
+
+    integration = get_github_integration(g.session, database.id)
     return jsonify(_github_settings_payload(integration))
 
 
-@api.route("/github/settings", methods=["PUT"])
+@api.route("/databases/<uuid:database_id>/github/settings", methods=["PUT"])
 @user_middleware
-@admin_required
-def update_github_settings():
-    if not g.organisation:
-        return jsonify({"error": "No organisation found"}), 404
+def update_database_github_settings(database_id: UUID):
+    database = g.session.query(Database).filter(Database.id == database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if not _user_can_manage_database(database):
+        return jsonify({"error": "Access denied"}), 403
 
     data = request.get_json(silent=True) or {}
-    integration = get_github_integration(g.session, g.organisation.id)
+
+    integration = get_github_integration(g.session, database.id)
     if not integration:
-        integration = GithubIntegration(organisationId=g.organisation.id)
+        integration = GithubIntegration(databaseId=database.id)
         g.session.add(integration)
 
     repo_changed = False
 
-    if "access_token" in data:
-        token = data.get("access_token")
-        integration.access_token = token or None
-
-    if "repo_owner" in data and "repo_name" in data:
+    if "repo_owner" in data or "repo_name" in data:
         new_owner = data.get("repo_owner") or None
         new_name = data.get("repo_name") or None
         repo_changed = (
@@ -1934,9 +1967,7 @@ def update_github_settings():
         integration.repo_owner = new_owner
         integration.repo_name = new_name
         if new_owner and new_name:
-            integration.default_branch = (
-                data.get("default_branch") or integration.default_branch
-            )
+            integration.default_branch = data.get("default_branch") or integration.default_branch
         else:
             integration.default_branch = None
     elif "default_branch" in data:
@@ -1947,8 +1978,7 @@ def update_github_settings():
     if repo_changed:
         conversations = (
             g.session.query(Conversation)
-            .join(Database, Conversation.databaseId == Database.id)
-            .filter(Database.organisationId == g.organisation.id)
+            .filter(Conversation.databaseId == database.id)
             .all()
         )
         for conv in conversations:
@@ -1962,21 +1992,85 @@ def update_github_settings():
     return jsonify(_github_settings_payload(integration))
 
 
-@api.route("/github/repos", methods=["GET"])
+@api.route("/databases/<uuid:database_id>/github/oauth/start", methods=["POST"])
 @user_middleware
-@admin_required
-def list_github_repos():
-    if not g.organisation:
-        return jsonify({"error": "No organisation found"}), 404
+def start_database_github_oauth(database_id: UUID):
+    database = g.session.query(Database).filter(Database.id == database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
 
-    integration = get_github_integration(g.session, g.organisation.id)
-    token = integration.access_token if integration else None
-    if not token:
-        return jsonify({"error": "GitHub access token is not configured"}), 400
+    if not _user_can_manage_database(database):
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json(silent=True) or {}
+    redirect_uri = data.get("redirectUri")
+    if not redirect_uri:
+        return jsonify({"error": "redirectUri is required"}), 400
+
+    try:
+        oauth_payload = start_oauth_flow(
+            g.session, database.id, g.user.id, redirect_uri
+        )
+    except GithubIntegrationError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    return jsonify(oauth_payload)
+
+
+@api.route("/databases/<uuid:database_id>/github/oauth/exchange", methods=["POST"])
+@user_middleware
+def exchange_database_github_oauth(database_id: UUID):
+    database = g.session.query(Database).filter(Database.id == database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if not _user_can_manage_database(database):
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json(silent=True) or {}
+    code = data.get("code")
+    state = data.get("state")
+    redirect_uri = data.get("redirectUri")
+    if not code or not state:
+        return jsonify({"error": "code and state are required"}), 400
+
+    try:
+        integration = exchange_oauth_code(
+            g.session,
+            database.id,
+            g.user.id,
+            code,
+            state,
+            redirect_uri,
+        )
+    except GithubIntegrationError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    return jsonify(_github_settings_payload(integration))
+
+
+@api.route("/databases/<uuid:database_id>/github/repos", methods=["GET"])
+@user_middleware
+def list_database_github_repos(database_id: UUID):
+    database = g.session.query(Database).filter(Database.id == database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if not _user_can_manage_database(database):
+        return jsonify({"error": "Access denied"}), 403
+
+    integration = get_github_integration(g.session, database.id)
+    if not integration or not integration.access_token:
+        return jsonify({"error": "GitHub integration is not connected"}), 400
+
+    try:
+        ensure_valid_access_token(g.session, integration)
+    except GithubIntegrationError as exc:
+        return jsonify({"error": str(exc)}), 400
 
     search = request.args.get("search")
     try:
-        repositories = list_repositories(token, search=search)
+        repositories = list_repositories(integration.access_token, search=search)
     except GithubIntegrationError as exc:
         return jsonify({"error": str(exc)}), 400
 

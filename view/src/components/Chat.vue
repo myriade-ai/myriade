@@ -3,10 +3,7 @@
     <PageHeader title="Chat" subtitle="Ask questions about your data and get instant answers.">
       <template #actions>
         <div v-if="conversationHasGithub" class="flex items-center gap-2">
-          <span
-            v-if="githubBranch"
-            class="hidden md:inline text-xs text-gray-500"
-          >
+          <span v-if="githubBranch" class="hidden md:inline text-xs text-gray-500">
             Branch: {{ githubBranch }}
           </span>
           <Button
@@ -20,14 +17,7 @@
           >
             View PR
           </Button>
-          <Button
-            v-else
-            variant="outline"
-            size="sm"
-            @click="openPrDialog"
-          >
-            Create PR
-          </Button>
+          <Button v-else variant="outline" size="sm" @click="openPrDialog">Create PR</Button>
         </div>
       </template>
     </PageHeader>
@@ -294,13 +284,7 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
 import PageHeader from './PageHeader.vue'
 import { Button } from './ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from './ui/dialog'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { Card } from './ui/card'
 import { Input } from './ui/input'
 import { useSidebar } from './ui/sidebar'
@@ -396,9 +380,7 @@ const messageGroups = computed(() => {
 const githubBranch = computed(() => conversation.value?.githubBranch ?? null)
 const githubRepoFullName = computed(() => conversation.value?.githubRepoFullName ?? null)
 const githubPrUrl = computed(() => conversation.value?.githubPrUrl ?? null)
-const conversationHasGithub = computed(
-  () => !!githubRepoFullName.value || !!githubBranch.value
-)
+const conversationHasGithub = computed(() => !!githubRepoFullName.value || !!githubBranch.value)
 
 const showPrDialog = ref(false)
 const prTitle = ref('')

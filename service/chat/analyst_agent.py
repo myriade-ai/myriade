@@ -18,6 +18,7 @@ from chat.tools.dbt import DBT
 from chat.tools.echarts import EchartsTool
 from chat.tools.quality import SemanticModel
 from chat.tools.workspace import WorkspaceTool
+from chat.tools.github import GithubTool
 from chat.utils import parse_answer_text
 from back.github_manager import ensure_conversation_workspace
 from models import Chart, Conversation, ConversationMessage, Query
@@ -170,6 +171,9 @@ class DataAnalystAgent:
 
             code_editor = CodeEditor(repo_path)
             self.agent.add_tool(code_editor, "code_editor")
+
+        github_tool = GithubTool(self.session, self.conversation)
+        self.agent.add_tool(github_tool, "github")
 
         if self.conversation.project:
             notes = Notes(self.session, self.agent, self.conversation.project)

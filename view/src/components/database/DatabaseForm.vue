@@ -139,6 +139,10 @@
         </div>
       </div>
     </div>
+
+    <div v-if="mode === 'edit' && database.id" class="max-w-lg">
+      <DatabaseGithubSettings :database-id="database.id" />
+    </div>
   </Form>
 </template>
 
@@ -159,6 +163,7 @@ import { Form } from 'vee-validate'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import ConnectionStatusAlert from './ConnectionStatusAlert.vue'
 import DatabaseConnectionForm from './DatabaseConnectionForm.vue'
+import DatabaseGithubSettings from './DatabaseGithubSettings.vue'
 
 interface Props {
   mode: 'create' | 'edit'

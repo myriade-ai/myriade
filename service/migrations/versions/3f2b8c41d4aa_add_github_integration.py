@@ -24,8 +24,12 @@ def upgrade() -> None:
     op.create_table(
         "github_integration",
         sa.Column("id", UUID(), nullable=False),
-        sa.Column("organisationId", sa.String(), nullable=False),
+        sa.Column("databaseId", UUID(), nullable=False),
         sa.Column("access_token", sa.String(), nullable=True),
+        sa.Column("refresh_token", sa.String(), nullable=True),
+        sa.Column("token_type", sa.String(), nullable=True),
+        sa.Column("scope", sa.String(), nullable=True),
+        sa.Column("token_expires_at", sa.DateTime(), nullable=True),
         sa.Column("repo_owner", sa.String(), nullable=True),
         sa.Column("repo_name", sa.String(), nullable=True),
         sa.Column("default_branch", sa.String(), nullable=True),
@@ -41,9 +45,34 @@ def upgrade() -> None:
             server_default=sa.text("(CURRENT_TIMESTAMP)"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(["organisationId"], ["organisation.id"]),
+        sa.ForeignKeyConstraint(["databaseId"], ["database.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("organisationId", name="uq_github_integration_organisation"),
+        sa.UniqueConstraint("databaseId", name="uq_github_integration_database"),
+    )
+
+    op.create_table(
+        "github_oauth_state",
+        sa.Column("id", UUID(), nullable=False),
+        sa.Column("databaseId", UUID(), nullable=False),
+        sa.Column("userId", sa.String(), nullable=False),
+        sa.Column("state", sa.String(length=255), nullable=False),
+        sa.Column("code_verifier", sa.String(length=255), nullable=True),
+        sa.Column("redirect_uri", sa.String(), nullable=True),
+        sa.Column(
+            "createdAt",
+            sa.DateTime(),
+            server_default=sa.text("(CURRENT_TIMESTAMP)"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updatedAt",
+            sa.DateTime(),
+            server_default=sa.text("(CURRENT_TIMESTAMP)"),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(["databaseId"], ["database.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("state", name="uq_github_oauth_state_state"),
     )
 
     op.add_column(
@@ -75,4 +104,5 @@ def downgrade() -> None:
     op.drop_column("conversation", "github_base_branch")
     op.drop_column("conversation", "github_branch")
 
+    op.drop_table("github_oauth_state")
     op.drop_table("github_integration")

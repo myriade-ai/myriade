@@ -121,7 +121,6 @@ export const useConversationsStore = defineStore('conversations', () => {
       error: conversationStatuses.value[id]?.error
     }
   }
-
   // If you want a sorted conversation list
   const sortedUserConversations = computed(() => {
     // TODO: filter by user
@@ -352,10 +351,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversationId: string,
     payload: { title: string; body?: string; commitMessage?: string }
   ) {
-    const response = await axios.post(
-      `/api/conversations/${conversationId}/github/pr`,
-      payload
-    )
+    const response = await axios.post(`/api/conversations/${conversationId}/github/pr`, payload)
     const conversation = conversations.value[conversationId]
     if (conversation) {
       conversation.githubBranch = response.data.github_branch ?? conversation.githubBranch ?? null
@@ -363,14 +359,12 @@ export const useConversationsStore = defineStore('conversations', () => {
         response.data.github_base_branch ?? conversation.githubBaseBranch ?? null
       conversation.githubRepoFullName =
         response.data.github_repo_full_name ?? conversation.githubRepoFullName ?? null
-      conversation.githubPrUrl =
-        response.data.github_pr_url ?? conversation.githubPrUrl ?? null
+      conversation.githubPrUrl = response.data.github_pr_url ?? conversation.githubPrUrl ?? null
       conversation.githubPrNumber =
         response.data.github_pr_number ?? conversation.githubPrNumber ?? null
     }
     return response.data
   }
-
   // ——————————————————————————————————————————————————
   // SOCKET EVENT HANDLERS
   // ——————————————————————————————————————————————————
