@@ -3,6 +3,8 @@ import logging
 import sys
 import threading
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Callable, Optional
 from urllib.parse import quote_plus
 
 import sqlalchemy
@@ -184,6 +186,7 @@ class DataWarehouseRegistry:
     @classmethod
     def close_all_snowflake(cls):
         with cls._lock:
+            # Close single connections
             for conn in cls._snowflake_connections.values():
                 try:
                     conn.close()
@@ -206,7 +209,9 @@ class AbstractDatabase(ABC):
         pass
 
     @abstractmethod
-    def load_metadata(self) -> list[dict]:
+    def load_metadata(
+        self, progress_callback: Optional[Callable[[int, int, str], None]] = None
+    ) -> list[dict]:
         pass
 
     @abstractmethod
@@ -378,7 +383,15 @@ class SQLDatabase(AbstractDatabase):
         # "postgresql", "mysql", "sqlite", "mssql", "motherduck"
         return self.engine.name
 
-    def load_metadata(self):
+    def load_metadata(self, progress_callback=None):
+        total_tables = 0
+        # First pass: count total tables
+        for schema in self.inspector.get_schema_names():
+            if schema == "information_schema":
+                continue
+            total_tables += len(self.inspector.get_table_names(schema=schema))
+
+        current_count = 0
         for schema in self.inspector.get_schema_names():
             if schema in self.SKIP_SCHEMAS:
                 continue
@@ -426,6 +439,10 @@ class SQLDatabase(AbstractDatabase):
                         }
                     )
 
+                    # Call progress callback if provided
+                    current_count += 1
+                    if progress_callback:
+                        progress_callback(current_count, total_tables, name)
         return self.metadata
 
     def _query_unprotected(self, query) -> list[dict]:
@@ -608,6 +625,10 @@ class OracleDatabase(SQLDatabase):
 
 
 class SnowflakeDatabase(AbstractDatabase):
+    # Parallelization settings
+    SCHEMA_WORKER_COUNT = 20  # Concurrent schema table fetches
+    COLUMN_WORKER_COUNT = 50  # Concurrent column fetches
+
     def __init__(self, **kwargs):
         # Remove frontend-only parameters that shouldn't be passed to Snowflake
         kwargs.pop("auth_method", None)
@@ -644,44 +665,160 @@ class SnowflakeDatabase(AbstractDatabase):
         # Store connection params for reconnection on token expiry
         self.connection_params = kwargs
         self.connection = DataWarehouseRegistry.get_snowflake_connection(kwargs)
+
         self.metadata = []
 
     @property
     def dialect(self):
         return "snowflake"
 
-    # TODO: should run the process asynchronously
-    def load_metadata(self):
-        query = "SHOW TABLES IN DATABASE {}".format(self.connection.database)
-        tables, _ = self.query(query)
-        for table in tables[:30]:  # TODO: remove this limit
+    def load_metadata(self, progress_callback=None):
+        """
+        Load metadata from Snowflake database with pagination support.
+        Handles >10K tables by fetching schema by schema, and handles >10K schemas.
+
+        Args:
+            progress_callback: Optional callback function(current, total, table_name)
+                              called after each table is processed
+        """
+        batch_size = 10000  # Snowflake's SHOW command limit
+
+        # Get list of schemas - handle pagination if needed
+        logger.info(f"Fetching schemas from database {self.connection.database}")
+        schemas_query = f"SHOW SCHEMAS IN DATABASE {self.connection.database}"
+        schemas, _ = self.query(schemas_query)
+
+        # Filter out system schemas
+        user_schemas = [s for s in schemas if s["name"] not in ["INFORMATION_SCHEMA"]]
+
+        logger.info(f"Found {len(user_schemas)} user schemas to process")
+
+        # Collect all tables from all schemas in parallel
+        all_tables = []
+
+        def fetch_tables_for_schema(schema):
+            """Fetch tables for a single schema."""
+            schema_name = schema["name"]
+            try:
+                # Fetch tables for this schema
+                schema_tables_query = (
+                    f"SHOW TABLES IN SCHEMA {self.connection.database}.{schema_name}"
+                )
+                schema_tables = self._execute_query(schema_tables_query)
+
+                # If we hit the limit, log a warning
+                if len(schema_tables) >= batch_size:
+                    logger.warning(
+                        f"Schema {schema_name} has {len(schema_tables)} tables "
+                        f"(may be truncated at {batch_size} limit)"
+                    )
+
+                logger.info(
+                    f"Found {len(schema_tables)} tables in schema {schema_name}"
+                )
+
+                return (schema_name, schema_tables)
+
+            except Exception as e:
+                logger.error(f"Failed to fetch tables from schema {schema_name}: {e}")
+                return (schema_name, [])
+
+        # Execute schema queries in parallel
+        logger.info(
+            f"Fetching tables from {len(user_schemas)} schemas "
+            f"using {self.SCHEMA_WORKER_COUNT} workers"
+        )
+        with ThreadPoolExecutor(max_workers=self.SCHEMA_WORKER_COUNT) as executor:
+            futures = [
+                executor.submit(fetch_tables_for_schema, schema)
+                for schema in user_schemas
+            ]
+
+            # Collect results as they complete
+            for idx, future in enumerate(as_completed(futures), 1):
+                schema_name, schema_tables = future.result()
+                all_tables.extend(schema_tables)
+                logger.debug(
+                    f"Completed schema {idx}/{len(user_schemas)}: {schema_name}"
+                )
+
+        total_tables = len(all_tables)
+        logger.info(f"Loading metadata for {total_tables} tables from Snowflake")
+
+        # Thread-safe counter for progress tracking
+        progress_lock = threading.Lock()
+        processed_count = 0
+
+        def fetch_columns_for_table(table):
+            """Fetch columns for a single table."""
+            nonlocal processed_count
             schema = table["schema_name"]
             table_name = table["name"]
             # Snowflake's SHOW TABLES returns 'kind' column: 'TABLE' or 'VIEW'
-            table_type = table.get("kind").upper()
+            table_type = table.get("kind", "TABLE")
 
-            columns = []
-            result, _ = self.query(f"SHOW COLUMNS IN {schema}.{table_name}")
-            for column in result:
-                column["data_type"] = json.loads(column["data_type"])
-                columns.append(
-                    {
-                        "name": column["column_name"],
-                        "type": column["data_type"]["type"],
-                        "nullable": column["data_type"]["nullable"],
-                        "comment": column["comment"],
-                    }
-                )
+            try:
+                # Fetch columns for this table
+                result = self._execute_query(f"SHOW COLUMNS IN {schema}.{table_name}")
 
-            self.metadata.append(
-                {
+                # Convert result rows to column metadata format
+                columns = []
+                for row in result:
+                    data_type = json.loads(row["data_type"])
+                    columns.append(
+                        {
+                            "name": row["column_name"],
+                            "type": data_type["type"],
+                            "nullable": data_type["nullable"],
+                            "comment": row["comment"],
+                        }
+                    )
+
+                # Thread-safe progress update
+                with progress_lock:
+                    processed_count += 1
+                    current = processed_count
+
+                    # Call progress callback if provided
+                    if progress_callback:
+                        progress_callback(
+                            current, total_tables, f"{schema}.{table_name}"
+                        )
+
+                return {
                     "schema": schema,
                     "name": table_name,
                     "table_type": table_type,
                     "columns": columns,
                 }
-            )
 
+            except Exception as e:
+                logger.warning(
+                    f"Failed to load metadata for {schema}.{table_name}: {e}"
+                )
+                return None
+
+        # Execute column queries in parallel
+        logger.info(
+            f"Fetching columns from {total_tables} tables "
+            f"using {self.COLUMN_WORKER_COUNT} workers"
+        )
+        with ThreadPoolExecutor(max_workers=self.COLUMN_WORKER_COUNT) as executor:
+            futures = [
+                executor.submit(fetch_columns_for_table, table) for table in all_tables
+            ]
+
+            # Collect results as they complete
+            for future in as_completed(futures):
+                try:
+                    metadata = future.result()
+                    if metadata:
+                        self.metadata.append(metadata)
+                except Exception as e:
+                    logger.error(f"Error processing table metadata: {e}")
+                    continue
+
+        logger.info(f"Successfully loaded metadata for {len(self.metadata)} tables")
         return self.metadata
 
     def _query_unprotected(self, query):
@@ -780,10 +917,19 @@ class BigQueryDatabase(AbstractDatabase):
     def dialect(self):
         return "bigquery"
 
-    def load_metadata(self):
+    def load_metadata(self, progress_callback=None):
         """Load metadata for all datasets and tables in the project"""
         datasets = list(self.client.list_datasets())
 
+        # First pass: count total tables
+        total_tables = 0
+        for dataset in datasets:
+            dataset_id = dataset.dataset_id
+            dataset_ref = self.client.dataset(dataset_id)
+            tables = list(self.client.list_tables(dataset_ref))
+            total_tables += len(tables)
+
+        current_count = 0
         for dataset in datasets:
             dataset_id = dataset.dataset_id
             dataset_ref = self.client.dataset(dataset_id)
@@ -814,6 +960,11 @@ class BigQueryDatabase(AbstractDatabase):
                         "columns": columns,
                     }
                 )
+
+                # Call progress callback if provided
+                current_count += 1
+                if progress_callback:
+                    progress_callback(current_count, total_tables, table.table_id)
 
         return self.metadata
 
@@ -925,7 +1076,7 @@ class MotherDuckDatabase(AbstractDatabase):
     def dialect(self):
         return "motherduck"
 
-    def load_metadata(self):
+    def load_metadata(self, progress_callback=None):
         """Load metadata from MotherDuck database"""
         # Use DuckDB information schema queries
         schemas_query = (
@@ -937,6 +1088,20 @@ class MotherDuckDatabase(AbstractDatabase):
         if not schemas:
             return []
 
+        # First pass: count total tables
+        total_tables = 0
+        for schema_row in schemas:
+            schema_name = schema_row["schema_name"]
+            tables_query = f"""
+                SELECT table_name, table_type
+                FROM information_schema.tables
+                WHERE table_schema = '{schema_name}'
+            """
+            tables, _ = self.query(tables_query)
+            if tables:
+                total_tables += len(tables)
+
+        current_count = 0
         for schema_row in schemas:
             schema_name = schema_row["schema_name"]
 
@@ -986,6 +1151,11 @@ class MotherDuckDatabase(AbstractDatabase):
                         "description": None,
                     }
                 )
+
+                # Call progress callback if provided
+                current_count += 1
+                if progress_callback:
+                    progress_callback(current_count, total_tables, table_name)
 
         return self.metadata
 

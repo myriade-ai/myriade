@@ -11,17 +11,17 @@ from sqlalchemy.orm import Session, contains_eager, joinedload, selectinload
 from sqlalchemy.sql.expression import true
 
 import telemetry
+from back.background_sync import run_metadata_sync_background
 from back.data_warehouse import ConnectionError, DataWarehouseFactory
 from back.dbt_repository import (
     DBTRepositoryError,
     generate_dbt_docs,
     validate_dbt_repo,
 )
+from back.session import get_db_session
 from back.utils import (
     create_database,
     get_tables_metadata_from_catalog,
-    merge_tables_metadata,
-    sync_database_metadata_to_assets,
     update_catalog_privacy,
 )
 from chat.proxy_provider import ProxyProvider
@@ -195,12 +195,21 @@ def create_database_route():
     g.session.add(database)
     g.session.flush()
 
-    data_warehouse = database.create_data_warehouse()
-    initial_metadata = data_warehouse.load_metadata()
-    if initial_metadata:
-        sync_database_metadata_to_assets(database.id, initial_metadata)
+    # IMPORTANT: Commit the database before starting background thread
+    # The background thread needs to be able to query the database record
+    g.session.commit()
 
-    return jsonify(database.to_dict(exclude=["dbt_catalog", "dbt_manifest"]))
+    # Start background sync for initial metadata load
+    run_metadata_sync_background(
+        database_id=database.id,
+        session_factory=get_db_session,
+    )
+
+    # Return immediately - metadata sync runs in background
+    database_dict = database.to_dict(exclude=["dbt_catalog", "dbt_manifest"])
+    database_dict["sync_status"] = "syncing"
+    database_dict["sync_progress"] = 0
+    return jsonify(database_dict)
 
 
 @api.route("/databases/test-connection", methods=["POST"])
@@ -289,18 +298,22 @@ def update_database(database_id: UUID):
     database.dbt_manifest = data.get("dbt_manifest")
     database.dbt_repo_path = data.get("dbt_repo_path")
 
-    # Load new metadata and merge with existing privacy settings from catalog
-    new_meta = data_warehouse.load_metadata()
-    existing_catalog_meta = get_tables_metadata_from_catalog(database.id)
-    merged_metadata = merge_tables_metadata(existing_catalog_meta, new_meta)
-
-    # Sync the merged metadata to catalog
-    if merged_metadata:
-        sync_database_metadata_to_assets(database.id, merged_metadata)
-
     g.session.flush()
 
-    return jsonify(database.to_dict(exclude=["dbt_catalog", "dbt_manifest"]))
+    # IMPORTANT: Commit the database before starting background thread
+    # The background thread needs to be able to query the database record
+    g.session.commit()
+
+    run_metadata_sync_background(
+        database_id=database.id,
+        session_factory=get_db_session,
+    )
+
+    # Return immediately - metadata sync runs in background
+    database_dict = database.to_dict(exclude=["dbt_catalog", "dbt_manifest"])
+    database_dict["sync_status"] = "syncing"
+    database_dict["sync_progress"] = 0
+    return jsonify(database_dict)
 
 
 @api.route("/databases", methods=["GET"])
@@ -1608,7 +1621,7 @@ def generate_dbt_documentation(database_id: UUID):
 @api.route("/databases/<uuid:database_id>/sync-metadata", methods=["POST"])
 @user_middleware
 def sync_database_metadata(database_id: UUID):
-    """Sync database metadata to catalog."""
+    """Start background sync of database metadata to catalog."""
     database = g.session.query(Database).filter_by(id=database_id).first()
     if not database:
         return jsonify({"error": "Database not found"}), 404
@@ -1624,46 +1637,78 @@ def sync_database_metadata(database_id: UUID):
     ):
         return jsonify({"error": "Unauthorized"}), 403
 
-    try:
-        # Create data warehouse instance and load metadata
-        data_warehouse = database.create_data_warehouse()
-        new_metadata = data_warehouse.load_metadata()
-
-        if not new_metadata:
-            return jsonify({"error": "No metadata found"}), 400
-
-        # Get existing catalog metadata to preseve existing asset data
-        existing_catalog_meta = get_tables_metadata_from_catalog(database.id)
-
-        # Merge existing and new metadata
-        merged_metadata = merge_tables_metadata(existing_catalog_meta, new_metadata)
-
-        try:
-            result = sync_database_metadata_to_assets(database.id, merged_metadata)
-        except Exception as e:
-            logger.error(f"Error syncing metadata to catalog: {e}")
-            return jsonify({"error": f"Failed to sync metadata: {str(e)}"}), 500
-
-        g.session.flush()
-
-        # Handle case where result is a string (no metadata)
-        if isinstance(result, str):
-            return jsonify({"error": result}), 400
-
-        return jsonify(
-            {
-                "success": True,
-                "message": "Database metadata synced successfully",
-                "synced_count": result.get("synced_count", 0),
-            }
+    # Check if already syncing
+    if database.sync_status == "syncing":
+        return (
+            jsonify(
+                {
+                    "error": "Sync already in progress",
+                }
+            ),
+            409,
         )
 
+    # Test connection before starting background sync
+    try:
+        data_warehouse = database.create_data_warehouse()
+        data_warehouse.test_connection()
     except ConnectionError as e:
-        logger.error(f"Connection error syncing database metadata: {e}")
         return jsonify({"error": f"Connection error: {str(e)}"}), 500
-    except Exception as e:
-        logger.error(f"Error syncing database metadata: {e}")
-        return jsonify({"error": f"Failed to sync metadata: {str(e)}"}), 500
+
+    # Start the background task
+    run_metadata_sync_background(
+        database_id=database_id,
+        session_factory=get_db_session,
+    )
+
+    # Return immediately with 202 Accepted
+    return (
+        jsonify(
+            {
+                "success": True,
+                "message": "Metadata sync started in background",
+            }
+        ),
+        202,
+    )
+
+
+@api.route("/databases/<uuid:database_id>/sync-status", methods=["GET"])
+@user_middleware
+def get_sync_status(database_id: UUID):
+    """Get the current sync status for a database."""
+    database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access to this database
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
+    ):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    return jsonify(
+        {
+            "sync_status": database.sync_status,
+            "sync_progress": database.sync_progress,
+            "sync_started_at": (
+                database.sync_started_at.isoformat()
+                if database.sync_started_at
+                else None
+            ),
+            "sync_completed_at": (
+                database.sync_completed_at.isoformat()
+                if database.sync_completed_at
+                else None
+            ),
+            "sync_error": database.sync_error,
+        }
+    )
 
 
 @api.route("/organisation", methods=["GET"])

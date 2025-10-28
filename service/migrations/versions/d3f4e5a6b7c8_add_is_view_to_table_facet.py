@@ -19,13 +19,22 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add table_type string column to table_facet table
-    op.add_column(
-        "table_facet",
-        sa.Column("table_type", sa.String(), nullable=True, default="TABLE"),
-    )
-    # Set default value for existing rows
-    op.execute("UPDATE table_facet SET table_type = 'TABLE' WHERE table_type IS NULL")
+    # Add table_type string column to table_facet table (check if exists first)
+    from sqlalchemy import inspect
+
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    columns = [col["name"] for col in inspector.get_columns("table_facet")]
+
+    if "table_type" not in columns:
+        op.add_column(
+            "table_facet",
+            sa.Column("table_type", sa.String(), nullable=True, default="TABLE"),
+        )
+        # Set default value for existing rows
+        op.execute(
+            "UPDATE table_facet SET table_type = 'TABLE' WHERE table_type IS NULL"
+        )
 
 
 def downgrade() -> None:

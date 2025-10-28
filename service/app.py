@@ -43,13 +43,12 @@ if config.SENTRY_DSN:
 
 def initialize_demo_databases():
     """
-    Sync catalog metadata for demo databases on startup if not already done.
-    This ensures demo databases have their catalog populated after migration.
+    Start background sync for demo databases on startup if not already synced.
+    This ensures demo databases have their catalog populated without blocking startup.
     """
     from sqlalchemy import and_, exists
 
-    from back.data_warehouse import DataWarehouseFactory
-    from back.utils import sync_database_metadata_to_assets
+    from back.background_sync import run_metadata_sync_background
     from models import Database
     from models.catalog import Asset
 
@@ -67,27 +66,22 @@ def initialize_demo_databases():
         )
 
         for db in databases_without_assets:
-            logger.info(f"Initializing catalog for demo database: {db.name}")
+            logger.info(
+                f"Starting background sync for demo database: {db.name} (id: {db.id})"
+            )
 
-            metadata = None
+            # Start background sync for this database
             try:
-                data_warehouse = DataWarehouseFactory.create(
-                    db.engine,
-                    **db.details,
+                run_metadata_sync_background(
+                    database_id=db.id,
+                    session_factory=get_db_session,
                 )
-                metadata = data_warehouse.load_metadata()
-                session.flush()
+                logger.info(f"Background sync started for demo database: {db.name}")
             except Exception as e:
-                logger.warning(
-                    f"Could not load metadata for {db.name}: {e}",
+                logger.error(
+                    f"Failed to start background sync for {db.name}: {e}",
                     exc_info=True,
                 )
-
-            if metadata:
-                sync_database_metadata_to_assets(db.id, metadata, session)
-                logger.info(f"Successfully synced catalog for {db.name}")
-            else:
-                raise ValueError("No metadata loaded")
 
         session.commit()
     except Exception as e:

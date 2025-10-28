@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
@@ -5,6 +6,8 @@ from flask import g
 
 from models import Database
 from models.catalog import Asset, ColumnFacet, TableFacet
+
+logger = logging.getLogger(__name__)
 
 
 def create_database(
@@ -145,6 +148,7 @@ def sync_database_metadata_to_assets(
     database_id: UUID,
     tables_metadata: List[Dict[str, Any]],
     session=None,
+    progress_callback=None,
 ):
     """
     Sync catalog with database metadata (tables/columns)
@@ -156,6 +160,8 @@ def sync_database_metadata_to_assets(
         database_id: UUID of the database
         tables_metadata: List of table metadata dictionaries
         session: Optional SQLAlchemy session. If not provided, uses g.session
+        progress_callback: Optional callback function(current, total, message)
+                          called after each table is processed
     """
     if not tables_metadata:
         raise ValueError("No database metadata available to sync")
@@ -168,6 +174,17 @@ def sync_database_metadata_to_assets(
     # Track all valid URNs from current metadata (both tables and columns)
     valid_urns = set()
 
+    # Optimization: Pre-load all existing assets in a single query
+    # Load full Asset objects to avoid re-querying
+    existing_assets = (
+        db_session.query(Asset).filter(Asset.database_id == database_id).all()
+    )
+    existing_assets_by_urn = {asset.urn: asset for asset in existing_assets}
+
+    # Batch commit settings
+    COMMIT_BATCH_SIZE = 100  # Commit every 100 tables
+    tables_processed = 0
+
     for table_meta in tables_metadata:
         schema_name = table_meta.get("schema")
         table_name = table_meta.get("name")
@@ -176,15 +193,8 @@ def sync_database_metadata_to_assets(
         table_urn = f"urn:table:{database_id}:{schema_name}:{table_name}"
         valid_urns.add(table_urn)
 
-        # Check if table asset already exists
-        table_asset = (
-            db_session.query(Asset)
-            .filter(
-                Asset.database_id == database_id,
-                Asset.urn == table_urn,
-            )
-            .first()
-        )
+        # Check if table asset already exists (using pre-loaded dict)
+        table_asset = existing_assets_by_urn.get(table_urn)
 
         if not table_asset:
             # Create new table asset
@@ -228,14 +238,8 @@ def sync_database_metadata_to_assets(
             )
             valid_urns.add(column_urn)
 
-            column_asset = (
-                db_session.query(Asset)
-                .filter(
-                    Asset.database_id == database_id,
-                    Asset.urn == column_urn,
-                )
-                .first()
-            )
+            # Check if column asset already exists (using pre-loaded dict)
+            column_asset = existing_assets_by_urn.get(column_urn)
 
             if not column_asset:
                 # Create new column asset
@@ -260,6 +264,29 @@ def sync_database_metadata_to_assets(
                 )
                 db_session.add(column_facet)
                 synced_count += 1
+
+        # Batch commit: commit every COMMIT_BATCH_SIZE tables
+        tables_processed += 1
+
+        # Call progress callback if provided
+        if progress_callback:
+            progress_callback(
+                tables_processed,
+                len(tables_metadata),
+                f"Syncing {schema_name}.{table_name}",
+            )
+
+        if tables_processed % COMMIT_BATCH_SIZE == 0:
+            db_session.commit()
+            logger.info(
+                f"Committed batch of {COMMIT_BATCH_SIZE} tables "
+                f"({tables_processed}/{len(tables_metadata)} total)"
+            )
+
+    # Final commit for remaining tables
+    if tables_processed % COMMIT_BATCH_SIZE != 0:
+        db_session.commit()
+        logger.info(f"Committed final batch ({tables_processed} tables total)")
 
     # Delete assets that no longer exist in the database
     orphaned_assets = (

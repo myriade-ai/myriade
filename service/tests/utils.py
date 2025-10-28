@@ -4,6 +4,8 @@ VOLATILE_KEYS = {
     "updatedAt",
     "reqId",
     "functionCallId",
+    "sync_completed_at",
+    "sync_started_at",
 }
 # Keys for which we only want to snapshot their child keys (schema), not values.
 SCHEMA_ONLY_KEYS = {"tables_metadata"}

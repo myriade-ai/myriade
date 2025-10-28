@@ -26,6 +26,12 @@ export interface Database {
   dbt_manifest?: unknown
   dbt_repo_path: string | null
   tags?: AssetTag[]
+  // Metadata sync status
+  sync_status?: 'idle' | 'syncing' | 'completed' | 'failed'
+  sync_progress?: number
+  sync_started_at?: Date
+  sync_completed_at?: Date
+  sync_error?: string
 }
 
 export const makeEmptyDatabase = () =>
@@ -155,6 +161,10 @@ export const useDatabasesStore = defineStore('databases', () => {
     return axios.post(`/api/databases/${databaseId}/sync-metadata`).then((res) => res.data)
   }
 
+  function getSyncStatus(databaseId: string) {
+    return axios.get(`/api/databases/${databaseId}/sync-status`).then((res) => res.data)
+  }
+
   // Return everything you want available in the store
   return {
     // state
@@ -171,6 +181,7 @@ export const useDatabasesStore = defineStore('databases', () => {
     createDatabase,
     deleteDatabase,
     getDatabaseById,
-    syncDatabaseMetadata
+    syncDatabaseMetadata,
+    getSyncStatus
   }
 })
