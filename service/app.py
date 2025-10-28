@@ -141,6 +141,9 @@ def create_app():
     app.register_blueprint(auth_api, url_prefix="/api")
     app.register_blueprint(billing_api, url_prefix="/api")
 
+    # Register catalog SocketIO handlers (import triggers decorator registration)
+    import back.catalog_socketio  # noqa: F401
+
     if config.ENV != "development":
         # serve SPA entry point
         @app.route("/")

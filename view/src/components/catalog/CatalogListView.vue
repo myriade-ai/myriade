@@ -117,9 +117,9 @@ function measureElement(el: Element | ComponentPublicInstance | null) {
   virtualizer.value.measureElement(element)
 }
 
-// Reset scroll position when tables change (e.g., after filtering)
+// Reset scroll position only when table count changes (filtering), not on updates
 watch(
-  () => props.tables,
+  () => props.tables.length,
   () => {
     virtualizer.value.scrollToIndex(0, { align: 'start' })
   }

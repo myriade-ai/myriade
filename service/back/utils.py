@@ -169,7 +169,8 @@ def sync_database_metadata_to_assets(
     # Use provided session or fall back to g.session
     db_session = session if session is not None else g.session
 
-    synced_count = 0
+    created_count = 0
+    updated_count = 0
 
     # Track all valid URNs from current metadata (both tables and columns)
     valid_urns = set()
@@ -217,7 +218,7 @@ def sync_database_metadata_to_assets(
                 table_type=table_meta.get("table_type"),
             )
             db_session.add(table_facet)
-            synced_count += 1
+            created_count += 1
         else:
             # Update existing table facet's table_type field if it changed
             table_facet = (
@@ -226,7 +227,13 @@ def sync_database_metadata_to_assets(
                 .first()
             )
             if table_facet:
-                table_facet.table_type = table_meta.get("table_type").upper()
+                old_table_type = table_facet.table_type
+                new_table_type = table_meta.get("table_type")
+                if old_table_type != new_table_type:
+                    table_facet.table_type = (
+                        new_table_type.upper() if new_table_type else None
+                    )
+                    updated_count += 1
 
         # Create/update column assets
         for i, column in enumerate(table_meta.get("columns", [])):
@@ -263,7 +270,20 @@ def sync_database_metadata_to_assets(
                     privacy=column.get("privacy"),
                 )
                 db_session.add(column_facet)
-                synced_count += 1
+                created_count += 1
+            else:
+                # Update column facet if data type changed
+                column_facet = (
+                    db_session.query(ColumnFacet)
+                    .filter(ColumnFacet.asset_id == column_asset.id)
+                    .first()
+                )
+                if column_facet:
+                    old_data_type = column_facet.data_type
+                    new_data_type = column.get("type")
+                    if old_data_type != new_data_type:
+                        column_facet.data_type = new_data_type
+                        updated_count += 1
 
         # Batch commit: commit every COMMIT_BATCH_SIZE tables
         tables_processed += 1
@@ -310,7 +330,9 @@ def sync_database_metadata_to_assets(
         db_session.delete(asset)
 
     return {
-        "synced_count": synced_count,
+        "created_count": created_count,
+        "updated_count": updated_count,
+        "synced_count": created_count,  # Backward compatibility
     }
 
 
