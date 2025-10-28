@@ -40,7 +40,7 @@
           <div class="flex flex-1 flex-col min-h-0 h-full">
             <!-- Filters Bar -->
             <CatalogFilters
-              v-model:search-query="searchQuery"
+              v-model:search-query="searchQueryInput"
               v-model:selected-schema="selectedSchema"
               v-model:selected-tag="selectedTag"
               v-model:selected-status="selectedStatus"
@@ -144,6 +144,7 @@ import { useRoute, useRouter } from 'vue-router'
 import type { EditableDraft } from './catalog/types'
 import { useCatalogData } from './catalog/useCatalogData'
 import { useCatalogAssetsQuery } from './catalog/useCatalogQuery'
+import { debounce } from '@/utils/debounce'
 
 interface Props {
   isLoading?: boolean
@@ -173,6 +174,7 @@ const loading = computed(() => {
 const error = computed(() => queryError.value?.message || catalogStore.error)
 
 // State
+const searchQueryInput = ref('')
 const searchQuery = ref('')
 const selectedSchema = ref('__all__')
 const selectedTag = ref('__all__')
@@ -181,6 +183,16 @@ const activeTab = ref<'overview' | 'columns' | 'preview'>('overview')
 const selectedAssetId = ref<string | null>(null)
 const explorerCollapsed = ref(false)
 const explorerRef = ref<InstanceType<typeof CatalogExplorer> | null>(null)
+
+// Debounced search handler
+const debouncedUpdateSearch = debounce((query: string) => {
+  searchQuery.value = query
+}, 500)
+
+// Watch for input changes and debounce
+watch(searchQueryInput, (newValue) => {
+  debouncedUpdateSearch(newValue)
+})
 
 // Asset editing state (used for both tables and columns)
 const assetEditing = ref(false)
@@ -421,6 +433,7 @@ watch(
   () => contextsStore.contextSelected,
   (newContext, oldContext) => {
     if (newContext?.id !== oldContext?.id) {
+      searchQueryInput.value = ''
       searchQuery.value = ''
       selectedSchema.value = '__all__'
       selectedTag.value = '__all__'
@@ -487,6 +500,7 @@ function handleSelectSchema(schemaKey: string) {
 }
 
 function clearFilters() {
+  searchQueryInput.value = ''
   searchQuery.value = ''
   selectedSchema.value = '__all__'
   selectedTag.value = '__all__'
