@@ -76,41 +76,8 @@
         rules="required"
       />
 
-      <!-- Authentication Method Selection -->
-      <div class="space-y-3">
-        <label class="block text-sm font-medium text-gray-700">Authentication Method</label>
-        <RadioGroup
-          :model-value="details.auth_method || 'password'"
-          @update:model-value="handleAuthMethodChange"
-          class="space-y-2"
-        >
-          <div class="flex items-center space-x-3">
-            <RadioGroupItem value="password" id="snowflake-password" />
-            <label for="snowflake-password" class="cursor-pointer text-sm text-gray-700">
-              Password
-            </label>
-          </div>
-          <div class="flex items-center space-x-3">
-            <RadioGroupItem value="rsa_key" id="snowflake-rsa-key" />
-            <label for="snowflake-rsa-key" class="cursor-pointer text-sm text-gray-700">
-              RSA Key Pair
-            </label>
-          </div>
-        </RadioGroup>
-      </div>
-
-      <!-- Password Authentication -->
-      <div v-if="details.auth_method === 'password' || !details.auth_method">
-        <InputPassword
-          name="Password"
-          v-model="details.password"
-          placeholder="Enter password"
-          rules="required"
-        />
-      </div>
-
       <!-- RSA Key Authentication -->
-      <div v-if="details.auth_method === 'rsa_key'" class="space-y-4">
+      <div class="space-y-4">
         <div class="space-y-2">
           <label class="block text-sm font-medium text-gray-700"
             >Private Key File <span class="text-red-500">*</span></label
@@ -149,12 +116,6 @@
           name="Private Key Passphrase (Optional)"
           v-model="details.private_key_passphrase"
           placeholder="Enter passphrase if key is encrypted"
-        />
-        <BaseNotification
-          color="warning"
-          title="Security Notice"
-          message="Your private key will be stored securely in the database. Ensure you trust this system with your Snowflake credentials."
-          class="bg-warning-50"
         />
       </div>
 
@@ -348,7 +309,17 @@ watch(
   () => props.engine,
   (newEngine) => {
     const newDetails = getDefaultDetailsForEngine(newEngine)
-    Object.assign(details, newDetails)
+    if (details.value) {
+      Object.keys(details.value).forEach((key) => {
+        if (!(key in newDetails)) {
+          delete details.value[key]
+        }
+      })
+      Object.assign(details.value, newDetails)
+    } else {
+      details.value = newDetails
+    }
+    privateKeyError.value = null
   }
 )
 
@@ -364,18 +335,6 @@ const handleServiceAccountUpload = (event: Event) => {
       }
     }
     reader.readAsText(file)
-  }
-}
-
-const handleAuthMethodChange = (value: string) => {
-  details.value.auth_method = value
-  // Clear fields from the other auth method
-  if (value === 'password') {
-    delete details.value.private_key_pem
-    delete details.value.private_key_passphrase
-    privateKeyError.value = null
-  } else if (value === 'rsa_key') {
-    delete details.value.password
   }
 }
 

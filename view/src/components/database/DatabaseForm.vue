@@ -207,7 +207,7 @@ const canTestConnection = computed(() => {
     case 'mysql':
       return details.host && details.user && details.database
     case 'snowflake':
-      return details.account && details.user && details.database
+      return details.account && details.user && details.database && details.private_key_pem
     case 'sqlite':
       return details.filename
     case 'bigquery':
