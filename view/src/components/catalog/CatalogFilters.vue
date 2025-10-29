@@ -92,6 +92,7 @@
         <SelectItem value="published_by_ai">Published by AI</SelectItem>
         <SelectItem value="needs_review">Needs review</SelectItem>
         <SelectItem value="requires_validation">Requires validation</SelectItem>
+        <SelectItem value="unverified">Unverified</SelectItem>
       </SelectContent>
     </Select>
   </div>
