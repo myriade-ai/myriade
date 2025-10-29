@@ -1,6 +1,11 @@
 # serializer version: 1
 # name: test_run_simple_query
   dict({
+    'columns': list([
+      dict({
+        'name': 'test_col',
+      }),
+    ]),
     'count': 1,
     'rows': list([
       dict({

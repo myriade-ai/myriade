@@ -61,6 +61,14 @@
           </TableRow>
         </TableHeader>
         <TableBody>
+          <TableRow v-if="!table.getRowModel().rows.length">
+            <TableCell
+              :colspan="columns.length"
+              class="text-center text-sm text-muted-foreground py-4"
+            >
+              No data available.
+            </TableCell>
+          </TableRow>
           <TableRow v-for="row in table.getRowModel().rows" :key="row.id">
             <TableCell
               v-for="cell in row.getVisibleCells()"
@@ -132,6 +140,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 const props = defineProps<{
   data: Record<string, unknown>[]
   count?: number
+  columns?: Array<{ name: string }>
 }>()
 
 const copyText = ref('Copy as XLSX')
@@ -164,7 +173,23 @@ const formatCellValue = (value: unknown): string => {
 }
 
 const columns = computed<ColumnDef<Record<string, unknown>>[]>(() => {
+  // If we have no data but columns are provided, use them
+  if (!processedData.value.length && props.columns) {
+    return props.columns.map((col) => ({
+      accessorKey: col.name,
+      header: col.name,
+      cell: (info) => formatCellValue(info.getValue()),
+      enableSorting: true,
+      enableResizing: true,
+      size: 150,
+      minSize: 30,
+      maxSize: 1000
+    }))
+  }
+
+  // If we have no data and no columns provided, return empty
   if (!processedData.value.length) return []
+
   const allKeys = new Set<string>()
   processedData.value.forEach((row) => {
     Object.keys(row).forEach((key) => allKeys.add(key))

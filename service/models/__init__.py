@@ -382,6 +382,7 @@ class Query(SerializerMixin, DefaultBase, Base):
     # Optimal type to store large results
     rows: Mapped[Optional[List[Any]]] = mapped_column(JSONB)
     count: Mapped[Optional[int]] = mapped_column(Integer)
+    columns: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(JSONB)
     exception: Mapped[Optional[str]] = mapped_column(String)
 
     # Query execution lifecycle
