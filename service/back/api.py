@@ -26,6 +26,7 @@ from back.dbt_repository import (
 from back.session import get_db_session
 from back.utils import (
     create_database,
+    get_provider_metadata_for_asset,
     get_tables_metadata_from_catalog,
     update_catalog_privacy,
 )
@@ -1132,6 +1133,55 @@ def get_asset_preview(asset_id: str):
     except Exception as e:
         logger.error(f"Error fetching preview data: {str(e)}")
         return jsonify({"error": f"Failed to fetch preview data: {str(e)}"}), 500
+
+
+@api.route("/catalogs/assets/<string:asset_id>/sources", methods=["GET"])
+@user_middleware
+def get_asset_sources(asset_id: str):
+    """Get metadata from external sources (DBT, data provider) for an asset"""
+
+    try:
+        asset_uuid = UUID(asset_id)
+    except ValueError:
+        return jsonify({"error": "Invalid asset id"}), 400
+
+    asset = g.session.query(Asset).filter(Asset.id == asset_uuid).first()
+
+    if not asset:
+        return jsonify({"error": "Asset not found"}), 404
+
+    # Get database and verify access
+    database = g.session.query(Database).filter_by(id=asset.database_id).first()
+
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    try:
+        sources = {}
+
+        dw = database.create_data_warehouse()
+        provider_metadata = get_provider_metadata_for_asset(asset, dw, g.session)
+        if provider_metadata:
+            sources[dw.dialect] = provider_metadata
+
+        return jsonify(sources)
+
+    except ConnectionError as e:
+        return jsonify({"error": f"Connection error: {str(e)}"}), 500
+    except Exception as e:
+        logger.error(f"Error fetching asset sources: {str(e)}")
+        return jsonify({"error": f"Failed to fetch asset sources: {str(e)}"}), 500
 
 
 @api.route("/catalogs/<string:context_id>/terms", methods=["GET"])
