@@ -62,7 +62,11 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
     }
 
     if (selectedStatus && selectedStatus !== '__all__') {
-      if (asset.status !== selectedStatus) return false
+      if (selectedStatus === 'unverified') {
+        if (asset.status !== null) return false
+      } else if (asset.status !== selectedStatus) {
+        return false
+      }
     }
 
     if (!searchQuery) {
