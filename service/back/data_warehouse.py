@@ -228,6 +228,39 @@ class AbstractDatabase(ABC):
     def _query_unprotected(self, query) -> list[dict]:
         pass
 
+    def get_table_metadata(self, schema: str, table_name: str) -> dict:
+        """
+        Get provider-specific metadata (description, tags, etc.) for a table.
+
+
+
+        Args:
+            schema: Schema name
+            table_name: Table name
+
+        Returns:
+            Dictionary with 'description' and 'tags' keys (only if they exist).
+            Default implementation returns an empty dict.
+        """
+        raise NotImplementedError("get_table_metadata() must be implemented")
+
+    def get_column_metadata(
+        self, schema: str, table_name: str, column_name: str
+    ) -> dict:
+        """
+        Get provider-specific metadata (description, tags, etc.) for a column.
+
+        Args:
+            schema: Schema name
+            table_name: Table name
+            column_name: Column name
+
+        Returns:
+            Dictionary with 'description' and 'tags' keys (only if they exist).
+            Default implementation returns an empty dict.
+        """
+        raise NotImplementedError("get_column_metadata() must be implemented")
+
     def get_sample_data(
         self, table_name: str, schema_name: str, limit: int = 10
     ) -> dict | None:
@@ -892,6 +925,116 @@ class SnowflakeDatabase(AbstractDatabase):
             or "token has expired" in error_msg
             or "authentication token has expired" in error_msg
         )
+
+    def get_table_metadata(self, schema: str, table_name: str) -> dict:
+        result = {}
+
+        # Get table comment using SHOW TABLES
+        try:
+            query = f"SHOW TABLES LIKE '{table_name}' IN SCHEMA {schema}"
+            tables, _ = self.query(query)
+
+            if tables and len(tables) > 0:
+                table_info = tables[0]
+                comment = table_info.get("comment", "")
+                if comment:
+                    result["description"] = comment
+
+        except Exception as e:
+            logger.warning(
+                f"Could not fetch Snowflake table comment for "
+                f"{schema}.{table_name}: {e}"
+            )
+
+        # Get table tags using INFORMATION_SCHEMA.TAG_REFERENCES
+        try:
+            tag_query = f"""
+                SELECT TAG_NAME, TAG_VALUE
+                FROM TABLE(INFORMATION_SCHEMA.TAG_REFERENCES(
+                    '{schema}.{table_name}', 'TABLE'
+                ))
+            """
+            tags_result, _ = self.query(tag_query)
+
+            if tags_result and len(tags_result) > 0:
+                # Format tags as list of "tag_name: tag_value"
+                # or just "tag_name"
+                tag_list = []
+                for tag_row in tags_result:
+                    tag_name = tag_row.get("TAG_NAME", "")
+                    tag_value = tag_row.get("TAG_VALUE", "")
+                    if tag_value:
+                        tag_list.append(f"{tag_name}: {tag_value}")
+                    else:
+                        tag_list.append(tag_name)
+
+                if tag_list:
+                    result["tags"] = tag_list
+
+        except Exception as e:
+            # Tag_references might fail if tags aren't enabled or accessible
+            logger.debug(
+                f"Could not fetch Snowflake table tags for {schema}.{table_name}: {e}"
+            )
+
+        return result
+
+    def get_column_metadata(
+        self, schema: str, table_name: str, column_name: str
+    ) -> dict:
+        result = {}
+
+        # Get column comment using SHOW COLUMNS
+        try:
+            query = f"SHOW COLUMNS IN {schema}.{table_name}"
+            columns, _ = self.query(query)
+
+            for col in columns:
+                col_name = col.get("column_name", "").lower()
+                if col_name == column_name.lower():
+                    comment = col.get("comment", "")
+                    if comment:
+                        result["description"] = comment
+                    break
+
+        except Exception as e:
+            logger.warning(
+                f"Could not fetch Snowflake column comment for "
+                f"{schema}.{table_name}.{column_name}: {e}"
+            )
+
+        # Get column tags using INFORMATION_SCHEMA.TAG_REFERENCES
+        try:
+            tag_query = f"""
+                SELECT TAG_NAME, TAG_VALUE
+                FROM TABLE(INFORMATION_SCHEMA.TAG_REFERENCES(
+                    '{schema}.{table_name}.{column_name}', 'COLUMN'
+                ))
+            """
+            tags_result, _ = self.query(tag_query)
+
+            if tags_result and len(tags_result) > 0:
+                # Format tags as list
+                tag_list = []
+                for tag_row in tags_result:
+                    tag_name = tag_row.get("TAG_NAME", "")
+                    tag_value = tag_row.get("TAG_VALUE", "")
+                    if tag_value:
+                        tag_list.append(f"{tag_name}: {tag_value}")
+                    else:
+                        tag_list.append(tag_name)
+
+                if tag_list:
+                    result["tags"] = tag_list
+
+        except Exception as e:
+            # Tag_references might fail if tags aren't enabled
+            logger.debug(
+                f"Could not fetch Snowflake column tags for "
+                f"{schema}.{table_name}.{column_name}: {e}"
+            )
+
+        return result
 
     def _reconnect(self):
         """Reconnect to Snowflake by invalidating cached connection and creating a new one."""  # noqa: E501

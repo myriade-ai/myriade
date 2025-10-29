@@ -3,7 +3,9 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from flask import g
+from sqlalchemy.orm import Session
 
+from back.data_warehouse import AbstractDatabase
 from models import Database
 from models.catalog import Asset, ColumnFacet, TableFacet
 
@@ -388,3 +390,60 @@ def update_catalog_privacy(
 
                 if column_facet:
                     column_facet.privacy = privacy_settings
+
+
+def get_provider_metadata_for_asset(
+    asset: Asset, data_warehouse: AbstractDatabase, session: Session
+) -> Optional[Dict[str, Any]]:
+    """
+    Extract metadata from the data provider for the given asset.
+    Delegates to database-specific methods for actual metadata retrieval.
+
+    Args:
+        asset: The asset to get provider metadata for
+        data_warehouse: The data warehouse instance to query metadata from
+        session: SQLAlchemy session for database queries
+
+    Returns:
+        Dictionary with description (comment) and tags if found, None otherwise
+    """
+    try:
+        # For table assets
+        if asset.type == "TABLE" and asset.table_facet:
+            schema = asset.table_facet.schema
+            table_name = asset.table_facet.table_name
+
+            if not schema or not table_name:
+                return None
+
+            # Delegate to data warehouse method
+            result = data_warehouse.get_table_metadata(schema, table_name)
+            return result if result else None
+
+        # For column assets
+        elif asset.type == "COLUMN" and asset.column_facet:
+            parent_asset = (
+                session.query(Asset)
+                .filter(Asset.id == asset.column_facet.parent_table_asset_id)
+                .first()
+            )
+
+            if parent_asset and parent_asset.table_facet:
+                schema = parent_asset.table_facet.schema
+                table_name = parent_asset.table_facet.table_name
+                column_name = asset.column_facet.column_name
+
+                if not schema or not table_name or not column_name:
+                    return None
+
+                # Delegate to data warehouse method
+                result = data_warehouse.get_column_metadata(
+                    schema, table_name, column_name
+                )
+                return result if result else None
+
+        return None
+
+    except Exception as e:
+        logger.error(f"Error fetching provider metadata: {e}")
+        return None

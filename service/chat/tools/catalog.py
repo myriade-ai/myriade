@@ -1,3 +1,4 @@
+import logging
 import uuid
 from enum import Enum
 from typing import List, Optional
@@ -6,8 +7,11 @@ import yaml
 from sqlalchemy.orm import Session
 
 from back.data_warehouse import AbstractDatabase
+from back.utils import get_provider_metadata_for_asset
 from models import Database
 from models.catalog import Asset, AssetTag, Term
+
+logger = logging.getLogger(__name__)
 
 
 class AssetType(Enum):
@@ -315,6 +319,13 @@ class CatalogTool:
                     "data_type": facet.data_type,
                 }
             )
+
+        # Add metadata from data provider
+        provider_metadata = get_provider_metadata_for_asset(
+            asset, self.data_warehouse, self.session
+        )
+        if provider_metadata:
+            result["sources"] = {self.data_warehouse.dialect: provider_metadata}
 
         return yaml.dump(result)
 
