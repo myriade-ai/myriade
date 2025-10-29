@@ -24,6 +24,8 @@ ERROR_TEMPLATE = """An error occurred while executing the SQL query:
 ```Please correct the query and try again.
 """
 
+TABLES_PREVIEW_LIMIT = 50
+
 
 def wrap_sql_result(rows, count):
     # We start by limiting the number of rows to 20.
@@ -77,43 +79,30 @@ class DatabaseTool:
         self.data_warehouse = data_warehouse
 
     def __repr__(self):
-        schema_tables = {}
-        schema_total_counts = {}
+        schemas = {}
 
-        # First pass: count total tables per schema
         for table in self.data_warehouse.tables_metadata:
             schema = table["schema"]
-            schema_total_counts[schema] = schema_total_counts.get(schema, 0) + 1
+            if schema not in schemas:
+                schemas[schema] = {"tables": [], "total_tables": 0}
 
-        # Second pass: build preview with limit per schema
-        for table in self.data_warehouse.tables_metadata:
-            schema = table["schema"]
-            if schema not in schema_tables:
-                schema_tables[schema] = {
-                    "tables": [],
-                    "total_tables": schema_total_counts[schema],
-                }
+            schemas[schema]["total_tables"] += 1
 
             # Only add up to 50 tables per schema
-            if len(schema_tables[schema]["tables"]) >= 50:
-                continue
+            if len(schemas[schema]["tables"]) < TABLES_PREVIEW_LIMIT:
+                table_preview = {
+                    "name": table["name"],
+                    "columns": [column["name"] for column in table["columns"]],
+                    "table_type": table["table_type"],
+                }
+                schemas[schema]["tables"].append(table_preview)
 
-            table_preview = {
-                "name": table["name"],
-                "columns": [column["name"] for column in table["columns"]],
-                "table_type": table["table_type"],
-            }
-            schema_tables[schema]["tables"].append(table_preview)
-
-        # Build SCHEMAS section with truncation info
-        schemas = {}
-        for schema, data in schema_tables.items():
-            schemas[schema] = {
-                "tables": data["tables"],
-                "truncated": data["total_tables"] > 50,
-                "total_tables": data["total_tables"],
-                "shown_tables": len(data["tables"]),
-            }
+        # Add truncation info
+        for schema_data in schemas.values():
+            schema_data["shown_tables"] = len(schema_data["tables"])
+            schema_data["is_truncated"] = (
+                schema_data["shown_tables"] < schema_data["total_tables"]
+            )
 
         context = {
             "DATABASE": {
