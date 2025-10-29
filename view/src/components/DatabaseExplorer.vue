@@ -3,40 +3,61 @@
     <CardHeader class="border-b-1">
       <CardTitle class="text-xl"> Database </CardTitle>
     </CardHeader>
-    <CardContent class="px-0 flex-1 overflow-hidden">
-      <ul role="list" class="divide-y divide-gray-200 h-full overflow-y-auto">
-        <div class="px-4 py-2" v-if="tables?.length === 0">
-          No table available. <br />Please contact support.
-        </div>
-        <DatabaseExplorerItems
-          v-for="(table, ind) in usedTables"
-          :key="ind"
-          :table="table"
-          :showColumns="table.name == showTableKey"
-          @click="onClick(table.name)"
-          @search="onSearch"
-          :isUsed="true"
+    <CardContent class="px-0 flex-1 overflow-hidden flex flex-col">
+      <!-- Search input -->
+      <div class="px-4 py-2 bg-gray-50 flex-shrink-0">
+        <Input
+          type="text"
+          placeholder="Search table"
+          id="searchTables"
+          :value="searchTablesInput"
+          @input="onSearchInput"
         />
-        <div class="px-4 py-2 bg-gray-50">
-          <Input
-            type="text"
-            placeholder="Search table"
-            id="searchTables"
-            v-model="searchTablesInput"
-          />
+      </div>
+
+      <div v-if="isLoading && tables.length === 0" class="flex-1 overflow-y-auto p-4 space-y-3">
+        <div v-for="i in 5" :key="i" class="space-y-2">
+          <div class="h-4 bg-gray-200 rounded animate-pulse w-full"></div>
+          <div class="h-3 bg-gray-100 rounded animate-pulse w-3/4"></div>
         </div>
-        <DatabaseExplorerItems
-          v-for="(table, ind) in filteredTables"
-          :key="ind"
-          :table="table"
-          :showColumns="table.name == showTableKey"
-          @click="onClick(table.name)"
-          @search="onSearch"
-        />
-        <div v-if="filteredTables.length == 0" class="block bg-white hover:bg-gray-50">
-          <p class="px-4 py-4 sm:px-6">No tables</p>
+      </div>
+
+      <div v-else ref="scrollElement" class="flex-1 overflow-y-auto">
+        <div v-if="visibleTables.length === 0" class="px-4 py-4 text-center text-sm text-gray-500">
+          <div v-if="tables.length === 0">No table available. <br />Please contact support.</div>
+          <div v-else>No tables matching search.</div>
         </div>
-      </ul>
+
+        <ul
+          v-else
+          role="list"
+          :style="{ height: `${virtualizer.getTotalSize()}px` }"
+          class="relative w-full"
+        >
+          <li
+            v-for="virtualItem in virtualizer.getVirtualItems()"
+            :key="`${visibleTables[virtualItem.index].name}-${visibleTables[virtualItem.index].schema}`"
+            :data-index="virtualItem.index"
+            :ref="(el) => measureElement(el)"
+            :style="{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualItem.start}px)`,
+              borderBottom: '1px solid #e5e7eb'
+            }"
+          >
+            <DatabaseExplorerItems
+              :table="visibleTables[virtualItem.index]"
+              :showColumns="visibleTables[virtualItem.index].name === showTableKey"
+              @click="onClick(visibleTables[virtualItem.index].name)"
+              @search="onSearch"
+              :isUsed="tableUsedCache.get(getTableKey(visibleTables[virtualItem.index])) ?? false"
+            />
+          </li>
+        </ul>
+      </div>
     </CardContent>
   </Card>
 </template>
@@ -46,28 +67,39 @@ import DatabaseExplorerItems from '@/components/DatabaseExplorerItems.vue'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useQueryEditor } from '@/composables/useQueryEditor'
-import { useDatabasesStore } from '@/stores/databases'
 import type { Table } from '@/stores/tables'
-import { useSelectedDatabaseFromContext } from '@/useSelectedDatabaseFromContext'
-import { computed, ref, watchEffect } from 'vue'
+import {
+  convertCatalogAssetsToTables,
+  useCatalogAssetsQuery
+} from '@/components/catalog/useCatalogQuery'
+import { computed, ref, watch } from 'vue'
+import { useVirtualizer } from '@tanstack/vue-virtual'
 import CardContent from './ui/card/CardContent.vue'
 
-const databasesStore = useDatabasesStore()
 const editor = useQueryEditor()
-const tables = ref<Table[]>([])
 const showTableKey = ref<string | null>(null)
-const { selectedDatabase } = useSelectedDatabaseFromContext()
+const scrollElement = ref<HTMLElement | null>(null)
 
-watchEffect(async () => {
-  const db = selectedDatabase.value
-  if (db) {
-    tables.value = await databasesStore.fetchDatabaseTables(db.id)
-  } else {
-    tables.value = []
-  }
+// Use the catalog query hook to fetch assets
+const { data: catalogAssets, isLoading } = useCatalogAssetsQuery()
+
+// Convert catalog assets to Table format
+const tables = computed<Table[]>(() => {
+  return convertCatalogAssetsToTables(catalogAssets.value ?? [])
 })
 
+// Debounced search input
 const searchTablesInput = ref('')
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
+
+function onSearchInput(event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  if (searchTimeout) clearTimeout(searchTimeout)
+
+  searchTimeout = setTimeout(() => {
+    searchTablesInput.value = value
+  }, 300) // 300ms debounce
+}
 
 function extractTables(sqlQuery: string) {
   // Regular expression to match table names following FROM, JOIN, and UPDATE keywords
@@ -87,7 +119,6 @@ function extractTables(sqlQuery: string) {
     }
   }
 
-  // Remove duplicates by converting to a Set and back to an Array
   return [...new Set(extables)]
 }
 
@@ -95,47 +126,78 @@ const extractedTables = computed(() => {
   return extractTables(editor.query.sql)
 })
 
-const isTableUsed = (table: Table) => {
+const usedTablesMap = computed<Set<string>>(() => {
+  const map = new Set<string>()
   for (const extractedTable of extractedTables.value) {
-    if (extractedTable.includes('.')) {
-      const [schema, name] = extractedTable.split('.')
-      if (table.schema === schema && table.name === name) {
-        return true
-      }
-    } else if (table.name === extractedTable) {
-      return true
-    }
+    map.add(extractedTable.toLowerCase())
   }
-  return false
+  return map
+})
+
+const getTableKey = (table: Table) => `${table.schema}.${table.name}`.toLowerCase()
+
+const isTableUsed = (table: Table): boolean => {
+  const key = getTableKey(table)
+  return usedTablesMap.value.has(key) || usedTablesMap.value.has(table.name.toLowerCase())
 }
 
-const sortedTables = computed(() => {
-  // make a copy of the tables array and sort it by the used property
-  return [...tables.value].sort((a, b) => {
-    if (isTableUsed(a) && !isTableUsed(b)) {
-      return -1
-    }
-    if (!isTableUsed(a) && isTableUsed(b)) {
-      return 1
-    }
+const tableUsedCache = computed<Map<string, boolean>>(() => {
+  const cache = new Map<string, boolean>()
+  for (const table of tables.value) {
+    cache.set(getTableKey(table), isTableUsed(table))
+  }
+  return cache
+})
+
+// Sort tables by used status, then filter by search
+const visibleTables = computed<Table[]>(() => {
+  const sortedByUsed = [...tables.value].sort((a, b) => {
+    const aUsed = tableUsedCache.value.get(getTableKey(a)) ?? false
+    const bUsed = tableUsedCache.value.get(getTableKey(b)) ?? false
+
+    if (aUsed && !bUsed) return -1
+    if (!aUsed && bUsed) return 1
     return 0
   })
+
+  // Filter by search term
+  const searchTerm = searchTablesInput.value.toLowerCase()
+  if (!searchTerm) return sortedByUsed
+
+  return sortedByUsed.filter(
+    (table) =>
+      table.name.toLowerCase().includes(searchTerm) ||
+      table.schema.toLowerCase().includes(searchTerm) ||
+      table.description.toLowerCase().includes(searchTerm)
+  )
 })
 
-const filteredTables = computed(() => {
-  return sortedTables.value.filter((table: Table) => {
-    return (
-      table.name.toLocaleLowerCase().includes(searchTablesInput.value.toLocaleLowerCase()) &&
-      !isTableUsed(table)
-    )
-  })
-})
+// Virtual scroller with dynamic height support
+const virtualizer = useVirtualizer(
+  computed(() => ({
+    count: visibleTables.value.length,
+    getScrollElement: () => scrollElement.value,
+    estimateSize: () => 80, // Estimate: collapsed table ~80px, will be measured dynamically
+    overscan: 5 // Render 5 items outside viewport
+  }))
+)
 
-const usedTables = computed(() => {
-  return tables.value.filter((table: Table) => {
-    return isTableUsed(table)
-  })
-})
+// Invalidate measurements when table expand/collapse state changes
+watch(
+  () => showTableKey.value,
+  () => {
+    virtualizer.value.measure()
+  }
+)
+
+// Helper to measure element heights for virtualizer
+function measureElement(el: any) {
+  if (!el) return
+  const element = el instanceof HTMLElement ? el : el?.$el
+  if (element) {
+    virtualizer.value.measureElement(element)
+  }
+}
 
 const onClick = (key: string) => {
   if (showTableKey.value == key) {
