@@ -294,50 +294,14 @@ const assetHasChanges = computed(() => {
 const filteredAssets = computed(() => {
   if (!assetsData.value) return []
 
-  let assets = assetsData.value
-
-  // Filter by schema if selected
-  if (selectedSchema.value && selectedSchema.value !== '__all__') {
-    assets = assets.filter((asset) => {
-      if (asset.type === 'TABLE') {
-        const schema = asset.table_facet?.schema || ''
-        return schema === selectedSchema.value
-      } else if (asset.type === 'COLUMN') {
-        const parentTable = asset.column_facet?.parent_table_facet
-        const schema = parentTable?.schema || ''
-        return schema === selectedSchema.value
-      }
-      return false
+  return assetsData.value.filter((asset) =>
+    assetMatchesFilters(asset, {
+      searchQuery: searchQuery.value,
+      selectedSchema: selectedSchema.value,
+      selectedTag: selectedTag.value,
+      selectedStatus: selectedStatus.value
     })
-  }
-
-  // Filter by tag if selected
-  if (selectedTag.value && selectedTag.value !== '__all__') {
-    assets = assets.filter((asset) => {
-      return asset.tags?.some((tag) => tag.id === selectedTag.value)
-    })
-  }
-
-  // Filter by status if selected
-  if (selectedStatus.value && selectedStatus.value !== '__all__') {
-    assets = assets.filter((asset) => {
-      return asset.status === selectedStatus.value
-    })
-  }
-
-  // Filter by search query
-  if (searchQuery.value.trim()) {
-    assets = assets.filter((asset) =>
-      assetMatchesFilters(asset, {
-        searchQuery: searchQuery.value,
-        selectedSchema: selectedSchema.value,
-        selectedTag: selectedTag.value,
-        selectedStatus: selectedStatus.value
-      })
-    )
-  }
-
-  return assets
+  )
 })
 
 // Compute stats for filtered assets
@@ -349,42 +313,15 @@ const filteredStats = computed(() => {
 })
 
 const tablesForOverview = computed(() => {
-  // Use indexed tables list instead of catalogStore.tableAssets
-  let tables = indexes.tablesList.value
-
-  // Filter by schema if selected
-  if (selectedSchema.value && selectedSchema.value !== '__all__') {
-    tables = tables.filter((table) => {
-      const schema = table.table_facet?.schema || ''
-      return schema === selectedSchema.value
+  // Use indexed tables list and filter using assetMatchesFilters
+  const tables = indexes.tablesList.value.filter((table) =>
+    assetMatchesFilters(table, {
+      searchQuery: searchQuery.value,
+      selectedSchema: selectedSchema.value,
+      selectedTag: selectedTag.value,
+      selectedStatus: selectedStatus.value
     })
-  }
-
-  // Filter by tag if selected
-  if (selectedTag.value && selectedTag.value !== '__all__') {
-    tables = tables.filter((table) => {
-      return table.tags?.some((tag) => tag.id === selectedTag.value)
-    })
-  }
-
-  // Filter by status if selected
-  if (selectedStatus.value && selectedStatus.value !== '__all__') {
-    tables = tables.filter((table) => {
-      return table.status === selectedStatus.value
-    })
-  }
-
-  // Filter by search query
-  if (searchQuery.value.trim()) {
-    tables = tables.filter((table) =>
-      assetMatchesFilters(table, {
-        searchQuery: searchQuery.value,
-        selectedSchema: selectedSchema.value,
-        selectedTag: selectedTag.value,
-        selectedStatus: selectedStatus.value
-      })
-    )
-  }
+  )
 
   // Sort by schema and name
   return tables.slice().sort((a, b) => {
