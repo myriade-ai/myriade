@@ -14,7 +14,8 @@ api = Blueprint("ai_api", __name__)
 def run_query():
     """
     Run a query against the database
-    Return eg. {"rows":[{"count":"607"}],"count":1}
+    Return eg. {"rows":[{"count":"607"}],"count":1,
+               "columns":[{"name":"count","type":"INTEGER"}]}
     """
     if not request.json:
         return jsonify({"message": "No JSON data provided"}), 400
@@ -22,10 +23,10 @@ def run_query():
     sql_query = request.json.get("query")
 
     try:
-        rows, count = g.data_warehouse.query(
+        rows, count, columns = g.data_warehouse.query(
             sql_query, role="users", skip_confirmation=True
         )
-        return jsonify({"rows": rows, "count": count})
+        return jsonify({"rows": rows, "count": count, "columns": columns})
     except Exception as e:
         return jsonify({"message": str(e)}), 500
 
@@ -88,9 +89,11 @@ def get_query_results_by_id(query_id):
         # Backward compatibility
         # We temporarily support fetching results when we don't have them
         data_warehouse = g.database.create_data_warehouse()
-        rows, count = data_warehouse.query(g.query.sql, role="users")
-        return jsonify({"rows": rows, "count": count})
+        rows, count, columns = data_warehouse.query(g.query.sql, role="users")
+        return jsonify({"rows": rows, "count": count, "columns": columns})
 
     if g.query.exception:
         return jsonify({"message": g.query.exception}), 500
-    return jsonify({"rows": g.query.rows, "count": g.query.count})
+    return jsonify(
+        {"rows": g.query.rows, "count": g.query.count, "columns": g.query.columns or []}
+    )

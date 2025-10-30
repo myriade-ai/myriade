@@ -13,9 +13,9 @@
       'organisationId': 'mock',
       'ownerId': 'admin',
       'public': False,
-      'sync_error': 'No metadata returned from data warehouse',
+      'sync_error': None,
       'sync_progress': 0,
-      'sync_status': 'failed',
+      'sync_status': 'idle',
       'write_mode': 'confirmation',
     }),
   ])

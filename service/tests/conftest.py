@@ -59,12 +59,16 @@ def mock_auth():
     with (
         patch("auth.auth._authenticate_session") as mock_auth_session,
         patch("auth.infra_utils.get_organization_data") as mock_org,
+        patch("back.background_sync.run_metadata_sync_background") as mock_bg_sync,
     ):
         # Mock the session authentication to return our mock response
         mock_auth_session.return_value = (MockAuthResponse(), False)
 
         # Mock organization data
         mock_org.return_value = mock_org_data
+
+        # Mock background sync to prevent async operations during tests
+        mock_bg_sync.return_value = None
 
         yield
 

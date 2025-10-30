@@ -20,6 +20,7 @@ const query = reactive<{
 }>({ id: null, title: '', sql: '', is_favorite: false })
 const results = ref<any[] | null>(null)
 const count = ref<number | null>(null)
+const columns = ref<Array<{ name: string }>>([])
 const error = ref<string | null>(null)
 const loading = ref(false)
 const databaseId = ref<string | null>(null)
@@ -37,7 +38,9 @@ const fetchQuery = async (id: string) => {
   return response.data
 }
 
-const executeQuery = async (sql: string): Promise<{ rows: any[]; count: number }> => {
+const executeQuery = async (
+  sql: string
+): Promise<{ rows: any[]; count: number; columns: Array<{ name: string }> }> => {
   try {
     const response = await axios.post('/api/query/_run', {
       query: sql,
@@ -45,7 +48,8 @@ const executeQuery = async (sql: string): Promise<{ rows: any[]; count: number }
     })
     return {
       rows: response.data.rows as any[],
-      count: response.data.count as number
+      count: response.data.count as number,
+      columns: (response.data.columns as Array<{ name: string }>) || []
     }
   } catch (error: any) {
     throw new Error(error.response?.data?.message || 'Query failed')
@@ -55,10 +59,11 @@ const executeQuery = async (sql: string): Promise<{ rows: any[]; count: number }
 const runQuery = async () => {
   loading.value = true
   try {
-    const { rows, count: c } = await executeQuery(query.sql)
+    const { rows, count: c, columns: cols } = await executeQuery(query.sql)
     error.value = null
     results.value = rows
     count.value = c
+    columns.value = cols
     return results.value
   } catch (message: any) {
     error.value = message
@@ -116,6 +121,7 @@ export function useQueryEditor() {
     query,
     results,
     count,
+    columns,
     error,
     loading,
     databaseId,

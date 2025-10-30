@@ -1,7 +1,7 @@
 # serializer version: 1
 # name: test_create_conversation
   dict({
-    'databaseId': '00000000-0000-0000-0000-000000000000',
+    'databaseId': 'a0000000-0000-0000-0000-000000000001',
     'name': None,
     'ownerId': 'admin',
     'projectId': None,

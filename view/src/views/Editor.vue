@@ -23,6 +23,7 @@
           v-if="editor.results.value !== null"
           :data="editor.results.value"
           :count="editor.count.value ?? 0"
+          :columns="editor.columns.value"
           class="mt-4"
         />
       </div>
