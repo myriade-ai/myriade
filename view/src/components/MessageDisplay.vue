@@ -89,7 +89,7 @@
                   part.content.count ?? (Array.isArray(part.content) ? part.content.length : 0)
                 "
                 :columns="part.content.columns"
-                class="bg-white mt-2"
+                class="mt-2"
               />
             </div>
           </template>

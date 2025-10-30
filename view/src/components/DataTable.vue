@@ -1,7 +1,7 @@
 <template>
   <div class="relative">
     <div class="rounded-md border overflow-x-auto">
-      <Table :style="{ minWidth: `${table.getCenterTotalSize()}px` }">
+      <Table :style="{ minWidth: `${table.getCenterTotalSize()}px` }" class="bg-white">
         <TableHeader>
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
             <TableHead
@@ -118,6 +118,12 @@
           Next
         </Button>
       </div>
+    </div>
+
+    <div v-else class="flex justify-end px-2 py-4">
+      <Button size="sm" variant="ghost" @click="copyToClipboard">
+        {{ copyText }}
+      </Button>
     </div>
   </div>
 </template>
