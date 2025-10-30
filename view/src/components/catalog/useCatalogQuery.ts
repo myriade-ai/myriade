@@ -24,7 +24,7 @@ export function useCatalogAssetsQuery(): UseQueryReturnType<CatalogAsset[], Erro
   const contextId = computed(() => contextsStore.contextSelected?.id)
 
   const query = useQuery({
-    queryKey: ['catalog', 'assets', contextId.value],
+    queryKey: ['catalog', 'assets', contextId],
     queryFn: async (): Promise<CatalogAsset[]> => {
       const currentContextId = contextId.value
       if (!currentContextId) {
@@ -68,7 +68,7 @@ export function useAssetSourcesQuery(
   assetId: Ref<string | null | undefined>
 ): UseQueryReturnType<AssetSources, Error> {
   const query = useQuery({
-    queryKey: ['catalog', 'asset-sources', assetId.value],
+    queryKey: ['catalog', 'asset-sources', assetId],
     queryFn: async (): Promise<AssetSources> => {
       const currentAssetId = assetId.value
       if (!currentAssetId) {
