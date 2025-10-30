@@ -24,6 +24,8 @@ ERROR_TEMPLATE = """An error occurred while executing the SQL query:
 ```Please correct the query and try again.
 """
 
+TABLES_PREVIEW_LIMIT = 50
+
 
 def wrap_sql_result(rows, count):
     # We start by limiting the number of rows to 20.
@@ -77,31 +79,40 @@ class DatabaseTool:
         self.data_warehouse = data_warehouse
 
     def __repr__(self):
-        tables_preview = []
+        schemas = {}
+
         for table in self.data_warehouse.tables_metadata:
-            table_preview = {
-                "name": table["name"],
-                "schema": table["schema"],
-                "columns": [column["name"] for column in table["columns"]],
-                "table_type": table["table_type"],
-            }
-            if table.get("description") is not None:
-                description_snippet = (
-                    table["description"][:100] + "..."
-                    if len(table["description"]) > 100  # type: ignore
-                    else table["description"]
-                )
-                table_preview["description"] = description_snippet
-            tables_preview.append(table_preview)
+            schema = table["schema"]
+            if schema not in schemas:
+                schemas[schema] = {"tables": [], "total_tables": 0}
+
+            schemas[schema]["total_tables"] += 1
+
+            # Only add up to 50 tables per schema
+            if len(schemas[schema]["tables"]) < TABLES_PREVIEW_LIMIT:
+                table_preview = {
+                    "name": table["name"],
+                    "columns": [column["name"] for column in table["columns"]],
+                    "table_type": table["table_type"],
+                }
+                schemas[schema]["tables"].append(table_preview)
+
+        # Add truncation info
+        for schema_data in schemas.values():
+            schema_data["shown_tables"] = len(schema_data["tables"])
+            schema_data["is_truncated"] = (
+                schema_data["shown_tables"] < schema_data["total_tables"]
+            )
 
         context = {
             "DATABASE": {
                 "name": self.database.name,
                 "engine": self.database.engine,
             },
-            "TABLES": tables_preview,
+            "SCHEMAS": schemas,
             "MEMORY": self.database.memory,
         }
+
         return yaml.dump(context)
 
     def save_to_memory(self, text: str) -> str:
