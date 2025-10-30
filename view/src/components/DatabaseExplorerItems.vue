@@ -30,11 +30,16 @@
         </div>
       </div>
       <div v-if="props.showColumns" class="space-y-1">
-        <div v-for="column in table.columns" :key="column.id" class="space-y-1">
-          <div class="flex justify-between text-muted-foreground text-sm">
-            <span>{{ column.name }}</span>
-            <span>{{ column.type }}</span>
-          </div>
+        <div
+          v-for="column in visibleColumns"
+          :key="column.id"
+          class="flex justify-between text-muted-foreground text-sm"
+        >
+          <span>{{ column.name }}</span>
+          <span>{{ column.type }}</span>
+        </div>
+        <div v-if="hasMoreColumns" class="text-xs text-muted-foreground italic">
+          + {{ table.columns.length - MAX_VISIBLE_COLUMNS }} more columns...
         </div>
       </div>
     </div>
@@ -44,9 +49,11 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils'
 import type { Table } from '@/stores/tables'
-import { defineProps } from 'vue'
+import { computed, defineProps } from 'vue'
 import { Search } from 'lucide-vue-next'
 import { Button } from './ui/button'
+
+const MAX_VISIBLE_COLUMNS = 10
 
 const props = defineProps({
   table: {
@@ -64,4 +71,12 @@ const props = defineProps({
 })
 
 defineEmits(['search', 'click'])
+
+const visibleColumns = computed(() => {
+  return props.table.columns.slice(0, MAX_VISIBLE_COLUMNS)
+})
+
+const hasMoreColumns = computed(() => {
+  return props.table.columns.length > MAX_VISIBLE_COLUMNS
+})
 </script>
