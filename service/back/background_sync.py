@@ -2,7 +2,7 @@
 Background task runner for database metadata synchronization.
 
 This module provides threading support for running metadata sync operations
-in the background, updating database sync status, and emitting real-time
+in the background, updating in-memory sync status, and emitting real-time
 progress events via SocketIO.
 """
 
@@ -18,6 +18,7 @@ from back.catalog_events import (
     emit_sync_failed,
     emit_sync_progress,
 )
+from back.sync_state import clear_sync_state, get_sync_state, set_sync_state
 from models import Database
 
 logger = logging.getLogger(__name__)
@@ -57,13 +58,9 @@ def run_metadata_sync_background(
                 logger.error(f"Database {database_id} not found")
                 return
 
-            # Set initial status and record start time
+            # Set initial status in memory and record start time
             sync_start_time = datetime.utcnow()
-            database.sync_status = "syncing"
-            database.sync_progress = 0
-            database.sync_started_at = sync_start_time
-            database.sync_error = None
-            session.commit()
+            set_sync_state(database_id, "syncing", 0, None)
 
             emit_sync_progress(
                 database.id,
@@ -101,7 +98,9 @@ def run_metadata_sync_background(
                 if total > 0:
                     # Metadata loading represents 0-80% of total progress
                     metadata_progress = int((current / total) * 80)
-                    database.sync_progress = metadata_progress
+
+                    # Update in-memory state
+                    set_sync_state(database_id, "syncing", metadata_progress, None)
 
                     # Batch commits: only commit every 500 tables or on last item
                     if (
@@ -189,7 +188,9 @@ def run_metadata_sync_background(
                     # Formula: 80 + (catalog_completion * 20)
                     catalog_completion = current / total
                     overall_progress = int(80 + (catalog_completion * 20))
-                    database.sync_progress = overall_progress
+
+                    # Update in-memory state
+                    set_sync_state(database_id, "syncing", overall_progress, None)
 
                     # Only emit socket progress if progress
                     # percentage changed by interval
@@ -214,17 +215,21 @@ def run_metadata_sync_background(
                         f"({overall_progress}%) - {message}"
                     )
                 else:
+                    # Get current progress from memory
+
+                    current_progress = get_sync_state(database_id)["sync_progress"]
+
                     emit_sync_progress(
                         database.id,
                         stage="catalog",
                         current=current,
                         total=total,
-                        progress=database.sync_progress,
+                        progress=current_progress,
                         message=message,
                     )
                     logger.info(
                         f"Catalog sync progress: {current}/{total}"
-                        f" ({database.sync_progress}%) - {message}"
+                        f" ({current_progress}%) - {message}"
                     )
 
             result = sync_database_metadata_to_assets(
@@ -234,11 +239,8 @@ def run_metadata_sync_background(
                 progress_callback=catalog_progress_callback,
             )
 
-            # Mark as completed
-            database.sync_status = "completed"
-            database.sync_progress = 100
-            database.sync_completed_at = datetime.utcnow()
-            session.commit()
+            # Mark as completed in memory
+            set_sync_state(database_id, "completed", 100, None)
 
             emit_sync_progress(
                 database.id,
@@ -259,23 +261,43 @@ def run_metadata_sync_background(
                 f"Synced {result.get('synced_count', 0)} assets."
             )
 
+            # Clear the sync state from memory immediately after completion
+            clear_sync_state(database_id)
+
         except Exception as e:
             logger.error(
                 f"Error during metadata sync for database {database_id}: {e}",
                 exc_info=True,
             )
 
-            # Mark as failed
+            # Mark as failed in memory
             try:
-                database = session.query(Database).filter_by(id=database_id).first()
-                if database:
-                    database.sync_status = "failed"
-                    database.sync_error = str(e)
-                    database.sync_completed_at = datetime.utcnow()
+                # Try to commit any pending metadata changes
+                try:
                     session.commit()
+                    logger.info(
+                        "Committed partial progress before marking sync as failed"
+                    )
+                except Exception as commit_err:
+                    logger.warning(
+                        f"Failed to commit partial progress: {commit_err}. "
+                        "Rolling back."
+                    )
+                    session.rollback()
+
+                last_progress = get_sync_state(database_id)["sync_progress"]
+
+                # Mark as failed in memory
+                set_sync_state(database_id, "failed", last_progress, str(e))
+
+                # Emit failure event
                 emit_sync_failed(database_id, error=str(e))
-            except Exception as commit_error:
-                logger.error(f"Failed to update sync error status: {commit_error}")
+
+                # Clear the sync state from memory after emitting the event
+                clear_sync_state(database_id)
+
+            except Exception as state_error:
+                logger.error(f"Failed to update sync error status: {state_error}")
 
         finally:
             session.close()
