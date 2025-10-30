@@ -13,6 +13,11 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from back.catalog_events import (
+    emit_sync_completed,
+    emit_sync_failed,
+    emit_sync_progress,
+)
 from models import Database
 
 logger = logging.getLogger(__name__)
@@ -39,6 +44,9 @@ def run_metadata_sync_background(
             sync_database_metadata_to_assets,
         )
 
+        # Timeout configuration (30 minutes)
+        SYNC_TIMEOUT_SECONDS = 30 * 60
+
         # Create a new session for this thread
         session: Session = session_factory()
 
@@ -49,24 +57,46 @@ def run_metadata_sync_background(
                 logger.error(f"Database {database_id} not found")
                 return
 
-            # Set initial status
+            # Set initial status and record start time
+            sync_start_time = datetime.utcnow()
             database.sync_status = "syncing"
             database.sync_progress = 0
-            database.sync_started_at = datetime.utcnow()
+            database.sync_started_at = sync_start_time
             database.sync_error = None
             session.commit()
+
+            emit_sync_progress(
+                database.id,
+                stage="metadata",
+                current=0,
+                total=0,
+                progress=0,
+                message="Starting metadata sync",
+            )
 
             # Create data warehouse instance
             data_warehouse = database.create_data_warehouse(session=session)
 
             # Track last commit to batch commits
             last_commit_count = 0
+            last_progress_percent = -1  # Track last emitted progress to throttle
             COMMIT_BATCH_SIZE = 500  # Commit every 500 tables
+            PROGRESS_UPDATE_INTERVAL = 5  # Emit progress every 5% change
 
             # Define progress callback to update status
             def progress_callback(current: int, total: int, table_name: str):
                 """Update progress in database."""
-                nonlocal last_commit_count
+                nonlocal last_commit_count, last_progress_percent
+
+                # Check for timeout
+                elapsed_seconds = (datetime.utcnow() - sync_start_time).total_seconds()
+                if elapsed_seconds > SYNC_TIMEOUT_SECONDS:
+                    timeout_mins = SYNC_TIMEOUT_SECONDS / 60
+                    error_msg = f"Sync timeout exceeded ({timeout_mins:.0f} minutes)"
+                    logger.error(
+                        f"Timeout during metadata sync for {database_id}: {error_msg}"
+                    )
+                    raise TimeoutError(error_msg)
 
                 if total > 0:
                     # Metadata loading represents 0-80% of total progress
@@ -81,10 +111,40 @@ def run_metadata_sync_background(
                         session.commit()
                         last_commit_count = current
 
-                logger.info(
-                    f"Metadata sync progress: {current}/{total} "
-                    f"({metadata_progress}%) - {table_name}"
-                )
+                    # Only emit socket progress if
+                    # progress percentage changed by interval
+                    # or if this is the last table
+                    if (
+                        current == total
+                        or metadata_progress - last_progress_percent
+                        >= PROGRESS_UPDATE_INTERVAL
+                    ):
+                        emit_sync_progress(
+                            database.id,
+                            stage="metadata",
+                            current=current,
+                            total=total,
+                            progress=metadata_progress,
+                            message=table_name,
+                        )
+                        last_progress_percent = metadata_progress
+
+                    logger.info(
+                        f"Metadata sync progress: {current}/{total} "
+                        f"({metadata_progress}%) - {table_name}"
+                    )
+                else:
+                    emit_sync_progress(
+                        database.id,
+                        stage="metadata",
+                        current=current,
+                        total=total,
+                        progress=0,
+                        message=table_name,
+                    )
+                    logger.info(
+                        f"Metadata sync progress: {current}/{total} (0%) - {table_name}"
+                    )
 
             # Load new metadata with progress tracking
             logger.info(f"Starting metadata load for database {database_id}")
@@ -108,8 +168,22 @@ def run_metadata_sync_background(
 
             # Create a progress callback for catalog sync
             # Maps 0-100% catalog progress to 80-100% overall progress
+            catalog_last_progress_percent = 80  # Start at 80 since metadata was 0-80
+
             def catalog_progress_callback(current: int, total: int, message: str):
                 """Progress callback for catalog sync phase (80-100%)."""
+                nonlocal catalog_last_progress_percent
+
+                # Check for timeout
+                elapsed_seconds = (datetime.utcnow() - sync_start_time).total_seconds()
+                if elapsed_seconds > SYNC_TIMEOUT_SECONDS:
+                    timeout_mins = SYNC_TIMEOUT_SECONDS / 60
+                    error_msg = f"Sync timeout exceeded ({timeout_mins:.0f} minutes)"
+                    logger.error(
+                        f"Timeout during catalog sync for {database_id}: {error_msg}"
+                    )
+                    raise TimeoutError(error_msg)
+
                 if total > 0:
                     # Map catalog progress to 80-100% range
                     # Formula: 80 + (catalog_completion * 20)
@@ -117,10 +191,41 @@ def run_metadata_sync_background(
                     overall_progress = int(80 + (catalog_completion * 20))
                     database.sync_progress = overall_progress
 
-                logger.info(
-                    f"Catalog sync progress: {current}/{total} "
-                    f"({overall_progress}%) - {message}"
-                )
+                    # Only emit socket progress if progress
+                    # percentage changed by interval
+                    # or if this is the last item
+                    if (
+                        current == total
+                        or overall_progress - catalog_last_progress_percent
+                        >= PROGRESS_UPDATE_INTERVAL
+                    ):
+                        emit_sync_progress(
+                            database.id,
+                            stage="catalog",
+                            current=current,
+                            total=total,
+                            progress=overall_progress,
+                            message=message,
+                        )
+                        catalog_last_progress_percent = overall_progress
+
+                    logger.info(
+                        f"Catalog sync progress: {current}/{total} "
+                        f"({overall_progress}%) - {message}"
+                    )
+                else:
+                    emit_sync_progress(
+                        database.id,
+                        stage="catalog",
+                        current=current,
+                        total=total,
+                        progress=database.sync_progress,
+                        message=message,
+                    )
+                    logger.info(
+                        f"Catalog sync progress: {current}/{total}"
+                        f" ({database.sync_progress}%) - {message}"
+                    )
 
             result = sync_database_metadata_to_assets(
                 database.id,
@@ -134,6 +239,20 @@ def run_metadata_sync_background(
             database.sync_progress = 100
             database.sync_completed_at = datetime.utcnow()
             session.commit()
+
+            emit_sync_progress(
+                database.id,
+                stage="catalog",
+                current=result.get("synced_count", 0),
+                total=result.get("synced_count", 0),
+                progress=100,
+                message="Sync completed",
+            )
+            emit_sync_completed(
+                database.id,
+                result.get("created_count", 0),
+                result.get("updated_count", 0),
+            )
 
             logger.info(
                 f"Metadata sync completed for database {database_id}. "
@@ -154,6 +273,7 @@ def run_metadata_sync_background(
                     database.sync_error = str(e)
                     database.sync_completed_at = datetime.utcnow()
                     session.commit()
+                emit_sync_failed(database_id, error=str(e))
             except Exception as commit_error:
                 logger.error(f"Failed to update sync error status: {commit_error}")
 

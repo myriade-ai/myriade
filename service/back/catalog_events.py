@@ -121,3 +121,47 @@ def emit_sync_completed(
         },
         to=room,
     )
+
+
+def emit_sync_progress(
+    database_id: UUID,
+    *,
+    stage: str,
+    current: int,
+    total: int,
+    progress: int,
+    message: str | None = None,
+) -> None:
+    """Broadcast sync progress updates to listeners."""
+
+    room = get_database_room(database_id)
+
+    socketio.emit(
+        "catalog:sync:progress",
+        {
+            "database_id": str(database_id),
+            "stage": stage,
+            "current": current,
+            "total": total,
+            "progress": progress,
+            "message": message,
+            "timestamp": datetime.utcnow().isoformat(),
+        },
+        to=room,
+    )
+
+
+def emit_sync_failed(database_id: UUID, *, error: str | None = None) -> None:
+    """Broadcast sync failure to listeners."""
+
+    room = get_database_room(database_id)
+
+    socketio.emit(
+        "catalog:sync:failed",
+        {
+            "database_id": str(database_id),
+            "error": error,
+            "timestamp": datetime.utcnow().isoformat(),
+        },
+        to=room,
+    )
