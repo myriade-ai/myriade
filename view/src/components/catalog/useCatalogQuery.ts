@@ -70,24 +70,30 @@ export function convertCatalogAssetsToTables(assets: CatalogAsset[]): Table[] {
 export function useCatalogAssetsQuery(): UseQueryReturnType<CatalogAsset[], Error> {
   const contextsStore = useContextsStore()
 
-  const contextId = computed(() => contextsStore.contextSelected?.id)
+  const databaseId = computed<string | null>(() => {
+    try {
+      return contextsStore.getSelectedContextDatabaseId()
+    } catch (error) {
+      return null
+    }
+  })
 
   const query = useQuery({
-    queryKey: ['catalog', 'assets', contextId],
+    queryKey: computed(() => ['catalog', 'assets', databaseId.value]),
     queryFn: async (): Promise<CatalogAsset[]> => {
-      const currentContextId = contextId.value
-      if (!currentContextId) {
-        throw new Error('No context selected')
+      const currentDatabaseId = databaseId.value
+      if (!currentDatabaseId) {
+        throw new Error('No database selected')
       }
 
       const response: AxiosResponse<CatalogAsset[]> = await axios.get(
-        `/api/catalogs/${currentContextId}/assets`
+        `/api/databases/${currentDatabaseId}/catalog/assets`
       )
 
       return response.data
     },
     // Only run query when we have a context selected
-    enabled: computed(() => !!contextId.value),
+    enabled: computed(() => !!databaseId.value),
 
     // KEY: Long stale time means cached data shown immediately on page navigation
     // Data is considered "fresh" for 5 minutes, so no refetch on navigation
