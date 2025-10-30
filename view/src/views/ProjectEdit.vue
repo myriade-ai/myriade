@@ -7,9 +7,7 @@
           <div class="text-sm text-gray-700">
             <div class="font-medium text-yellow-800 mb-2">When to create a project?</div>
             <ul class="space-y-1 text-gray-600">
-              <li>
-                • When you lots of tables, and you want to focus on a specific subset of tables
-              </li>
+              <li>• "When you have lots of tables, and want to focus on a specific subset"</li>
               <li>
                 • When you want to analyze a specific business domain that needs context explanation
               </li>
