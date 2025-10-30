@@ -13,10 +13,22 @@
       <TabsList
         class="flex w-full flex-wrap gap-2 border-b border-slate-200 bg-gradient-to-r from-slate-100/80 via-stone-100/80 to-slate-100/80 flex-shrink-0 rounded-none px-2"
       >
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="columns">Columns</TabsTrigger>
-        <TabsTrigger v-if="isTableAsset" value="preview">Preview</TabsTrigger>
-        <TabsTrigger value="sources">Sources</TabsTrigger>
+        <TabsTrigger value="overview">
+          <FileText class="h-4 w-4 md:hidden" />
+          <span class="hidden md:inline">Overview</span>
+        </TabsTrigger>
+        <TabsTrigger value="columns">
+          <Columns3 class="h-4 w-4 md:hidden" />
+          <span class="hidden md:inline">Columns</span>
+        </TabsTrigger>
+        <TabsTrigger v-if="isTableAsset" value="preview">
+          <Eye class="h-4 w-4 md:hidden" />
+          <span class="hidden md:inline">Preview</span>
+        </TabsTrigger>
+        <TabsTrigger value="sources">
+          <Link2 class="h-4 w-4 md:hidden" />
+          <span class="hidden md:inline">Sources</span>
+        </TabsTrigger>
       </TabsList>
       <div class="flex-1 overflow-y-auto">
         <TabsContent value="overview" class="space-y-4 px-2 py-2">
@@ -69,6 +81,9 @@ import type { CatalogAsset } from '@/stores/catalog'
 import {
   CircleQuestionMarkIcon,
   Columns3,
+  FileText,
+  Eye,
+  Link2,
   Table as TableIcon,
   View as ViewIcon
 } from 'lucide-vue-next'

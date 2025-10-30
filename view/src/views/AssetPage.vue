@@ -157,6 +157,7 @@ onUnmounted(() => {
         <Button
           @click="catalogStore.toggleSelectionMode"
           :variant="catalogStore.selectionMode ? 'default' : 'outline'"
+          class="hidden md:flex"
         >
           <SparklesIcon class="h-4 w-4" />
           {{ catalogStore.selectionMode ? 'Exit Selection Mode' : 'Select Assets for Analysis' }}
@@ -165,7 +166,10 @@ onUnmounted(() => {
     </PageHeader>
 
     <!-- Stats Bar -->
-    <div v-if="stats" class="flex gap-4 px-4 py-3 border-b bg-gray-50/50 flex-shrink-0">
+    <div
+      v-if="stats"
+      class="flex flex-wrap gap-3 lg:gap-4 px-4 py-3 border-b bg-gray-50/50 flex-shrink-0"
+    >
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium text-gray-700">Total Assets:</span>
         <span class="text-sm font-semibold text-gray-900">{{ stats.total_assets }}</span>

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-full">
+  <div class="flex h-full w-full">
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center h-full w-full">
       <LoaderIcon />
@@ -16,24 +16,25 @@
       <ResizablePanelGroup direction="horizontal" class="h-full w-full">
         <!-- Explorer Panel -->
         <ResizablePanel
-          v-if="!explorerCollapsed"
+          v-if="!isMobile && !explorerCollapsed"
           :default-size="25"
           :min-size="15"
           :max-size="40"
           :collapsible="false"
         >
           <CatalogExplorer
-            ref="explorerRef"
+            ref="desktopExplorerRef"
             v-model:collapsed="explorerCollapsed"
             :tree="filteredTree"
             :selected-asset-id="selectedAssetId"
+            :show-collapse-button="!isMobile"
             @select-asset="handleSelectAsset"
             @select-schema="handleSelectSchema"
           />
         </ResizablePanel>
 
         <!-- Resizable Handle -->
-        <ResizableHandle v-if="!explorerCollapsed" />
+        <ResizableHandle v-if="!isMobile && !explorerCollapsed" />
 
         <!-- Right side - Content and Filters Panel -->
         <ResizablePanel :default-size="explorerCollapsed ? 100 : 75">
@@ -48,14 +49,16 @@
               :tag-options="tagOptions"
               :has-active-filters="hasActiveFilters"
               :explorer-collapsed="explorerCollapsed"
+              :show-explorer-shortcut="isMobile"
               @clear-filters="clearFilters"
-              @toggle-explorer="explorerCollapsed = false"
+              @toggle-explorer="openExplorer"
+              @open-explorer="openExplorer"
             />
 
             <!-- Stats Bar (shows stats for filtered view) -->
             <div
               v-if="filteredStats && hasActiveFilters"
-              class="flex gap-4 px-4 py-2 border-b bg-blue-50/50 flex-shrink-0 text-sm"
+              class="flex flex-wrap gap-4 px-4 py-2 border-b bg-blue-50/50 flex-shrink-0 text-sm"
             >
               <div class="flex items-center gap-2">
                 <span class="font-medium text-gray-700">Filtered:</span>
@@ -122,6 +125,24 @@
         </ResizablePanel>
       </ResizablePanelGroup>
     </template>
+
+    <Sheet v-if="isMobile" :open="showExplorerSheet" @update:open="setExplorerSheetOpen">
+      <SheetContent side="left" class="flex h-full w-full max-w-sm flex-col p-0 sm:max-w-md">
+        <SheetHeader class="sr-only">
+          <SheetTitle>Catalog explorer</SheetTitle>
+          <SheetDescription>Browse by schema and table.</SheetDescription>
+        </SheetHeader>
+        <CatalogExplorer
+          ref="mobileExplorerRef"
+          :tree="filteredTree"
+          :selected-asset-id="selectedAssetId"
+          :collapsed="false"
+          :show-collapse-button="false"
+          @select-asset="handleSelectAsset"
+          @select-schema="handleSelectSchema"
+        />
+      </SheetContent>
+    </Sheet>
   </div>
 </template>
 
@@ -133,12 +154,20 @@ import CatalogListView from '@/components/catalog/CatalogListView.vue'
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import { Button } from '@/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle
+} from '@/components/ui/sheet'
 import type { CatalogAsset } from '@/stores/catalog'
 import { useCatalogStore } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import type { CatalogAssetUpdatePayload } from '@/types/catalog'
 import { computeCatalogStats } from '@/utils/catalog-stats'
 import { useQueryClient } from '@tanstack/vue-query'
+import { useMediaQuery } from '@vueuse/core'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { EditableDraft } from './catalog/types'
@@ -180,9 +209,13 @@ const selectedSchema = ref('__all__')
 const selectedTag = ref('__all__')
 const selectedStatus = ref('__all__')
 const activeTab = ref<'overview' | 'columns' | 'preview' | 'sources'>('overview')
+const isMobile = useMediaQuery('(max-width: 1023px)')
 const selectedAssetId = ref<string | null>(null)
 const explorerCollapsed = ref(false)
-const explorerRef = ref<InstanceType<typeof CatalogExplorer> | null>(null)
+type ExplorerInstance = InstanceType<typeof CatalogExplorer>
+const desktopExplorerRef = ref<ExplorerInstance | null>(null)
+const mobileExplorerRef = ref<ExplorerInstance | null>(null)
+const showExplorerSheet = ref(false)
 
 // Debounced search handler
 const debouncedUpdateSearch = debounce((query: string) => {
@@ -381,6 +414,34 @@ watch(
 )
 
 watch(
+  isMobile,
+  (mobile) => {
+    if (mobile) {
+      explorerCollapsed.value = true
+    } else {
+      explorerCollapsed.value = false
+      showExplorerSheet.value = false
+      if (selectedAssetId.value) {
+        nextTick(() => expandForAsset(selectedAssetId.value!))
+      }
+    }
+  },
+  { immediate: true }
+)
+
+watch(desktopExplorerRef, (instance) => {
+  if (instance && !isMobile.value && selectedAssetId.value) {
+    nextTick(() => expandForAsset(selectedAssetId.value!))
+  }
+})
+
+watch(showExplorerSheet, (open) => {
+  if (open && selectedAssetId.value) {
+    nextTick(() => expandForAsset(selectedAssetId.value!))
+  }
+})
+
+watch(
   selectedAsset,
   (asset) => {
     assetEditError.value = null
@@ -408,9 +469,21 @@ watch([searchQuery, selectedSchema, selectedTag, selectedStatus], () => {
   }
 })
 
+function setExplorerSheetOpen(value: boolean) {
+  showExplorerSheet.value = value
+}
+
+function openExplorer() {
+  if (isMobile.value) {
+    showExplorerSheet.value = true
+  } else {
+    explorerCollapsed.value = false
+  }
+}
+
 function expandForAsset(assetId: string) {
   const asset = indexes.assetsByIdMap.value.get(assetId)
-  if (!asset || !explorerRef.value) return
+  if (!asset) return
   const table =
     asset.type === 'TABLE'
       ? asset
@@ -418,15 +491,22 @@ function expandForAsset(assetId: string) {
   if (!table) return
   const schemaKey = `schema:${table.table_facet?.schema || ''}`
   const tableKey = `table:${table.id}`
-  explorerRef.value.expandNode(schemaKey)
-  // Only expand table if we're selecting a column
-  if (asset.type === 'COLUMN') {
-    explorerRef.value.expandNode(tableKey)
-  }
+  const explorers = [desktopExplorerRef.value, mobileExplorerRef.value].filter(
+    (instance): instance is ExplorerInstance => Boolean(instance)
+  )
+  explorers.forEach((explorer) => {
+    explorer.expandNode(schemaKey)
+    if (asset.type === 'COLUMN') {
+      explorer.expandNode(tableKey)
+    }
+  })
 }
 
 function handleSelectAsset(assetId: string) {
   selectedAssetId.value = assetId
+  if (isMobile.value) {
+    showExplorerSheet.value = false
+  }
 }
 
 function handleSelectSchema(schemaKey: string) {
@@ -434,6 +514,7 @@ function handleSelectSchema(schemaKey: string) {
   const parts = schemaKey.split(':')
   const schemaName = parts.length >= 2 ? parts.slice(1).join(':') : ''
   selectedSchema.value = schemaName || '__all__'
+  // Don't close the sheet when selecting a schema on mobile - let user browse tables
 }
 
 function clearFilters() {

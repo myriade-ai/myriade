@@ -1,17 +1,17 @@
 <template>
   <div
-    class="px-6 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-sm flex justify-between"
+    class="px-6 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-sm flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-start"
   >
-    <div>
+    <div class="flex-1 min-w-0">
       <div class="flex flex-col gap-2">
         <div>
-          <div class="flex items-center gap-2">
-            <component :is="assetIcon" class="h-5 w-5 text-primary-600" />
-            <h2 class="text-lg font-semibold leading-tight">
+          <div class="flex items-center gap-2 flex-wrap">
+            <component :is="assetIcon" class="h-5 w-5 text-primary-600 flex-shrink-0" />
+            <h2 class="text-lg font-semibold leading-tight break-words">
               {{ asset.name || assetLabel }}
             </h2>
           </div>
-          <p class="text-sm text-muted-foreground">
+          <p class="text-sm text-muted-foreground break-words whitespace-normal">
             {{ tableSummary }}
           </p>
           <div
@@ -28,13 +28,13 @@
         </Badge>
       </div>
     </div>
-    <div class="flex items-start gap-2">
+    <div class="flex items-start gap-2 flex-shrink-0 lg:flex-nowrap flex-wrap">
       <AssetBadgeStatus :status="asset.status" badge-class="text-sm" />
       <Button
         v-if="catalogStore.selectionMode"
         :variant="isSelected ? 'default' : 'ghost'"
         size="sm"
-        class="-mt-1"
+        class="-mt-1 whitespace-nowrap"
         @click="addToAnalysis"
       >
         <PlusIcon class="h-4 w-4" />
@@ -44,7 +44,7 @@
         v-else-if="showReviewButton"
         variant="ghost"
         size="sm"
-        class="-mt-1"
+        class="-mt-1 whitespace-nowrap"
         @click="reviewWithAI"
       >
         <SparklesIcon class="h-4 w-4" />
@@ -92,8 +92,8 @@ const isSelected = computed(() => {
 })
 
 function addToAnalysis() {
-  // Toggle selection for this asset (don't auto-select children)
-  catalogStore.toggleAssetSelection(props.asset.id, false)
+  // Toggle selection for this asset
+  catalogStore.toggleAssetSelection(props.asset.id)
 }
 
 async function reviewWithAI() {

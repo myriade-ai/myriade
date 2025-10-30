@@ -1,6 +1,6 @@
 <template>
   <aside
-    v-if="!collapsed"
+    v-if="!props.collapsed"
     class="flex flex-col h-full border-r border-slate-200 bg-gradient-to-b from-slate-50 to-stone-50 transition-all duration-300"
   >
     <div
@@ -11,6 +11,7 @@
         <p class="text-xs text-muted-foreground">Browse by schema and table</p>
       </div>
       <Button
+        v-if="props.showCollapseButton"
         variant="ghost"
         size="icon"
         @click="$emit('update:collapsed', true)"
@@ -21,8 +22,8 @@
       </Button>
     </div>
     <div class="flex-1 overflow-y-auto min-h-0">
-      <ul v-if="tree.length" class="space-y-1 p-2">
-        <li v-for="schemaNode in tree" :key="schemaNode.key">
+      <ul v-if="props.tree.length" class="space-y-1 p-2">
+        <li v-for="schemaNode in props.tree" :key="schemaNode.key">
           <ExplorerNode
             :label="schemaNode.name || 'default'"
             icon="schema"
@@ -41,7 +42,7 @@
                     "
                     :icon="tableNode.asset.table_facet?.table_type === 'VIEW' ? 'view' : 'table'"
                     :expanded="isExpanded(tableNode.key)"
-                    :is-selected="selectedAssetId === tableNode.asset.id"
+                    :is-selected="props.selectedAssetId === tableNode.asset.id"
                     @toggle="toggleNode(tableNode.key)"
                     @select="$emit('select-asset', tableNode.asset.id)"
                   >
@@ -49,7 +50,7 @@
                       <transition-group name="fade" tag="ul" class="space-y-0.5 pl-8 mt-1">
                         <li v-for="columnNode in tableNode.columns" :key="columnNode.asset.id">
                           <ExplorerLeaf
-                            :is-selected="selectedAssetId === columnNode.asset.id"
+                            :is-selected="props.selectedAssetId === columnNode.asset.id"
                             :label="
                               columnNode.asset.column_facet?.column_name ||
                               columnNode.asset.name ||
@@ -88,9 +89,10 @@ interface Props {
   tree: ExplorerSchemaNode[]
   selectedAssetId: string | null
   collapsed: boolean
+  showCollapseButton?: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:collapsed': [value: boolean]
