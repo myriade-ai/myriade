@@ -1,11 +1,22 @@
 <template>
   <div
-    class="grid gap-2 lg:grid-cols-[1fr_auto_auto_auto_auto] items-center flex-shrink-0 p-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-stone-50 to-slate-50"
+    class="flex flex-col gap-3 lg:gap-4 lg:grid lg:grid-cols-[1fr_auto_auto_auto_auto] lg:items-center flex-shrink-0 p-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-stone-50 to-slate-50"
   >
-    <div class="flex flex-1 items-center gap-2">
+    <!-- Search Row -->
+    <div class="flex w-full flex-wrap items-center gap-2 lg:col-span-1">
+      <Button
+        v-if="showExplorerShortcut"
+        variant="outline"
+        size="sm"
+        class="flex items-center gap-2 w-full lg:w-auto justify-center lg:justify-start"
+        @click="$emit('open-explorer')"
+      >
+        <PanelLeft class="size-4" />
+        <span>Explorer</span>
+      </Button>
       <!-- Collapsed Explorer Toggle Button -->
       <Button
-        v-if="explorerCollapsed"
+        v-if="explorerCollapsed && !showExplorerShortcut"
         variant="ghost"
         size="icon"
         @click="$emit('toggle-explorer')"
@@ -13,88 +24,95 @@
       >
         <ChevronsRight />
       </Button>
-      <Input
-        :model-value="searchQuery"
-        @update:model-value="(value) => $emit('update:searchQuery', String(value))"
-        placeholder="Search tables, columns, descriptions..."
-        class="flex-1"
-      />
-      <Button
-        variant="outline"
-        size="icon"
-        @click="$emit('clear-filters')"
-        :disabled="!hasActiveFilters"
-      >
-        <span class="sr-only">Clear filters</span>
-        ✕
-      </Button>
+      <div class="flex min-w-0 flex-1 items-center gap-2 w-full">
+        <Input
+          :model-value="searchQuery"
+          @update:model-value="(value) => $emit('update:searchQuery', String(value))"
+          placeholder="Search tables, columns, descriptions..."
+          class="w-full min-w-0 flex-1"
+        />
+        <Button
+          variant="outline"
+          size="icon"
+          class="shrink-0"
+          @click="$emit('clear-filters')"
+          :disabled="!hasActiveFilters"
+        >
+          <span class="sr-only">Clear filters</span>
+          ✕
+        </Button>
+      </div>
     </div>
-    <Select
-      :model-value="selectedSchema"
-      @update:model-value="(value) => $emit('update:selectedSchema', String(value || '__all__'))"
-    >
-      <SelectTrigger
-        :class="[
-          'lg:w-44',
-          selectedSchema && selectedSchema !== '__all__'
-            ? 'bg-primary-600 text-white [&_svg:not([class*=\'text-\'])]:text-white '
-            : ''
-        ]"
+
+    <!-- Filter Row -->
+    <div class="flex flex-col lg:flex-row gap-2 lg:col-span-4 w-full">
+      <Select
+        :model-value="selectedSchema"
+        @update:model-value="(value) => $emit('update:selectedSchema', String(value || '__all__'))"
       >
-        <SelectValue placeholder="All schemas" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__all__">All schemas</SelectItem>
-        <SelectItem v-for="schema in schemaOptions" :key="schema" :value="schema">
-          {{ schema || 'default' }}
-        </SelectItem>
-      </SelectContent>
-    </Select>
-    <Select
-      :model-value="selectedTag"
-      @update:model-value="(value) => $emit('update:selectedTag', String(value || '__all__'))"
-    >
-      <SelectTrigger
-        :class="[
-          'lg:w-44',
-          selectedTag && selectedTag !== '__all__'
-            ? 'bg-primary-600 text-white [&_svg:not([class*=\'text-\'])]:text-white '
-            : ''
-        ]"
+        <SelectTrigger
+          :class="[
+            'w-full lg:w-44',
+            selectedSchema && selectedSchema !== '__all__'
+              ? 'bg-primary-600 text-white [&_svg:not([class*=\'text-\'])]:text-white '
+              : ''
+          ]"
+        >
+          <SelectValue placeholder="All schemas" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__all__">All schemas</SelectItem>
+          <SelectItem v-for="schema in schemaOptions" :key="schema" :value="schema">
+            {{ schema || 'default' }}
+          </SelectItem>
+        </SelectContent>
+      </Select>
+      <Select
+        :model-value="selectedTag"
+        @update:model-value="(value) => $emit('update:selectedTag', String(value || '__all__'))"
       >
-        <SelectValue placeholder="All tags" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__all__">All tags</SelectItem>
-        <SelectItem v-for="tag in tagOptions" :key="tag.id" :value="tag.id">
-          {{ tag.name }}
-        </SelectItem>
-      </SelectContent>
-    </Select>
-    <Select
-      :model-value="selectedStatus"
-      @update:model-value="(value) => $emit('update:selectedStatus', String(value || '__all__'))"
-    >
-      <SelectTrigger
-        :class="[
-          'lg:w-44',
-          selectedStatus && selectedStatus !== '__all__'
-            ? 'bg-primary-600 text-white [&_svg:not([class*=\'text-\'])]:text-white '
-            : ''
-        ]"
+        <SelectTrigger
+          :class="[
+            'w-full lg:w-44',
+            selectedTag && selectedTag !== '__all__'
+              ? 'bg-primary-600 text-white [&_svg:not([class*=\'text-\'])]:text-white '
+              : ''
+          ]"
+        >
+          <SelectValue placeholder="All tags" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__all__">All tags</SelectItem>
+          <SelectItem v-for="tag in tagOptions" :key="tag.id" :value="tag.id">
+            {{ tag.name }}
+          </SelectItem>
+        </SelectContent>
+      </Select>
+      <Select
+        :model-value="selectedStatus"
+        @update:model-value="(value) => $emit('update:selectedStatus', String(value || '__all__'))"
       >
-        <SelectValue placeholder="All statuses" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__all__">All statuses</SelectItem>
-        <SelectItem value="validated">Validated</SelectItem>
-        <SelectItem value="human_authored">Human authored</SelectItem>
-        <SelectItem value="published_by_ai">Published by AI</SelectItem>
-        <SelectItem value="needs_review">Needs review</SelectItem>
-        <SelectItem value="requires_validation">Requires validation</SelectItem>
-        <SelectItem value="unverified">Unverified</SelectItem>
-      </SelectContent>
-    </Select>
+        <SelectTrigger
+          :class="[
+            'w-full lg:w-44',
+            selectedStatus && selectedStatus !== '__all__'
+              ? 'bg-primary-600 text-white [&_svg:not([class*=\'text-\'])]:text-white '
+              : ''
+          ]"
+        >
+          <SelectValue placeholder="All statuses" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__all__">All statuses</SelectItem>
+          <SelectItem value="validated">Validated</SelectItem>
+          <SelectItem value="human_authored">Human authored</SelectItem>
+          <SelectItem value="published_by_ai">Published by AI</SelectItem>
+          <SelectItem value="needs_review">Needs review</SelectItem>
+          <SelectItem value="requires_validation">Requires validation</SelectItem>
+          <SelectItem value="unverified">Unverified</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
   </div>
 </template>
 
@@ -109,7 +127,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import type { AssetTag } from '@/stores/catalog'
-import { ChevronsRight } from 'lucide-vue-next'
+import { ChevronsRight, PanelLeft } from 'lucide-vue-next'
 
 interface Props {
   searchQuery: string
@@ -120,6 +138,7 @@ interface Props {
   tagOptions: AssetTag[]
   hasActiveFilters: boolean
   explorerCollapsed: boolean
+  showExplorerShortcut?: boolean
 }
 
 defineProps<Props>()
@@ -131,5 +150,6 @@ defineEmits<{
   'update:selectedStatus': [value: string]
   'clear-filters': []
   'toggle-explorer': []
+  'open-explorer': []
 }>()
 </script>

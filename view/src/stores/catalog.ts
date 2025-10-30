@@ -52,6 +52,7 @@ export interface TableFacet {
   asset_id: string
   schema: string | null
   table_name: string | null
+  table_type: string | null
   columns_total_count?: number | null
 }
 
