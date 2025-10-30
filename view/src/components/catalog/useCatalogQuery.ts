@@ -1,6 +1,7 @@
 import axios from '@/plugins/axios'
 import type { CatalogAsset } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
+import type { Table } from '@/stores/tables'
 import { useQuery, type UseQueryReturnType } from '@tanstack/vue-query'
 import type { AxiosResponse } from 'axios'
 import { computed, type Ref } from 'vue'
@@ -12,6 +13,54 @@ export interface AssetSourceMetadata {
 
 export interface AssetSources {
   [providerName: string]: AssetSourceMetadata
+}
+
+/**
+ * Converts CatalogAsset objects to Table format
+ * Optimized to O(n) time complexity using Map for column lookup
+ */
+export function convertCatalogAssetsToTables(assets: CatalogAsset[]): Table[] {
+  // Single pass: Build index of columns by parent table ID
+  const columnsByTableId = new Map<
+    string,
+    Array<{
+      id: string
+      name: string
+      type: string
+      description: string
+    }>
+  >()
+
+  // Separate tables and columns in a single pass
+  const tableAssets: CatalogAsset[] = []
+
+  for (const asset of assets) {
+    if (asset.type === 'TABLE') {
+      tableAssets.push(asset)
+    } else if (asset.type === 'COLUMN') {
+      const parentTableId = asset.column_facet?.parent_table_asset_id
+      if (parentTableId) {
+        if (!columnsByTableId.has(parentTableId)) {
+          columnsByTableId.set(parentTableId, [])
+        }
+        columnsByTableId.get(parentTableId)!.push({
+          id: asset.id,
+          name: asset.column_facet?.column_name || asset.name || '',
+          type: asset.column_facet?.data_type || '',
+          description: asset.description || ''
+        })
+      }
+    }
+  }
+
+  // Convert tables using pre-built column map - O(n) instead of O(n²)
+  return tableAssets.map((tableAsset) => ({
+    name: tableAsset.table_facet?.table_name || tableAsset.name || '',
+    schema: tableAsset.table_facet?.schema || '',
+    description: tableAsset.description || '',
+    columns: columnsByTableId.get(tableAsset.id) || [],
+    used: false // This flag will be computed later based on query context
+  }))
 }
 
 /**
