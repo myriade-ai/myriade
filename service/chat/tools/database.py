@@ -27,12 +27,15 @@ ERROR_TEMPLATE = """An error occurred while executing the SQL query:
 TABLES_PREVIEW_LIMIT = 50
 
 
-def wrap_sql_result(rows, count):
+def wrap_sql_result(rows, count, columns=None):
     # We start by limiting the number of rows to 20.
     rows = rows[:20]
     # Then we take every row until the total size is less than JSON_OUTPUT_SIZE_LIMIT
     results_limited = limit_data_size(rows, character_limit=JSON_OUTPUT_SIZE_LIMIT)
-    results_dumps = json.dumps(results_limited)
+
+    # Build result object with columns metadata
+    result_obj = {"rows": results_limited, "count": count, "columns": columns or []}
+    results_dumps = json.dumps(result_obj)
 
     # Send the result back to the chatbot as the new question
     execution_response = RESULT_TEMPLATE.format(
@@ -155,13 +158,14 @@ class DatabaseTool:
             from_response.query_id = _query.id  # type: ignore
 
         try:
-            rows, count = self.data_warehouse.query(query, role="llm")
+            rows, count, columns = self.data_warehouse.query(query, role="llm")
             # We add the result and mark as completed
             _query.rows = rows
             _query.count = count
+            _query.columns = columns
             _query.status = "completed"
             _query.completed_at = datetime.utcnow()
-            result, _ = wrap_sql_result(rows, count)
+            result, _ = wrap_sql_result(rows, count, columns)
         except WriteOperationError as e:
             # Handle write operation that requires confirmation
             # Set query status to pending confirmation and store operation type
@@ -207,13 +211,14 @@ class DatabaseTool:
             self.session.flush()
 
             # Execute the query using unprotected method to bypass write protection
-            rows, count = self.data_warehouse.query(
+            rows, count, columns = self.data_warehouse.query(
                 _query.sql, role="llm", skip_confirmation=True
             )
 
             # Update the query with results
             _query.rows = rows
             _query.count = count
+            _query.columns = columns
             _query.status = "completed"
             _query.completed_at = datetime.utcnow()
             _query.exception = None  # Clear the pending confirmation status
@@ -225,7 +230,7 @@ class DatabaseTool:
                 success = True
             else:
                 # This returned actual data
-                result, success = wrap_sql_result(rows, count)
+                result, success = wrap_sql_result(rows, count, columns)
             return result, success
         except Exception as e:
             # Update query with error

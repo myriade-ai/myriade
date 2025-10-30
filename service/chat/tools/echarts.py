@@ -67,7 +67,7 @@ class EchartsTool:
         query = (
             self.session.query(Query).filter(Query.id == uuid.UUID(query_id)).first()
         )
-        rows, _ = self.data_warehouse.query(query.sql, role="llm")
+        rows, *_ = self.data_warehouse.query(query.sql, role="llm")
         chart_options = chart_options.copy()
         chart_options["dataset"] = {  # type: ignore
             "source": rows,  # Already serialized at the data layer

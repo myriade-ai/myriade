@@ -14,7 +14,7 @@
       </Button>
     </div>
     <BaseEditor :modelValue="sqlQuery" :readOnly="true" />
-    <DataTable :data="rows" :count="count" class="mt-4" />
+    <DataTable :data="rows" :count="count" :columns="columns" class="mt-4" />
   </div>
 </template>
 
@@ -34,6 +34,7 @@ const props = defineProps({
 
 const rows = ref([])
 const count = ref(0)
+const columns = ref<Array<{ name: string }>>([])
 const sqlQuery = ref('')
 const isQueryFavorite = ref(false)
 
@@ -45,6 +46,7 @@ onMounted(async () => {
     const result = await fetchQueryResults(props.queryId!)
     rows.value = result.rows
     count.value = result.count
+    columns.value = result.columns || []
   } catch (error) {
     console.error('Error fetching data:', error)
   }
