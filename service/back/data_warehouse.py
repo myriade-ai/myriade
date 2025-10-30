@@ -437,11 +437,21 @@ class SQLDatabase(AbstractDatabase):
 
     def load_metadata(self, progress_callback=None):
         total_tables = 0
-        # First pass: count total tables
+        # First pass: count total tables/views/materialized views for progress tracking
         for schema in self.inspector.get_schema_names():
             if schema == "information_schema":
                 continue
+
             total_tables += len(self.inspector.get_table_names(schema=schema))
+            total_tables += len(self.inspector.get_view_names(schema=schema))
+
+            get_mviews = getattr(self.inspector, "get_materialized_view_names", None)
+            if get_mviews:
+                try:
+                    total_tables += len(get_mviews(schema=schema))
+                except NotImplementedError:
+                    # Some dialects (e.g. SQLite) don't support materialized views
+                    pass
 
         current_count = 0
         for schema in self.inspector.get_schema_names():
@@ -494,7 +504,11 @@ class SQLDatabase(AbstractDatabase):
                     # Call progress callback if provided
                     current_count += 1
                     if progress_callback:
-                        progress_callback(current_count, total_tables, name)
+                        progress_callback(
+                            current_count,
+                            total_tables,
+                            f"{schema}.{name}",
+                        )
         return self.metadata
 
     def _query_unprotected(self, query) -> tuple[list[dict], list[dict]]:
@@ -1138,7 +1152,11 @@ class BigQueryDatabase(AbstractDatabase):
                 # Call progress callback if provided
                 current_count += 1
                 if progress_callback:
-                    progress_callback(current_count, total_tables, table.table_id)
+                    progress_callback(
+                        current_count,
+                        total_tables,
+                        f"{dataset_id}.{table.table_id}",
+                    )
 
         return self.metadata
 
@@ -1333,7 +1351,11 @@ class MotherDuckDatabase(AbstractDatabase):
                 # Call progress callback if provided
                 current_count += 1
                 if progress_callback:
-                    progress_callback(current_count, total_tables, table_name)
+                    progress_callback(
+                        current_count,
+                        total_tables,
+                        f"{schema_name}.{table_name}",
+                    )
 
         return self.metadata
 

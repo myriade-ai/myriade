@@ -13,9 +13,6 @@
       'organisationId': 'mock',
       'ownerId': 'admin',
       'public': False,
-      'sync_error': None,
-      'sync_progress': 0,
-      'sync_status': 'idle',
       'write_mode': 'confirmation',
     }),
   ])

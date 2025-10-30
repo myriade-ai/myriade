@@ -6,6 +6,7 @@ import type { AxiosResponse } from 'axios'
 import { useQueryClient } from '@tanstack/vue-query'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
+import { useDatabasesStore } from './databases'
 
 export type AssetType = 'TABLE' | 'COLUMN'
 
@@ -91,6 +92,11 @@ export const useCatalogStore = defineStore('catalog', () => {
   const selectionMode = ref(false)
   const selectedAssetIds = ref<string[]>([])
 
+  // Database sync state for real-time progress updates
+  const syncStatus = ref<'idle' | 'syncing' | 'completed' | 'failed'>('idle')
+  const syncProgress = ref(0)
+  const syncError = ref<string | null>(null)
+
   // Real-time synchronization state
   const currentRoom = ref<string | null>(null)
   const queryClient = useQueryClient()
@@ -112,6 +118,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         tags.value = {}
         error.value = null
         selectedAssetIds.value = []
+        resetSyncState()
 
         // Join new room for real-time updates
         if (newContext.id) {
@@ -422,11 +429,58 @@ export const useCatalogStore = defineStore('catalog', () => {
     return selectedAssetIds.value.includes(assetId)
   }
 
+  function resetSyncState() {
+    syncStatus.value = 'idle'
+    syncProgress.value = 0
+    syncError.value = null
+  }
+
+  function setSyncState(
+    status: 'idle' | 'syncing' | 'completed' | 'failed',
+    progress: number,
+    errorMessage: string | null = null
+  ) {
+    syncStatus.value = status
+    syncProgress.value = progress
+    syncError.value = errorMessage
+  }
+
   // ——————————————————————————————————————————————————
   // REAL-TIME EVENT HANDLERS
   // ——————————————————————————————————————————————————
 
   function setupRealtimeListeners() {
+    socket.on('connect', async () => {
+      if (syncStatus.value === 'syncing') {
+        try {
+          const databaseId = contextsStore.getSelectedContextDatabaseId()
+          const databasesStore = useDatabasesStore()
+
+          const status = await databasesStore.getSyncStatus(databaseId)
+
+          const normalizedStatus = (status.sync_status || 'idle') as
+            | 'idle'
+            | 'syncing'
+            | 'completed'
+            | 'failed'
+
+          setSyncState(normalizedStatus, status.sync_progress || 0, status.sync_error || null)
+
+          // If sync completed/failed while we were disconnected, refresh assets
+          if (normalizedStatus === 'completed' || normalizedStatus === 'failed') {
+            const currentContextId = contextsStore.contextSelected?.id
+            if (currentContextId) {
+              queryClient.invalidateQueries({
+                queryKey: ['catalog', 'assets', currentContextId]
+              })
+            }
+          }
+        } catch (err) {
+          console.error('[Catalog] Failed to recover sync state after reconnection:', err)
+        }
+      }
+    })
+
     socket.on(
       'catalog:asset:updated',
       (data: { asset: CatalogAsset; updated_by: string; timestamp: string }) => {
@@ -491,13 +545,53 @@ export const useCatalogStore = defineStore('catalog', () => {
     })
 
     // Sync completed - refetch all assets to get latest state
-    socket.on('catalog:sync:completed', () => {
+    socket.on('catalog:sync:completed', (data: { database_id: string }) => {
       const currentContextId = contextsStore.contextSelected?.id
       if (!currentContextId) return
 
       queryClient.invalidateQueries({
         queryKey: ['catalog', 'assets', currentContextId]
       })
+
+      try {
+        const databaseId = contextsStore.getSelectedContextDatabaseId()
+        if (databaseId === data.database_id) {
+          setSyncState('completed', 100, null)
+        }
+      } catch (err) {
+        console.error('[Catalog] Failed to compute selected database id', err)
+      }
+    })
+
+    socket.on(
+      'catalog:sync:progress',
+      (data: { database_id: string; progress: number; message?: string }) => {
+        const currentContextId = contextsStore.contextSelected?.id
+        if (!currentContextId) return
+
+        try {
+          const databaseId = contextsStore.getSelectedContextDatabaseId()
+          if (databaseId === data.database_id) {
+            setSyncState('syncing', data.progress ?? 0, null)
+          }
+        } catch (err) {
+          console.error('[Catalog] Failed to compute selected database id', err)
+        }
+      }
+    )
+
+    socket.on('catalog:sync:failed', (data: { database_id: string; error?: string }) => {
+      const currentContextId = contextsStore.contextSelected?.id
+      if (!currentContextId) return
+
+      try {
+        const databaseId = contextsStore.getSelectedContextDatabaseId()
+        if (databaseId === data.database_id) {
+          setSyncState('failed', syncProgress.value, data.error || 'Sync failed')
+        }
+      } catch (err) {
+        console.error('[Catalog] Failed to compute selected database id', err)
+      }
     })
 
     // Room joined confirmation
@@ -527,6 +621,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     terms,
     loading,
     error,
+    syncStatus,
+    syncProgress,
+    syncError,
     selectionMode,
     selectedAssetIds,
 
@@ -552,6 +649,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     addAssetSelection,
     removeAssetSelection,
     clearSelection,
-    isAssetSelected
+    isAssetSelected,
+    resetSyncState,
+    setSyncState
   }
 })
