@@ -24,10 +24,17 @@ import { Textarea } from '@/components/ui/textarea'
 import { useCatalogStore, type AssetTag } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import { PlusIcon, Trash2 } from 'lucide-vue-next'
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 const contextsStore = useContextsStore()
 const catalogStore = useCatalogStore()
+const selectedDatabaseId = computed<string | null>(() => {
+  try {
+    return contextsStore.getSelectedContextDatabaseId()
+  } catch (error) {
+    return null
+  }
+})
 const showCreateModal = ref(false)
 const showDeleteDialog = ref(false)
 const selectedTag = ref<AssetTag | null>(null)
@@ -57,12 +64,13 @@ function isEditing(tagId: string) {
 }
 
 async function createTag() {
-  if (!contextsStore.contextSelected || !newTag.value.name) {
+  const databaseId = selectedDatabaseId.value
+  if (!databaseId || !newTag.value.name) {
     return
   }
 
   try {
-    await catalogStore.createTag(contextsStore.contextSelected.id, {
+    await catalogStore.createTag(databaseId, {
       name: newTag.value.name,
       description: newTag.value.description || undefined
     })
@@ -71,7 +79,7 @@ async function createTag() {
     newTag.value = { name: '', description: '' }
     showCreateModal.value = false
 
-    catalogStore.fetchTags(contextsStore.contextSelected.id)
+    catalogStore.fetchTags(databaseId)
   } catch (error) {
     console.error('Error creating tag:', error)
   }
@@ -116,17 +124,18 @@ async function confirmDelete() {
 }
 
 watch(
-  () => contextsStore.contextSelected,
-  async (newContext, oldContext) => {
-    if (newContext && newContext.id !== oldContext?.id) {
-      await catalogStore.fetchTags(newContext.id)
+  selectedDatabaseId,
+  async (newDatabaseId, oldDatabaseId) => {
+    if (!newDatabaseId || newDatabaseId === oldDatabaseId) {
+      return
     }
+    await catalogStore.fetchTags(newDatabaseId)
   }
 )
 
 onMounted(async () => {
-  if (contextsStore.contextSelected) {
-    await catalogStore.fetchTags(contextsStore.contextSelected.id)
+  if (selectedDatabaseId.value) {
+    await catalogStore.fetchTags(selectedDatabaseId.value)
   }
 })
 </script>
