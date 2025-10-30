@@ -1,7 +1,7 @@
 [project]
 name = "myriade-service"
 description = "backend for Myriade analytic solution"
-version = "1.6.1"
+version = "1.7.0"
 authors = [
     {name = "Benjamin Derville", email = "benderville@gmail.com"}
 ]
