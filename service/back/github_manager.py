@@ -5,7 +5,7 @@ import os
 import secrets
 import shutil
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 from urllib.parse import quote
@@ -14,13 +14,14 @@ from uuid import UUID
 import requests
 from sqlalchemy.orm import Session
 
-from models import Conversation, GithubIntegration, GithubOAuthState
-
 from back.dbt_environment import DBTEnvironmentError, ensure_dbt_environment
+from models import Conversation, GithubIntegration, GithubOAuthState
 
 logger = logging.getLogger(__name__)
 
-WORKSPACE_ROOT = Path(os.getenv("GITHUB_WORKSPACE_ROOT", "/tmp/myriade/github_workspaces"))
+WORKSPACE_ROOT = Path(
+    os.getenv("GITHUB_WORKSPACE_ROOT", "/tmp/myriade/github_workspaces")
+)
 GITHUB_API_BASE = "https://api.github.com"
 GITHUB_OAUTH_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
 GITHUB_OAUTH_TOKEN_URL = "https://github.com/login/oauth/access_token"
@@ -62,10 +63,12 @@ def _run_git_command(args: List[str], cwd: Optional[Path] = None) -> str:
         )
     except subprocess.CalledProcessError as exc:
         logger.error(
-            "Git command failed", extra={"args": exc.cmd, "stdout": exc.stdout, "stderr": exc.stderr}
+            "Git command failed",
+            extra={"args": exc.cmd, "stdout": exc.stdout, "stderr": exc.stderr},
         )
+        error_msg = exc.stderr.strip() or exc.stdout.strip()
         raise GithubIntegrationError(
-            f"Git command '{' '.join(args)}' failed: {exc.stderr.strip() or exc.stdout.strip()}"
+            f"Git command '{' '.join(args)}' failed: {error_msg}"
         ) from exc
     return completed.stdout.strip()
 
@@ -76,13 +79,19 @@ def _with_authenticated_remote(
     public_url = _build_public_repo_url(integration)
     auth_url = _build_auth_repo_url(integration)
     try:
-        _run_git_command(["git", "remote", "set-url", "origin", auth_url], cwd=workspace)
+        _run_git_command(
+            ["git", "remote", "set-url", "origin", auth_url], cwd=workspace
+        )
         return callback()
     finally:
-        _run_git_command(["git", "remote", "set-url", "origin", public_url], cwd=workspace)
+        _run_git_command(
+            ["git", "remote", "set-url", "origin", public_url], cwd=workspace
+        )
 
 
-def _clone_repository(destination: Path, integration: GithubIntegration, base_branch: str) -> None:
+def _clone_repository(
+    destination: Path, integration: GithubIntegration, base_branch: str
+) -> None:
     _ensure_workspace_root()
     if destination.exists():
         shutil.rmtree(destination)
@@ -100,10 +109,14 @@ def _clone_repository(destination: Path, integration: GithubIntegration, base_br
         ]
     )
     public_url = _build_public_repo_url(integration)
-    _run_git_command(["git", "remote", "set-url", "origin", public_url], cwd=destination)
+    _run_git_command(
+        ["git", "remote", "set-url", "origin", public_url], cwd=destination
+    )
 
 
-def _get_workspace_path(conversation: Conversation, integration: GithubIntegration) -> Path:
+def _get_workspace_path(
+    conversation: Conversation, integration: GithubIntegration
+) -> Path:
     return (
         WORKSPACE_ROOT
         / str(conversation.databaseId)
@@ -136,9 +149,7 @@ def _get_oauth_client_credentials() -> tuple[str, str]:
     client_id = os.getenv("GITHUB_OAUTH_CLIENT_ID")
     client_secret = os.getenv("GITHUB_OAUTH_CLIENT_SECRET")
     if not client_id or not client_secret:
-        raise GithubIntegrationError(
-            "GitHub OAuth client is not configured."
-        )
+        raise GithubIntegrationError("GitHub OAuth client is not configured.")
     return client_id, client_secret
 
 
@@ -156,9 +167,11 @@ def start_oauth_flow(
     client_id, _ = _get_oauth_client_credentials()
     state = secrets.token_urlsafe(32)
     code_verifier = secrets.token_urlsafe(64)
-    code_challenge = base64.urlsafe_b64encode(
-        hashlib.sha256(code_verifier.encode("utf-8")).digest()
-    ).rstrip(b"=").decode("utf-8")
+    code_challenge = (
+        base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode("utf-8")).digest())
+        .rstrip(b"=")
+        .decode("utf-8")
+    )
 
     oauth_state = GithubOAuthState(
         databaseId=_as_uuid(database_id),
@@ -187,13 +200,17 @@ def _apply_token_response(
     token_payload: Dict[str, Any],
 ) -> None:
     integration.access_token = token_payload.get("access_token")
-    integration.refresh_token = token_payload.get("refresh_token") or integration.refresh_token
+    integration.refresh_token = (
+        token_payload.get("refresh_token") or integration.refresh_token
+    )
     integration.token_type = token_payload.get("token_type")
     integration.scope = token_payload.get("scope")
 
     expires_in = token_payload.get("expires_in")
     if expires_in:
-        integration.token_expires_at = datetime.utcnow() + timedelta(seconds=int(expires_in))
+        integration.token_expires_at = datetime.now(timezone.utc) + timedelta(
+            seconds=int(expires_in)
+        )
     elif not integration.token_expires_at:
         integration.token_expires_at = None
 
@@ -207,18 +224,22 @@ def exchange_oauth_code(
     redirect_uri: Optional[str],
 ) -> GithubIntegration:
     oauth_state = (
-        session.query(GithubOAuthState)
-        .filter(GithubOAuthState.state == state)
-        .first()
+        session.query(GithubOAuthState).filter(GithubOAuthState.state == state).first()
     )
     if not oauth_state:
         raise GithubIntegrationError("Invalid or expired OAuth state.")
 
     if str(oauth_state.databaseId) != str(database_id):
-        raise GithubIntegrationError("OAuth state does not match the selected database.")
+        raise GithubIntegrationError(
+            "OAuth state does not match the selected database."
+        )
     if oauth_state.userId != user_id:
         raise GithubIntegrationError("OAuth state does not belong to this user.")
-    if redirect_uri and oauth_state.redirect_uri and redirect_uri != oauth_state.redirect_uri:
+    if (
+        redirect_uri
+        and oauth_state.redirect_uri
+        and redirect_uri != oauth_state.redirect_uri
+    ):
         raise GithubIntegrationError("Redirect URI mismatch during OAuth exchange.")
 
     client_id, client_secret = _get_oauth_client_credentials()
@@ -262,7 +283,9 @@ def exchange_oauth_code(
 
 def _refresh_access_token(session: Session, integration: GithubIntegration) -> None:
     if not integration.refresh_token:
-        raise GithubIntegrationError("GitHub token expired and no refresh token is available.")
+        raise GithubIntegrationError(
+            "GitHub token expired and no refresh token is available."
+        )
 
     client_id, client_secret = _get_oauth_client_credentials()
     data = {
@@ -282,7 +305,9 @@ def _refresh_access_token(session: Session, integration: GithubIntegration) -> N
 
     payload = response.json()
     if "access_token" not in payload:
-        raise GithubIntegrationError("GitHub token refresh did not return an access token.")
+        raise GithubIntegrationError(
+            "GitHub token refresh did not return an access token."
+        )
 
     _apply_token_response(integration, payload)
     session.flush()
@@ -295,22 +320,30 @@ def ensure_valid_access_token(session: Session, integration: GithubIntegration) 
     if not integration.token_expires_at:
         return
 
-    if integration.token_expires_at - TOKEN_REFRESH_MARGIN <= datetime.utcnow():
+    if integration.token_expires_at - TOKEN_REFRESH_MARGIN <= datetime.now(
+        timezone.utc
+    ):
         _refresh_access_token(session, integration)
 
 
 def list_repositories(token: str, search: Optional[str] = None) -> List[Dict[str, Any]]:
-    headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+    }
     params = {
         "per_page": 100,
         "affiliation": "owner,collaborator,organization_member",
         "sort": "full_name",
         "direction": "asc",
     }
-    response = requests.get(f"{GITHUB_API_BASE}/user/repos", headers=headers, params=params, timeout=30)
+    response = requests.get(
+        f"{GITHUB_API_BASE}/user/repos", headers=headers, params=params, timeout=30
+    )
     if response.status_code != 200:
         raise GithubIntegrationError(
-            f"Failed to fetch repositories from GitHub: {response.status_code} {response.text}"
+            f"Failed to fetch repositories from GitHub: "
+            f"{response.status_code} {response.text}"
         )
     repos = response.json()
     if search:
@@ -343,7 +376,7 @@ def ensure_conversation_workspace(
 
     ensure_valid_access_token(session, integration)
     base_branch = integration.default_branch or "main"
-    branch_name = conversation.github_branch or f"conversation/{conversation.id}"
+    branch_name = conversation.github_branch or f"myriade/{conversation.id}"
     workspace = _get_workspace_path(conversation, integration)
 
     if not workspace.exists() or not (workspace / ".git").exists():
@@ -359,16 +392,21 @@ def ensure_conversation_workspace(
     else:
         if conversation.github_branch:
             try:
-                _run_git_command(["git", "checkout", conversation.github_branch], cwd=workspace)
+                _run_git_command(
+                    ["git", "checkout", conversation.github_branch], cwd=workspace
+                )
             except GithubIntegrationError:
                 # If checkout fails (e.g., branch missing), recreate it from base branch
                 def recreate_branch() -> None:
                     _run_git_command(["git", "fetch", "origin"], cwd=workspace)
                     _run_git_command(["git", "checkout", base_branch], cwd=workspace)
                     _run_git_command(
-                        ["git", "reset", "--hard", f"origin/{base_branch}"], cwd=workspace
+                        ["git", "reset", "--hard", f"origin/{base_branch}"],
+                        cwd=workspace,
                     )
-                    _run_git_command(["git", "checkout", "-B", branch_name], cwd=workspace)
+                    _run_git_command(
+                        ["git", "checkout", "-B", branch_name], cwd=workspace
+                    )
 
                 _with_authenticated_remote(workspace, integration, recreate_branch)
                 conversation.github_branch = branch_name
@@ -379,10 +417,13 @@ def ensure_conversation_workspace(
                 )
                 session.flush()
         else:
+
             def initialise_branch() -> None:
                 _run_git_command(["git", "fetch", "origin"], cwd=workspace)
                 _run_git_command(["git", "checkout", base_branch], cwd=workspace)
-                _run_git_command(["git", "reset", "--hard", f"origin/{base_branch}"], cwd=workspace)
+                _run_git_command(
+                    ["git", "reset", "--hard", f"origin/{base_branch}"], cwd=workspace
+                )
                 _run_git_command(["git", "checkout", "-B", branch_name], cwd=workspace)
 
             _with_authenticated_remote(workspace, integration, initialise_branch)
@@ -408,12 +449,21 @@ def create_pull_request_for_conversation(
     session: Session,
     conversation: Conversation,
     title: str,
-    commit_message: str,
+    commit_message: Optional[str] = None,
     body: Optional[str] = None,
+    skip_commit: bool = False,
 ) -> Dict[str, Any]:
+    """
+    Create a pull request for the conversation.
+
+    If skip_commit is True, assumes changes are already committed and pushed.
+    Otherwise, commits and pushes changes first.
+    """
     workspace = ensure_conversation_workspace(session, conversation)
     if not workspace:
-        raise GithubIntegrationError("GitHub integration is not configured for this conversation.")
+        raise GithubIntegrationError(
+            "GitHub integration is not configured for this conversation."
+        )
 
     integration = get_github_integration(session, conversation.database.id)
     if not integration:
@@ -421,24 +471,30 @@ def create_pull_request_for_conversation(
 
     ensure_valid_access_token(session, integration)
 
-    status = _run_git_command(["git", "status", "--porcelain"], cwd=workspace)
-    if not status:
-        raise GithubIntegrationError("No changes detected to commit before creating a pull request.")
+    if not skip_commit:
+        status = _run_git_command(["git", "status", "--porcelain"], cwd=workspace)
+        if not status:
+            raise GithubIntegrationError(
+                "No changes detected to commit before creating a pull request."
+            )
 
-    _run_git_command(["git", "add", "--all"], cwd=workspace)
+        _run_git_command(["git", "add", "--all"], cwd=workspace)
 
-    try:
-        _run_git_command(["git", "commit", "-m", commit_message], cwd=workspace)
-    except GithubIntegrationError as exc:
-        if "nothing to commit" not in str(exc):
-            raise
+        commit_msg = commit_message or title
+        try:
+            _run_git_command(["git", "commit", "-m", commit_msg], cwd=workspace)
+        except GithubIntegrationError as exc:
+            if "nothing to commit" not in str(exc):
+                raise
 
-    def push_branch() -> None:
-        if not conversation.github_branch:
-            raise GithubIntegrationError("Conversation branch is not initialised.")
-        _run_git_command(["git", "push", "origin", conversation.github_branch], cwd=workspace)
+        def push_branch() -> None:
+            if not conversation.github_branch:
+                raise GithubIntegrationError("Conversation branch is not initialised.")
+            _run_git_command(
+                ["git", "push", "origin", conversation.github_branch], cwd=workspace
+            )
 
-    _with_authenticated_remote(workspace, integration, push_branch)
+        _with_authenticated_remote(workspace, integration, push_branch)
 
     headers = {
         "Authorization": f"Bearer {integration.access_token}",

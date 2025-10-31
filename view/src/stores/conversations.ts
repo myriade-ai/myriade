@@ -347,11 +347,10 @@ export const useConversationsStore = defineStore('conversations', () => {
     return newConv
   }
 
-  async function createGithubPullRequest(
-    conversationId: string,
-    payload: { title: string; body?: string; commitMessage?: string }
-  ) {
-    const response = await axios.post(`/api/conversations/${conversationId}/github/pr`, payload)
+  async function createGithubPullRequest(conversationId: string) {
+    const response: AxiosResponse = await axios.post(
+      `/api/conversations/${conversationId}/github/pr`
+    )
     const conversation = conversations.value[conversationId]
     if (conversation) {
       conversation.githubBranch = response.data.github_branch ?? conversation.githubBranch ?? null

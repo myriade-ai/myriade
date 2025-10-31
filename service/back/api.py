@@ -270,16 +270,6 @@ def create_conversation_pull_request(conversation_id: UUID):
             {"error": "A pull request already exists for this conversation."}
         ), 400
 
-    data = request.get_json(silent=True) or {}
-    title = data.get("title")
-    commit_message = data.get("commitMessage") or title
-    body = data.get("body")
-
-    if not title:
-        return jsonify({"error": "title is required"}), 400
-    if not commit_message:
-        commit_message = title
-
     integration = get_github_integration(g.session, database.id)
     if (
         not integration
@@ -291,10 +281,70 @@ def create_conversation_pull_request(conversation_id: UUID):
             {"error": "GitHub integration is not configured for this database"}
         ), 400
 
+    # Build context for AI agent
+    context_text = f"""# Conversation Context
+Conversation Name: {conversation.name or "Unnamed conversation"}
+Database: {database.name}
+Branch: {conversation.github_branch or "N/A"}
+Repository: {integration.repo_owner}/{integration.repo_name}
+
+# Task
+Generate a pull request title, commit message, and description based on the full
+conversation history that will be loaded. The PR will contain changes made during
+this conversation.
+"""
+
+    # Set up AI agent to generate PR details
+    if AGENTLYS_PROVIDER == "proxy":
+        provider = ProxyProvider
+    else:
+        provider = AGENTLYS_PROVIDER
+
+    pr_agent = Agentlys(
+        provider=provider,
+        context=context_text,
+        use_tools_only=True,
+    )
+
+    # Load the full conversation history into the agent
+    messages = (
+        g.session.query(ConversationMessage)
+        .filter_by(conversationId=conversation.id)
+        .order_by(ConversationMessage.createdAt)
+        .all()
+    )
+    agentlys_messages = [m.to_agentlys_message() for m in messages]
+    pr_agent.load_messages(agentlys_messages)
+
+    # Define the function that will capture the generated PR details
+
+    def generate_pull_request(title: str, commit_message: str, body: str):
+        """Generate a pull request with title, commit message, and description."""
+        pass
+
+    pr_agent.add_function(generate_pull_request)
+
+    # Ask the agent to generate PR details
+    prompt = """Generate a pull request for the changes made in this conversation.
+Provide:
+1. A clear, concise title (max 72 characters) that summarizes the changes
+2. A commit message (one line summarizing the commit)
+3. A description body that explains what was changed and why (can be multiple lines)
+
+Make sure the title is specific and professional."""
+
     try:
-        create_pull_request_for_conversation(
-            g.session, conversation, title, commit_message, body
+        message = pr_agent.ask(prompt)
+    except Exception as e:
+        logger.error(
+            "Error generating PR with AI", exc_info=True, extra={"error": str(e)}
         )
+        return jsonify({"error": f"Failed to generate PR details: {str(e)}"}), 500
+
+    response_dict = message.function_call["arguments"]
+
+    try:
+        create_pull_request_for_conversation(g.session, conversation, **response_dict)
     except GithubIntegrationError as exc:
         return jsonify({"error": str(exc)}), 400
 

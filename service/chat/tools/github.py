@@ -1,9 +1,7 @@
 import logging
-from typing import Optional
 
 from back.github_manager import (
     GithubIntegrationError,
-    create_pull_request_for_conversation,
     ensure_conversation_workspace,
 )
 
@@ -21,7 +19,8 @@ class GithubTool:
         return (
             "Use this tool to work with the GitHub repository linked to the current "
             "conversation's database. It can prepare the workspace, ensure the DBT "
-            "environment is installed, and open pull requests with your changes."
+            "environment is installed, prepare pull requests for review, and create "
+            "pull requests after user validation."
         )
 
     def ensure_workspace(self) -> dict:
@@ -48,30 +47,4 @@ class GithubTool:
             "status": "ready",
             "workspace_path": str(workspace),
             "message": "DBT environment verified",
-        }
-
-    def create_pull_request(
-        self,
-        title: str,
-        body: Optional[str] = None,
-        commit_message: Optional[str] = None,
-    ) -> dict:
-        """Create a pull request for the conversation branch."""
-        if not title:
-            raise GithubIntegrationError("Pull request title is required")
-
-        commit_msg = commit_message or title
-        pr_payload = create_pull_request_for_conversation(
-            self.session,
-            self.conversation,
-            title,
-            commit_msg,
-            body,
-        )
-        self.session.flush()
-        return {
-            "pull_request_url": pr_payload.get("url"),
-            "pull_request_number": pr_payload.get("number"),
-            "branch": pr_payload.get("branch"),
-            "base": pr_payload.get("base"),
         }
