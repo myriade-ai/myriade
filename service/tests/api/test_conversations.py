@@ -3,10 +3,10 @@ import requests
 from tests.utils import normalise_json
 
 
-def test_create_conversation(app_server, snapshot):
+def test_create_conversation(app_server, test_db_id, snapshot):
     response = requests.post(
         f"{app_server}/conversations",
-        json={"contextId": "database-00000000-0000-0000-0000-000000000000"},
+        json={"contextId": f"database-{test_db_id}"},
         cookies={"session": "MOCK"},
     )
     assert response.status_code == 200

@@ -1,7 +1,7 @@
 """add github integration tables and fields
 
 Revision ID: 3f2b8c41d4aa
-Revises: 17079fd7073b
+Revises: d019f75039d5
 Create Date: 2025-10-30 00:00:00.000000
 
 """
@@ -15,7 +15,7 @@ from db import UUID
 
 # revision identifiers, used by Alembic.
 revision: str = "3f2b8c41d4aa"
-down_revision: Union[str, None] = "17079fd7073b"
+down_revision: Union[str, None] = "d019f75039d5"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -152,6 +152,8 @@ class Organisation(SerializerMixin, DefaultBase, Base):
         cascade="all, delete-orphan",
         # order_by="Project.createdAt",
     )
+
+
 @dataclass
 class ConversationMessage(SerializerMixin, DefaultBase, Base):
     __tablename__ = "conversation_message"
@@ -436,6 +438,7 @@ class Query(SerializerMixin, DefaultBase, Base):
     # Optimal type to store large results
     rows: Mapped[Optional[List[Any]]] = mapped_column(JSONB)
     count: Mapped[Optional[int]] = mapped_column(Integer)
+    columns: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(JSONB)
     exception: Mapped[Optional[str]] = mapped_column(String)
 
     # Query execution lifecycle

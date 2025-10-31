@@ -52,6 +52,7 @@ export interface TableFacet {
   asset_id: string
   schema: string | null
   table_name: string | null
+  table_type: string | null
   columns_total_count?: number | null
 }
 
@@ -96,32 +97,40 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   // Watch for context changes
   const contextsStore = useContextsStore()
+  const selectedDatabaseId = computed<string | null>(() => {
+    try {
+      return contextsStore.getSelectedContextDatabaseId()
+    } catch (error) {
+      return null
+    }
+  })
 
   watch(
-    () => contextsStore.contextSelected,
-    (newContext, oldContext) => {
-      if (newContext && newContext.id && newContext.id !== oldContext?.id) {
-        // Leave old room if we were in one
-        if (currentRoom.value && oldContext?.id) {
-          socket.emit('catalog:leave', oldContext.id)
-        }
+    selectedDatabaseId,
+    (newDatabaseId, oldDatabaseId) => {
+      if (newDatabaseId === oldDatabaseId) {
+        return
+      }
 
-        // Clear the catalog store
-        terms.value = {}
-        tags.value = {}
-        error.value = null
-        selectedAssetIds.value = []
+      if (oldDatabaseId) {
+        socket.emit('catalog:leave', oldDatabaseId)
+      }
 
-        // Join new room for real-time updates
-        if (newContext.id) {
-          socket.emit('catalog:join', newContext.id)
-          currentRoom.value = newContext.id
-        }
+      // Clear the catalog store whenever the underlying database changes
+      terms.value = {}
+      tags.value = {}
+      error.value = null
+      selectedAssetIds.value = []
 
-        fetchTags(newContext.id)
+      if (newDatabaseId) {
+        socket.emit('catalog:join', newDatabaseId)
+        currentRoom.value = newDatabaseId
+        fetchTags(newDatabaseId)
+      } else {
+        currentRoom.value = null
       }
     },
-    { immediate: true, deep: true }
+    { immediate: true }
   )
 
   // ——————————————————————————————————————————————————
@@ -134,19 +143,19 @@ export const useCatalogStore = defineStore('catalog', () => {
   // ACTIONS
   // ——————————————————————————————————————————————————
 
-  async function fetchTerms(contextId: string, limit: number = 50) {
+  async function fetchTerms(databaseId: string, limit: number = 50) {
     try {
       loading.value = true
       error.value = null
 
       const response: AxiosResponse<CatalogTerm[]> = await axios.get(
-        `/api/catalogs/${contextId}/terms`,
+        `/api/databases/${databaseId}/catalog/terms`,
         {
           params: { limit }
         }
       )
 
-      if (contextsStore.contextSelected?.id !== contextId) {
+      if (selectedDatabaseId.value !== databaseId) {
         return []
       }
 
@@ -167,7 +176,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   async function createTerm(
-    contextId: string,
+    databaseId: string,
     termData: {
       name: string
       definition: string
@@ -180,7 +189,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       error.value = null
 
       const response: AxiosResponse<CatalogTerm> = await axios.post(
-        `/api/catalogs/${contextId}/terms`,
+        `/api/databases/${databaseId}/catalog/terms`,
         termData
       )
 
@@ -262,14 +271,16 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  async function fetchTags(contextId: string) {
+  async function fetchTags(databaseId: string) {
     try {
       loading.value = true
       error.value = null
 
-      const response: AxiosResponse<AssetTag[]> = await axios.get(`/api/catalogs/${contextId}/tags`)
+      const response: AxiosResponse<AssetTag[]> = await axios.get(
+        `/api/databases/${databaseId}/catalog/tags`
+      )
 
-      if (contextsStore.contextSelected?.id !== contextId) {
+      if (selectedDatabaseId.value !== databaseId) {
         return []
       }
 
@@ -290,7 +301,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   async function createTag(
-    contextId: string,
+    databaseId: string,
     tagData: {
       name: string
       description?: string
@@ -300,7 +311,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       error.value = null
 
       const response: AxiosResponse<AssetTag> = await axios.post(
-        `/api/catalogs/${contextId}/tags`,
+        `/api/databases/${databaseId}/catalog/tags`,
         tagData
       )
 
@@ -429,11 +440,11 @@ export const useCatalogStore = defineStore('catalog', () => {
     socket.on(
       'catalog:asset:updated',
       (data: { asset: CatalogAsset; updated_by: string; timestamp: string }) => {
-        const currentContextId = contextsStore.contextSelected?.id
-        if (!currentContextId) return
+        const databaseId = selectedDatabaseId.value
+        if (!databaseId) return
 
         queryClient.setQueryData<CatalogAsset[]>(
-          ['catalog', 'assets', currentContextId],
+          ['catalog', 'assets', databaseId],
           (oldData) => {
             if (!oldData) return oldData
 
@@ -446,11 +457,11 @@ export const useCatalogStore = defineStore('catalog', () => {
     socket.on('catalog:tag:updated', (data: { tag: AssetTag; updated_by: string }) => {
       tags.value[data.tag.id] = data.tag
 
-      const currentContextId = contextsStore.contextSelected?.id
-      if (!currentContextId) return
+      const databaseId = selectedDatabaseId.value
+      if (!databaseId) return
 
       queryClient.setQueryData<CatalogAsset[]>(
-        ['catalog', 'assets', currentContextId],
+        ['catalog', 'assets', databaseId],
         (oldData) => {
           if (!oldData) return oldData
 
@@ -468,11 +479,11 @@ export const useCatalogStore = defineStore('catalog', () => {
       delete tags.value[data.tag_id]
 
       // Update assets cache: remove this tag from all assets
-      const currentContextId = contextsStore.contextSelected?.id
-      if (!currentContextId) return
+      const databaseId = selectedDatabaseId.value
+      if (!databaseId) return
 
       queryClient.setQueryData<CatalogAsset[]>(
-        ['catalog', 'assets', currentContextId],
+        ['catalog', 'assets', databaseId],
         (oldData) => {
           if (!oldData) return oldData
 
@@ -491,17 +502,17 @@ export const useCatalogStore = defineStore('catalog', () => {
 
     // Sync completed - refetch all assets to get latest state
     socket.on('catalog:sync:completed', () => {
-      const currentContextId = contextsStore.contextSelected?.id
-      if (!currentContextId) return
+      const databaseId = selectedDatabaseId.value
+      if (!databaseId) return
 
       queryClient.invalidateQueries({
-        queryKey: ['catalog', 'assets', currentContextId]
+        queryKey: ['catalog', 'assets', databaseId]
       })
     })
 
     // Room joined confirmation
-    socket.on('catalog:joined', (data: { context_id: string; room: string }) => {
-      currentRoom.value = data.context_id
+    socket.on('catalog:joined', (data: { database_id: string; room: string }) => {
+      currentRoom.value = data.database_id
     })
 
     // Room left confirmation

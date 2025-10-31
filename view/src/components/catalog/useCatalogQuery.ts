@@ -1,6 +1,7 @@
 import axios from '@/plugins/axios'
 import type { CatalogAsset } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
+import type { Table } from '@/stores/tables'
 import { useQuery, type UseQueryReturnType } from '@tanstack/vue-query'
 import type { AxiosResponse } from 'axios'
 import { computed, type Ref } from 'vue'
@@ -15,30 +16,84 @@ export interface AssetSources {
 }
 
 /**
+ * Converts CatalogAsset objects to Table format
+ * Optimized to O(n) time complexity using Map for column lookup
+ */
+export function convertCatalogAssetsToTables(assets: CatalogAsset[]): Table[] {
+  // Single pass: Build index of columns by parent table ID
+  const columnsByTableId = new Map<
+    string,
+    Array<{
+      id: string
+      name: string
+      type: string
+      description: string
+    }>
+  >()
+
+  // Separate tables and columns in a single pass
+  const tableAssets: CatalogAsset[] = []
+
+  for (const asset of assets) {
+    if (asset.type === 'TABLE') {
+      tableAssets.push(asset)
+    } else if (asset.type === 'COLUMN') {
+      const parentTableId = asset.column_facet?.parent_table_asset_id
+      if (parentTableId) {
+        if (!columnsByTableId.has(parentTableId)) {
+          columnsByTableId.set(parentTableId, [])
+        }
+        columnsByTableId.get(parentTableId)!.push({
+          id: asset.id,
+          name: asset.column_facet?.column_name || asset.name || '',
+          type: asset.column_facet?.data_type || '',
+          description: asset.description || ''
+        })
+      }
+    }
+  }
+
+  // Convert tables using pre-built column map - O(n) instead of O(n²)
+  return tableAssets.map((tableAsset) => ({
+    name: tableAsset.table_facet?.table_name || tableAsset.name || '',
+    schema: tableAsset.table_facet?.schema || '',
+    description: tableAsset.description || '',
+    columns: columnsByTableId.get(tableAsset.id) || [],
+    used: false // This flag will be computed later based on query context
+  }))
+}
+
+/**
  * TanStack Query hook for fetching catalog assets
  * Optimized for instant page display with cached data
  */
 export function useCatalogAssetsQuery(): UseQueryReturnType<CatalogAsset[], Error> {
   const contextsStore = useContextsStore()
 
-  const contextId = computed(() => contextsStore.contextSelected?.id)
+  const databaseId = computed<string | null>(() => {
+    try {
+      return contextsStore.getSelectedContextDatabaseId()
+    } catch (error) {
+      return null
+    }
+  })
 
   const query = useQuery({
-    queryKey: ['catalog', 'assets', contextId.value],
+    queryKey: computed(() => ['catalog', 'assets', databaseId.value]),
     queryFn: async (): Promise<CatalogAsset[]> => {
-      const currentContextId = contextId.value
-      if (!currentContextId) {
-        throw new Error('No context selected')
+      const currentDatabaseId = databaseId.value
+      if (!currentDatabaseId) {
+        throw new Error('No database selected')
       }
 
       const response: AxiosResponse<CatalogAsset[]> = await axios.get(
-        `/api/catalogs/${currentContextId}/assets`
+        `/api/databases/${currentDatabaseId}/catalog/assets`
       )
 
       return response.data
     },
     // Only run query when we have a context selected
-    enabled: computed(() => !!contextId.value),
+    enabled: computed(() => !!databaseId.value),
 
     // KEY: Long stale time means cached data shown immediately on page navigation
     // Data is considered "fresh" for 5 minutes, so no refetch on navigation
@@ -68,7 +123,7 @@ export function useAssetSourcesQuery(
   assetId: Ref<string | null | undefined>
 ): UseQueryReturnType<AssetSources, Error> {
   const query = useQuery({
-    queryKey: ['catalog', 'asset-sources', assetId.value],
+    queryKey: ['catalog', 'asset-sources', assetId],
     queryFn: async (): Promise<AssetSources> => {
       const currentAssetId = assetId.value
       if (!currentAssetId) {

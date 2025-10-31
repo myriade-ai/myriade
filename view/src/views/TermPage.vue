@@ -24,10 +24,17 @@ import { Textarea } from '@/components/ui/textarea'
 import { useCatalogStore, type CatalogTerm } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import { PlusIcon, Trash2 } from 'lucide-vue-next'
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 const contextsStore = useContextsStore()
 const catalogStore = useCatalogStore()
+const selectedDatabaseId = computed<string | null>(() => {
+  try {
+    return contextsStore.getSelectedContextDatabaseId()
+  } catch (error) {
+    return null
+  }
+})
 const showCreateTerm = ref(false)
 const showDeleteDialog = ref(false)
 const selectedTerm = ref<CatalogTerm | null>(null)
@@ -93,7 +100,8 @@ async function saveTerm(termId: string) {
 }
 
 async function createTerm() {
-  if (!contextsStore.contextSelected || !newTerm.value.name || !newTerm.value.definition) {
+  const databaseId = selectedDatabaseId.value
+  if (!databaseId || !newTerm.value.name || !newTerm.value.definition) {
     return
   }
 
@@ -108,7 +116,7 @@ async function createTerm() {
       .map((d) => d.trim())
       .filter((d) => d.length > 0)
 
-    await catalogStore.createTerm(contextsStore.contextSelected.id, {
+    await catalogStore.createTerm(databaseId, {
       name: newTerm.value.name,
       definition: newTerm.value.definition,
       synonyms: synonyms.length > 0 ? synonyms : undefined,
@@ -118,7 +126,7 @@ async function createTerm() {
     newTerm.value = { name: '', definition: '', synonyms: '', businessDomains: '' }
     showCreateTerm.value = false
 
-    catalogStore.fetchTerms(contextsStore.contextSelected.id)
+    catalogStore.fetchTerms(databaseId)
   } catch (error) {
     console.error('Error creating term:', error)
   }
@@ -145,17 +153,18 @@ async function confirmDelete() {
 }
 
 watch(
-  () => contextsStore.contextSelected,
-  async (newContext, oldContext) => {
-    if (newContext && newContext.id !== oldContext?.id) {
-      await catalogStore.fetchTerms(newContext.id)
+  selectedDatabaseId,
+  async (newDatabaseId, oldDatabaseId) => {
+    if (!newDatabaseId || newDatabaseId === oldDatabaseId) {
+      return
     }
+    await catalogStore.fetchTerms(newDatabaseId)
   }
 )
 
 onMounted(async () => {
-  if (contextsStore.contextSelected) {
-    await catalogStore.fetchTerms(contextsStore.contextSelected.id)
+  if (selectedDatabaseId.value) {
+    await catalogStore.fetchTerms(selectedDatabaseId.value)
   }
 })
 </script>

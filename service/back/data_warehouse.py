@@ -4,7 +4,7 @@ import sys
 import threading
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 from urllib.parse import quote_plus
 
 import sqlalchemy
@@ -225,7 +225,9 @@ class AbstractDatabase(ABC):
         pass
 
     @abstractmethod
-    def _query_unprotected(self, query) -> list[dict]:
+    def _query_unprotected(
+        self, query
+    ) -> tuple[list[dict[Any, Any]], list[dict[str, Any]]]:
         pass
 
     def get_table_metadata(self, schema: str, table_name: str) -> dict:
@@ -288,7 +290,7 @@ class AbstractDatabase(ABC):
             """
 
             # Execute the query using the database's unprotected method
-            rows, _ = self._query_with_privacy(sample_query.strip())
+            rows, *_ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -325,7 +327,9 @@ class AbstractDatabase(ABC):
             return result[0].get("count")
         return None
 
-    def query(self, sql, role="llm", skip_confirmation=False):
+    def query(
+        self, sql, role="llm", skip_confirmation=False
+    ) -> tuple[list[dict[Any, Any]], int | None, list[dict[str, Any]]]:
         """Query with full write protection based on write_mode"""
         # Check for write operations and apply protection
         if not skip_confirmation:
@@ -346,8 +350,13 @@ class AbstractDatabase(ABC):
         # For skip-confirmation mode, proceed without restrictions
         return self._query_with_privacy(sql, role)
 
-    def _query_with_privacy(self, sql, role="llm"):
-        """Handle privacy rules and execute query without write protection"""
+    def _query_with_privacy(
+        self, sql, role="llm"
+    ) -> tuple[list[dict[Any, Any]], int | None, list[dict[str, Any]]]:
+        """
+        Handle privacy rules and execute query without write protection
+        Returns (rows, count, columns) tuple
+        """
         # If privacy mode is enabled, attempt to rewrite the SQL so that the
         # encryption happens in-database rather than post-processing.
         if self.tables_metadata:
@@ -373,7 +382,7 @@ class AbstractDatabase(ABC):
                 sql = rewrite_sql(sql, privacy_rules, dialect=self.dialect)
 
         # Execute query without write protection
-        rows = self._query_unprotected(sql)
+        rows, columns = self._query_unprotected(sql)
 
         # Size check and count estimation
         # Ensure rows is not empty before trying to sum sizes if sum can handle
@@ -393,7 +402,7 @@ class AbstractDatabase(ABC):
         if self.tables_metadata and rows:
             rows = encrypt_rows(rows)
 
-        return rows, count
+        return rows, count, columns
 
     def test_connection(self):
         # Test connection by running a query
@@ -488,15 +497,17 @@ class SQLDatabase(AbstractDatabase):
                         progress_callback(current_count, total_tables, name)
         return self.metadata
 
-    def _query_unprotected(self, query) -> list[dict]:
+    def _query_unprotected(self, query) -> tuple[list[dict], list[dict]]:
         """
         Run a query against the database without write protection
         Limit the result to MAX_SIZE (approx. 2MB)
+        Returns (rows, columns) where columns is a list of {name, type} dicts
         """
         with self.engine.connect() as connection:
             result = connection.execute(text(query))
 
             rows: list[dict] = []
+            columns: list[dict] = []
             total_size: int = 0
 
             # Check if the result supports iteration (has rows)
@@ -506,7 +517,11 @@ class SQLDatabase(AbstractDatabase):
                     # This is a write operation - commit the transaction
                     connection.commit()
 
-                    return rows
+                    return rows, columns
+
+                # Extract column metadata from result
+                if result.keys():
+                    columns = [{"name": str(key)} for key in result.keys()]
 
                 for row_mapping in result:  # Iterate over SQLAlchemy Row objects
                     row_dict = _serialize_row(dict(row_mapping._mapping))
@@ -514,7 +529,7 @@ class SQLDatabase(AbstractDatabase):
 
                     if total_size + row_size > MAX_SIZE:
                         # Return partial data (already serialized)
-                        return rows
+                        return rows, columns
 
                     rows.append(row_dict)
                     total_size += row_size
@@ -529,11 +544,11 @@ class SQLDatabase(AbstractDatabase):
                     # This is a successful write operation
                     # For non-read-only mode, explicitly commit the connection
                     connection.commit()
-                    return rows
+                    return rows, columns
                 # Re-raise other iteration errors
                 raise iter_error
 
-            return rows
+            return rows, columns
 
     def get_sample_data(
         self, table_name: str, schema_name: str, limit: int = 10
@@ -566,7 +581,7 @@ class SQLDatabase(AbstractDatabase):
                 """
 
             # Execute the query using the database's unprotected method
-            rows, _ = self._query_with_privacy(sample_query.strip())
+            rows, *_ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -635,7 +650,7 @@ class OracleDatabase(SQLDatabase):
             """
 
             # Execute the query using the database's unprotected method
-            rows, _ = self._query_with_privacy(sample_query.strip())
+            rows, *_ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -729,7 +744,7 @@ class SnowflakeDatabase(AbstractDatabase):
         # Get list of schemas - handle pagination if needed
         logger.info(f"Fetching schemas from database {self.connection.database}")
         schemas_query = f"SHOW SCHEMAS IN DATABASE {self.connection.database}"
-        schemas, _ = self.query(schemas_query)
+        schemas, *_ = self.query(schemas_query)
 
         # Filter out system schemas
         user_schemas = [s for s in schemas if s["name"] not in ["INFORMATION_SCHEMA"]]
@@ -747,7 +762,7 @@ class SnowflakeDatabase(AbstractDatabase):
                 schema_tables_query = (
                     f"SHOW TABLES IN SCHEMA {self.connection.database}.{schema_name}"
                 )
-                schema_tables = self._execute_query(schema_tables_query)
+                schema_tables, _ = self._execute_query(schema_tables_query)
 
                 # If we hit the limit, log a warning
                 if len(schema_tables) >= batch_size:
@@ -802,7 +817,9 @@ class SnowflakeDatabase(AbstractDatabase):
 
             try:
                 # Fetch columns for this table
-                result = self._execute_query(f"SHOW COLUMNS IN {schema}.{table_name}")
+                result, _ = self._execute_query(
+                    f"SHOW COLUMNS IN {schema}.{table_name}"
+                )
 
                 # Convert result rows to column metadata format
                 columns = []
@@ -885,11 +902,15 @@ class SnowflakeDatabase(AbstractDatabase):
         """
         Execute a Snowflake query and return results.
         Correctly calculates data size based on sum of individual row sizes.
+        Returns (rows, columns) where columns is a list of {name, type} dicts
         """
         with self.connection.cursor() as cursor:
             cursor.execute(query)
 
+            # Extract column metadata
             column_names = [desc[0] for desc in cursor.description]
+            columns = [{"name": desc[0]} for desc in cursor.description]
+
             rows_list: list[dict] = []
             total_size: int = 0
 
@@ -904,7 +925,7 @@ class SnowflakeDatabase(AbstractDatabase):
 
                     if total_size + row_size > MAX_SIZE:
                         # Return partial data (already serialized)
-                        return rows_list
+                        return rows_list, columns
 
                     rows_list.append(row_dict)
                     total_size += row_size
@@ -912,7 +933,7 @@ class SnowflakeDatabase(AbstractDatabase):
                 if len(fetched_batch_tuples) < 1000:
                     break  # Last batch fetched
 
-            return rows_list
+            return rows_list, columns
 
     def _is_token_expired(self, error):
         """Check if the error is a Snowflake token expiration error."""
@@ -1125,6 +1146,7 @@ class BigQueryDatabase(AbstractDatabase):
         """
         Run a query against BigQuery without write protection.
         Limits the result to MAX_SIZE (approx. 2MB).
+        Returns (rows, columns) where columns is a list of {name, type} dicts
         """
         from google.cloud import bigquery
 
@@ -1132,6 +1154,9 @@ class BigQueryDatabase(AbstractDatabase):
 
         # Execute the query
         query_job = self.client.query(query, job_config=job_config)
+
+        # Extract column metadata from schema
+        columns = [{"name": field.name} for field in query_job.schema]
 
         rows_list: list[dict] = []
         total_size: int = 0
@@ -1143,12 +1168,12 @@ class BigQueryDatabase(AbstractDatabase):
 
             if total_size + row_size > MAX_SIZE:
                 # Return partial data (already serialized)
-                return rows_list
+                return rows_list, columns
 
             rows_list.append(row_dict)
             total_size += row_size
 
-        return rows_list
+        return rows_list, columns
 
     def get_sample_data(
         self, table_name: str, schema_name: str, limit: int = 10
@@ -1171,7 +1196,7 @@ class BigQueryDatabase(AbstractDatabase):
             """
 
             # Execute the query using the database's unprotected method
-            rows, _ = self._query_with_privacy(sample_query.strip())
+            rows, *_ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
             columns = list(rows[0].keys()) if rows else []
@@ -1236,7 +1261,7 @@ class MotherDuckDatabase(AbstractDatabase):
             "SELECT schema_name FROM information_schema.schemata "
             "WHERE schema_name NOT IN ('information_schema', 'main')"
         )
-        schemas, _ = self.query(schemas_query)
+        schemas, *_ = self.query(schemas_query)
 
         if not schemas:
             return []
@@ -1250,7 +1275,7 @@ class MotherDuckDatabase(AbstractDatabase):
                 FROM information_schema.tables
                 WHERE table_schema = '{schema_name}'
             """
-            tables, _ = self.query(tables_query)
+            tables, *_ = self.query(tables_query)
             if tables:
                 total_tables += len(tables)
 
@@ -1264,7 +1289,7 @@ class MotherDuckDatabase(AbstractDatabase):
                 FROM information_schema.tables
                 WHERE table_schema = '{schema_name}'
             """
-            tables, _ = self.query(tables_query)
+            tables, *_ = self.query(tables_query)
 
             if not tables:
                 continue
@@ -1280,7 +1305,7 @@ class MotherDuckDatabase(AbstractDatabase):
                     WHERE table_schema = '{schema_name}' AND table_name = '{table_name}'
                     ORDER BY ordinal_position
                 """
-                columns, _ = self.query(columns_query)
+                columns, *_ = self.query(columns_query)
 
                 formatted_columns = []
                 if not columns:
@@ -1313,7 +1338,10 @@ class MotherDuckDatabase(AbstractDatabase):
         return self.metadata
 
     def _query_unprotected(self, query):
-        """Execute query and return results with size management"""
+        """
+        Execute query and return results with size management
+        Returns (rows, columns) where columns is a list of {name, type} dicts
+        """
 
         cursor = None
         try:
@@ -1322,15 +1350,17 @@ class MotherDuckDatabase(AbstractDatabase):
             cursor.execute(query)
 
             rows_list = []
+            columns = []
             total_size = 0
 
             # Build column names once and handle case where description is None
             if cursor.description:
                 column_names = [desc[0] for desc in cursor.description]
+                columns = [{"name": desc[0]} for desc in cursor.description]
             else:
                 # No description means no selectable columns (e.g., DDL/empty result)
                 # -> return empty list
-                return rows_list
+                return rows_list, columns
 
             batch_size = 1000
             while True:
@@ -1350,7 +1380,7 @@ class MotherDuckDatabase(AbstractDatabase):
 
                     if total_size + row_size > MAX_SIZE:
                         # Return partial data (already serialized)
-                        return rows_list
+                        return rows_list, columns
 
                     rows_list.append(row_dict)
                     total_size += row_size
@@ -1358,7 +1388,7 @@ class MotherDuckDatabase(AbstractDatabase):
                 if len(batch) < batch_size:
                     break
 
-            return rows_list
+            return rows_list, columns
         except Exception as e:
             raise e
         finally:

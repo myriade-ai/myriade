@@ -27,11 +27,11 @@ from back.dbt_repository import (
 from back.github_manager import (
     GithubIntegrationError,
     create_pull_request_for_conversation,
+    ensure_valid_access_token,
     exchange_oauth_code,
     get_github_integration,
     list_repositories,
     start_oauth_flow,
-    ensure_valid_access_token,
 )
 from back.session import get_db_session
 from back.utils import (
@@ -121,6 +121,28 @@ def _user_can_manage_database(database: Database) -> bool:
     ):
         return True
     return False
+
+
+def _get_catalog_database(database_id: UUID) -> tuple[Database | None, tuple | None]:
+    """Fetch a database and verify the current user has access to it."""
+
+    database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return None, (jsonify({"error": "Database not found"}), 404)
+
+    has_access = (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
+    )
+
+    if not has_access:
+        return None, (jsonify({"error": "Access denied"}), 403)
+
+    return database, None
 
 
 @api.route("/conversations", methods=["POST"])
@@ -244,7 +266,9 @@ def create_conversation_pull_request(conversation_id: UUID):
         return jsonify({"error": "Cannot modify conversations you don't own"}), 403
 
     if conversation.github_pr_number:
-        return jsonify({"error": "A pull request already exists for this conversation."}), 400
+        return jsonify(
+            {"error": "A pull request already exists for this conversation."}
+        ), 400
 
     data = request.get_json(silent=True) or {}
     title = data.get("title")
@@ -263,7 +287,9 @@ def create_conversation_pull_request(conversation_id: UUID):
         or not integration.repo_owner
         or not integration.repo_name
     ):
-        return jsonify({"error": "GitHub integration is not configured for this database"}), 400
+        return jsonify(
+            {"error": "GitHub integration is not configured for this database"}
+        ), 400
 
     try:
         create_pull_request_for_conversation(
@@ -929,33 +955,20 @@ def get_favorites():
 
 
 # Catalog API routes
-@api.route("/catalogs/<string:context_id>/assets", methods=["GET"])
+@api.route("/databases/<uuid:database_id>/catalog/assets", methods=["GET"])
 @user_middleware
-def get_catalog_assets(context_id):
-    """Get all catalog assets for a context"""
+def get_catalog_assets(database_id: UUID):
+    """Get all catalog assets for a database."""
 
-    database_id, _ = extract_context(g.session, context_id)
-    database = g.session.query(Database).filter_by(id=database_id).first()
-
-    if not database:
-        return jsonify({"error": "Database not found"}), 404
-
-    # Verify user has access
-    if not (
-        database.ownerId == g.user.id
-        or (
-            database.organisationId is not None
-            and database.organisationId == g.organization_id
-        )
-        or database.public
-    ):
-        return jsonify({"error": "Access denied"}), 403
+    database, error_response = _get_catalog_database(database_id)
+    if error_response:
+        return error_response
 
     # Build query to fetch all assets with both facets
     # Use selectinload for parent_table_asset to avoid N+1 queries on columns
     query = (
         g.session.query(Asset)
-        .filter(Asset.database_id == database_id)
+        .filter(Asset.database_id == database.id)
         .outerjoin(Asset.table_facet)
         .outerjoin(Asset.column_facet)
         .options(
@@ -979,7 +992,7 @@ def get_catalog_assets(context_id):
     result = []
 
     # Cache database_id string conversion (all assets have same database_id)
-    database_id_str = str(database_id)
+    database_id_str = str(database.id)
 
     # Manual serialization for better performance
     for asset in assets:
@@ -1301,56 +1314,30 @@ def get_asset_sources(asset_id: str):
         return jsonify({"error": f"Failed to fetch asset sources: {str(e)}"}), 500
 
 
-@api.route("/catalogs/<string:context_id>/terms", methods=["GET"])
+@api.route("/databases/<uuid:database_id>/catalog/terms", methods=["GET"])
 @user_middleware
-def get_catalog_terms(context_id):
-    """Get catalog terms for a context"""
-    database_id, _ = extract_context(g.session, context_id)
-    database = g.session.query(Database).filter_by(id=database_id).first()
-
-    if not database:
-        return jsonify({"error": "Database not found"}), 404
-
-    # Verify user has access
-    if not (
-        database.ownerId == g.user.id
-        or (
-            database.organisationId is not None
-            and database.organisationId == g.organization_id
-        )
-        or database.public
-    ):
-        return jsonify({"error": "Access denied"}), 403
+def get_catalog_terms(database_id: UUID):
+    """Get catalog terms for a database."""
+    database, error_response = _get_catalog_database(database_id)
+    if error_response:
+        return error_response
 
     limit = int(request.args.get("limit", 50))
 
     terms = (
-        g.session.query(Term).filter(Term.database_id == database_id).limit(limit).all()
+        g.session.query(Term).filter(Term.database_id == database.id).limit(limit).all()
     )
 
     return jsonify([term.to_dict() for term in terms])
 
 
-@api.route("/catalogs/<string:context_id>/terms", methods=["POST"])
+@api.route("/databases/<uuid:database_id>/catalog/terms", methods=["POST"])
 @user_middleware
-def create_catalog_term(context_id):
-    """Create a new catalog term"""
-    database_id, _ = extract_context(g.session, context_id)
-    database = g.session.query(Database).filter_by(id=database_id).first()
-
-    if not database:
-        return jsonify({"error": "Database not found"}), 404
-
-    # Verify user has access
-    if not (
-        database.ownerId == g.user.id
-        or (
-            database.organisationId is not None
-            and database.organisationId == g.organization_id
-        )
-        or database.public
-    ):
-        return jsonify({"error": "Access denied"}), 403
+def create_catalog_term(database_id: UUID):
+    """Create a new catalog term."""
+    database, error_response = _get_catalog_database(database_id)
+    if error_response:
+        return error_response
 
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
@@ -1363,7 +1350,7 @@ def create_catalog_term(context_id):
     # Check if term with same name already exists
     existing_term = (
         g.session.query(Term)
-        .filter(Term.database_id == database_id, Term.name.ilike(data["name"]))
+        .filter(Term.database_id == database.id, Term.name.ilike(data["name"]))
         .first()
     )
 
@@ -1373,7 +1360,7 @@ def create_catalog_term(context_id):
     new_term = Term(
         name=data["name"],
         definition=data["definition"],
-        database_id=database_id,
+        database_id=database.id,
         synonyms=data.get("synonyms", []),
         business_domains=data.get("business_domains", []),
     )
@@ -1455,50 +1442,26 @@ def delete_catalog_term(term_id: str):
     return jsonify({"success": True})
 
 
-@api.route("/catalogs/<string:context_id>/tags", methods=["GET"])
+@api.route("/databases/<uuid:database_id>/catalog/tags", methods=["GET"])
 @user_middleware
-def get_catalog_tags(context_id):
-    """Get all available tags for a context"""
-    database_id, _ = extract_context(g.session, context_id)
-    database = g.session.query(Database).filter_by(id=database_id).first()
+def get_catalog_tags(database_id: UUID):
+    """Get all available tags for a database."""
+    database, error_response = _get_catalog_database(database_id)
+    if error_response:
+        return error_response
 
-    if not database:
-        return jsonify({"error": "Database not found"}), 404
-
-    if not (
-        database.ownerId == g.user.id
-        or (
-            database.organisationId is not None
-            and database.organisationId == g.organization_id
-        )
-        or database.public
-    ):
-        return jsonify({"error": "Access denied"}), 403
-
-    tags = g.session.query(AssetTag).filter(AssetTag.database_id == database_id).all()
+    tags = g.session.query(AssetTag).filter(AssetTag.database_id == database.id).all()
 
     return jsonify([tag.to_dict() for tag in tags])
 
 
-@api.route("/catalogs/<string:context_id>/tags", methods=["POST"])
+@api.route("/databases/<uuid:database_id>/catalog/tags", methods=["POST"])
 @user_middleware
-def create_catalog_tag(context_id):
-    """Create a new tag"""
-    database_id, _ = extract_context(g.session, context_id)
-    database = g.session.query(Database).filter_by(id=database_id).first()
-
-    if not database:
-        return jsonify({"error": "Database not found"}), 404
-
-    if not (
-        database.ownerId == g.user.id
-        or (
-            database.organisationId is not None
-            and database.organisationId == g.organization_id
-        )
-        or database.public
-    ):
-        return jsonify({"error": "Access denied"}), 403
+def create_catalog_tag(database_id: UUID):
+    """Create a new tag."""
+    database, error_response = _get_catalog_database(database_id)
+    if error_response:
+        return error_response
 
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
@@ -1511,7 +1474,7 @@ def create_catalog_tag(context_id):
     # Check if tag with same name already exists
     existing_tag = (
         g.session.query(AssetTag)
-        .filter(AssetTag.database_id == database_id, AssetTag.name.ilike(data["name"]))
+        .filter(AssetTag.database_id == database.id, AssetTag.name.ilike(data["name"]))
         .first()
     )
 
@@ -1521,7 +1484,7 @@ def create_catalog_tag(context_id):
     new_tag = AssetTag(
         name=data["name"],
         description=data.get("description"),
-        database_id=database_id,
+        database_id=database.id,
     )
 
     g.session.add(new_tag)
@@ -1967,11 +1930,15 @@ def update_database_github_settings(database_id: UUID):
         integration.repo_owner = new_owner
         integration.repo_name = new_name
         if new_owner and new_name:
-            integration.default_branch = data.get("default_branch") or integration.default_branch
+            integration.default_branch = (
+                data.get("default_branch") or integration.default_branch
+            )
         else:
             integration.default_branch = None
     elif "default_branch" in data:
-        integration.default_branch = data.get("default_branch") or integration.default_branch
+        integration.default_branch = (
+            data.get("default_branch") or integration.default_branch
+        )
 
     g.session.flush()
 

@@ -3,42 +3,35 @@ SocketIO event handlers for catalog room management.
 """
 
 import logging
+from uuid import UUID
 
 from flask import session as flask_session
 from flask_socketio import emit, join_room, leave_room
 
 from app import socketio
-from chat.api import context_auth_required
+from chat.api import database_auth_required
 
 logger = logging.getLogger(__name__)
 
 
 @socketio.on("catalog:join")
-@context_auth_required
-def handle_catalog_join(_session, context_id: str, *, database_id, **_):
-    """
-    Join a catalog room for real-time updates.
-
-    Args:
-        context_id: Either "database-{id}" or "project-{id}"
-        database_id: Extracted and injected by context_auth_required (keyword-only)
-    """
+@database_auth_required
+def handle_catalog_join(_session, database_id: UUID, **_):
+    """Join a database-specific catalog room for real-time updates."""
     try:
         room = f"catalog:database:{database_id}"
         join_room(room)
 
         logger.info(
-            f"User {flask_session['user'].id} joined catalog room {room} "
-            f"for context {context_id}"
+            "User %s joined catalog room %s",
+            flask_session["user"].id,
+            room,
         )
 
         # Emit only to the requesting socket
         emit(
             "catalog:joined",
-            {
-                "context_id": context_id,
-                "room": room,
-            },
+            {"database_id": str(database_id), "room": room},
         )
     except Exception as e:
         logger.error(f"Error joining catalog room: {e}", exc_info=True)
@@ -47,25 +40,21 @@ def handle_catalog_join(_session, context_id: str, *, database_id, **_):
 
 
 @socketio.on("catalog:leave")
-@context_auth_required
-def handle_catalog_leave(_session, context_id: str, *, database_id, **_):
-    """Leave a catalog room.
-
-    Args:
-        context_id: Either "database-{id}" or "project-{id}"
-        database_id: Extracted and injected by context_auth_required (keyword-only)
-    """
+@database_auth_required
+def handle_catalog_leave(_session, database_id: UUID, **_):
+    """Leave a database-specific catalog room."""
     try:
         room = f"catalog:database:{database_id}"
         leave_room(room)
 
         logger.info(
-            f"User {flask_session['user'].id} left catalog room {room} "
-            f"for context {context_id}"
+            "User %s left catalog room %s",
+            flask_session["user"].id,
+            room,
         )
 
         # Emit only to the requesting socket
-        emit("catalog:left", {"context_id": context_id})
+        emit("catalog:left", {"database_id": str(database_id)})
     except Exception as e:
         logger.error(f"Error leaving catalog room: {e}", exc_info=True)
         # Emit error only to the requesting socket

@@ -83,7 +83,14 @@
               <BaseEditor :modelValue="part.content" :read-only="true"></BaseEditor>
             </div>
             <div v-if="part.type === 'json'" :key="`json-${index}`" class="w-full overflow-x-auto">
-              <DataTable :data="part.content" :count="part.content.length" class="bg-white mt-2" />
+              <DataTable
+                :data="Array.isArray(part.content) ? part.content : part.content.rows || []"
+                :count="
+                  part.content.count ?? (Array.isArray(part.content) ? part.content.length : 0)
+                "
+                :columns="part.content.columns"
+                class="mt-2"
+              />
             </div>
           </template>
 
