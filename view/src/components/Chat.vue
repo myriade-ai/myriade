@@ -1,6 +1,34 @@
 <template>
   <div>
-    <PageHeader title="Chat" subtitle="Ask questions about your data and get instant answers." />
+    <PageHeader title="Chat" subtitle="Ask questions about your data and get instant answers.">
+      <template #actions>
+        <div v-if="conversationHasGithub" class="flex items-center gap-2">
+          <span v-if="githubBranch" class="hidden md:inline text-xs text-gray-500">
+            Branch: {{ githubBranch }}
+          </span>
+          <Button
+            v-if="githubPrUrl"
+            as="a"
+            variant="outline"
+            size="sm"
+            :href="githubPrUrl"
+            target="_blank"
+            rel="noopener"
+          >
+            View PR
+          </Button>
+          <Button
+            v-else
+            variant="outline"
+            size="sm"
+            @click="handleCreatePullRequest"
+            :disabled="creatingPr"
+          >
+            {{ creatingPr ? 'Creating…' : 'Create PR' }}
+          </Button>
+        </div>
+      </template>
+    </PageHeader>
     <div
       ref="scrollContainer"
       class="flex justify-center px-2 sm:px-4 lg:px-0"
@@ -321,6 +349,27 @@ const messageGroups = computed(() => {
 
   return groups
 })
+
+const githubBranch = computed(() => conversation.value?.githubBranch ?? null)
+const githubRepoFullName = computed(() => conversation.value?.githubRepoFullName ?? null)
+const githubPrUrl = computed(() => conversation.value?.githubPrUrl ?? null)
+const conversationHasGithub = computed(() => !!githubRepoFullName.value || !!githubBranch.value)
+
+const creatingPr = ref(false)
+
+const handleCreatePullRequest = async () => {
+  if (!conversationId.value) return
+
+  try {
+    creatingPr.value = true
+    await conversationsStore.createGithubPullRequest(conversationId.value)
+  } catch (err: any) {
+    console.error('Failed to create pull request:', err)
+    // Error will be shown through the store or a toast notification
+  } finally {
+    creatingPr.value = false
+  }
+}
 
 const shouldDisplayMessage = (message: Message) => {
   const isEmptyFunctionResponse =

@@ -355,6 +355,11 @@ class Conversation(SerializerMixin, DefaultBase, Base):
 
     owner: Mapped[Optional["User"]] = relationship()
     database: Mapped["Database"] = relationship()
+    github_branch: Mapped[Optional[str]] = mapped_column(String)
+    github_base_branch: Mapped[Optional[str]] = mapped_column(String)
+    github_repo_full_name: Mapped[Optional[str]] = mapped_column(String)
+    github_pr_url: Mapped[Optional[str]] = mapped_column(String)
+    github_pr_number: Mapped[Optional[int]] = mapped_column(Integer)
     messages: Mapped[List["ConversationMessage"]] = relationship(
         "ConversationMessage",
         back_populates="conversation",
@@ -363,6 +368,57 @@ class Conversation(SerializerMixin, DefaultBase, Base):
         order_by="ConversationMessage.createdAt",
     )
     project: Mapped[Optional["Project"]] = relationship()
+    github_branch: Mapped[Optional[str]] = mapped_column(String)
+    github_base_branch: Mapped[Optional[str]] = mapped_column(String)
+    github_repo_full_name: Mapped[Optional[str]] = mapped_column(String)
+    github_pr_url: Mapped[Optional[str]] = mapped_column(String)
+    github_pr_number: Mapped[Optional[int]] = mapped_column(Integer)
+
+
+@dataclass
+class GithubIntegration(SerializerMixin, DefaultBase, Base):
+    __tablename__ = "github_integration"
+
+    _json_exclude = SerializerMixin._json_exclude | {"access_token", "refresh_token"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    databaseId: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("database.id"), unique=True, nullable=False
+    )
+    access_token: Mapped[Optional[str]] = mapped_column(String)
+    refresh_token: Mapped[Optional[str]] = mapped_column(String)
+    token_type: Mapped[Optional[str]] = mapped_column(String)
+    scope: Mapped[Optional[str]] = mapped_column(String)
+    token_expires_at: Mapped[Optional[datetime]] = mapped_column(UtcDateTime)
+    repo_owner: Mapped[Optional[str]] = mapped_column(String)
+    repo_name: Mapped[Optional[str]] = mapped_column(String)
+    default_branch: Mapped[Optional[str]] = mapped_column(String)
+
+    database: Mapped["Database"] = relationship("Database")
+
+
+@dataclass
+class GithubOAuthState(SerializerMixin, DefaultBase, Base):
+    __tablename__ = "github_oauth_state"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    databaseId: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("database.id"), nullable=False
+    )
+    userId: Mapped[str] = mapped_column(String, nullable=False)
+    state: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    code_verifier: Mapped[Optional[str]] = mapped_column(String)
+    redirect_uri: Mapped[Optional[str]] = mapped_column(String)
+
+    database: Mapped["Database"] = relationship("Database")
 
 
 @dataclass

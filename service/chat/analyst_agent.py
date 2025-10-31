@@ -18,7 +18,9 @@ from chat.tools.dbt import DBT
 from chat.tools.echarts import EchartsTool
 from chat.tools.quality import SemanticModel
 from chat.tools.workspace import WorkspaceTool
+from chat.tools.github import GithubTool
 from chat.utils import parse_answer_text
+from back.github_manager import ensure_conversation_workspace
 from models import Chart, Conversation, ConversationMessage, Query
 
 logger = logging.getLogger(__name__)
@@ -148,11 +150,18 @@ class DataAnalystAgent:
         )
         self.agent.add_tool(catalog_tool, "catalog")
 
-        if self.conversation.database.dbt_repo_path:
+        github_workspace = ensure_conversation_workspace(self.session, self.conversation)
+        repo_path = (
+            str(github_workspace)
+            if github_workspace is not None
+            else self.conversation.database.dbt_repo_path
+        )
+
+        if repo_path:
             dbt = DBT(
                 catalog=self.conversation.database.dbt_catalog,
                 manifest=self.conversation.database.dbt_manifest,
-                repo_path=self.conversation.database.dbt_repo_path,
+                repo_path=repo_path,
                 database_config={
                     "engine": self.conversation.database.engine,
                     "details": self.conversation.database.details,
@@ -160,10 +169,11 @@ class DataAnalystAgent:
             )
             self.agent.add_tool(dbt, "dbt")
 
-            code_editor = CodeEditor(
-                self.conversation.database.dbt_repo_path,
-            )
+            code_editor = CodeEditor(repo_path)
             self.agent.add_tool(code_editor, "code_editor")
+
+        github_tool = GithubTool(self.session, self.conversation)
+        self.agent.add_tool(github_tool, "github")
 
         if self.conversation.project:
             notes = Notes(self.session, self.agent, self.conversation.project)
