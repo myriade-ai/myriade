@@ -124,9 +124,9 @@
         v-if="!isEditing && props.message.role !== 'user'"
         class="flex items-center gap-1 mt-2 justify-start -ml-2"
       >
-        <!-- Copy button for assistant messages -->
+        <!-- Copy button for answer messages -->
         <Button
-          v-if="props.message.role !== 'function'"
+          v-if="props.message.isAnswer"
           @click="copyMessage"
           title="Copy message"
           variant="ghost"
@@ -309,13 +309,30 @@ const copyMessage = async () => {
         .map((part: any) => {
           if (typeof part === 'string') return part
           if (part.type === 'text' || part.type === 'markdown') return part.content
-          if (part.type === 'sql' || part.type === 'error') return part.content
+          if (part.type === 'sql') return `\`\`\`sql\n${part.content}\n\`\`\``
+          if (part.type === 'error') return `\`\`\`error\n${part.content}\n\`\`\``
+          if (part.type === 'json') {
+            // Include table data as JSON
+            return `\`\`\`json\n${JSON.stringify(part.content, null, 2)}\n\`\`\``
+          }
+          if (part.type === 'chart' && part.content) {
+            // Include chart configuration
+            return `\`\`\`json\n${JSON.stringify(part.content, null, 2)}\n\`\`\``
+          }
+          if (part.type === 'query') {
+            // Query results are rendered separately, just note it
+            return '[Query result displayed above]'
+          }
+          if (part.type === 'chart' && part.chart_id) {
+            // Chart is rendered separately, just note it
+            return '[Chart displayed above]'
+          }
           return ''
         })
         .filter(Boolean)
         .join('\n\n')
     } else {
-      // Handle string content
+      // Handle string content (which may have code blocks)
       textToCopy = props.message.content
     }
     
