@@ -80,17 +80,28 @@
         />
       </div>
 
-      <!-- Regular description textarea (all other statuses) -->
-      <Textarea
-        v-else
-        :model-value="draft.description"
-        @update:model-value="updateDescription"
-        rows="5"
-        class="rounded-lg"
-        :disabled="isSaving"
-        @focus="$emit('start-edit')"
-        placeholder="Click to add description..."
-      />
+      <!-- Regular description view/edit (all other statuses) -->
+      <div v-else>
+        <!-- Read-only markdown view when not editing -->
+        <div
+          v-if="!isEditing && draft.description"
+          class="prose prose-sm max-w-none p-3 rounded-lg border border-slate-200 bg-slate-50/30 cursor-pointer hover:bg-slate-50 transition-colors"
+          @click="$emit('start-edit')"
+        >
+          <MarkdownDisplay :content="draft.description" class="text-sm" />
+        </div>
+        <!-- Editable textarea when editing or no description -->
+        <Textarea
+          v-else
+          :model-value="draft.description"
+          @update:model-value="updateDescription"
+          rows="5"
+          class="rounded-lg"
+          :disabled="isSaving"
+          @focus="$emit('start-edit')"
+          placeholder="Click to add description..."
+        />
+      </div>
 
       <p v-if="error" class="text-sm text-destructive">
         {{ error }}
@@ -188,6 +199,7 @@
 
 <script setup lang="ts">
 import AssetTagSelect from '@/components/AssetTagSelect.vue'
+import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
