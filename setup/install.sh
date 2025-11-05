@@ -183,7 +183,7 @@ sudo apt install -y nginx
 
 # Start Docker Compose
 print_message "Starting Myriade BI with Docker Compose..."
-if docker compose up -d; then
+if sudo docker compose up -d; then
     print_message "Docker containers started successfully"
 else
     print_error "Failed to start Docker containers"
@@ -198,7 +198,7 @@ sleep 30
 if curl -s http://localhost:8080 > /dev/null; then
     print_message "Application is responding on port 8080"
 else
-    print_warning "Application may not be ready yet. Check logs with: docker compose logs myriade"
+    print_warning "Application may not be ready yet. Check logs with: sudo docker compose logs myriade"
 fi
 
 echo ""
@@ -241,7 +241,7 @@ fi
 
 # Display running containers
 print_message "Running containers:"
-docker compose ps
+sudo docker compose ps
 
 echo ""
 print_message "Installation complete! 🎉"
