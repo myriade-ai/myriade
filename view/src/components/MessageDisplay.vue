@@ -141,6 +141,19 @@
         </template>
 
         <Button
+          variant="ghost"
+          size="sm"
+          class="p-1"
+          :disabled="isCopying"
+          title="Copy message"
+          @click="copyMessage"
+        >
+          <Loader2 v-if="isCopying" class="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+          <Check v-else-if="isCopied" class="h-3 w-3 sm:h-4 sm:w-4" />
+          <Copy v-else class="h-3 w-3 sm:h-4 sm:w-4" />
+        </Button>
+
+        <Button
           v-if="props.message.role !== 'function'"
           variant="ghost"
           size="sm"
@@ -167,8 +180,16 @@
       "
     >
       <!-- Copy button for user messages -->
-      <Button @click="copyMessage" title="Copy message" variant="ghost" size="sm" class="p-1">
-        <Check v-if="isCopied" class="h-3 w-3 sm:h-4 sm:w-4" />
+      <Button
+        @click="copyMessage"
+        title="Copy message"
+        variant="ghost"
+        size="sm"
+        class="p-1"
+        :disabled="isCopying"
+      >
+        <Loader2 v-if="isCopying" class="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+        <Check v-else-if="isCopied" class="h-3 w-3 sm:h-4 sm:w-4" />
         <Copy v-else class="h-3 w-3 sm:h-4 sm:w-4" />
       </Button>
 
@@ -215,7 +236,8 @@ import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 // Store
 import { cn } from '@/lib/utils'
 import type { Message } from '@/stores/conversations'
-import { Check, Copy, Pencil, RotateCcw, SquarePen } from 'lucide-vue-next'
+import axios from '@/plugins/axios'
+import { Check, Copy, Loader2, Pencil, RotateCcw, SquarePen } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import CodeFileDisplay from './CodeFileDisplay.vue'
 import FunctionCallRenderer from './FunctionCallRenderer.vue'
@@ -235,6 +257,7 @@ const emit = defineEmits(['editInlineClick', 'regenerateFromMessage', 'rejected'
 const isEditing = ref(false)
 const editedContent = ref('')
 const isCopied = ref(false)
+const isCopying = ref(false)
 const showActions = ref(false)
 const messageRef = ref<HTMLElement | null>(null)
 
@@ -286,23 +309,289 @@ const cancelEdit = () => {
   editedContent.value = ''
 }
 
-const copyMessage = async () => {
+const queryCopyCache = new Map<string, string>()
+const chartCopyCache = new Map<string, string>()
+
+const buildAssistantCopyContent = async () => {
+  const parts = parsedText.value
+  if (!parts?.length) {
+    if (typeof props.message.content === 'string') {
+      return props.message.content
+    }
+
+    try {
+      return JSON.stringify(props.message.content, null, 2)
+    } catch (error) {
+      console.error('Failed to serialise assistant message content:', error)
+      return ''
+    }
+  }
+
+  const segments: string[] = []
+
+  for (const part of parts) {
+    if (!part) continue
+    let chunk = ''
+
+    if (part.type === 'markdown' || part.type === 'text') {
+      if (typeof part.content === 'string') {
+        chunk = part.content.trim()
+      }
+    } else if (part.type === 'error') {
+      chunk = `Error:\n${String(part.content ?? '')}`.trim()
+    } else if (part.type === 'sql') {
+      const sql = String(part.content ?? '').trim()
+      if (sql) {
+        chunk = ['```sql', sql, '```'].join('\n')
+      }
+    } else if (part.type === 'json') {
+      chunk = formatStructuredContent(part.content)
+    } else if (part.type === 'query' && part.query_id) {
+      chunk = await formatQueryForCopy(part.query_id)
+    } else if (part.type === 'chart' && part.chart_id) {
+      chunk = await formatChartForCopy(part.chart_id)
+    }
+
+    if (chunk) {
+      segments.push(chunk)
+    }
+  }
+
+  return segments.filter(Boolean).join('\n\n')
+}
+
+type TableRow = Record<string, unknown>
+type TableColumn = string | { name?: string }
+type QueryResultsPayload = {
+  rows?: unknown[]
+  columns?: TableColumn[]
+}
+
+const formatStructuredContent = (content: unknown) => {
+  if (!content) return ''
+
+  const rows = extractRows(content)
+  const columnsSource = extractColumns(content, rows)
+
+  if (rows.length && columnsSource.length) {
+    return buildMarkdownTable(rows, columnsSource)
+  }
+
   try {
-    await navigator.clipboard.writeText(props.message.content)
+    return JSON.stringify(content, null, 2)
+  } catch (error) {
+    console.error('Failed to serialise structured content:', error)
+    return String(content)
+  }
+}
+
+const extractRows = (content: unknown): unknown[] => {
+  if (Array.isArray(content)) {
+    return content
+  }
+
+  if (content && typeof content === 'object') {
+    const maybeRows = (content as { rows?: unknown[] }).rows
+    if (Array.isArray(maybeRows)) {
+      return maybeRows
+    }
+  }
+
+  return []
+}
+
+const extractColumns = (content: unknown, rows: unknown[]): TableColumn[] => {
+  if (Array.isArray(content)) {
+    return extractColumnsFromRows(rows)
+  }
+
+  if (content && typeof content === 'object') {
+    const maybeColumns = (content as { columns?: TableColumn[] }).columns
+    if (Array.isArray(maybeColumns) && maybeColumns.length) {
+      return maybeColumns
+    }
+  }
+
+  return extractColumnsFromRows(rows)
+}
+
+const extractColumnsFromRows = (rows: unknown[]): string[] => {
+  if (!rows.length) return []
+  const firstRow = rows[0]
+  if (firstRow && typeof firstRow === 'object' && !Array.isArray(firstRow)) {
+    return Object.keys(firstRow as TableRow)
+  }
+  return []
+}
+
+const normaliseColumnNames = (columns: TableColumn[]) =>
+  columns.map((column) => {
+    if (!column) return ''
+    if (typeof column === 'string') return column
+    if (typeof column === 'object' && column.name && typeof column.name === 'string') {
+      return column.name
+    }
+    return String(column)
+  })
+
+const escapeTableValue = (value: unknown) => {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  if (value instanceof Date) return value.toISOString()
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value)
+    } catch (error) {
+      console.error('Failed to serialise table cell value:', error)
+      return '[object]'
+    }
+  }
+  return String(value)
+}
+
+const buildMarkdownTable = (rows: unknown[], columns: TableColumn[]) => {
+  const columnNames = normaliseColumnNames(columns)
+  if (!columnNames.length) return ''
+
+  const header = `| ${columnNames.join(' | ')} |`
+  const separator = `| ${columnNames.map(() => '---').join(' | ')} |`
+  const lines = rows.map((row) => {
+    if (row && typeof row === 'object' && !Array.isArray(row)) {
+      const rowRecord = row as TableRow
+      const cells = columnNames.map((column) => escapeTableValue(rowRecord[column]))
+      return `| ${cells.join(' | ')} |`
+    }
+    const cellValue = escapeTableValue(row)
+    return `| ${cellValue} |`
+  })
+
+  return [header, separator, ...lines].join('\n')
+}
+
+const formatQueryForCopy = async (queryId: string) => {
+  if (queryCopyCache.has(queryId)) {
+    return queryCopyCache.get(queryId) as string
+  }
+
+  try {
+    const [queryResponse, resultsResponse] = await Promise.all([
+      axios.get(`/api/query/${queryId}`),
+      axios.get(`/api/query/${queryId}/results`).catch(() => null)
+    ])
+
+    const query = queryResponse.data
+    const results = resultsResponse?.data as QueryResultsPayload | undefined
+
+    const lines: string[] = [`SQL query (ID: ${queryId})`]
+
+    if (query?.sql) {
+      const formattedSql = String(query.sql).trim()
+      if (formattedSql) {
+        lines.push(['```sql', formattedSql, '```'].join('\n'))
+      }
+    }
+
+    const rowsData = Array.isArray(results?.rows) ? results?.rows : null
+    if (rowsData && rowsData.length) {
+      const columnsData = results?.columns?.length
+        ? (results.columns as TableColumn[])
+        : extractColumnsFromRows(rowsData)
+      const tableSection = buildMarkdownTable(rowsData, columnsData)
+      if (tableSection) {
+        lines.push('Query results:\n' + tableSection)
+      }
+    } else if (rowsData && rowsData.length === 0) {
+      lines.push('Query results: (no rows returned)')
+    }
+
+    if (typeof window !== 'undefined') {
+      lines.push(`Open in workspace: ${window.location.origin}/query/${queryId}`)
+    }
+
+    const formatted = lines.filter(Boolean).join('\n\n')
+    queryCopyCache.set(queryId, formatted)
+    return formatted
+  } catch (error) {
+    console.error('Failed to fetch query for copy:', error)
+    return `Query ID: ${queryId}`
+  }
+}
+
+const formatChartForCopy = async (chartId: string) => {
+  if (chartCopyCache.has(chartId)) {
+    return chartCopyCache.get(chartId) as string
+  }
+
+  try {
+    const response = await axios.get(`/api/chart/${chartId}`)
+    const chart = response.data
+
+    const lines: string[] = [`Chart (ID: ${chartId})`]
+
+    const title = chart?.config?.title?.text || chart?.name
+    if (title) {
+      lines.push(`Title: ${title}`)
+    }
+
+    if (chart?.config) {
+      try {
+        lines.push('Chart configuration:\n' + JSON.stringify(chart.config, null, 2))
+      } catch (error) {
+        console.error('Failed to serialise chart configuration:', error)
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      lines.push(`Open chart: ${window.location.origin}/chart/${chartId}`)
+    }
+
+    const formatted = lines.filter(Boolean).join('\n\n')
+    chartCopyCache.set(chartId, formatted)
+    return formatted
+  } catch (error) {
+    console.error('Failed to fetch chart for copy:', error)
+    return `Chart ID: ${chartId}`
+  }
+}
+
+const copyMessage = async () => {
+  if (isCopying.value) return
+
+  try {
+    isCopying.value = true
+
+    let contentToCopy = ''
+    if (props.message.role === 'user') {
+      if (typeof props.message.content === 'string') {
+        contentToCopy = props.message.content
+      } else {
+        try {
+          contentToCopy = JSON.stringify(props.message.content, null, 2)
+        } catch (error) {
+          console.error('Failed to serialise user message content:', error)
+          contentToCopy = String(props.message.content ?? '')
+        }
+      }
+    } else {
+      contentToCopy = await buildAssistantCopyContent()
+    }
+
+    await navigator.clipboard.writeText(contentToCopy)
     isCopied.value = true
     setTimeout(() => {
       isCopied.value = false
     }, 2000)
   } catch (error) {
     console.error('Failed to copy message:', error)
+  } finally {
+    isCopying.value = false
   }
 }
 
 // Methods
 function editInline() {
-  // Type assertion since we know this is called only for SQL queries
-  const sqlCall = props.message.functionCall as any
-  emit('editInlineClick', sqlCall?.arguments?.query)
+  const sqlArgs = props.message.functionCall?.arguments as { query?: string } | undefined
+  emit('editInlineClick', sqlArgs?.query)
 }
 
 function editInNewTab() {
@@ -316,18 +605,18 @@ function editInNewTab() {
 }
 
 const parsedText = computed<
-  Array<{ type: string; content: any; query_id?: string; chart_id?: string }>
+  Array<{ type: string; content: unknown; query_id?: string; chart_id?: string }>
 >(() => {
   const regex = /```((?:sql|json|error))\s*([\s\S]*?)\s*```/g
   let match
   let lastIndex = 0
-  const parts: Array<{ type: string; content: any; query_id?: string; chart_id?: string }> = []
+  const parts: Array<{ type: string; content: unknown; query_id?: string; chart_id?: string }> = []
 
   // if content is a list, return it as is
   if (Array.isArray(props.message.content)) {
     return props.message.content as Array<{
       type: string
-      content: any
+      content: unknown
       query_id?: string
       chart_id?: string
     }>
@@ -342,7 +631,7 @@ const parsedText = computed<
     }
 
     let type = match[1]
-    let content
+    let content: unknown
     if (type === 'json') {
       content = JSON.parse(match[2].trim())
     } else if (type === 'sql') {
