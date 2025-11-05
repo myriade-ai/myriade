@@ -299,44 +299,125 @@ const cancelEdit = () => {
   editedContent.value = ''
 }
 
+const formatTableAsMarkdown = (data: any): string => {
+  // Handle different data structures
+  const rows = Array.isArray(data) ? data : data.rows || []
+  if (rows.length === 0) return ''
+
+  // Get columns from first row or explicit columns field
+  const columns = data.columns || Object.keys(rows[0] || {})
+  if (columns.length === 0) return ''
+
+  // Create header row
+  const header = `| ${columns.join(' | ')} |`
+  const separator = `| ${columns.map(() => '---').join(' | ')} |`
+
+  // Create data rows
+  const dataRows = rows.map((row: any) => {
+    const values = columns.map((col: string) => {
+      const val = row[col]
+      if (val === null || val === undefined) return ''
+      return String(val).replace(/\|/g, '\\|') // Escape pipes
+    })
+    return `| ${values.join(' | ')} |`
+  })
+
+  return [header, separator, ...dataRows].join('\n')
+}
+
+const captureChartAsImage = async (chartId: string): Promise<string | null> => {
+  try {
+    // Find the chart element in the DOM
+    const chartElements = document.querySelectorAll(`[data-chart-id="${chartId}"]`)
+    if (chartElements.length === 0) return null
+
+    const chartElement = chartElements[0] as HTMLElement
+
+    // Use html2canvas to capture the chart
+    const html2canvas = (await import('html2canvas')).default
+    const canvas = await html2canvas(chartElement, {
+      backgroundColor: '#ffffff',
+      scale: 2 // Higher quality
+    })
+
+    return canvas.toDataURL('image/png')
+  } catch (error) {
+    console.error('Failed to capture chart:', error)
+    return null
+  }
+}
+
 const copyMessage = async () => {
   try {
-    let textToCopy = ''
-    
+    const textParts: string[] = []
+    const images: string[] = []
+
     // Handle array content (structured messages)
     if (Array.isArray(props.message.content)) {
-      textToCopy = props.message.content
-        .map((part: any) => {
-          if (typeof part === 'string') return part
-          if (part.type === 'text' || part.type === 'markdown') return part.content
-          if (part.type === 'sql') return `\`\`\`sql\n${part.content}\n\`\`\``
-          if (part.type === 'error') return `\`\`\`error\n${part.content}\n\`\`\``
-          if (part.type === 'json') {
-            // Include table data as JSON
-            return `\`\`\`json\n${JSON.stringify(part.content, null, 2)}\n\`\`\``
+      for (const part of props.message.content) {
+        if (typeof part === 'string') {
+          textParts.push(part)
+        } else if (part.type === 'text' || part.type === 'markdown') {
+          textParts.push(part.content)
+        } else if (part.type === 'sql') {
+          textParts.push(`\`\`\`sql\n${part.content}\n\`\`\``)
+        } else if (part.type === 'error') {
+          textParts.push(`\`\`\`error\n${part.content}\n\`\`\``)
+        } else if (part.type === 'json') {
+          // Format table data as markdown table
+          const tableMarkdown = formatTableAsMarkdown(part.content)
+          if (tableMarkdown) {
+            textParts.push(tableMarkdown)
           }
-          if (part.type === 'chart' && part.content) {
-            // Include chart configuration
-            return `\`\`\`json\n${JSON.stringify(part.content, null, 2)}\n\`\`\``
+        } else if (part.type === 'chart' && part.chart_id) {
+          // Capture chart as screenshot
+          const chartImage = await captureChartAsImage(part.chart_id)
+          if (chartImage) {
+            images.push(chartImage)
           }
-          if (part.type === 'query') {
-            // Query results are rendered separately, just note it
-            return '[Query result displayed above]'
-          }
-          if (part.type === 'chart' && part.chart_id) {
-            // Chart is rendered separately, just note it
-            return '[Chart displayed above]'
-          }
-          return ''
-        })
-        .filter(Boolean)
-        .join('\n\n')
+        }
+      }
     } else {
       // Handle string content (which may have code blocks)
-      textToCopy = props.message.content
+      textParts.push(props.message.content)
     }
-    
-    await navigator.clipboard.writeText(textToCopy)
+
+    // Copy text content
+    const textToCopy = textParts.filter(Boolean).join('\n\n')
+
+    // If we have images, we need to copy both text and images
+    if (images.length > 0) {
+      // Create clipboard items with both text and images
+      const items: ClipboardItem[] = []
+
+      // Add text
+      const textBlob = new Blob([textToCopy], { type: 'text/plain' })
+
+      // Add images
+      const imageBlobs = await Promise.all(
+        images.map(async (dataUrl) => {
+          const response = await fetch(dataUrl)
+          return response.blob()
+        })
+      )
+
+      // Create a clipboard item with text and first image (most apps support one image)
+      const clipboardData: Record<string, Blob> = {
+        'text/plain': textBlob
+      }
+
+      if (imageBlobs.length > 0) {
+        clipboardData['image/png'] = imageBlobs[0]
+      }
+
+      items.push(new ClipboardItem(clipboardData))
+
+      await navigator.clipboard.write(items)
+    } else {
+      // Just copy text
+      await navigator.clipboard.writeText(textToCopy)
+    }
+
     isCopied.value = true
     setTimeout(() => {
       isCopied.value = false

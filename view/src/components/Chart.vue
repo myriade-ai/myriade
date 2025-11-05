@@ -1,6 +1,6 @@
 <!-- Take chart id and display using echarts -->
 <template>
-  <div class="relative">
+  <div class="relative" :data-chart-id="chartId">
     <div class="flex justify-end -mr-2">
       <Button
         title="Save chart to workspace"
