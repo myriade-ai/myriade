@@ -26,6 +26,8 @@ export interface Database {
   dbt_manifest?: unknown
   dbt_repo_path: string | null
   tags?: AssetTag[]
+  organisationId?: string | null
+  ownerId?: string | null
   // Metadata sync status
   sync_status?: 'idle' | 'syncing' | 'completed' | 'failed'
   sync_progress?: number
@@ -165,6 +167,24 @@ export const useDatabasesStore = defineStore('databases', () => {
     return axios.get(`/api/databases/${databaseId}/sync-status`).then((res) => res.data)
   }
 
+  function shareDatabaseToOrganisation(
+    databaseId: string,
+    shareToOrganisation: boolean
+  ): Promise<Database> {
+    return axios
+      .put(`/api/databases/${databaseId}/share`, {
+        share_to_organisation: shareToOrganisation
+      })
+      .then((res) => {
+        // Update the database in the store
+        const index = databases.value.findIndex((db) => db.id === databaseId)
+        if (index !== -1) {
+          databases.value[index] = { ...databases.value[index], ...res.data }
+        }
+        return res.data
+      })
+  }
+
   // Return everything you want available in the store
   return {
     // state
@@ -182,6 +202,7 @@ export const useDatabasesStore = defineStore('databases', () => {
     deleteDatabase,
     getDatabaseById,
     syncDatabaseMetadata,
-    getSyncStatus
+    getSyncStatus,
+    shareDatabaseToOrganisation
   }
 })
