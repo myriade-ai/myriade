@@ -58,12 +58,12 @@
             <AssetBadgeStatus :status="tables[virtualRow.index].status" badge-class="text-xs" />
           </div>
         </div>
-        <p
+        <div
           v-if="tables[virtualRow.index].description"
           class="mt-2 text-sm text-muted-foreground line-clamp-2"
         >
-          {{ tables[virtualRow.index].description }}
-        </p>
+          <MarkdownDisplay :content="tables[virtualRow.index].description" />
+        </div>
         <div v-if="tables[virtualRow.index].tags?.length" class="mt-2 flex flex-wrap gap-2">
           <Badge
             v-for="tag in tables[virtualRow.index].tags"
@@ -81,6 +81,7 @@
 
 <script setup lang="ts">
 import AssetBadgeStatus from '@/components/AssetBadgeStatus.vue'
+import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 import { Badge } from '@/components/ui/badge'
 import type { CatalogAsset } from '@/stores/catalog'
 import { useVirtualizer } from '@tanstack/vue-virtual'

@@ -22,8 +22,14 @@
               column.asset.column_facet?.data_type || 'N/A'
             }}</Badge>
           </div>
-          <p class="text-sm text-muted-foreground leading-6 line-clamp-4">
-            {{ column.asset.description || 'No column documentation yet.' }}
+          <div
+            v-if="column.asset.description"
+            class="text-sm text-muted-foreground leading-6 line-clamp-4"
+          >
+            <MarkdownDisplay :content="column.asset.description" />
+          </div>
+          <p v-else class="text-sm text-muted-foreground leading-6 line-clamp-4">
+            No column documentation yet.
           </p>
           <div class="space-y-2">
             <div class="flex flex-wrap gap-2">
@@ -58,6 +64,7 @@
 <script setup lang="ts">
 import { Badge } from '@/components/ui/badge'
 import AssetBadgeStatus from '@/components/AssetBadgeStatus.vue'
+import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 import type { ExplorerColumnNode } from './types'
 
 interface Props {

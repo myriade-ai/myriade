@@ -1,9 +1,10 @@
 <template>
-  <div :class="$attrs.class ?? '' + ' markdown-content'" v-html="marked(content)"></div>
+  <div :class="$attrs.class ?? '' + ' markdown-content'" v-html="sanitizedHtml"></div>
 </template>
 
 <script setup lang="ts">
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { computed } from 'vue'
 
 const props = defineProps<{
@@ -14,6 +15,40 @@ const props = defineProps<{
 // eg. uuid d3a2541d-6fc6-4ae9-841e-055e60f0575e
 const content = computed(() => {
   return props.content.replace(/<QUERY:([^>]+)>/g, '<a href="/query/$1">Query $1</a>')
+})
+
+// Sanitize HTML to prevent XSS attacks
+const sanitizedHtml = computed(() => {
+  const rawHtml = marked(content.value) as string
+  return DOMPurify.sanitize(rawHtml, {
+    ALLOWED_TAGS: [
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'p',
+      'br',
+      'strong',
+      'em',
+      'u',
+      'a',
+      'ul',
+      'ol',
+      'li',
+      'blockquote',
+      'code',
+      'pre',
+      'table',
+      'thead',
+      'tbody',
+      'tr',
+      'th',
+      'td'
+    ],
+    ALLOWED_ATTR: ['href', 'title', 'class']
+  })
 })
 </script>
 
