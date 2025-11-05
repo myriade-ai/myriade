@@ -124,6 +124,19 @@
         v-if="!isEditing && props.message.role !== 'user'"
         class="flex items-center gap-1 mt-2 justify-start -ml-2"
       >
+        <!-- Copy button for assistant messages -->
+        <Button
+          v-if="props.message.role !== 'function'"
+          @click="copyMessage"
+          title="Copy message"
+          variant="ghost"
+          size="sm"
+          class="p-1"
+        >
+          <Check v-if="isCopied" class="h-3 w-3 sm:h-4 sm:w-4" />
+          <Copy v-else class="h-3 w-3 sm:h-4 sm:w-4" />
+        </Button>
+
         <!-- Edit inline button for SQL queries -->
         <template v-if="props.message.queryId">
           <Button variant="ghost" size="sm" class="p-1" @click="editInline" title="Edit inline">
@@ -288,7 +301,25 @@ const cancelEdit = () => {
 
 const copyMessage = async () => {
   try {
-    await navigator.clipboard.writeText(props.message.content)
+    let textToCopy = ''
+    
+    // Handle array content (structured messages)
+    if (Array.isArray(props.message.content)) {
+      textToCopy = props.message.content
+        .map((part: any) => {
+          if (typeof part === 'string') return part
+          if (part.type === 'text' || part.type === 'markdown') return part.content
+          if (part.type === 'sql' || part.type === 'error') return part.content
+          return ''
+        })
+        .filter(Boolean)
+        .join('\n\n')
+    } else {
+      // Handle string content
+      textToCopy = props.message.content
+    }
+    
+    await navigator.clipboard.writeText(textToCopy)
     isCopied.value = true
     setTimeout(() => {
       isCopied.value = false
