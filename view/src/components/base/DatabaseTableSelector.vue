@@ -71,27 +71,12 @@
                 >
                   {{ item.label }}
                 </Label>
-                <p v-if="item.description" class="text-xs text-gray-500 mt-1 truncate">
+                <p v-if="item.description" class="text-xs text-gray-500 mt-1 line-clamp-2">
                   {{ item.description }}
                 </p>
               </div>
 
               <TableCellsIcon class="h-4 w-4 text-gray-400 flex-shrink-0" />
-            </div>
-
-            <div v-if="showColumnPreview(item)" class="mt-2 ml-7">
-              <div class="text-xs text-gray-500 space-y-1">
-                <div class="font-medium">Columns:</div>
-                <div class="flex flex-wrap gap-1">
-                  <span
-                    v-for="column in getItemColumns(item)"
-                    :key="column.name"
-                    class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700"
-                  >
-                    {{ column.name }}
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -231,14 +216,6 @@ const toggleCollapse = (groupId: string) => {
   } else {
     collapsedGroups.value.add(groupId)
   }
-}
-
-const showColumnPreview = (item: Item): boolean => {
-  return Array.isArray(item.columns) && (item.columns?.length ?? 0) > 0
-}
-
-const getItemColumns = (item: Item): TableColumn[] => {
-  return item.columns || []
 }
 
 const getSelectionSummary = (): string => {
