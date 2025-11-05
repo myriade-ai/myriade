@@ -141,7 +141,10 @@
         placeholder="your-gcp-project-id"
       />
       <div class="space-y-2">
-        <label class="block text-sm font-medium text-gray-700"> Service Account JSON Key </label>
+        <label class="block text-sm font-medium text-gray-700"> 
+          Service Account JSON Key 
+          <span class="text-xs font-normal text-gray-500">(optional - will use Application Default Credentials if not provided)</span>
+        </label>
         <div class="flex items-center justify-center w-full">
           <label
             class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"

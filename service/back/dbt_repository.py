@@ -197,7 +197,7 @@ class DBTRepository:
             if details.get("password"):
                 target_config["password"] = details["password"]
         elif adapter == "bigquery":
-            required_fields = ["project_id", "service_account_json"]
+            required_fields = ["project_id"]
             for field in required_fields:
                 if not details.get(field):
                     raise DBTRepositoryError(
@@ -206,12 +206,19 @@ class DBTRepository:
 
             target_config.update(
                 {
-                    "method": "service-account-json",
                     "project": details["project_id"],
-                    "keyfile_json": details["service_account_json"],
                     "dataset": details.get("dataset", "analytics"),
                 }
             )
+
+            # Add authentication method if service account is provided
+            if details.get("service_account_json"):
+                target_config["method"] = "service-account-json"
+                target_config["keyfile_json"] = details["service_account_json"]
+            else:
+                # Use application default credentials
+                # when service account is not provided
+                target_config["method"] = "oauth"
 
         elif adapter == "sqlite":
             target_config.update(
