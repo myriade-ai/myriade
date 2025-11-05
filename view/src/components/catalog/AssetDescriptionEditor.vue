@@ -3,28 +3,39 @@
     <div class="space-y-2">
       <div class="flex items-center justify-between gap-2">
         <h3 class="text-sm font-medium text-muted-foreground">Description</h3>
-        <div v-if="asset && draft && isEditing && !needsReview" class="flex items-center gap-2">
-          <Button variant="ghost" size="sm" :disabled="isSaving" @click="$emit('cancel-edit')">
-            Cancel
-          </Button>
-          <Transition
-            enter-active-class="transition-opacity duration-200"
-            leave-active-class="transition-opacity duration-200"
-            enter-from-class="opacity-0"
-            leave-to-class="opacity-0"
-          >
-            <Button
-              v-if="hasChanges"
-              variant="outline"
-              size="sm"
-              :disabled="isSaving || !hasChanges"
-              :is-loading="isSaving"
-              @click="$emit('save')"
-            >
-              <template #loading>Saving...</template>
-              Save
+        <div v-if="asset && draft && !needsReview" class="flex items-center gap-2">
+          <template v-if="isEditing">
+            <Button variant="ghost" size="sm" :disabled="isSaving" @click="$emit('cancel-edit')">
+              Cancel
             </Button>
-          </Transition>
+            <Transition
+              enter-active-class="transition-opacity duration-200"
+              leave-active-class="transition-opacity duration-200"
+              enter-from-class="opacity-0"
+              leave-to-class="opacity-0"
+            >
+              <Button
+                v-if="hasChanges"
+                variant="outline"
+                size="sm"
+                :disabled="isSaving || !hasChanges"
+                :is-loading="isSaving"
+                @click="$emit('save')"
+              >
+                <template #loading>Saving...</template>
+                Save
+              </Button>
+            </Transition>
+          </template>
+          <Button
+            v-else-if="hasDescription"
+            variant="ghost"
+            size="sm"
+            :disabled="isSaving"
+            @click="$emit('start-edit')"
+          >
+            Edit
+          </Button>
         </div>
       </div>
 
@@ -82,15 +93,32 @@
 
       <!-- Regular description textarea (all other statuses) -->
       <Textarea
-        v-else
+        v-else-if="isEditing"
         :model-value="draft.description"
         @update:model-value="updateDescription"
         rows="5"
         class="rounded-lg"
         :disabled="isSaving"
-        @focus="$emit('start-edit')"
         placeholder="Click to add description..."
       />
+      <div v-else class="rounded-lg border border-dashed border-slate-200 bg-white/40 p-4">
+        <MarkdownDisplay
+          v-if="displayDescription"
+          :content="displayDescription"
+          class="prose prose-sm max-w-none text-sm text-foreground"
+        />
+        <div v-else class="flex items-center justify-between gap-4 text-sm text-muted-foreground">
+          <span>No description yet.</span>
+          <Button
+            variant="secondary"
+            size="sm"
+            :disabled="isSaving"
+            @click="$emit('start-edit')"
+          >
+            Add description
+          </Button>
+        </div>
+      </div>
 
       <p v-if="error" class="text-sm text-destructive">
         {{ error }}
@@ -188,6 +216,7 @@
 
 <script setup lang="ts">
 import AssetTagSelect from '@/components/AssetTagSelect.vue'
+import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -255,6 +284,9 @@ const newSuggestedTagsForDiff = computed(() => {
   const existingTagIds = new Set(props.asset.tags.map((t: AssetTag) => t.id))
   return editableSuggestedTags.value.filter((tag: AssetTag) => !existingTagIds.has(tag.id))
 })
+
+const displayDescription = computed(() => props.asset.description?.trim() || '')
+const hasDescription = computed(() => Boolean(displayDescription.value))
 
 watch(
   () => [props.asset.ai_suggestion, props.asset.description, props.asset.status] as const,
