@@ -9,6 +9,7 @@ from agentlys.chat import StopLoopException
 from agentlys_tools.code_editor import CodeEditor
 
 from app import socketio
+from back.github_manager import ensure_conversation_workspace
 from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
 from chat.proxy_provider import ProxyProvider
@@ -16,11 +17,10 @@ from chat.tools.catalog import CatalogTool
 from chat.tools.database import DatabaseTool
 from chat.tools.dbt import DBT
 from chat.tools.echarts import EchartsTool
+from chat.tools.github import GithubTool
 from chat.tools.quality import SemanticModel
 from chat.tools.workspace import WorkspaceTool
-from chat.tools.github import GithubTool
 from chat.utils import parse_answer_text
-from back.github_manager import ensure_conversation_workspace
 from models import Chart, Conversation, ConversationMessage, Query
 
 logger = logging.getLogger(__name__)
@@ -150,7 +150,9 @@ class DataAnalystAgent:
         )
         self.agent.add_tool(catalog_tool, "catalog")
 
-        github_workspace = ensure_conversation_workspace(self.session, self.conversation)
+        github_workspace = ensure_conversation_workspace(
+            self.session, self.conversation
+        )
         repo_path = (
             str(github_workspace)
             if github_workspace is not None

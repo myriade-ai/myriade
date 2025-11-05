@@ -1434,6 +1434,26 @@
       }),
     }),
     dict({
+      'description': 'Ensure the GitHub workspace for the conversation is ready.',
+      'name': 'GithubTool-github__ensure_workspace',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `ensure_workspace`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Force preparation of the DBT virtual environment.',
+      'name': 'GithubTool-github__install_dbt_environment',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `install_dbt_environment`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': None,
       'name': 'Notes-notes__close_note',
       'parameters': dict({
@@ -1542,6 +1562,8 @@
     'CatalogTool-catalog__update_asset',
     'CatalogTool-catalog__upsert_tag',
     'CatalogTool-catalog__upsert_term',
+    'GithubTool-github__ensure_workspace',
+    'GithubTool-github__install_dbt_environment',
     'Notes-notes__close_note',
     'Notes-notes__create_note',
     'Notes-notes__delete_note',
@@ -2698,6 +2720,26 @@
       }),
     }),
     dict({
+      'description': 'Ensure the GitHub workspace for the conversation is ready.',
+      'name': 'GithubTool-github__ensure_workspace',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `ensure_workspace`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Force preparation of the DBT virtual environment.',
+      'name': 'GithubTool-github__install_dbt_environment',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `install_dbt_environment`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': None,
       'name': 'Notes-notes__close_note',
       'parameters': dict({
@@ -2787,6 +2829,7 @@
     'catalog': 'CatalogTool',
     'database': 'DatabaseTool',
     'echarts': 'EchartsTool',
+    'github': 'GithubTool',
     'notes': 'Notes',
     'semantic_model': 'SemanticModel',
     'workspace': 'WorkspaceTool',
