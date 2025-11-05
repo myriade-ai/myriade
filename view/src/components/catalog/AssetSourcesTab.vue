@@ -53,7 +53,9 @@
         <div class="space-y-3">
           <div v-if="metadata.description">
             <h4 class="text-sm font-medium text-muted-foreground mb-1">Description</h4>
-            <p class="text-sm leading-relaxed text-slate-700">{{ metadata.description }}</p>
+            <div class="text-sm leading-relaxed text-slate-700">
+              <MarkdownDisplay :content="metadata.description" />
+            </div>
           </div>
 
           <div v-if="metadata.tags && metadata.tags.length > 0">
@@ -76,6 +78,7 @@
 
 <script setup lang="ts">
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
+import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 import { useAssetSourcesQuery } from './useCatalogQuery'
 import { computed, toRef } from 'vue'
 

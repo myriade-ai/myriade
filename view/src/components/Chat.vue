@@ -195,7 +195,8 @@
                   rows="1"
                   placeholder="Type your message"
                   v-model="inputText"
-                  class="bg-transparent flex-1 resize-none border-none shadow-none focus:border-none focus:ring-0 focus:outline-none focus-visible:border-none focus-visible:ring-0 focus-visible:outline-none max-h-52 break-words overflow-wrap-anywhere"
+                  class="bg-transparent flex-1 resize-none border-none shadow-none focus:border-none focus:ring-0 focus:outline-none focus-visible:border-none focus-visible:ring-0 focus-visible:outline-none break-words overflow-wrap-anywhere"
+                  style="max-height: 400px;"
                   v-if="editMode === 'text'"
                 />
                 <BaseEditor
@@ -505,10 +506,10 @@ const resizeTextarea = () => {
 
     if (scrollHeight > maxHeight) {
       textarea.style.height = maxHeight + 'px'
-      textarea.style.overflowY = 'auto'
+      textarea.style.setProperty('overflow-y', 'auto', 'important')
     } else {
       textarea.style.height = scrollHeight + 'px'
-      textarea.style.overflowY = 'hidden'
+      textarea.style.setProperty('overflow-y', 'hidden', 'important')
     }
   })
 }

@@ -22,6 +22,30 @@
         @saved="onSaved"
         @error="onError"
       />
+
+      <!-- Organisation Sharing Section -->
+      <div v-if="canManageSharing" class="py-5 max-w-lg">
+        <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <h3 class="text-sm font-medium text-gray-900 mb-2">Organisation Sharing</h3>
+          <p class="text-sm text-gray-500 mb-4">
+            Share this database with your organisation to allow other members to access it.
+          </p>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-700">
+              {{ isSharedWithOrg ? 'Shared with organisation' : 'Private (only you)' }}
+            </span>
+            <Button
+              :is-loading="isSharingToggling"
+              @click="toggleSharing"
+              :variant="isSharedWithOrg ? 'outline' : 'default'"
+              size="sm"
+            >
+              {{ isSharedWithOrg ? 'Unshare' : 'Share to Organisation' }}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <!-- Action Buttons -->
       <div class="py-5 max-w-lg">
         <div class="flex justify-between space-x-3">
@@ -40,10 +64,11 @@ import DatabaseForm from '@/components/database/DatabaseForm.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { Button } from '@/components/ui/button'
 import router from '@/router'
-import { useDatabasesStore } from '@/stores/databases'
+import { user } from '@/stores/auth'
+import { useDatabasesStore, type Database } from '@/stores/databases'
 import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
 import { notify } from 'notiwind'
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 const databaseForm = ref<InstanceType<typeof DatabaseForm> | null>(null)
@@ -51,7 +76,31 @@ const route = useRoute()
 const databaseId = route.params.id as string
 const isSaving = ref(false)
 const isDeleting = ref(false)
+const isSharingToggling = ref(false)
 const databasesStore = useDatabasesStore()
+const database = ref<Database | null>(null)
+
+// Fetch database details
+onMounted(async () => {
+  try {
+    database.value = await databasesStore.getDatabaseById(databaseId)
+  } catch (error) {
+    console.error('Failed to load database:', error)
+  }
+})
+
+// Computed properties for sharing
+const canManageSharing = computed(() => {
+  return (
+    user.value.inOrganization &&
+    database.value &&
+    database.value.ownerId === user.value.id
+  )
+})
+
+const isSharedWithOrg = computed(() => {
+  return database.value?.organisationId !== null && database.value?.organisationId !== undefined
+})
 
 // Redirect to /databases
 const clickCancel = () => {
@@ -86,5 +135,36 @@ const onError = () => {
 
 const onSaved = () => {
   router.push({ name: 'DatabaseList' })
+}
+
+const toggleSharing = async () => {
+  if (!database.value) return
+
+  isSharingToggling.value = true
+  try {
+    const shareToOrg = !isSharedWithOrg.value
+    const updatedDatabase = await databasesStore.shareDatabaseToOrganisation(
+      databaseId,
+      shareToOrg
+    )
+    database.value = updatedDatabase
+
+    notify({
+      title: shareToOrg ? 'Shared with organisation' : 'Unshared from organisation',
+      text: shareToOrg
+        ? 'Database is now accessible to your organisation members'
+        : 'Database is now private',
+      type: 'success'
+    })
+  } catch (error: any) {
+    console.error('Failed to toggle sharing:', error)
+    notify({
+      title: 'Failed to update sharing',
+      text: error.response?.data?.error || 'An error occurred',
+      type: 'error'
+    })
+  } finally {
+    isSharingToggling.value = false
+  }
 }
 </script>
