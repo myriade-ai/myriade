@@ -344,6 +344,36 @@ def update_database(database_id: UUID):
     return jsonify(database_dict)
 
 
+@api.route("/databases/<uuid:database_id>/share", methods=["PUT"])
+@user_middleware
+def share_database_to_organisation(database_id: UUID):
+    """Share or unshare a database to/from the current user's organisation."""
+    data = request.get_json()
+    share_to_org = data.get("share_to_organisation", False)
+
+    # Get the database
+    database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Only the owner can share/unshare their database
+    if database.ownerId != g.user.id:
+        return jsonify({"error": "Only the database owner can share it"}), 403
+
+    # Update the organisationId
+    if share_to_org:
+        if not g.organization_id:
+            return jsonify({"error": "User is not part of an organisation"}), 400
+        database.organisationId = g.organization_id
+    else:
+        # Unshare: remove from organisation
+        database.organisationId = None
+
+    g.session.flush()
+    database_dict = database.to_dict(exclude=["dbt_catalog", "dbt_manifest"])
+    return jsonify(database_dict)
+
+
 @api.route("/databases", methods=["GET"])
 @user_middleware
 def get_databases():

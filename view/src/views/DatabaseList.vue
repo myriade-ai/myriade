@@ -22,6 +22,12 @@
                   >
                     public
                   </span>
+                  <span
+                    v-if="database.organisationId"
+                    class="ml-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800"
+                  >
+                    organisation
+                  </span>
                 </p>
                 <p class="truncate text-sm text-gray-500">
                   {{ database.engine }}
