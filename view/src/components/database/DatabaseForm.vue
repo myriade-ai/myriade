@@ -211,7 +211,7 @@ const canTestConnection = computed(() => {
     case 'sqlite':
       return details.filename
     case 'bigquery':
-      return details.project_id && details.service_account_json
+      return details.project_id
     case 'motherduck':
       return details.token && details.database
     case 'oracle':
