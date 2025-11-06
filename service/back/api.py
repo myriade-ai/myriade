@@ -30,6 +30,7 @@ from back.github_manager import (
     start_oauth_flow,
 )
 from back.session import get_db_session
+from back.sync_state import get_sync_state
 from back.utils import (
     create_database,
     get_provider_metadata_for_asset,
@@ -1792,8 +1793,8 @@ def sync_database_metadata(database_id: UUID):
     ):
         return jsonify({"error": "Unauthorized"}), 403
 
-    # Check if already syncing
-    if database.sync_status == "syncing":
+    current_state = get_sync_state(database_id)
+    if current_state["sync_status"] == "syncing":
         return (
             jsonify(
                 {
@@ -1831,7 +1832,7 @@ def sync_database_metadata(database_id: UUID):
 @api.route("/databases/<uuid:database_id>/sync-status", methods=["GET"])
 @user_middleware
 def get_sync_status(database_id: UUID):
-    """Get the current sync status for a database."""
+    """Get the current sync status for a database from in-memory state."""
     database = g.session.query(Database).filter_by(id=database_id).first()
     if not database:
         return jsonify({"error": "Database not found"}), 404
@@ -1847,21 +1848,17 @@ def get_sync_status(database_id: UUID):
     ):
         return jsonify({"error": "Unauthorized"}), 403
 
+    # Get sync state from in-memory storage
+    from back.sync_state import get_sync_state
+
+    state = get_sync_state(database_id)
+
     return jsonify(
         {
-            "sync_status": database.sync_status,
-            "sync_progress": database.sync_progress,
-            "sync_started_at": (
-                database.sync_started_at.isoformat()
-                if database.sync_started_at
-                else None
-            ),
-            "sync_completed_at": (
-                database.sync_completed_at.isoformat()
-                if database.sync_completed_at
-                else None
-            ),
-            "sync_error": database.sync_error,
+            "sync_status": state["sync_status"],
+            "sync_progress": state["sync_progress"],
+            "sync_error": state["sync_error"],
+            "updated_at": state["updated_at"],
         }
     )
 
