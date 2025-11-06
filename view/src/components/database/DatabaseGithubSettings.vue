@@ -31,8 +31,9 @@
       <div v-if="!githubSettings.hasToken" class="space-y-2">
         <p class="text-xs text-gray-500">
           Authorise Myriade with GitHub to list repositories and push branches for this datasource.
+          You will be redirected to GitHub and then returned to this page.
         </p>
-        <Button @click="startOAuth" :is-loading="oauthStarting">
+        <Button type="button" @click="startOAuth" :is-loading="oauthStarting">
           <template #loading>Opening GitHub…</template>
           Connect GitHub
         </Button>
@@ -52,6 +53,7 @@
               </option>
             </select>
             <Button
+              type="button"
               variant="outline"
               size="sm"
               @click="fetchRepositories"
@@ -73,6 +75,7 @@
 
         <div class="flex flex-wrap gap-2">
           <Button
+            type="button"
             size="sm"
             @click="saveRepository"
             :disabled="!selectedRepoFullName"
@@ -82,6 +85,7 @@
             Save repository
           </Button>
           <Button
+            type="button"
             size="sm"
             variant="outline"
             @click="disconnectRepository"
@@ -95,6 +99,59 @@
 
         <p v-if="repoError" class="text-sm text-error-600">{{ repoError }}</p>
         <p v-if="repoSuccess" class="text-sm text-success-600">{{ repoSuccess }}</p>
+      </div>
+
+      <!-- DBT Documentation Sync Section -->
+      <div v-if="githubSettings.repoFullName" class="mt-6 pt-6 border-t border-gray-200">
+        <h4 class="text-sm font-medium text-gray-900 mb-2">DBT Documentation</h4>
+        <p class="text-xs text-gray-500 mb-3">
+          DBT documentation is automatically synced every hour. You can also manually trigger a
+          sync.
+        </p>
+
+        <div class="space-y-2">
+          <div v-if="dbtSyncStatus" class="text-xs text-gray-600">
+            <span class="font-medium">Status:</span>
+            <span
+              :class="{
+                'text-blue-600': dbtSyncStatus.status === 'generating',
+                'text-green-600': dbtSyncStatus.status === 'completed',
+                'text-error-600': dbtSyncStatus.status === 'failed',
+                'text-gray-600': dbtSyncStatus.status === 'idle'
+              }"
+            >
+              {{ dbtSyncStatus.status === 'generating' ? 'Syncing...' : dbtSyncStatus.status }}
+            </span>
+          </div>
+
+          <div v-if="dbtSyncStatus?.last_synced_at" class="text-xs text-gray-600">
+            <span class="font-medium">Last synced:</span>
+            {{ formatDate(dbtSyncStatus.last_synced_at) }}
+          </div>
+
+          <div v-if="dbtSyncStatus?.commit_hash" class="text-xs text-gray-600 font-mono">
+            <span class="font-medium font-sans">Commit:</span>
+            {{ dbtSyncStatus.commit_hash.substring(0, 8) }}
+          </div>
+
+          <div v-if="dbtSyncStatus?.error" class="text-xs text-error-600">
+            {{ dbtSyncStatus.error }}
+          </div>
+
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            @click="syncDbtDocs"
+            :disabled="syncingDbt || dbtSyncStatus?.status === 'generating'"
+          >
+            <template #loading>Syncing...</template>
+            {{ syncingDbt ? 'Syncing...' : 'Sync DBT Docs' }}
+          </Button>
+
+          <p v-if="dbtSyncError" class="text-sm text-error-600">{{ dbtSyncError }}</p>
+          <p v-if="dbtSyncSuccess" class="text-sm text-success-600">{{ dbtSyncSuccess }}</p>
+        </div>
       </div>
     </div>
   </div>
@@ -144,6 +201,18 @@ const repoSuccess = ref<string | null>(null)
 const oauthStarting = ref(false)
 const oauthError = ref<string | null>(null)
 const oauthMessage = ref<string | null>(null)
+
+// DBT sync state
+const dbtSyncStatus = ref<{
+  status: string
+  last_synced_at: string | null
+  generation_started_at: string | null
+  commit_hash: string | null
+  error: string | null
+} | null>(null)
+const syncingDbt = ref(false)
+const dbtSyncError = ref<string | null>(null)
+const dbtSyncSuccess = ref<string | null>(null)
 
 const formattedExpiry = computed(() => {
   if (!githubSettings.value.tokenExpiresAt) return 'N/A'
@@ -268,6 +337,35 @@ const startOAuth = async () => {
   }
 }
 
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleString()
+}
+
+const fetchDbtSyncStatus = async () => {
+  try {
+    const response = await axios.get(`/api/databases/${props.databaseId}/github/dbt-sync-status`)
+    dbtSyncStatus.value = response.data
+  } catch (err: any) {
+    console.error('Failed to fetch DBT sync status:', err)
+  }
+}
+
+const syncDbtDocs = async () => {
+  dbtSyncError.value = null
+  dbtSyncSuccess.value = null
+  try {
+    syncingDbt.value = true
+    await axios.post(`/api/databases/${props.databaseId}/github/sync-dbt-docs`)
+    dbtSyncSuccess.value = 'DBT documentation sync started in background'
+    // Refresh status after a short delay
+    setTimeout(fetchDbtSyncStatus, 2000)
+  } catch (err: any) {
+    dbtSyncError.value = err.response?.data?.error || 'Failed to sync DBT documentation'
+  } finally {
+    syncingDbt.value = false
+  }
+}
+
 onMounted(async () => {
   const storedResult = localStorage.getItem(githubResultKey.value)
   if (storedResult) {
@@ -284,6 +382,7 @@ onMounted(async () => {
   await fetchSettings()
   if (githubSettings.value.hasToken) {
     await fetchRepositories()
+    await fetchDbtSyncStatus()
   }
 })
 </script>

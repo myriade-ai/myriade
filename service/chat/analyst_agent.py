@@ -9,13 +9,13 @@ from agentlys.chat import StopLoopException
 from agentlys_tools.code_editor import CodeEditor
 
 from app import socketio
-from back.github_manager import ensure_conversation_workspace
+from back.github_manager import get_github_integration
 from chat.lock import STATUS, StopException, emit_status
 from chat.notes import Notes
 from chat.proxy_provider import ProxyProvider
 from chat.tools.catalog import CatalogTool
 from chat.tools.database import DatabaseTool
-from chat.tools.dbt import DBT
+from chat.tools.dbt import DBTDocs, DBTEditor
 from chat.tools.echarts import EchartsTool
 from chat.tools.github import GithubTool
 from chat.tools.quality import SemanticModel
@@ -24,6 +24,7 @@ from chat.utils import parse_answer_text
 from models import Chart, Conversation, ConversationMessage, Query
 
 logger = logging.getLogger(__name__)
+
 
 # Workaround because of eventlet doesn't support loop in loop ?
 nest_asyncio.apply()
@@ -150,32 +151,33 @@ class DataAnalystAgent:
         )
         self.agent.add_tool(catalog_tool, "catalog")
 
-        github_workspace = ensure_conversation_workspace(
-            self.session, self.conversation
-        )
-        repo_path = (
-            str(github_workspace)
-            if github_workspace is not None
-            else self.conversation.database.dbt_repo_path
-        )
+        if get_github_integration(self.session, self.conversation.database.id):
+            # Add Github tool to the agent
+            github_tool = GithubTool(self.session, self.conversation)
+            self.agent.add_tool(github_tool, "github")
 
-        if repo_path:
-            dbt = DBT(
-                catalog=self.conversation.database.dbt_catalog,
-                manifest=self.conversation.database.dbt_manifest,
-                repo_path=repo_path,
-                database_config={
-                    "engine": self.conversation.database.engine,
-                    "details": self.conversation.database.details,
-                },
-            )
-            self.agent.add_tool(dbt, "dbt")
+            # Add DBT tool to the agent if it exists
+            database_dbt = self.conversation.database.dbt
+            if database_dbt:
+                dbt_docs = DBTDocs(
+                    catalog=database_dbt.catalog,
+                    manifest=database_dbt.manifest,
+                )
+                self.agent.add_tool(dbt_docs, "dbt_docs")
 
-            code_editor = CodeEditor(repo_path)
-            self.agent.add_tool(code_editor, "code_editor")
+            # Add Code Editor tool to the agent if the conversation has a workspace path
+            if self.conversation.workspace_path:
+                code_editor = CodeEditor(self.conversation.workspace_path)
+                self.agent.add_tool(code_editor, "code_editor")
 
-        github_tool = GithubTool(self.session, self.conversation)
-        self.agent.add_tool(github_tool, "github")
+                dbt_editor = DBTEditor(
+                    repo_path=self.conversation.workspace_path,
+                    database_config={
+                        "engine": self.conversation.database.engine,
+                        "details": self.conversation.database.details,
+                    },
+                )
+                self.agent.add_tool(dbt_editor, "dbt_editor")
 
         if self.conversation.project:
             notes = Notes(self.session, self.agent, self.conversation.project)

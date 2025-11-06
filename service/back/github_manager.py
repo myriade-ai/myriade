@@ -64,7 +64,7 @@ def _run_git_command(args: List[str], cwd: Optional[Path] = None) -> str:
     except subprocess.CalledProcessError as exc:
         logger.error(
             "Git command failed",
-            extra={"args": exc.cmd, "stdout": exc.stdout, "stderr": exc.stderr},
+            extra={"command": exc.cmd, "stdout": exc.stdout, "stderr": exc.stderr},
         )
         error_msg = exc.stderr.strip() or exc.stdout.strip()
         raise GithubIntegrationError(
@@ -114,16 +114,13 @@ def _clone_repository(
     )
 
 
-def _get_workspace_path(
-    conversation: Conversation, integration: GithubIntegration
-) -> Path:
-    return (
-        WORKSPACE_ROOT
-        / str(conversation.databaseId)
-        / integration.repo_owner
-        / integration.repo_name
-        / str(conversation.id)
-    )
+def _get_workspace_path(conversation: Conversation) -> Path:
+    return WORKSPACE_ROOT / "conversations" / str(conversation.id)
+
+
+def _get_default_workspace_path(database_id: UUID) -> Path:
+    """Get path for shared default branch workspace used for DBT docs generation."""
+    return WORKSPACE_ROOT / str(database_id)
 
 
 def _as_uuid(value: Union[str, UUID]) -> UUID:
@@ -361,11 +358,79 @@ def list_repositories(token: str, search: Optional[str] = None) -> List[Dict[str
     ]
 
 
+def get_workspace_commit_hash(workspace: Path) -> Optional[str]:
+    """Get the current git commit hash of a workspace."""
+    try:
+        commit_hash = _run_git_command(["git", "rev-parse", "HEAD"], cwd=workspace)
+        return commit_hash.strip()
+    except GithubIntegrationError:
+        return None
+
+
+def ensure_default_workspace(session: Session, database_id: UUID) -> Optional[Path]:
+    """
+    Ensure shared default branch workspace exists for DBT docs generation.
+
+    This workspace is shared across all conversations for a database and
+    stays on the configured default branch (from GitHub integration settings).
+    It's used for generating DBT catalog and manifest docs.
+
+    Returns:
+        Path to shared workspace, or None if GitHub integration not configured.
+    """
+    from models import Database
+
+    database = session.query(Database).filter(Database.id == database_id).first()
+    if not database:
+        raise GithubIntegrationError("Database not found.")
+
+    integration = get_github_integration(session, database_id)
+    if (
+        not integration
+        or not integration.access_token
+        or not integration.repo_owner
+        or not integration.repo_name
+    ):
+        raise GithubIntegrationError(
+            "GitHub integration is not configured for this database."
+        )
+
+    ensure_valid_access_token(session, integration)
+    base_branch = integration.default_branch
+    if not base_branch:
+        raise GithubIntegrationError("GitHub default branch is not configured.")
+
+    workspace = _get_default_workspace_path(database_id)
+
+    if not workspace.exists() or not (workspace / ".git").exists():
+        _clone_repository(workspace, integration, base_branch)
+    else:
+        # Pull latest changes from default branch
+        try:
+            _run_git_command(["git", "checkout", base_branch], cwd=workspace)
+
+            def pull_latest() -> None:
+                _run_git_command(["git", "fetch", "origin"], cwd=workspace)
+                _run_git_command(
+                    ["git", "reset", "--hard", f"origin/{base_branch}"], cwd=workspace
+                )
+
+            _with_authenticated_remote(workspace, integration, pull_latest)
+        except GithubIntegrationError as exc:
+            logger.warning(
+                "Failed to update main workspace",
+                extra={"workspace": str(workspace), "error": str(exc)},
+            )
+
+    return workspace
+
+
 def ensure_conversation_workspace(
     session: Session, conversation: Conversation
 ) -> Optional[Path]:
     database = conversation.database
     integration = get_github_integration(session, database.id)
+
     if (
         not integration
         or not integration.access_token
@@ -375,74 +440,202 @@ def ensure_conversation_workspace(
         return None
 
     ensure_valid_access_token(session, integration)
-    base_branch = integration.default_branch or "main"
-    branch_name = conversation.github_branch or f"myriade/{conversation.id}"
-    workspace = _get_workspace_path(conversation, integration)
+    base_branch = integration.default_branch
+    if not base_branch:
+        raise GithubIntegrationError("GitHub default branch is not configured.")
+
+    branch_name = f"myriade/{conversation.id}"
+    workspace = _get_workspace_path(conversation)
 
     if not workspace.exists() or not (workspace / ".git").exists():
         _clone_repository(workspace, integration, base_branch)
-        conversation.github_branch = branch_name
-        conversation.github_base_branch = base_branch
-        conversation.github_repo_full_name = (
-            conversation.github_repo_full_name
-            or f"{integration.repo_owner}/{integration.repo_name}"
-        )
         session.flush()
         _run_git_command(["git", "checkout", "-B", branch_name], cwd=workspace)
-    else:
-        if conversation.github_branch:
-            try:
-                _run_git_command(
-                    ["git", "checkout", conversation.github_branch], cwd=workspace
-                )
-            except GithubIntegrationError:
-                # If checkout fails (e.g., branch missing), recreate it from base branch
-                def recreate_branch() -> None:
-                    _run_git_command(["git", "fetch", "origin"], cwd=workspace)
-                    _run_git_command(["git", "checkout", base_branch], cwd=workspace)
-                    _run_git_command(
-                        ["git", "reset", "--hard", f"origin/{base_branch}"],
-                        cwd=workspace,
-                    )
-                    _run_git_command(
-                        ["git", "checkout", "-B", branch_name], cwd=workspace
-                    )
 
-                _with_authenticated_remote(workspace, integration, recreate_branch)
-                conversation.github_branch = branch_name
-                conversation.github_base_branch = base_branch
-                conversation.github_repo_full_name = (
-                    conversation.github_repo_full_name
-                    or f"{integration.repo_owner}/{integration.repo_name}"
-                )
-                session.flush()
-        else:
-
-            def initialise_branch() -> None:
-                _run_git_command(["git", "fetch", "origin"], cwd=workspace)
-                _run_git_command(["git", "checkout", base_branch], cwd=workspace)
-                _run_git_command(
-                    ["git", "reset", "--hard", f"origin/{base_branch}"], cwd=workspace
-                )
-                _run_git_command(["git", "checkout", "-B", branch_name], cwd=workspace)
-
-            _with_authenticated_remote(workspace, integration, initialise_branch)
-            conversation.github_branch = branch_name
-            conversation.github_base_branch = base_branch
-            conversation.github_repo_full_name = (
-                conversation.github_repo_full_name
-                or f"{integration.repo_owner}/{integration.repo_name}"
+        # Ensure DBT environment is set up for conversation workspace
+        try:
+            ensure_dbt_environment(workspace, database.engine)
+        except DBTEnvironmentError as exc:
+            logger.warning(
+                "Failed to prepare DBT environment for conversation workspace",
+                extra={"workspace": str(workspace), "error": str(exc)},
             )
-            session.flush()
+            # Don't fail the workspace creation - DBT might not be needed
+    else:
+        _run_git_command(["git", "checkout", branch_name], cwd=workspace)
+
+    return workspace
+
+
+def has_uncommitted_changes(session: Session, conversation: Conversation) -> bool:
+    """
+    Check if the conversation workspace has uncommitted changes.
+
+    Returns:
+        True if there are uncommitted changes, False otherwise.
+    """
+    workspace = ensure_conversation_workspace(session, conversation)
+    if not workspace:
+        return False
 
     try:
-        ensure_dbt_environment(workspace, database.engine)
-    except DBTEnvironmentError as exc:
-        logger.warning(
-            "Failed to prepare DBT environment",
-            extra={"workspace": str(workspace), "error": str(exc)},
-        )
-    return workspace
+        status = _run_git_command(["git", "status", "--porcelain"], cwd=workspace)
+        return bool(status.strip())
+    except GithubIntegrationError:
+        return False
+
+
+def get_workspace_changes(
+    session: Session, conversation: Conversation
+) -> Dict[str, Any]:
+    """
+    Get detailed information about changes in the conversation workspace.
+
+    Returns:
+        Dictionary with:
+        - has_changes: True if there are any changes vs remote branch
+        - files: List of files changed vs base branch (origin/main) with old/new content
+    """
+    workspace = ensure_conversation_workspace(session, conversation)
+    if not workspace:
+        return {"has_changes": False, "files": []}
+
+    # Get the base branch to compare against
+    integration = get_github_integration(session, conversation.database.id)
+    if not integration:
+        return {"has_changes": False, "files": []}
+
+    base_branch = integration.default_branch or "main"
+    conversation_branch = f"myriade/{conversation.id}"
+
+    try:
+        # Fetch latest from remote to ensure we have up-to-date refs
+        try:
+            _run_git_command(["git", "fetch", "origin"], cwd=workspace)
+        except GithubIntegrationError as e:
+            logger.warning(f"Failed to fetch from remote: {e}")
+
+        # Check if there are changes compared
+        # to remote branch (origin/conversation_branch)
+        # This determines has_changes flag
+        has_changes = False
+
+        # First, check if the remote branch exists by listing remote branches
+        remote_branch_exists = False
+        try:
+            remote_branches = _run_git_command(["git", "branch", "-r"], cwd=workspace)
+            # Check if our conversation branch is in the list
+            branch_ref = f"origin/{conversation_branch}"
+            remote_branch_exists = branch_ref in remote_branches
+        except GithubIntegrationError:
+            remote_branch_exists = False
+
+        if remote_branch_exists:
+            # Compare with remote branch
+            try:
+                diff_vs_remote = _run_git_command(
+                    ["git", "diff", f"origin/{conversation_branch}..HEAD"],
+                    cwd=workspace,
+                )
+                has_changes = bool(diff_vs_remote.strip())
+            except GithubIntegrationError as e:
+                logger.warning(f"Failed to diff with remote branch: {e}")
+                has_changes = False
+        else:
+            # Remote branch doesn't exist yet, check if there are
+            # any commits not in base
+            try:
+                commits = _run_git_command(
+                    ["git", "log", f"origin/{base_branch}..HEAD", "--oneline"],
+                    cwd=workspace,
+                )
+                has_changes = bool(commits.strip())
+            except GithubIntegrationError as e:
+                logger.warning(f"Failed to check commits: {e}")
+                has_changes = False
+
+        # Also check for uncommitted changes
+        status = _run_git_command(["git", "status", "--porcelain"], cwd=workspace)
+        if status.strip():
+            has_changes = True
+
+        # Get list of files changed compared to base branch (for the files list)
+        # This uses git diff to compare current HEAD vs origin/base_branch
+        try:
+            diff_output = _run_git_command(
+                ["git", "diff", "--name-only", f"origin/{base_branch}...HEAD"],
+                cwd=workspace,
+            )
+            changed_files = [f.strip() for f in diff_output.split("\n") if f.strip()]
+        except GithubIntegrationError:
+            changed_files = []
+
+        # Also include uncommitted files
+        if status.strip():
+            for line in status.strip().split("\n"):
+                if not line:
+                    continue
+                file_path = line[3:].strip()
+                if file_path.startswith('"') and file_path.endswith('"'):
+                    file_path = file_path[1:-1]
+                if file_path not in changed_files:
+                    changed_files.append(file_path)
+
+        # Get old and new content for each changed file
+        files_info = []
+        for file_path in changed_files:
+            try:
+                old_content = ""
+                new_content = ""
+
+                # Get current (new) content from working tree
+                # (HEAD or working directory)
+                full_file_path = workspace / file_path
+                if full_file_path.exists():
+                    try:
+                        with open(full_file_path, "r") as f:
+                            new_content = f.read()
+                    except Exception:
+                        new_content = ""
+                else:
+                    # File might have been deleted, try to get from HEAD
+                    try:
+                        new_content = _run_git_command(
+                            ["git", "show", f"HEAD:{file_path}"], cwd=workspace
+                        )
+                    except GithubIntegrationError:
+                        new_content = ""
+
+                # Get old content from base branch (origin/base_branch)
+                try:
+                    old_content = _run_git_command(
+                        ["git", "show", f"origin/{base_branch}:{file_path}"],
+                        cwd=workspace,
+                    )
+                except GithubIntegrationError:
+                    # File doesn't exist in base branch (new file)
+                    old_content = ""
+
+                files_info.append(
+                    {
+                        "path": file_path,
+                        "old_content": old_content,
+                        "new_content": new_content,
+                    }
+                )
+            except Exception:
+                # If we can't get content for this file, include it with empty content
+                files_info.append(
+                    {
+                        "path": file_path,
+                        "old_content": "",
+                        "new_content": "",
+                    }
+                )
+
+        return {"has_changes": has_changes, "files": files_info}
+    except GithubIntegrationError:
+        return {"has_changes": False, "files": []}
 
 
 def create_pull_request_for_conversation(
@@ -451,7 +644,6 @@ def create_pull_request_for_conversation(
     title: str,
     commit_message: Optional[str] = None,
     body: Optional[str] = None,
-    skip_commit: bool = False,
 ) -> Dict[str, Any]:
     """
     Create a pull request for the conversation.
@@ -471,30 +663,27 @@ def create_pull_request_for_conversation(
 
     ensure_valid_access_token(session, integration)
 
-    if not skip_commit:
-        status = _run_git_command(["git", "status", "--porcelain"], cwd=workspace)
-        if not status:
-            raise GithubIntegrationError(
-                "No changes detected to commit before creating a pull request."
-            )
+    status = _run_git_command(["git", "status", "--porcelain"], cwd=workspace)
+    if not status:
+        raise GithubIntegrationError(
+            "No changes detected to commit before creating a pull request."
+        )
 
-        _run_git_command(["git", "add", "--all"], cwd=workspace)
+    _run_git_command(["git", "add", "--all"], cwd=workspace)
 
-        commit_msg = commit_message or title
-        try:
-            _run_git_command(["git", "commit", "-m", commit_msg], cwd=workspace)
-        except GithubIntegrationError as exc:
-            if "nothing to commit" not in str(exc):
-                raise
+    commit_msg = commit_message or title
+    try:
+        _run_git_command(["git", "commit", "-m", commit_msg], cwd=workspace)
+    except GithubIntegrationError as exc:
+        if "nothing to commit" not in str(exc):
+            raise
 
-        def push_branch() -> None:
-            if not conversation.github_branch:
-                raise GithubIntegrationError("Conversation branch is not initialised.")
-            _run_git_command(
-                ["git", "push", "origin", conversation.github_branch], cwd=workspace
-            )
+    def push_branch() -> None:
+        _run_git_command(
+            ["git", "push", "origin", f"myriade/{conversation.id}"], cwd=workspace
+        )
 
-        _with_authenticated_remote(workspace, integration, push_branch)
+    _with_authenticated_remote(workspace, integration, push_branch)
 
     headers = {
         "Authorization": f"Bearer {integration.access_token}",
@@ -502,8 +691,8 @@ def create_pull_request_for_conversation(
     }
     payload = {
         "title": title,
-        "head": conversation.github_branch,
-        "base": conversation.github_base_branch or integration.default_branch or "main",
+        "head": f"myriade/{conversation.id}",
+        "base": integration.default_branch,
     }
     if body:
         payload["body"] = body
@@ -523,9 +712,4 @@ def create_pull_request_for_conversation(
     conversation.github_pr_url = data.get("html_url")
     conversation.github_pr_number = data.get("number")
     session.flush()
-    return {
-        "url": conversation.github_pr_url,
-        "number": conversation.github_pr_number,
-        "branch": conversation.github_branch,
-        "base": conversation.github_base_branch,
-    }
+    return conversation.github_pr_url

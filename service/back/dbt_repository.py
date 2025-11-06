@@ -374,10 +374,6 @@ class DBTRepository:
 
         logger.info(f"dbt command: {' '.join(full_command)}")
 
-        print(f"dbt command: {' '.join(full_command)}")
-        print(f"env: {env}")
-        print(f"cwd: {str(self.repo_path)}")
-
         try:
             # Run the command with subprocess
             result = subprocess.run(
@@ -469,3 +465,24 @@ def generate_dbt_docs(
     """
     with DBTRepository(repo_path, database_config) as repo:
         return repo.generate_docs()
+
+
+def get_or_create_dbt(session, database_id):
+    """
+    Get or create DBT record for a database.
+
+    Args:
+        session: SQLAlchemy session
+        database_id: UUID of the database
+
+    Returns:
+        DBT model instance
+    """
+    from models import DBT
+
+    dbt = session.query(DBT).filter(DBT.database_id == database_id).first()
+    if not dbt:
+        dbt = DBT(database_id=database_id)
+        session.add(dbt)
+        session.flush()
+    return dbt

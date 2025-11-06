@@ -18,33 +18,44 @@ class GithubTool:
     def __llm__(self) -> str:
         return (
             "Use this tool to work with the GitHub repository linked to the current "
-            "conversation's database. It can prepare the workspace, ensure the DBT "
-            "environment is installed, prepare pull requests for review, and create "
-            "pull requests after user validation."
+            "conversation's database. Before editing any DBT files, you MUST call "
+            "initialize_workspace() to set up your git workspace. This creates a "
+            "conversation-specific branch for your changes."
         )
 
-    def ensure_workspace(self) -> dict:
-        """Ensure the GitHub workspace for the conversation is ready."""
-        workspace = ensure_conversation_workspace(self.session, self.conversation)
-        if not workspace:
-            raise GithubIntegrationError(
-                "No GitHub integration is configured for this database."
-            )
-        logger.info("Workspace ready", extra={"path": str(workspace)})
-        return {
-            "status": "ready",
-            "workspace_path": str(workspace),
-        }
+    def initialize_workspace(self) -> dict:
+        """
+        Initialize git workspace for editing files.
 
-    def install_dbt_environment(self) -> dict:
-        """Force preparation of the DBT virtual environment."""
+        Call this BEFORE using the code_editor tool to edit any files.
+        This clones the repository, creates a conversation-specific branch,
+        and prepares the DBT environment (if first time, may take 30-60 seconds).
+
+        For data analysis queries that don't require file editing, you do NOT
+        need to call this function.
+
+        Returns:
+            dict: Workspace information including path and branch name.
+        """
+        logger.info("Initializing workspace for conversation")
         workspace = ensure_conversation_workspace(self.session, self.conversation)
+        self.conversation.workspace_path = str(workspace)
+        self.session.flush()
         if not workspace:
             raise GithubIntegrationError(
                 "No GitHub integration is configured for this database."
             )
+        logger.info(
+            "Workspace initialized successfully", extra={"path": str(workspace)}
+        )
         return {
             "status": "ready",
             "workspace_path": str(workspace),
-            "message": "DBT environment verified",
+            "branch": "myriade/{self.conversation.id}",
+            "message": (
+                f"Workspace initialized at {workspace}. "
+                f"You are now on branch 'myriade/{self.conversation.id}'. "
+                "The DBT environment is ready. "
+                "You can now edit files using the code_editor tool."
+            ),
         }

@@ -53,6 +53,36 @@ def format_to_snake_case(**kwargs):
 
 
 @dataclass
+class DBT(SerializerMixin, DefaultBase, Base):
+    """DBT project information and documentation for a database."""
+
+    __tablename__ = "dbt"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    database_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("database.id"), nullable=False, unique=True
+    )
+
+    # DBT documentation (catalog and manifest JSON)
+    catalog: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
+    manifest: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
+
+    # Sync tracking
+    last_commit_hash: Mapped[Optional[str]] = mapped_column(String)
+    last_synced_at: Mapped[Optional[datetime]] = mapped_column(UtcDateTime)
+    sync_status: Mapped[str] = mapped_column(String, default="idle")
+    generation_started_at: Mapped[Optional[datetime]] = mapped_column(UtcDateTime)
+    generation_error: Mapped[Optional[str]] = mapped_column(String)
+
+    # Relationship
+    database: Mapped["Database"] = relationship("Database", back_populates="dbt")
+
+
+@dataclass
 class Database(SerializerMixin, DefaultBase, Base):
     __tablename__ = "database"
 
@@ -72,9 +102,11 @@ class Database(SerializerMixin, DefaultBase, Base):
     public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Information save by the ai
     memory: Mapped[Optional[str]] = mapped_column(String)
-    dbt_catalog: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
-    dbt_manifest: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
-    dbt_repo_path: Mapped[Optional[str]] = mapped_column(String)
+
+    # DBT relationship (one-to-one)
+    dbt: Mapped[Optional["DBT"]] = relationship(
+        "DBT", back_populates="database", uselist=False
+    )
 
     # organisation: Mapped[Optional["Organisation"]] = relationship()
     # owner: Mapped[Optional["User"]] = relationship()
@@ -352,14 +384,11 @@ class Conversation(SerializerMixin, DefaultBase, Base):
     databaseId: Mapped[uuid.UUID] = mapped_column(
         UUID(), ForeignKey("database.id"), nullable=False
     )
+    github_pr_url: Mapped[Optional[str]] = mapped_column(String)
+    workspace_path: Mapped[Optional[str]] = mapped_column(String)
 
     owner: Mapped[Optional["User"]] = relationship()
     database: Mapped["Database"] = relationship()
-    github_branch: Mapped[Optional[str]] = mapped_column(String)
-    github_base_branch: Mapped[Optional[str]] = mapped_column(String)
-    github_repo_full_name: Mapped[Optional[str]] = mapped_column(String)
-    github_pr_url: Mapped[Optional[str]] = mapped_column(String)
-    github_pr_number: Mapped[Optional[int]] = mapped_column(Integer)
     messages: Mapped[List["ConversationMessage"]] = relationship(
         "ConversationMessage",
         back_populates="conversation",
@@ -368,11 +397,6 @@ class Conversation(SerializerMixin, DefaultBase, Base):
         order_by="ConversationMessage.createdAt",
     )
     project: Mapped[Optional["Project"]] = relationship()
-    github_branch: Mapped[Optional[str]] = mapped_column(String)
-    github_base_branch: Mapped[Optional[str]] = mapped_column(String)
-    github_repo_full_name: Mapped[Optional[str]] = mapped_column(String)
-    github_pr_url: Mapped[Optional[str]] = mapped_column(String)
-    github_pr_number: Mapped[Optional[int]] = mapped_column(Integer)
 
 
 @dataclass

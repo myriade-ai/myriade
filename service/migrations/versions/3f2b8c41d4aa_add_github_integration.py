@@ -77,32 +77,17 @@ def upgrade() -> None:
 
     op.add_column(
         "conversation",
-        sa.Column("github_branch", sa.String(), nullable=True),
-    )
-    op.add_column(
-        "conversation",
-        sa.Column("github_base_branch", sa.String(), nullable=True),
-    )
-    op.add_column(
-        "conversation",
-        sa.Column("github_repo_full_name", sa.String(), nullable=True),
+        sa.Column("workspace_path", sa.String(), nullable=True),
     )
     op.add_column(
         "conversation",
         sa.Column("github_pr_url", sa.String(), nullable=True),
     )
-    op.add_column(
-        "conversation",
-        sa.Column("github_pr_number", sa.Integer(), nullable=True),
-    )
 
 
 def downgrade() -> None:
-    op.drop_column("conversation", "github_pr_number")
+    op.drop_column("conversation", "workspace_path")
     op.drop_column("conversation", "github_pr_url")
-    op.drop_column("conversation", "github_repo_full_name")
-    op.drop_column("conversation", "github_base_branch")
-    op.drop_column("conversation", "github_branch")
 
     op.drop_table("github_oauth_state")
     op.drop_table("github_integration")

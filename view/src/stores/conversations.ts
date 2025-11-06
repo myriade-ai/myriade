@@ -25,11 +25,8 @@ export interface ConversationInfo {
   projectId: string
   createdAt: Date
   updatedAt: Date
-  githubBranch?: string | null
-  githubBaseBranch?: string | null
-  githubRepoFullName?: string | null
+  workspacePath?: string | null
   githubPrUrl?: string | null
-  githubPrNumber?: number | null
 }
 
 // Define your message shape
@@ -139,24 +136,12 @@ export const useConversationsStore = defineStore('conversations', () => {
       params: { contextId }
     })
     const fetchedConversations = res.data.map((conv) => {
-      const {
-        github_branch,
-        github_base_branch,
-        github_repo_full_name,
-        github_pr_url,
-        github_pr_number,
-        ...rest
-      } = conv
+      const { ...rest } = conv
 
       return {
         ...rest,
         createdAt: new Date(conv.createdAt),
-        updatedAt: new Date(conv.updatedAt),
-        githubBranch: github_branch ?? null,
-        githubBaseBranch: github_base_branch ?? null,
-        githubRepoFullName: github_repo_full_name ?? null,
-        githubPrUrl: github_pr_url ?? null,
-        githubPrNumber: github_pr_number ?? null
+        updatedAt: new Date(conv.updatedAt)
       }
     })
     // Update the conversations store but don't overwrite existing field messages
@@ -178,25 +163,21 @@ export const useConversationsStore = defineStore('conversations', () => {
   async function fetchMessages(conversationId: string) {
     try {
       const response = await axios.get(`/api/conversations/${conversationId}`)
-      const {
-        github_branch,
-        github_base_branch,
-        github_repo_full_name,
-        github_pr_url,
-        github_pr_number,
-        ...rest
-      } = response.data
+      const { ...rest } = response.data
+      // workspace_path => workspacePath
+      const workspacePath = rest.workspace_path ?? null
+      // github_pr_url => githubPrUrl
+      const githubPrUrl = rest.github_pr_url ?? null
+      delete rest.workspace_path
+      delete rest.github_pr_url
       // Update the conversation in the store
       const newConv: Conversation = {
         ...rest,
         createdAt: new Date(response.data.createdAt),
         updatedAt: new Date(response.data.updatedAt),
-        githubBranch: github_branch ?? null,
-        githubBaseBranch: github_base_branch ?? null,
-        githubRepoFullName: github_repo_full_name ?? null,
-        githubPrUrl: github_pr_url ?? null,
-        githubPrNumber: github_pr_number ?? null,
-        messages: response.data.messages
+        messages: response.data.messages,
+        workspacePath,
+        githubPrUrl
       }
       conversations.value[conversationId] = newConv
       // Fetch queries for the conversation
@@ -324,23 +305,11 @@ export const useConversationsStore = defineStore('conversations', () => {
       '/api/conversations',
       { contextId }
     )
-    const {
-      github_branch,
-      github_base_branch,
-      github_repo_full_name,
-      github_pr_url,
-      github_pr_number,
-      ...rest
-    } = newConversation.data as any
+    const { ...rest } = newConversation.data as any
     const newConv: Conversation = {
       ...rest,
       createdAt: new Date(newConversation.data.createdAt),
       updatedAt: new Date(newConversation.data.updatedAt),
-      githubBranch: github_branch ?? null,
-      githubBaseBranch: github_base_branch ?? null,
-      githubRepoFullName: github_repo_full_name ?? null,
-      githubPrUrl: github_pr_url ?? null,
-      githubPrNumber: github_pr_number ?? null,
       messages: []
     }
     conversations.value[newConv.id] = newConv
@@ -353,14 +322,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     )
     const conversation = conversations.value[conversationId]
     if (conversation) {
-      conversation.githubBranch = response.data.github_branch ?? conversation.githubBranch ?? null
-      conversation.githubBaseBranch =
-        response.data.github_base_branch ?? conversation.githubBaseBranch ?? null
-      conversation.githubRepoFullName =
-        response.data.github_repo_full_name ?? conversation.githubRepoFullName ?? null
-      conversation.githubPrUrl = response.data.github_pr_url ?? conversation.githubPrUrl ?? null
-      conversation.githubPrNumber =
-        response.data.github_pr_number ?? conversation.githubPrNumber ?? null
+      conversation.githubPrUrl = response.data.github_pr_url
     }
     return response.data
   }

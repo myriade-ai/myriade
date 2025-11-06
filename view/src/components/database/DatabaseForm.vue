@@ -51,95 +51,6 @@
       :message="connectionStatus?.message || ''"
     />
 
-    <!-- DBT Support (edit mode only) -->
-    <div v-if="mode === 'edit'" class="max-w-lg">
-      <div class="p-4 bg-gray-50 rounded-lg max-w-lg">
-        <h3 class="text-sm font-medium text-warning-900">DBT Support (🚧 experimental)</h3>
-        <p class="text-sm text-gray-500 mb-4">
-          Configure DBT integration by providing a local repository path.
-        </p>
-
-        <!-- Repository Path Configuration -->
-        <div class="space-y-4">
-          <div class="flex flex-col">
-            <label class="text-sm font-medium text-gray-700">DBT Repository Path</label>
-            <p class="text-xs text-gray-500 mb-2">
-              Path to your local DBT project directory (must contain dbt_project.yml)
-            </p>
-            <div class="flex space-x-2">
-              <Input
-                type="text"
-                v-model="database.dbt_repo_path"
-                placeholder="/path/to/your/dbt/project"
-                class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-              <Button
-                type="button"
-                :disabled="!database.dbt_repo_path || isValidatingRepo"
-                :is-loading="isValidatingRepo"
-                @click="validateRepository"
-                :variant="repoValidationStatus ? 'outline' : 'default'"
-              >
-                <template #loading>Validating...</template>
-                Validate
-              </Button>
-            </div>
-
-            <!-- Validation Status -->
-            <div v-if="repoValidationStatus" class="mt-2">
-              <div
-                v-if="repoValidationStatus.success"
-                class="text-green-600 text-sm flex items-center"
-              >
-                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                {{ repoValidationStatus.message }}
-              </div>
-              <div v-else class="text-red-600 text-sm flex items-center">
-                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                {{ repoValidationStatus.message }}
-              </div>
-            </div>
-
-            <!-- Generate Docs Button -->
-            <Button
-              v-if="database.dbt_repo_path && repoValidationStatus?.success"
-              type="button"
-              :disabled="isGeneratingDocs"
-              :is-loading="isGeneratingDocs"
-              @click="generateDbtDocs"
-              variant="default"
-              class="mt-2"
-            >
-              <template #loading>Generating...</template>
-              Generate DBT Documentation
-            </Button>
-
-            <!-- Generation Status -->
-            <div v-if="docsGenerationStatus" class="mt-2">
-              <div v-if="docsGenerationStatus.success" class="text-green-600 text-sm">
-                {{ docsGenerationStatus.message }}
-              </div>
-              <div v-else class="text-red-600 text-sm">
-                {{ docsGenerationStatus.message }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div v-if="mode === 'edit' && database.id" class="max-w-lg">
       <DatabaseGithubSettings :database-id="database.id" />
     </div>
@@ -148,7 +59,6 @@
 
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import axios from '@/plugins/axios'
 import { useContextsStore } from '@/stores/contexts'
 import {
@@ -194,12 +104,6 @@ if (props.engine) {
 const isTestingConnection = ref(false)
 const isSaving = ref(false)
 const connectionStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
-
-// DBT-related state
-const isValidatingRepo = ref(false)
-const isGeneratingDocs = ref(false)
-const repoValidationStatus = ref<{ success: boolean; message: string } | null>(null)
-const docsGenerationStatus = ref<{ success: boolean; message: string } | null>(null)
 
 // Computed
 const canTestConnection = computed(() => {
@@ -329,61 +233,6 @@ const handleSave = async () => {
     emit('error', error)
   } finally {
     isSaving.value = false
-  }
-}
-
-const validateRepository = async () => {
-  if (!database.dbt_repo_path || !database.id) return
-
-  isValidatingRepo.value = true
-  repoValidationStatus.value = null
-
-  try {
-    const response = await axios.post(`/api/databases/${database.id}/validate-dbt-repo`, {
-      repo_path: database.dbt_repo_path
-    })
-
-    repoValidationStatus.value = {
-      success: response.data.success,
-      message: response.data.message
-    }
-  } catch (error: any) {
-    repoValidationStatus.value = {
-      success: false,
-      message: error.response?.data?.message || 'Failed to validate repository'
-    }
-  } finally {
-    isValidatingRepo.value = false
-  }
-}
-
-const generateDbtDocs = async () => {
-  if (!database.id) return
-
-  isGeneratingDocs.value = true
-  docsGenerationStatus.value = null
-
-  try {
-    const response = await axios.post(`/api/databases/${database.id}/generate-dbt-docs`)
-
-    docsGenerationStatus.value = {
-      success: response.data.success,
-      message: response.data.message
-    }
-
-    // Refresh database data to get the generated catalog/manifest
-    if (response.data.success && database.id) {
-      const updatedDatabase = await databasesStore.getDatabaseById(database.id)
-      database.dbt_catalog = updatedDatabase.dbt_catalog
-      database.dbt_manifest = updatedDatabase.dbt_manifest
-    }
-  } catch (error: any) {
-    docsGenerationStatus.value = {
-      success: false,
-      message: error.response?.data?.message || 'Failed to generate documentation'
-    }
-  } finally {
-    isGeneratingDocs.value = false
   }
 }
 

@@ -19,17 +19,13 @@ from back.catalog_events import (
     emit_tag_updated,
 )
 from back.data_warehouse import ConnectionError, DataWarehouseFactory
-from back.dbt_repository import (
-    DBTRepositoryError,
-    generate_dbt_docs,
-    validate_dbt_repo,
-)
 from back.github_manager import (
     GithubIntegrationError,
     create_pull_request_for_conversation,
     ensure_valid_access_token,
     exchange_oauth_code,
     get_github_integration,
+    get_workspace_changes,
     list_repositories,
     start_oauth_flow,
 )
@@ -242,6 +238,34 @@ def delete_conversation(conversation_id: UUID):
     return jsonify({"success": True})
 
 
+@api.route("/conversations/<uuid:conversation_id>/github/changes", methods=["GET"])
+@user_middleware
+def get_conversation_changes(conversation_id: UUID):
+    """Get detailed information about uncommitted changes in conversation workspace."""
+    conversation = (
+        g.session.query(Conversation)
+        .options(joinedload(Conversation.database))
+        .filter(Conversation.id == conversation_id)
+        .first()
+    )
+    if not conversation:
+        return jsonify({"error": "Conversation not found"}), 404
+
+    user_owns_conversation = conversation.ownerId == g.user.id
+    database = conversation.database
+    user_in_same_org = (
+        database.organisationId is not None
+        and g.organization_id is not None
+        and database.organisationId == g.organization_id
+    )
+
+    if not (user_owns_conversation or user_in_same_org):
+        return jsonify({"error": "Cannot access conversations you don't own"}), 403
+
+    changes = get_workspace_changes(g.session, conversation)
+    return jsonify(changes)
+
+
 @api.route("/conversations/<uuid:conversation_id>/github/pr", methods=["POST"])
 @user_middleware
 def create_conversation_pull_request(conversation_id: UUID):
@@ -265,7 +289,7 @@ def create_conversation_pull_request(conversation_id: UUID):
     if not (user_owns_conversation or user_in_same_org):
         return jsonify({"error": "Cannot modify conversations you don't own"}), 403
 
-    if conversation.github_pr_number:
+    if conversation.github_pr_url:
         return jsonify(
             {"error": "A pull request already exists for this conversation."}
         ), 400
@@ -285,7 +309,7 @@ def create_conversation_pull_request(conversation_id: UUID):
     context_text = f"""# Conversation Context
 Conversation Name: {conversation.name or "Unnamed conversation"}
 Database: {database.name}
-Branch: {conversation.github_branch or "N/A"}
+Branch: myriade/{conversation.id}
 Repository: {integration.repo_owner}/{integration.repo_name}
 
 # Task
@@ -344,17 +368,17 @@ Make sure the title is specific and professional."""
     response_dict = message.function_call["arguments"]
 
     try:
-        create_pull_request_for_conversation(g.session, conversation, **response_dict)
+        url = create_pull_request_for_conversation(
+            g.session, conversation, **response_dict
+        )
+        conversation.github_pr_url = url
+        g.session.flush()
     except GithubIntegrationError as exc:
         return jsonify({"error": str(exc)}), 400
 
     return jsonify(
         {
-            "github_pr_url": conversation.github_pr_url,
-            "github_pr_number": conversation.github_pr_number,
-            "github_branch": conversation.github_branch,
-            "github_base_branch": conversation.github_base_branch,
-            "github_repo_full_name": conversation.github_repo_full_name,
+            "github_pr_url": url,
         }
     )
 
@@ -386,9 +410,6 @@ def create_database_route():
         owner_id=g.user.id,
         public=False,
         write_mode=data["write_mode"],
-        dbt_catalog=data.get("dbt_catalog"),
-        dbt_manifest=data.get("dbt_manifest"),
-        dbt_repo_path=data.get("dbt_repo_path"),
     )
 
     g.session.add(database)
@@ -405,7 +426,7 @@ def create_database_route():
     )
 
     # Return immediately - metadata sync runs in background
-    database_dict = database.to_dict(exclude=["dbt_catalog", "dbt_manifest"])
+    database_dict = database.to_dict()
     database_dict["sync_status"] = "syncing"
     database_dict["sync_progress"] = 0
     return jsonify(database_dict)
@@ -493,9 +514,6 @@ def update_database(database_id: UUID):
     database.engine = data["engine"]
     database.details = data["details"]
     database.write_mode = data["write_mode"]
-    database.dbt_catalog = data.get("dbt_catalog")
-    database.dbt_manifest = data.get("dbt_manifest")
-    database.dbt_repo_path = data.get("dbt_repo_path")
 
     g.session.flush()
 
@@ -509,7 +527,7 @@ def update_database(database_id: UUID):
     )
 
     # Return immediately - metadata sync runs in background
-    database_dict = database.to_dict(exclude=["dbt_catalog", "dbt_manifest"])
+    database_dict = database.to_dict()
     database_dict["sync_status"] = "syncing"
     database_dict["sync_progress"] = 0
     return jsonify(database_dict)
@@ -541,7 +559,7 @@ def share_database_to_organisation(database_id: UUID):
         database.organisationId = None
 
     g.session.flush()
-    database_dict = database.to_dict(exclude=["dbt_catalog", "dbt_manifest"])
+    database_dict = database.to_dict()
     return jsonify(database_dict)
 
 
@@ -563,9 +581,7 @@ def get_databases():
     )
     # Convert each Database object to its dictionary representation
     # Exclude large dbt fields that aren't needed in the list view
-    databases_list = [
-        db.to_dict(exclude=["dbt_catalog", "dbt_manifest"]) for db in databases_query
-    ]
+    databases_list = [db.to_dict() for db in databases_query]
     return jsonify(databases_list)
 
 
@@ -1757,94 +1773,6 @@ def get_issues():
     return jsonify(issues)
 
 
-@api.route("/databases/<uuid:database_id>/validate-dbt-repo", methods=["POST"])
-@user_middleware
-def validate_dbt_repository(database_id: UUID):
-    """Validate that a repository path contains a valid DBT project."""
-    database = g.session.query(Database).filter_by(id=database_id).first()
-    if not database:
-        return jsonify({"error": "Database not found"}), 404
-
-    # Verify user has access to update this database
-    if not (
-        database.ownerId == g.user.id
-        or (
-            database.organisationId is not None
-            and database.organisationId == g.organization_id
-        )
-    ):
-        return jsonify({"error": "Access denied"}), 403
-
-    data = request.get_json()
-    repo_path = data.get("repo_path")
-
-    if not repo_path:
-        return jsonify({"error": "Repository path is required"}), 400
-
-    try:
-        is_valid = validate_dbt_repo(repo_path)
-        if is_valid:
-            return jsonify({"success": True, "message": "Valid DBT repository"})
-        else:
-            return jsonify({"success": False, "message": "Invalid DBT repository"})
-    except Exception as e:
-        logger.error(f"Error validating DBT repository: {e}")
-        return jsonify({"success": False, "message": str(e)}), 400
-
-
-@api.route("/databases/<uuid:database_id>/generate-dbt-docs", methods=["POST"])
-@user_middleware
-def generate_dbt_documentation(database_id: UUID):
-    """Generate DBT documentation from repository and update database."""
-    database = g.session.query(Database).filter_by(id=database_id).first()
-    if not database:
-        return jsonify({"error": "Database not found"}), 404
-
-    # Verify user has access to update this database
-    if not (
-        database.ownerId == g.user.id
-        or (
-            database.organisationId is not None
-            and database.organisationId == g.organization_id
-        )
-    ):
-        return jsonify({"error": "Access denied"}), 403
-
-    if not database.dbt_repo_path:
-        return jsonify({"error": "No DBT repository path configured"}), 400
-
-    try:
-        # Prepare database config for DBT
-        database_config = {
-            "engine": database.engine,
-            "details": database.details,
-        }
-
-        # Generate docs
-        catalog, manifest = generate_dbt_docs(database.dbt_repo_path, database_config)
-
-        # Update database with generated docs
-        database.dbt_catalog = catalog
-        database.dbt_manifest = manifest
-        g.session.flush()
-
-        return jsonify(
-            {
-                "success": True,
-                "message": "DBT documentation generated successfully",
-                "catalog_nodes": len(catalog.get("nodes", {})),
-                "manifest_nodes": len(manifest.get("nodes", {})),
-            }
-        )
-
-    except DBTRepositoryError as e:
-        logger.error(f"DBT repository error: {e}")
-        return jsonify({"success": False, "message": str(e)}), 400
-    except Exception as e:
-        logger.error(f"Error generating DBT documentation: {e}")
-        return jsonify({"error": f"Failed to generate documentation: {str(e)}"}), 500
-
-
 @api.route("/databases/<uuid:database_id>/sync-metadata", methods=["POST"])
 @user_middleware
 def sync_database_metadata(database_id: UUID):
@@ -1999,14 +1927,9 @@ def update_database_github_settings(database_id: UUID):
         integration = GithubIntegration(databaseId=database.id)
         g.session.add(integration)
 
-    repo_changed = False
-
     if "repo_owner" in data or "repo_name" in data:
         new_owner = data.get("repo_owner") or None
         new_name = data.get("repo_name") or None
-        repo_changed = (
-            integration.repo_owner != new_owner or integration.repo_name != new_name
-        )
         integration.repo_owner = new_owner
         integration.repo_name = new_name
         if new_owner and new_name:
@@ -2015,26 +1938,13 @@ def update_database_github_settings(database_id: UUID):
             )
         else:
             integration.default_branch = None
+
     elif "default_branch" in data:
         integration.default_branch = (
             data.get("default_branch") or integration.default_branch
         )
 
     g.session.flush()
-
-    if repo_changed:
-        conversations = (
-            g.session.query(Conversation)
-            .filter(Conversation.databaseId == database.id)
-            .all()
-        )
-        for conv in conversations:
-            conv.github_branch = None
-            conv.github_base_branch = None
-            conv.github_repo_full_name = None
-            conv.github_pr_url = None
-            conv.github_pr_number = None
-        g.session.flush()
 
     return jsonify(_github_settings_payload(integration))
 
@@ -2122,3 +2032,89 @@ def list_database_github_repos(database_id: UUID):
         return jsonify({"error": str(exc)}), 400
 
     return jsonify({"repositories": repositories})
+
+
+@api.route("/databases/<uuid:database_id>/github/sync-dbt-docs", methods=["POST"])
+@user_middleware
+def trigger_dbt_docs_sync(database_id: UUID):
+    """Trigger background DBT documentation generation for a database."""
+    database = g.session.query(Database).filter(Database.id == database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if not _user_can_manage_database(database):
+        return jsonify({"error": "Access denied"}), 403
+
+    integration = get_github_integration(g.session, database.id)
+    if not integration or not integration.access_token:
+        return jsonify({"error": "GitHub integration is not connected"}), 400
+
+    # Check if sync is already in progress
+    from models import DBT
+
+    dbt = g.session.query(DBT).filter(DBT.database_id == database.id).first()
+    if dbt and dbt.sync_status == "generating":
+        return jsonify({"error": "DBT documentation sync is already in progress"}), 409
+
+    from back.dbt_sync import run_dbt_generation_background
+    from back.session import get_db_session
+
+    try:
+        run_dbt_generation_background(database.id, get_db_session)
+        return jsonify(
+            {
+                "status": "started",
+                "message": "DBT documentation generation started in background",
+            }
+        ), 202
+    except Exception as exc:
+        logger.error(
+            "Failed to start DBT generation",
+            exc_info=True,
+            extra={"database_id": str(database_id), "error": str(exc)},
+        )
+        return jsonify({"error": f"Failed to start generation: {str(exc)}"}), 500
+
+
+@api.route("/databases/<uuid:database_id>/github/dbt-sync-status", methods=["GET"])
+@user_middleware
+def get_dbt_sync_status(database_id: UUID):
+    """Get DBT documentation sync status for a database."""
+    database = g.session.query(Database).filter(Database.id == database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if not _user_can_manage_database(database):
+        return jsonify({"error": "Access denied"}), 403
+
+    from models import DBT
+
+    dbt = g.session.query(DBT).filter(DBT.database_id == database.id).first()
+
+    # Return default values if DBT record doesn't exist yet
+    if not dbt:
+        return jsonify(
+            {
+                "status": "idle",
+                "last_synced_at": None,
+                "generation_started_at": None,
+                "commit_hash": None,
+                "error": None,
+            }
+        )
+
+    return jsonify(
+        {
+            "status": dbt.sync_status,
+            "last_synced_at": (
+                dbt.last_synced_at.isoformat() if dbt.last_synced_at else None
+            ),
+            "generation_started_at": (
+                dbt.generation_started_at.isoformat()
+                if dbt.generation_started_at
+                else None
+            ),
+            "commit_hash": dbt.last_commit_hash,
+            "error": dbt.generation_error,
+        }
+    )

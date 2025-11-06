@@ -205,4 +205,9 @@ def create_app():
     # Initialize demo databases catalog on startup
     initialize_demo_databases()
 
+    # Start periodic DBT documentation sync scheduler
+    from back.scheduler import start_dbt_sync_scheduler
+
+    start_dbt_sync_scheduler()
+
     return app
