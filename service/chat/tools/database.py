@@ -82,41 +82,50 @@ class DatabaseTool:
         self.data_warehouse = data_warehouse
 
     def __repr__(self):
-        schemas = {}
+        # Organize by database -> schema -> tables
+        databases = {}
 
         for table in self.data_warehouse.tables_metadata:
+            database_name = table.get("database", "unknown")
             schema = table["schema"]
-            if schema not in schemas:
-                schemas[schema] = {"tables": [], "total_tables": 0}
 
-            schemas[schema]["total_tables"] += 1
+            # Initialize database structure if needed
+            if database_name not in databases:
+                databases[database_name] = {}
+
+            # Initialize schema structure if needed
+            if schema not in databases[database_name]:
+                databases[database_name][schema] = {"tables": [], "total_tables": 0}
+
+            databases[database_name][schema]["total_tables"] += 1
 
             # Only add up to 50 tables per schema
-            if len(schemas[schema]["tables"]) < TABLES_PREVIEW_LIMIT:
+            if len(databases[database_name][schema]["tables"]) < TABLES_PREVIEW_LIMIT:
                 table_preview = {
                     "name": table["name"],
                     "columns": [column["name"] for column in table["columns"]],
                     "table_type": table["table_type"],
                 }
-                schemas[schema]["tables"].append(table_preview)
+                databases[database_name][schema]["tables"].append(table_preview)
 
-        # Add truncation info
-        for schema_data in schemas.values():
-            schema_data["shown_tables"] = len(schema_data["tables"])
-            schema_data["is_truncated"] = (
-                schema_data["shown_tables"] < schema_data["total_tables"]
-            )
+        # Add truncation info for each schema in each database
+        for _, schemas in databases.items():
+            for schema_data in schemas.values():
+                schema_data["shown_tables"] = len(schema_data["tables"])
+                schema_data["is_truncated"] = (
+                    schema_data["shown_tables"] < schema_data["total_tables"]
+                )
 
         context = {
-            "DATABASE": {
+            "CONNECTION": {
                 "name": self.database.name,
                 "engine": self.database.engine,
             },
-            "SCHEMAS": schemas,
+            "DATABASES": databases,
             "MEMORY": self.database.memory,
         }
 
-        return yaml.dump(context)
+        return yaml.dump(context, sort_keys=False)
 
     def save_to_memory(self, text: str) -> str:
         """

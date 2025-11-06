@@ -1,7 +1,12 @@
 import { useCatalogStore, type CatalogAsset } from '@/stores/catalog'
 import { useDatabasesStore } from '@/stores/databases'
 import { computed, type ComputedRef } from 'vue'
-import type { ExplorerColumnNode, ExplorerSchemaNode, ExplorerTableNode } from './types'
+import type {
+  ExplorerColumnNode,
+  ExplorerDatabaseNode,
+  ExplorerSchemaNode,
+  ExplorerTableNode
+} from './types'
 import { useCatalogIndexed } from './useCatalogIndexed'
 
 /**
@@ -28,8 +33,19 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
   // Re-export indexes with existing names for backward compatibility
   const tableById = indexes.tablesByIdMap
   const columnsByTableId = indexes.columnsByTableIdMap
+  const databaseOptions = indexes.databaseOptions
   const schemaOptions = indexes.schemaOptions
   const tagOptions = computed(() => catalogStore.tagsArray)
+
+  function assetDatabase(asset: CatalogAsset): string {
+    if (asset.type === 'TABLE') {
+      return asset.table_facet?.database_name || ''
+    }
+    if (asset.type === 'COLUMN') {
+      return asset.column_facet?.parent_table_facet?.database_name || ''
+    }
+    return ''
+  }
 
   function assetSchema(asset: CatalogAsset): string {
     if (asset.type === 'TABLE') {
@@ -45,12 +61,21 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
     asset: CatalogAsset,
     options: {
       searchQuery: string
+      selectedDatabase: string
       selectedSchema: string
       selectedTag: string
       selectedStatus?: string
     }
   ): boolean {
-    const { searchQuery, selectedSchema, selectedTag, selectedStatus } = options
+    const { searchQuery, selectedDatabase, selectedSchema, selectedTag, selectedStatus } = options
+
+    if (
+      selectedDatabase &&
+      selectedDatabase !== '__all__' &&
+      assetDatabase(asset) !== selectedDatabase
+    ) {
+      return false
+    }
 
     if (selectedSchema && selectedSchema !== '__all__' && assetSchema(asset) !== selectedSchema) {
       return false
@@ -89,29 +114,81 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
 
   function buildFilteredTree(options: {
     searchQuery: string
+    selectedDatabase: string
     selectedSchema: string
     selectedTag: string
     selectedStatus?: string
-  }): ExplorerSchemaNode[] {
-    const { searchQuery, selectedSchema, selectedTag, selectedStatus } = options
-    const schemaMap = new Map<string, ExplorerSchemaNode>()
+  }): ExplorerDatabaseNode[] {
+    const { searchQuery, selectedDatabase, selectedSchema, selectedTag, selectedStatus } = options
+    const databaseMap = new Map<string, ExplorerDatabaseNode>()
+    const schemaNodeByAssetId = new Map<
+      string,
+      { node: ExplorerSchemaNode; database: ExplorerDatabaseNode }
+    >()
 
-    const ensureSchemaNode = (schemaName: string | null) => {
-      const schemaKey = `schema:${schemaName || ''}`
-      if (!schemaMap.has(schemaKey)) {
-        schemaMap.set(schemaKey, {
-          key: schemaKey,
-          name: schemaName,
-          tables: []
+    // First, collect all database and schema assets
+    const assets = assetsSource.value || []
+    const databaseAssets = assets.filter((a) => a.type === 'DATABASE')
+    const schemaAssets = assets.filter((a) => a.type === 'SCHEMA')
+
+    const ensureDatabaseNode = (databaseName: string, databaseAsset?: CatalogAsset) => {
+      const databaseKey = `database:${databaseName}`
+      if (!databaseMap.has(databaseKey)) {
+        databaseMap.set(databaseKey, {
+          key: databaseKey,
+          name: databaseName,
+          asset: databaseAsset!,
+          schemas: []
         })
       }
-      return schemaMap.get(schemaKey)!
+      return databaseMap.get(databaseKey)!
     }
 
-    // Use indexed tables list instead of catalogStore.tableAssets
+    const ensureSchemaNode = (
+      databaseNode: ExplorerDatabaseNode,
+      schemaName: string | null,
+      databaseName: string,
+      schemaAsset?: CatalogAsset
+    ) => {
+      const schemaKey = `schema:${databaseName}:${schemaName || ''}`
+      let schemaNode = databaseNode.schemas.find((s) => s.key === schemaKey)
+      if (!schemaNode) {
+        schemaNode = {
+          key: schemaKey,
+          name: schemaName,
+          asset: schemaAsset,
+          tables: []
+        }
+        databaseNode.schemas.push(schemaNode)
+      }
+      return schemaNode
+    }
+
+    // Create database nodes from database assets
+    databaseAssets.forEach((dbAsset) => {
+      const dbName = dbAsset.database_facet?.database_name || 'unknown'
+      ensureDatabaseNode(dbName, dbAsset)
+    })
+
+    // Create schema nodes from schema assets and index them by asset ID
+    schemaAssets.forEach((schemaAsset) => {
+      const dbName = schemaAsset.schema_facet?.database_name || 'unknown'
+      const schemaName = schemaAsset.schema_facet?.schema_name || ''
+      const databaseAsset = databaseAssets.find((a) => a.database_facet?.database_name === dbName)
+      const databaseNode = ensureDatabaseNode(dbName, databaseAsset)
+      const schemaNode = ensureSchemaNode(databaseNode, schemaName, dbName, schemaAsset)
+
+      // Index schema nodes by their asset ID for quick lookup
+      schemaNodeByAssetId.set(schemaAsset.id, { node: schemaNode, database: databaseNode })
+    })
+
+    // Use indexed tables list to build table/column hierarchy
     indexes.tablesList.value
       .slice()
       .sort((a, b) => {
+        const dbA = a.table_facet?.database_name || ''
+        const dbB = b.table_facet?.database_name || ''
+        if (dbA !== dbB) return dbA.localeCompare(dbB)
         const schemaA = a.table_facet?.schema || ''
         const schemaB = b.table_facet?.schema || ''
         if (schemaA !== schemaB) return schemaA.localeCompare(schemaB)
@@ -120,15 +197,38 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
         )
       })
       .forEach((tableAsset) => {
-        const schemaNode = ensureSchemaNode(tableAsset.table_facet?.schema || '')
+        // Try to find schema using parent_schema_asset_id first (most reliable)
+        const parentSchemaAssetId = tableAsset.table_facet?.parent_schema_asset_id
+        let schemaLookup = parentSchemaAssetId ? schemaNodeByAssetId.get(parentSchemaAssetId) : null
+
+        // Fallback to schema name matching if parent_schema_asset_id is not available
+        if (!schemaLookup) {
+          const dbName = tableAsset.table_facet?.database_name || 'unknown'
+          const schemaName = tableAsset.table_facet?.schema || ''
+          const databaseAsset = databaseAssets.find(
+            (a) => a.database_facet?.database_name === dbName
+          )
+          const databaseNode = ensureDatabaseNode(dbName, databaseAsset)
+          const schemaNode = ensureSchemaNode(databaseNode, schemaName, dbName)
+          schemaLookup = { node: schemaNode, database: databaseNode }
+        }
+
+        const schemaNode = schemaLookup.node
 
         // For search filtering, check both table and its columns
         const columnAssets = columnsByTableId.value.get(tableAsset.id) || []
         const matchedColumns = columnAssets.filter((column) =>
-          assetMatchesFilters(column, { searchQuery, selectedSchema, selectedTag, selectedStatus })
+          assetMatchesFilters(column, {
+            searchQuery,
+            selectedDatabase,
+            selectedSchema,
+            selectedTag,
+            selectedStatus
+          })
         )
         const tableMatches = assetMatchesFilters(tableAsset, {
           searchQuery,
+          selectedDatabase,
           selectedSchema,
           selectedTag,
           selectedStatus
@@ -155,9 +255,7 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
         schemaNode.tables.push(tableNode)
       })
 
-    const sorted = Array.from(schemaMap.values()).sort((a, b) =>
-      (a.name || '').localeCompare(b.name || '')
-    )
+    const sorted = Array.from(databaseMap.values()).sort((a, b) => a.name.localeCompare(b.name))
 
     return sorted
   }
@@ -166,6 +264,7 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
     databaseNameById,
     tableById,
     columnsByTableId,
+    databaseOptions,
     schemaOptions,
     tagOptions,
     assetSchema,
