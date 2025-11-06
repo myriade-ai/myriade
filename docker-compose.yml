@@ -28,7 +28,6 @@ services:
       # Optional - defaults provided in .env.docker
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      HOST: ${HOST:-http://localhost:8080}
       GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
       AGENTLYS_PROVIDER: ${PROVIDER:-proxy}
       AGENTLYS_MODEL: ${MODEL:-claude-sonnet-4-5-20250929}
