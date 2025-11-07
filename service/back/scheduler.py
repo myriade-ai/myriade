@@ -4,6 +4,8 @@ import logging
 import threading
 import time
 
+from back.session import get_db_session
+
 logger = logging.getLogger(__name__)
 
 
@@ -14,12 +16,10 @@ def start_dbt_sync_scheduler() -> None:
     This runs in a daemon thread and checks for databases that need
     DBT documentation updates every hour.
     """
+    from back.dbt_sync import schedule_periodic_dbt_sync
 
     def periodic_sync():
         """Background task that runs hourly to sync DBT docs."""
-        from back.dbt_sync import schedule_periodic_dbt_sync
-        from back.session import get_db_session
-
         logger.info("DBT sync scheduler started")
 
         while True:

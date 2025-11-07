@@ -8,6 +8,8 @@ from typing import Any, Dict, Tuple
 
 import yaml
 
+from models import DBT
+
 logger = logging.getLogger(__name__)
 
 
@@ -478,7 +480,6 @@ def get_or_create_dbt(session, database_id):
     Returns:
         DBT model instance
     """
-    from models import DBT
 
     dbt = session.query(DBT).filter(DBT.database_id == database_id).first()
     if not dbt:

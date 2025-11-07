@@ -2,7 +2,7 @@
 
 import logging
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Callable
 from uuid import UUID
 
@@ -16,6 +16,8 @@ from back.github_manager import (
     get_github_integration,
     get_workspace_commit_hash,
 )
+from back.session import get_db_session
+from models import DBT, Conversation, Database
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +34,6 @@ def run_dbt_generation_background(
     """
 
     def _generate_docs():
-        from models import Database
-
         with session_factory() as session:
             try:
                 database = (
@@ -161,10 +161,6 @@ def schedule_periodic_dbt_sync(session: Session) -> None:
     Args:
         session: Database session
     """
-    from datetime import timedelta
-
-    from back.session import get_db_session
-    from models import DBT, Conversation, Database
 
     try:
         # Find databases with GitHub integration and recent activity

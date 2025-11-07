@@ -19,6 +19,7 @@ from back.catalog_events import (
     emit_tag_updated,
 )
 from back.data_warehouse import ConnectionError, DataWarehouseFactory
+from back.dbt_sync import run_dbt_generation_background
 from back.github_manager import (
     GithubIntegrationError,
     create_pull_request_for_conversation,
@@ -40,6 +41,7 @@ from back.utils import (
 from chat.proxy_provider import ProxyProvider
 from middleware import admin_required, user_middleware
 from models import (
+    DBT,
     Chart,
     Conversation,
     ConversationMessage,
@@ -2047,14 +2049,10 @@ def trigger_dbt_docs_sync(database_id: UUID):
         return jsonify({"error": "GitHub integration is not connected"}), 400
 
     # Check if sync is already in progress
-    from models import DBT
 
     dbt = g.session.query(DBT).filter(DBT.database_id == database.id).first()
     if dbt and dbt.sync_status == "generating":
         return jsonify({"error": "DBT documentation sync is already in progress"}), 409
-
-    from back.dbt_sync import run_dbt_generation_background
-    from back.session import get_db_session
 
     try:
         run_dbt_generation_background(database.id, get_db_session)
@@ -2083,8 +2081,6 @@ def get_dbt_sync_status(database_id: UUID):
 
     if not _user_can_manage_database(database):
         return jsonify({"error": "Access denied"}), 403
-
-    from models import DBT
 
     dbt = g.session.query(DBT).filter(DBT.database_id == database.id).first()
 

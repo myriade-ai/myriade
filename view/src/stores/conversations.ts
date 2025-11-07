@@ -136,10 +136,8 @@ export const useConversationsStore = defineStore('conversations', () => {
       params: { contextId }
     })
     const fetchedConversations = res.data.map((conv) => {
-      const { ...rest } = conv
-
       return {
-        ...rest,
+        ...conv,
         createdAt: new Date(conv.createdAt),
         updatedAt: new Date(conv.updatedAt)
       }
