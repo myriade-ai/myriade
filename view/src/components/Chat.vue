@@ -1,6 +1,61 @@
 <template>
   <div>
-    <PageHeader title="Chat" subtitle="Ask questions about your data and get instant answers." />
+    <PageHeader
+      title="Chat"
+      subtitle="Ask questions about your data and get instant answers."
+      sticky
+    >
+      <template #actions>
+        <div v-if="conversationHasGithub" class="flex items-center gap-2">
+          <Sheet v-model:open="showChangesPanel">
+            <SheetTrigger as-child>
+              <Button v-if="hasChanges && !githubPrUrl" variant="outline" size="sm">
+                <FileTextIcon class="h-4 w-4 mr-2" />
+                {{ changedFiles.length }} {{ changedFiles.length === 1 ? 'file' : 'files' }} changed
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" class="w-full sm:max-w-2xl overflow-y-auto p-6">
+              <SheetHeader>
+                <SheetTitle>Changed Files</SheetTitle>
+                <SheetDescription>
+                  Review the changes before creating a pull request
+                </SheetDescription>
+              </SheetHeader>
+              <div class="mt-6 space-y-4">
+                <CodeDiffDisplay
+                  v-for="file in changedFiles"
+                  :key="file.path"
+                  :old-string="file.old_content"
+                  :new-string="file.new_content"
+                  :file-name="file.path"
+                  :default-expanded="true"
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+          <Button
+            v-if="githubPrUrl"
+            as="a"
+            variant="outline"
+            size="sm"
+            :href="githubPrUrl"
+            target="_blank"
+            rel="noopener"
+          >
+            View PR
+          </Button>
+          <Button
+            v-else-if="hasChanges"
+            variant="default"
+            size="sm"
+            @click="handleCreatePullRequest"
+            :disabled="creatingPr || isAiRunning"
+          >
+            {{ creatingPr ? 'Creating…' : 'Create PR' }}
+          </Button>
+        </div>
+      </template>
+    </PageHeader>
     <div
       ref="scrollContainer"
       class="flex justify-center px-2 sm:px-4 lg:px-0"
@@ -168,7 +223,7 @@
                   placeholder="Type your message"
                   v-model="inputText"
                   class="bg-transparent flex-1 resize-none border-none shadow-none focus:border-none focus:ring-0 focus:outline-none focus-visible:border-none focus-visible:ring-0 focus-visible:outline-none break-words overflow-wrap-anywhere"
-                  style="max-height: 400px;"
+                  style="max-height: 400px"
                   v-if="editMode === 'text'"
                 />
                 <BaseEditor
@@ -212,6 +267,7 @@
 
 <script setup lang="ts">
 import BaseEditor from '@/components/base/BaseEditor.vue'
+import CodeDiffDisplay from '@/components/CodeDiffDisplay.vue'
 import SendButtonWithStatus from '@/components/icons/SendButtonWithStatus.vue'
 import MessageDisplay from '@/components/MessageDisplay.vue'
 import SubscriptionPrompt from '@/components/SubscriptionPrompt.vue'
@@ -233,6 +289,14 @@ import { SparklesIcon } from '@heroicons/vue/24/solid'
 import PageHeader from './PageHeader.vue'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger
+} from './ui/sheet'
 import { useSidebar } from './ui/sidebar'
 import { Textarea } from './ui/textarea'
 
@@ -322,6 +386,49 @@ const messageGroups = computed(() => {
 
   return groups
 })
+
+const githubPrUrl = computed(() => conversation.value?.githubPrUrl ?? null)
+const conversationHasGithub = computed(() => conversation.value?.workspacePath !== null)
+const isAiRunning = computed(
+  () => queryStatus.value === STATUS.RUNNING || queryStatus.value === STATUS.PENDING
+)
+
+const creatingPr = ref(false)
+const hasChanges = ref(false)
+const changedFiles = ref<Array<{ path: string; old_content: string; new_content: string }>>([])
+const showChangesPanel = ref(false)
+
+const checkForChanges = async () => {
+  if (!conversationId.value || !conversationHasGithub.value || githubPrUrl.value) {
+    hasChanges.value = false
+    changedFiles.value = []
+    return
+  }
+
+  try {
+    const response = await axios.get(`/api/conversations/${conversationId.value}/github/changes`)
+    hasChanges.value = response.data.has_changes ?? false
+    changedFiles.value = response.data.files ?? []
+  } catch (err: any) {
+    console.error('Failed to check for changes:', err)
+    hasChanges.value = false
+    changedFiles.value = []
+  }
+}
+
+const handleCreatePullRequest = async () => {
+  if (!conversationId.value) return
+
+  try {
+    creatingPr.value = true
+    await conversationsStore.createGithubPullRequest(conversationId.value)
+  } catch (err: any) {
+    console.error('Failed to create pull request:', err)
+    // Error will be shown through the store or a toast notification
+  } finally {
+    creatingPr.value = false
+  }
+}
 
 const shouldDisplayMessage = (message: Message) => {
   const isEmptyFunctionResponse =
@@ -514,6 +621,7 @@ onMounted(async () => {
     conversationsStore.fetchMessages(conversationId.value)
   }
 
+  checkForChanges()
   scrollToBottom()
 })
 
@@ -523,9 +631,17 @@ watch(
   (newVal) => {
     if (newVal !== null && newVal !== undefined && newVal !== '') {
       conversationsStore.fetchMessages(newVal)
+      checkForChanges()
     }
   }
 )
+
+// Also check when AI finishes running
+watch(isAiRunning, (newVal, oldVal) => {
+  if (oldVal && !newVal && conversationHasGithub.value) {
+    checkForChanges()
+  }
+})
 
 /** AI SUGGESTIONS **/
 const aiSuggestions = ref([])

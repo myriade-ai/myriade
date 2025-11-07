@@ -53,6 +53,36 @@ def format_to_snake_case(**kwargs):
 
 
 @dataclass
+class DBT(SerializerMixin, DefaultBase, Base):
+    """DBT project information and documentation for a database."""
+
+    __tablename__ = "dbt"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    database_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("database.id"), nullable=False, unique=True
+    )
+
+    # DBT documentation (catalog and manifest JSON)
+    catalog: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
+    manifest: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
+
+    # Sync tracking
+    last_commit_hash: Mapped[Optional[str]] = mapped_column(String)
+    last_synced_at: Mapped[Optional[datetime]] = mapped_column(UtcDateTime)
+    sync_status: Mapped[str] = mapped_column(String, default="idle")
+    generation_started_at: Mapped[Optional[datetime]] = mapped_column(UtcDateTime)
+    generation_error: Mapped[Optional[str]] = mapped_column(String)
+
+    # Relationship
+    database: Mapped["Database"] = relationship("Database", back_populates="dbt")
+
+
+@dataclass
 class Database(SerializerMixin, DefaultBase, Base):
     __tablename__ = "database"
 
@@ -72,9 +102,11 @@ class Database(SerializerMixin, DefaultBase, Base):
     public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Information save by the ai
     memory: Mapped[Optional[str]] = mapped_column(String)
-    dbt_catalog: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
-    dbt_manifest: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
-    dbt_repo_path: Mapped[Optional[str]] = mapped_column(String)
+
+    # DBT relationship (one-to-one)
+    dbt: Mapped[Optional["DBT"]] = relationship(
+        "DBT", back_populates="database", uselist=False
+    )
 
     # organisation: Mapped[Optional["Organisation"]] = relationship()
     # owner: Mapped[Optional["User"]] = relationship()
@@ -341,6 +373,8 @@ class Conversation(SerializerMixin, DefaultBase, Base):
     databaseId: Mapped[uuid.UUID] = mapped_column(
         UUID(), ForeignKey("database.id"), nullable=False
     )
+    github_pr_url: Mapped[Optional[str]] = mapped_column(String)
+    workspace_path: Mapped[Optional[str]] = mapped_column(String)
 
     owner: Mapped[Optional["User"]] = relationship()
     database: Mapped["Database"] = relationship()
@@ -352,6 +386,52 @@ class Conversation(SerializerMixin, DefaultBase, Base):
         order_by="ConversationMessage.createdAt",
     )
     project: Mapped[Optional["Project"]] = relationship()
+
+
+@dataclass
+class GithubIntegration(SerializerMixin, DefaultBase, Base):
+    __tablename__ = "github_integration"
+
+    _json_exclude = SerializerMixin._json_exclude | {"access_token", "refresh_token"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    databaseId: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("database.id"), unique=True, nullable=False
+    )
+    access_token: Mapped[Optional[str]] = mapped_column(String)
+    refresh_token: Mapped[Optional[str]] = mapped_column(String)
+    token_type: Mapped[Optional[str]] = mapped_column(String)
+    scope: Mapped[Optional[str]] = mapped_column(String)
+    token_expires_at: Mapped[Optional[datetime]] = mapped_column(UtcDateTime)
+    repo_owner: Mapped[Optional[str]] = mapped_column(String)
+    repo_name: Mapped[Optional[str]] = mapped_column(String)
+    default_branch: Mapped[Optional[str]] = mapped_column(String)
+
+    database: Mapped["Database"] = relationship("Database")
+
+
+@dataclass
+class GithubOAuthState(SerializerMixin, DefaultBase, Base):
+    __tablename__ = "github_oauth_state"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    databaseId: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("database.id"), nullable=False
+    )
+    userId: Mapped[str] = mapped_column(String, nullable=False)
+    state: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    code_verifier: Mapped[Optional[str]] = mapped_column(String)
+    redirect_uri: Mapped[Optional[str]] = mapped_column(String)
+
+    database: Mapped["Database"] = relationship("Database")
 
 
 @dataclass
