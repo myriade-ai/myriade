@@ -94,11 +94,11 @@ def logout():
     session_cookie = request.cookies["session"]
     callback_host = HOST if HOST else request.url_root.rstrip("/")
 
-    # Clear all session-related caches to prevent any stale session access
-    # This includes both validation cache and refresh cache to ensure complete logout
-    from auth.auth import _clear_all_session_caches
+    # Clear session from validation and refresh caches
+    # This also removes any reverse mappings (old_session → this_session)
+    from auth.auth import _invalidate_session_cache
 
-    _clear_all_session_caches()
+    _invalidate_session_cache(session_cookie)
 
     try:
         # For WorkOS sealed sessions, get session info from the proxy

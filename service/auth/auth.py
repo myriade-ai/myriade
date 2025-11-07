@@ -74,16 +74,35 @@ def _cleanup_expired_validation_cache():
 
 
 def _invalidate_session_cache(session_cookie):
-    """Remove specific session from validation cache"""
+    """
+    Remove specific session from validation and refresh caches.
+
+    This clears:
+    1. The session itself from the validation cache
+    2. The session itself from the refresh cache (as a key)
+    3. Any refresh cache entries that point TO this session (reverse mappings)
+
+    The third step is critical: if this session was the result of a refresh
+    (old_session → this_session), we must also remove that mapping to prevent
+    anyone with the old session from accessing this now-logged-out session.
+    """
     cache_key = hashlib.sha256(session_cookie.encode()).hexdigest()[:32]
+
+    # Remove from validation cache
     _session_validation_cache.pop(cache_key, None)
+
+    # Remove from refresh cache if this session is a key
     _session_refresh_cache.pop(cache_key, None)
 
-
-def _clear_all_session_caches():
-    """Clear all session caches. Use this on logout to ensure complete cleanup."""
-    _session_validation_cache.clear()
-    _session_refresh_cache.clear()
+    # Find and remove any refresh cache entries where this session is the TARGET
+    # (i.e., entries where cached["sealed_session"] == session_cookie)
+    keys_to_remove = [
+        key
+        for key, cached in _session_refresh_cache.items()
+        if cached.get("sealed_session") == session_cookie
+    ]
+    for key in keys_to_remove:
+        _session_refresh_cache.pop(key, None)
 
 
 def _cache_session_refresh(

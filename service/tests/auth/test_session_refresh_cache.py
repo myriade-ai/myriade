@@ -68,23 +68,69 @@ def test_reuses_refreshed_session_for_concurrent_requests(monkeypatch):
     assert len(validate_calls) == 2  # No additional proxy calls
 
 
-def test_logout_clears_all_caches(monkeypatch):
-    """Ensure logout clears both validation and refresh caches."""
+def test_invalidate_session_clears_specific_session_and_reverse_mappings():
+    """
+    Ensure invalidating a session clears:
+    1. The session from validation cache
+    2. The session from refresh cache (as a key)
+    3. Any reverse mappings (old_session → this_session)
+    4. Does NOT clear other unrelated sessions
+    """
+    import hashlib
 
-    # Reset and populate caches
+    # Reset caches
     auth_module._session_validation_cache.clear()
     auth_module._session_refresh_cache.clear()
 
-    # Add some test data to both caches
-    auth_module._session_validation_cache["test_key_1"] = {"data": "test"}
-    auth_module._session_refresh_cache["test_key_2"] = {"data": "test"}
+    # Create test sessions
+    session_to_logout = "SESSION_TO_LOGOUT"
+    old_session = "OLD_SESSION_THAT_WAS_REFRESHED"
+    unrelated_session = "UNRELATED_SESSION"
 
+    # Hash the sessions as the cache does
+    logout_hash = hashlib.sha256(session_to_logout.encode()).hexdigest()[:32]
+    old_hash = hashlib.sha256(old_session.encode()).hexdigest()[:32]
+    unrelated_hash = hashlib.sha256(unrelated_session.encode()).hexdigest()[:32]
+
+    # Populate caches
+    # 1. Validation cache entries
+    auth_module._session_validation_cache[logout_hash] = {"user": "test"}
+    auth_module._session_validation_cache[unrelated_hash] = {"user": "other"}
+
+    # 2. Refresh cache: old_session was refreshed to session_to_logout
+    auth_module._session_refresh_cache[old_hash] = {
+        "sealed_session": session_to_logout,
+        "validation_data": {"user": "test"},
+        "expires": 9999999999,
+    }
+
+    # 3. Another unrelated refresh mapping
+    auth_module._session_refresh_cache["another_old"] = {
+        "sealed_session": unrelated_session,
+        "validation_data": {"user": "other"},
+        "expires": 9999999999,
+    }
+
+    # Verify setup
+    assert len(auth_module._session_validation_cache) == 2
+    assert len(auth_module._session_refresh_cache) == 2
+
+    # Invalidate the session being logged out
+    auth_module._invalidate_session_cache(session_to_logout)
+
+    # Verify results:
+    # 1. session_to_logout removed from validation cache
+    assert logout_hash not in auth_module._session_validation_cache
+
+    # 2. The reverse mapping (old_session → session_to_logout) removed
+    assert old_hash not in auth_module._session_refresh_cache
+
+    # 3. Unrelated sessions remain intact
+    assert unrelated_hash in auth_module._session_validation_cache
+    assert "another_old" in auth_module._session_refresh_cache
+    another_old_entry = auth_module._session_refresh_cache["another_old"]
+    assert another_old_entry["sealed_session"] == unrelated_session
+
+    # Final cache sizes
     assert len(auth_module._session_validation_cache) == 1
     assert len(auth_module._session_refresh_cache) == 1
-
-    # Clear all caches
-    auth_module._clear_all_session_caches()
-
-    # Verify both caches are empty
-    assert len(auth_module._session_validation_cache) == 0
-    assert len(auth_module._session_refresh_cache) == 0
