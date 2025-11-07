@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from back.data_warehouse import AbstractDatabase
 from models import Database
-from models.catalog import Asset, ColumnFacet, TableFacet
+from models.catalog import Asset, ColumnFacet, DatabaseFacet, SchemaFacet, TableFacet
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +41,11 @@ def create_database(
 def merge_tables_metadata(
     existing: Optional[List[Dict[str, Any]]], new: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
-    """Return `new` tables list enriched with privacy maps from `existing`.
+    """Return `new` tables list enriched with metadata from `existing`.
 
-    If a table/column already has a privacy map in `existing`, keep it.
+    Preserves user-added metadata:
+    - If a table/column already has a description in `existing`, keep it
+    - If a table/column already has a privacy map in `existing`, keep it
     Tables not present in the data_warehouse anymore are discarded.
     """
 
@@ -56,23 +58,40 @@ def merge_tables_metadata(
     for t in new:
         key = (t.get("schema"), t["name"])
         previous = existing_lookup.get(key)
-        # Build columns preserving privacy if available
+
+        # Preserve user-added table description if it exists
+        table_description = t.get("description")
+        if previous and previous.get("description"):
+            table_description = previous.get("description")
+
+        # Build columns preserving privacy and description if available
         merged_columns: List[Dict[str, Any]] = []
         for col in t["columns"]:
             # find same column in previous
             prev_col_priv = {}
+            prev_col_desc = None
             if previous:
                 for pc in previous.get("columns", []):
                     if pc["name"] == col["name"]:
                         prev_col_priv = pc.get("privacy", {})
+                        prev_col_desc = pc.get("description")
                         break
+
+            # Preserve user-added column description if it exists
+            col_description = col.get("description")
+            if prev_col_desc:
+                col_description = prev_col_desc
+
             merged_columns.append(
                 {
                     **col,
+                    "description": col_description,
                     "privacy": prev_col_priv.copy(),
                 }
             )
-        merged.append({**t, "columns": merged_columns})
+        merged.append(
+            {**t, "description": table_description, "columns": merged_columns}
+        )
 
     return merged
 
@@ -168,7 +187,7 @@ def sync_database_metadata_to_assets(
     created_count = 0
     updated_count = 0
 
-    # Track all valid URNs from current metadata (both tables and columns)
+    # Track all valid URNs from current metadata (databases, schemas, tables, columns)
     valid_urns = set()
 
     # Optimization: Pre-load all existing assets in a single query
@@ -178,20 +197,118 @@ def sync_database_metadata_to_assets(
     )
     existing_assets_by_urn = {asset.urn: asset for asset in existing_assets}
 
+    # Step 1: Extract unique databases from metadata
+    unique_databases = {}
+    for table_meta in tables_metadata:
+        db_name = table_meta.get("database")
+        if db_name and db_name not in unique_databases:
+            unique_databases[db_name] = db_name
+
+    # Step 2: Create/update database assets
+    database_assets = {}
+    for db_name in unique_databases:
+        database_urn = f"urn:database:{database_id}:{db_name}"
+        valid_urns.add(database_urn)
+
+        database_asset = existing_assets_by_urn.get(database_urn)
+        if not database_asset:
+            # Create new database asset
+            database_asset = Asset(
+                name=db_name,
+                urn=database_urn,
+                type="DATABASE",
+                database_id=database_id,
+            )
+            db_session.add(database_asset)
+            db_session.flush()  # Get the ID
+
+            # Create database facet
+            database_facet = DatabaseFacet(
+                asset_id=database_asset.id,
+                database_id=database_id,
+                database_name=db_name,
+            )
+            db_session.add(database_facet)
+            created_count += 1
+
+        database_assets[db_name] = database_asset
+
+    # Step 3: Extract unique schemas from metadata
+    unique_schemas = {}
+    for table_meta in tables_metadata:
+        db_name = table_meta.get("database")
+        schema_name = table_meta.get("schema")
+        if db_name and schema_name:
+            key = (db_name, schema_name)
+            if key not in unique_schemas:
+                unique_schemas[key] = (db_name, schema_name)
+
+    # Step 4: Create/update schema assets
+    schema_assets = {}
+    for db_name, schema_name in unique_schemas.values():
+        schema_urn = f"urn:schema:{database_id}:{db_name}:{schema_name}"
+        valid_urns.add(schema_urn)
+
+        schema_asset = existing_assets_by_urn.get(schema_urn)
+        if not schema_asset:
+            # Create new schema asset
+            parent_database_asset = database_assets.get(db_name)
+            if not parent_database_asset:
+                logger.warning(
+                    f"Parent database asset not found for schema: {schema_name}"
+                )
+                continue
+
+            schema_asset = Asset(
+                name=schema_name,
+                urn=schema_urn,
+                type="SCHEMA",
+                database_id=database_id,
+            )
+            db_session.add(schema_asset)
+            db_session.flush()  # Get the ID
+
+            # Create schema facet
+            schema_facet = SchemaFacet(
+                asset_id=schema_asset.id,
+                database_id=database_id,
+                database_name=db_name,
+                schema_name=schema_name,
+                parent_database_asset_id=parent_database_asset.id,
+            )
+            db_session.add(schema_facet)
+            created_count += 1
+
+        schema_assets[(db_name, schema_name)] = schema_asset
+
+    # Commit database and schema assets
+    db_session.commit()
+    logger.info(
+        f"Created/updated {len(database_assets)} databases and "
+        f"{len(schema_assets)} schemas"
+    )
+
     # Batch commit settings
     COMMIT_BATCH_SIZE = 100  # Commit every 100 tables
     tables_processed = 0
 
+    # Step 5: Create/update table and column assets
     for table_meta in tables_metadata:
+        database_name = table_meta.get("database")
         schema_name = table_meta.get("schema")
         table_name = table_meta.get("name")
 
         # Generate URN for table
-        table_urn = f"urn:table:{database_id}:{schema_name}:{table_name}"
+        table_urn = (
+            f"urn:table:{database_id}:{database_name}:{schema_name}:{table_name}"
+        )
         valid_urns.add(table_urn)
 
         # Check if table asset already exists (using pre-loaded dict)
         table_asset = existing_assets_by_urn.get(table_urn)
+
+        # Get parent schema asset
+        parent_schema_asset = schema_assets.get((database_name, schema_name))
 
         if not table_asset:
             # Create new table asset
@@ -209,9 +326,13 @@ def sync_database_metadata_to_assets(
             table_facet = TableFacet(
                 asset_id=table_asset.id,
                 database_id=database_id,
+                database_name=database_name,
                 schema=schema_name,
                 table_name=table_name,
                 table_type=table_meta.get("table_type"),
+                parent_schema_asset_id=parent_schema_asset.id
+                if parent_schema_asset
+                else None,
             )
             db_session.add(table_facet)
             created_count += 1
@@ -237,7 +358,8 @@ def sync_database_metadata_to_assets(
 
             # Generate URN for column
             column_urn = (
-                f"urn:column:{database_id}:{schema_name}:{table_name}:{column_name}"
+                f"urn:column:{database_id}:{database_name}:{schema_name}:"
+                f"{table_name}:{column_name}"
             )
             valid_urns.add(column_urn)
 
@@ -314,6 +436,12 @@ def sync_database_metadata_to_assets(
         .all()
     )
 
+    # Sort orphaned assets by type to delete children before parents
+    # This ensures we don't violate foreign key constraints
+    # Order: COLUMN -> TABLE -> SCHEMA -> DATABASE
+    asset_type_order = {"COLUMN": 0, "TABLE": 1, "SCHEMA": 2, "DATABASE": 3}
+    orphaned_assets.sort(key=lambda a: asset_type_order.get(a.type, 999))
+
     for asset in orphaned_assets:
         if asset.type == "COLUMN":
             db_session.query(ColumnFacet).filter(
@@ -322,6 +450,14 @@ def sync_database_metadata_to_assets(
         elif asset.type == "TABLE":
             db_session.query(TableFacet).filter(
                 TableFacet.asset_id == asset.id
+            ).delete()
+        elif asset.type == "SCHEMA":
+            db_session.query(SchemaFacet).filter(
+                SchemaFacet.asset_id == asset.id
+            ).delete()
+        elif asset.type == "DATABASE":
+            db_session.query(DatabaseFacet).filter(
+                DatabaseFacet.asset_id == asset.id
             ).delete()
         db_session.delete(asset)
 

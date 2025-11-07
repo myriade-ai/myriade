@@ -29,7 +29,6 @@
             :selected-asset-id="selectedAssetId"
             :show-collapse-button="!isMobile"
             @select-asset="handleSelectAsset"
-            @select-schema="handleSelectSchema"
           />
         </ResizablePanel>
 
@@ -42,9 +41,11 @@
             <!-- Filters Bar -->
             <CatalogFilters
               v-model:search-query="searchQueryInput"
+              v-model:selected-database="selectedDatabase"
               v-model:selected-schema="selectedSchema"
               v-model:selected-tag="selectedTag"
               v-model:selected-status="selectedStatus"
+              :database-options="databaseOptions"
               :schema-options="schemaOptions"
               :tag-options="tagOptions"
               :has-active-filters="hasActiveFilters"
@@ -100,12 +101,16 @@
               v-model:active-tab="activeTab"
               :asset="selectedAsset"
               :columns="columnsForSelectedTable"
+              :schemas="schemasForSelectedDatabase"
+              :tables="tablesForSelectedSchema"
               :draft="assetDraft"
               :is-editing="assetEditing"
               :is-saving="assetSaving"
               :has-changes="assetHasChanges"
               :error="assetEditError"
               @select-column="handleSelectAsset"
+              @select-schema="handleSelectAsset"
+              @select-table="handleSelectAsset"
               @start-edit="startAssetEdit"
               @cancel-edit="cancelAssetEdit"
               @save="saveAssetDetails"
@@ -139,7 +144,6 @@
           :collapsed="false"
           :show-collapse-button="false"
           @select-asset="handleSelectAsset"
-          @select-schema="handleSelectSchema"
         />
       </SheetContent>
     </Sheet>
@@ -205,10 +209,13 @@ const error = computed(() => queryError.value?.message || catalogStore.error)
 // State
 const searchQueryInput = ref('')
 const searchQuery = ref('')
+const selectedDatabase = ref('__all__')
 const selectedSchema = ref('__all__')
 const selectedTag = ref('__all__')
 const selectedStatus = ref('__all__')
-const activeTab = ref<'overview' | 'columns' | 'preview' | 'sources'>('overview')
+const activeTab = ref<'overview' | 'columns' | 'schemas' | 'tables' | 'preview' | 'sources'>(
+  'overview'
+)
 const isMobile = useMediaQuery('(max-width: 1023px)')
 const selectedAssetId = ref<string | null>(null)
 const explorerCollapsed = ref(false)
@@ -244,6 +251,7 @@ const catalogData = useCatalogData(computed(() => assetsData.value))
 const {
   tableById,
   columnsByTableId,
+  databaseOptions,
   schemaOptions,
   tagOptions,
   buildFilteredTree,
@@ -255,6 +263,7 @@ const {
 const hasActiveFilters = computed(() =>
   Boolean(
     searchQuery.value.trim() ||
+      (selectedDatabase.value && selectedDatabase.value !== '__all__') ||
       (selectedSchema.value && selectedSchema.value !== '__all__') ||
       (selectedTag.value && selectedTag.value !== '__all__') ||
       (selectedStatus.value && selectedStatus.value !== '__all__')
@@ -264,6 +273,7 @@ const hasActiveFilters = computed(() =>
 const filteredTree = computed(() =>
   buildFilteredTree({
     searchQuery: searchQuery.value,
+    selectedDatabase: selectedDatabase.value,
     selectedSchema: selectedSchema.value,
     selectedTag: selectedTag.value,
     selectedStatus: selectedStatus.value
@@ -295,6 +305,29 @@ const columnsForSelectedTable = computed(() => {
     label: column.column_facet?.column_name || column.name || 'Unnamed column',
     meta: column.column_facet?.data_type || ''
   }))
+})
+
+const schemasForSelectedDatabase = computed(() => {
+  const asset = selectedAsset.value
+  if (!asset || asset.type !== 'DATABASE') return []
+
+  // Find the database node in the filtered tree
+  const databaseNode = filteredTree.value.find((db) => db.asset.id === asset.id)
+  return databaseNode?.schemas || []
+})
+
+const tablesForSelectedSchema = computed(() => {
+  const asset = selectedAsset.value
+  if (!asset || asset.type !== 'SCHEMA') return []
+
+  // Find the schema node in the filtered tree
+  for (const dbNode of filteredTree.value) {
+    const schemaNode = dbNode.schemas.find((s) => s.asset?.id === asset.id)
+    if (schemaNode) {
+      return schemaNode.tables || []
+    }
+  }
+  return []
 })
 
 const assetHasChanges = computed(() => {
@@ -330,6 +363,7 @@ const filteredAssets = computed(() => {
   return assetsData.value.filter((asset) =>
     assetMatchesFilters(asset, {
       searchQuery: searchQuery.value,
+      selectedDatabase: selectedDatabase.value,
       selectedSchema: selectedSchema.value,
       selectedTag: selectedTag.value,
       selectedStatus: selectedStatus.value
@@ -350,6 +384,7 @@ const tablesForOverview = computed(() => {
   const tables = indexes.tablesList.value.filter((table) =>
     assetMatchesFilters(table, {
       searchQuery: searchQuery.value,
+      selectedDatabase: selectedDatabase.value,
       selectedSchema: selectedSchema.value,
       selectedTag: selectedTag.value,
       selectedStatus: selectedStatus.value
@@ -509,17 +544,10 @@ function handleSelectAsset(assetId: string) {
   }
 }
 
-function handleSelectSchema(schemaKey: string) {
-  selectedAssetId.value = null
-  const parts = schemaKey.split(':')
-  const schemaName = parts.length >= 2 ? parts.slice(1).join(':') : ''
-  selectedSchema.value = schemaName || '__all__'
-  // Don't close the sheet when selecting a schema on mobile - let user browse tables
-}
-
 function clearFilters() {
   searchQueryInput.value = ''
   searchQuery.value = ''
+  selectedDatabase.value = '__all__'
   selectedSchema.value = '__all__'
   selectedTag.value = '__all__'
   selectedStatus.value = '__all__'

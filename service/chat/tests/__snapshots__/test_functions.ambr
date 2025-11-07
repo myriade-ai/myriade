@@ -822,7 +822,7 @@
               }),
             ]),
             'default': None,
-            'description': 'Filter by type ("TABLE", "COLUMN", "TERM").',
+            'description': 'Filter by type ("DATABASE", "SCHEMA", "TABLE", "COLUMN",',
             'title': 'Asset Type',
           }),
           'limit': dict({
@@ -2086,7 +2086,7 @@
               }),
             ]),
             'default': None,
-            'description': 'Filter by type ("TABLE", "COLUMN", "TERM").',
+            'description': 'Filter by type ("DATABASE", "SCHEMA", "TABLE", "COLUMN",',
             'title': 'Asset Type',
           }),
           'limit': dict({

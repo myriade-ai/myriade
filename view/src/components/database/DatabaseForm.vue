@@ -113,16 +113,17 @@ const canTestConnection = computed(() => {
   if (!details) return false
   switch (database.engine) {
     case 'postgres':
+      return details.host && details.user && details.database
     case 'mysql':
       return details.host && details.user && details.database
     case 'snowflake':
-      return details.account && details.user && details.database && details.private_key_pem
+      return details.account && details.user && details.private_key_pem
     case 'sqlite':
       return details.filename
     case 'bigquery':
       return details.project_id
     case 'motherduck':
-      return details.token && details.database
+      return details.token
     case 'oracle':
       return details.host && details.user && details.database
     default:

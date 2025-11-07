@@ -38,7 +38,9 @@ class Asset(SerializerMixin, DefaultBase, Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(), primary_key=True, default=uuid.uuid4)
     urn: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    type: Mapped[str] = mapped_column(String, nullable=False)  # "TABLE", "COLUMN"
+    type: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # "DATABASE", "SCHEMA", "TABLE", "COLUMN"
     name: Mapped[Optional[str]] = mapped_column(String)
     description: Mapped[Optional[str]] = mapped_column(Text)
     database_id: Mapped[uuid.UUID] = mapped_column(
@@ -54,8 +56,23 @@ class Asset(SerializerMixin, DefaultBase, Base):
     created_by: Mapped[Optional[str]] = mapped_column(String, ForeignKey("user.id"))
 
     # 1:1 optional facets
+    database_facet: Mapped[Optional["DatabaseFacet"]] = relationship(
+        back_populates="asset",
+        uselist=False,
+        cascade="all, delete-orphan",
+        foreign_keys="DatabaseFacet.asset_id",
+    )
+    schema_facet: Mapped[Optional["SchemaFacet"]] = relationship(
+        back_populates="asset",
+        uselist=False,
+        cascade="all, delete-orphan",
+        foreign_keys="SchemaFacet.asset_id",
+    )
     table_facet: Mapped[Optional["TableFacet"]] = relationship(
-        back_populates="asset", uselist=False, cascade="all, delete-orphan"
+        back_populates="asset",
+        uselist=False,
+        cascade="all, delete-orphan",
+        foreign_keys="TableFacet.asset_id",
     )
     column_facet: Mapped[Optional["ColumnFacet"]] = relationship(
         back_populates="asset",
@@ -75,6 +92,57 @@ class Asset(SerializerMixin, DefaultBase, Base):
 
 
 @dataclass
+class DatabaseFacet(SerializerMixin, Base):
+    """Database-specific metadata facet"""
+
+    __tablename__ = "database_facet"
+
+    asset_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("asset.id"), primary_key=True
+    )
+    asset: Mapped[Asset] = relationship(
+        back_populates="database_facet", foreign_keys=[asset_id]
+    )
+    database_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("database.id"), nullable=False
+    )
+    database_name: Mapped[str] = mapped_column(String, nullable=False)
+
+    __table_args__ = (UniqueConstraint("database_id", "database_name"),)
+
+    database: Mapped["Database"] = relationship("Database")
+
+
+@dataclass
+class SchemaFacet(SerializerMixin, Base):
+    """Schema-specific metadata facet"""
+
+    __tablename__ = "schema_facet"
+
+    asset_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("asset.id"), primary_key=True
+    )
+    asset: Mapped[Asset] = relationship(
+        back_populates="schema_facet", foreign_keys=[asset_id]
+    )
+    database_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("database.id"), nullable=False
+    )
+    database_name: Mapped[str] = mapped_column(String, nullable=False)
+    schema_name: Mapped[str] = mapped_column(String, nullable=False)
+    parent_database_asset_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("asset.id")
+    )
+
+    __table_args__ = (UniqueConstraint("database_id", "database_name", "schema_name"),)
+
+    database: Mapped["Database"] = relationship("Database")
+    parent_database_asset: Mapped[Asset] = relationship(
+        "Asset", foreign_keys=[parent_database_asset_id]
+    )
+
+
+@dataclass
 class TableFacet(SerializerMixin, Base):
     """Table-specific metadata facet"""
 
@@ -83,17 +151,28 @@ class TableFacet(SerializerMixin, Base):
     asset_id: Mapped[uuid.UUID] = mapped_column(
         UUID(), ForeignKey("asset.id"), primary_key=True
     )
-    asset: Mapped[Asset] = relationship(back_populates="table_facet")
+    asset: Mapped[Asset] = relationship(
+        back_populates="table_facet", foreign_keys=[asset_id]
+    )
     database_id: Mapped[uuid.UUID] = mapped_column(
         UUID(), ForeignKey("database.id"), nullable=False
     )
+    database_name: Mapped[Optional[str]] = mapped_column(String)
     schema: Mapped[Optional[str]] = mapped_column(String)
     table_name: Mapped[Optional[str]] = mapped_column(String)
     table_type: Mapped[Optional[str]] = mapped_column(String)
+    parent_schema_asset_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(), ForeignKey("asset.id")
+    )
 
-    __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
+    __table_args__ = (
+        UniqueConstraint("database_id", "database_name", "schema", "table_name"),
+    )
 
     database: Mapped["Database"] = relationship("Database")
+    parent_schema_asset: Mapped[Optional[Asset]] = relationship(
+        "Asset", foreign_keys=[parent_schema_asset_id]
+    )
 
 
 @dataclass

@@ -47,27 +47,6 @@
     <!-- Filter Row -->
     <div class="flex flex-col lg:flex-row gap-2 lg:col-span-4 w-full">
       <Select
-        :model-value="selectedSchema"
-        @update:model-value="(value) => $emit('update:selectedSchema', String(value || '__all__'))"
-      >
-        <SelectTrigger
-          :class="[
-            'w-full lg:w-44',
-            selectedSchema && selectedSchema !== '__all__'
-              ? 'bg-primary-600 text-white [&_svg:not([class*=\'text-\'])]:text-white '
-              : ''
-          ]"
-        >
-          <SelectValue placeholder="All schemas" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="__all__">All schemas</SelectItem>
-          <SelectItem v-for="schema in schemaOptions" :key="schema" :value="schema">
-            {{ schema || 'default' }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
-      <Select
         :model-value="selectedTag"
         @update:model-value="(value) => $emit('update:selectedTag', String(value || '__all__'))"
       >
@@ -131,9 +110,11 @@ import { ChevronsRight, PanelLeft } from 'lucide-vue-next'
 
 interface Props {
   searchQuery: string
+  selectedDatabase: string
   selectedSchema: string
   selectedTag: string
   selectedStatus: string
+  databaseOptions: string[]
   schemaOptions: string[]
   tagOptions: AssetTag[]
   hasActiveFilters: boolean
@@ -145,6 +126,7 @@ defineProps<Props>()
 
 defineEmits<{
   'update:searchQuery': [value: string]
+  'update:selectedDatabase': [value: string]
   'update:selectedSchema': [value: string]
   'update:selectedTag': [value: string]
   'update:selectedStatus': [value: string]
