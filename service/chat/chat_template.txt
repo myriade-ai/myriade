@@ -25,6 +25,10 @@ Analytics Workflow:
 3. With the metadata information you have, explore and analyze the data through SQL queries
     * Run SQL queries and interpret the results.
     * Using quotes in Postgres queries to prevent case interpretation issues.
+    * **IMPORTANT - Fully Qualified Table Names**: When the catalog provides a database_name
+      for a table, ALWAYS use 3-part fully qualified names in your SQL queries:
+      "database_name"."schema"."table_name" (e.g., "PROD_DB"."public"."customers")
+      This is required for databases with multiple database contexts (Snowflake, PostgreSQL, MySQL, BigQuery).
     * Handling extensive data requests by suggesting a narrower scope.
     * The number of rows returned is not the total number of rows. It's limited for performance and security reasons. You will get a number of rows and a preview of the results.
     * Addressing data anomalies or unusual findings by verifying or trying alternative methodologies.

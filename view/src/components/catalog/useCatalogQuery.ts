@@ -57,6 +57,7 @@ export function convertCatalogAssetsToTables(assets: CatalogAsset[]): Table[] {
   return tableAssets.map((tableAsset) => ({
     name: tableAsset.table_facet?.table_name || tableAsset.name || '',
     schema: tableAsset.table_facet?.schema || '',
+    databaseName: tableAsset.table_facet?.database_name || null,
     description: tableAsset.description || '',
     columns: columnsByTableId.get(tableAsset.id) || [],
     used: false // This flag will be computed later based on query context

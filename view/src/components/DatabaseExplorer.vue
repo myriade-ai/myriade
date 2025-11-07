@@ -208,7 +208,11 @@ const onClick = (key: string) => {
 }
 
 const onSearch = (table: Table) => {
-  editor.query.sql = `SELECT * FROM "${table.schema}"."${table.name}";`
+  const tableRef = table.databaseName
+    ? `"${table.databaseName}"."${table.schema}"."${table.name}"`
+    : `"${table.schema}"."${table.name}"`
+
+  editor.query.sql = `SELECT * FROM ${tableRef};`
   searchTablesInput.value = '' // reset input
   editor.runQuery()
 }

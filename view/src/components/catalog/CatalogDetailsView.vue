@@ -17,7 +17,15 @@
           <FileText class="h-4 w-4 md:hidden" />
           <span class="hidden md:inline">Overview</span>
         </TabsTrigger>
-        <TabsTrigger value="columns">
+        <TabsTrigger v-if="isDatabaseAsset" value="schemas">
+          <FolderTree class="h-4 w-4 md:hidden" />
+          <span class="hidden md:inline">Schemas</span>
+        </TabsTrigger>
+        <TabsTrigger v-if="isSchemaAsset" value="tables">
+          <TableIcon class="h-4 w-4 md:hidden" />
+          <span class="hidden md:inline">Tables</span>
+        </TabsTrigger>
+        <TabsTrigger v-if="isTableAsset" value="columns">
           <Columns3 class="h-4 w-4 md:hidden" />
           <span class="hidden md:inline">Columns</span>
         </TabsTrigger>
@@ -50,7 +58,23 @@
           />
         </TabsContent>
 
-        <TabsContent value="columns" class="space-y-4">
+        <TabsContent v-if="isDatabaseAsset" value="schemas" class="space-y-4">
+          <CatalogSchemasTab
+            :schemas="schemas"
+            :selected-asset-id="asset?.id ?? null"
+            @select-schema="handleSelectSchema"
+          />
+        </TabsContent>
+
+        <TabsContent v-if="isSchemaAsset" value="tables" class="space-y-4">
+          <CatalogTablesTab
+            :tables="tables"
+            :selected-asset-id="asset?.id ?? null"
+            @select-table="handleSelectTable"
+          />
+        </TabsContent>
+
+        <TabsContent v-if="isTableAsset" value="columns" class="space-y-4">
           <CatalogColumnsTab
             :columns="columns"
             :selected-asset-id="asset?.id ?? null"
@@ -75,25 +99,36 @@ import AssetDescriptionEditor from '@/components/catalog/AssetDescriptionEditor.
 import AssetPreviewTab from '@/components/catalog/AssetPreviewTab.vue'
 import AssetSourcesTab from '@/components/catalog/AssetSourcesTab.vue'
 import CatalogColumnsTab from '@/components/catalog/CatalogColumnsTab.vue'
+import CatalogSchemasTab from '@/components/catalog/CatalogSchemasTab.vue'
+import CatalogTablesTab from '@/components/catalog/CatalogTablesTab.vue'
 import CatalogDetailsHeader from '@/components/catalog/CatalogDetailsHeader.vue'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { CatalogAsset } from '@/stores/catalog'
 import {
   CircleQuestionMarkIcon,
   Columns3,
+  Database,
   FileText,
   Eye,
+  FolderTree,
   Link2,
   Table as TableIcon,
   View as ViewIcon
 } from 'lucide-vue-next'
 import { computed } from 'vue'
-import type { EditableDraft, ExplorerColumnNode } from './types'
+import type {
+  EditableDraft,
+  ExplorerColumnNode,
+  ExplorerSchemaNode,
+  ExplorerTableNode
+} from './types'
 
 interface Props {
   asset: CatalogAsset | null
   columns: ExplorerColumnNode[]
-  activeTab: 'overview' | 'columns' | 'preview' | 'sources'
+  schemas: ExplorerSchemaNode[]
+  tables: ExplorerTableNode[]
+  activeTab: 'overview' | 'columns' | 'schemas' | 'tables' | 'preview' | 'sources'
   draft: EditableDraft
   isEditing: boolean
   isSaving: boolean
@@ -104,8 +139,10 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  'update:activeTab': [value: 'overview' | 'columns' | 'preview' | 'sources']
+  'update:activeTab': [value: 'overview' | 'columns' | 'schemas' | 'tables' | 'preview' | 'sources']
   'select-column': [columnId: string]
+  'select-schema': [schemaId: string]
+  'select-table': [tableId: string]
   'start-edit': []
   'cancel-edit': []
   save: []
@@ -119,8 +156,22 @@ const isTableAsset = computed(() => {
   return props.asset?.type === 'TABLE'
 })
 
+const isDatabaseAsset = computed(() => {
+  return props.asset?.type === 'DATABASE'
+})
+
+const isSchemaAsset = computed(() => {
+  return props.asset?.type === 'SCHEMA'
+})
+
 const getAssetIcon = (asset: CatalogAsset | null) => {
   if (!asset) return CircleQuestionMarkIcon
+  if (asset.type === 'DATABASE') {
+    return Database
+  }
+  if (asset.type === 'SCHEMA') {
+    return FolderTree
+  }
   if (asset.type === 'TABLE') {
     if (asset.table_facet?.table_type === 'VIEW') {
       return ViewIcon
@@ -138,15 +189,33 @@ const assetIcon = computed(() => getAssetIcon(props.asset))
 const assetLabel = computed(() => {
   const asset = props.asset
   if (!asset) return ''
-  if (asset.type === 'TABLE') {
-    return asset.table_facet?.table_name || 'Unnamed table'
+  if (asset.type === 'DATABASE') {
+    return asset.database_facet?.database_name || asset.name || 'Unnamed database'
   }
-  return asset.column_facet?.column_name || 'Unnamed column'
+  if (asset.type === 'SCHEMA') {
+    return asset.schema_facet?.schema_name || asset.name || 'default'
+  }
+  if (asset.type === 'TABLE') {
+    return asset.table_facet?.table_name || asset.name || 'Unnamed table'
+  }
+  return asset.column_facet?.column_name || asset.name || 'Unnamed column'
 })
 
 const tableSummary = computed(() => {
   const asset = props.asset
   if (!asset) return ''
+
+  // For databases
+  if (asset.type === 'DATABASE' && asset.database_facet) {
+    return asset.database_facet.database_name || ''
+  }
+
+  // For schemas
+  if (asset.type === 'SCHEMA' && asset.schema_facet) {
+    const dbName = asset.schema_facet.database_name || ''
+    const schemaName = asset.schema_facet.schema_name || 'default'
+    return `${dbName}.${schemaName}`
+  }
 
   // For columns, get the parent table info from the parent_table_facet
   if (asset.type === 'COLUMN' && asset.column_facet?.parent_table_facet) {
@@ -172,6 +241,16 @@ const activeTabModel = computed({
 
 function handleSelectColumn(columnId: string) {
   emit('select-column', columnId)
+  emit('update:activeTab', 'overview')
+}
+
+function handleSelectSchema(schemaId: string) {
+  emit('select-schema', schemaId)
+  emit('update:activeTab', 'overview')
+}
+
+function handleSelectTable(tableId: string) {
+  emit('select-table', tableId)
   emit('update:activeTab', 'overview')
 }
 </script>
