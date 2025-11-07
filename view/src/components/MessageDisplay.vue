@@ -79,6 +79,13 @@
                 </CardContent>
               </Card>
             </div>
+            <div
+              v-if="part.type === 'document' && part.document_id"
+              :key="`document-${index}`"
+              class="w-full py-2"
+            >
+              <DocumentPreview :documentId="part.document_id" @open="openDocument" />
+            </div>
             <div v-if="part.type === 'sql'" :key="`sql-${index}`" class="w-full overflow-hidden">
               <BaseEditor :modelValue="part.content" :read-only="true"></BaseEditor>
             </div>
@@ -211,10 +218,12 @@ import BaseEditor from '@/components/base/BaseEditor.vue'
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import Chart from '@/components/Chart.vue'
 import DataTable from '@/components/DataTable.vue'
+import DocumentPreview from '@/components/DocumentPreview.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 // Store
 import { cn } from '@/lib/utils'
 import type { Message } from '@/stores/conversations'
+import { useDocumentsStore } from '@/stores/documents'
 import { Check, Copy, Pencil, RotateCcw, SquarePen } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import CodeFileDisplay from './CodeFileDisplay.vue'
@@ -242,6 +251,9 @@ const messageRef = ref<HTMLElement | null>(null)
 const queriesStore = useQueriesStore()
 const queryData = computed(() => queriesStore.getQuery(props.message.queryId))
 const needsConfirmation = computed(() => queriesStore.needsConfirmation(props.message.queryId))
+
+// Documents store
+const documentsStore = useDocumentsStore()
 
 // Detect catalog operations based on function call name and available asset/term data
 const catalogOperation = computed(() => {
@@ -315,13 +327,23 @@ function editInNewTab() {
   }
 }
 
+function openDocument(documentId: string) {
+  documentsStore.openDocument(documentId)
+}
+
 const parsedText = computed<
-  Array<{ type: string; content: any; query_id?: string; chart_id?: string }>
+  Array<{ type: string; content: any; query_id?: string; chart_id?: string; document_id?: string }>
 >(() => {
   const regex = /```((?:sql|json|error))\s*([\s\S]*?)\s*```/g
   let match
   let lastIndex = 0
-  const parts: Array<{ type: string; content: any; query_id?: string; chart_id?: string }> = []
+  const parts: Array<{
+    type: string
+    content: any
+    query_id?: string
+    chart_id?: string
+    document_id?: string
+  }> = []
 
   // if content is a list, return it as is
   if (Array.isArray(props.message.content)) {
@@ -330,6 +352,7 @@ const parsedText = computed<
       content: any
       query_id?: string
       chart_id?: string
+      document_id?: string
     }>
   }
 

@@ -155,6 +155,18 @@ const routes: RouteRecordRaw[] = [
     name: 'AssetTagPage',
     component: loadView('AssetTagPage'),
     meta: { requiresContext: true }
+  },
+  {
+    path: '/documents',
+    name: 'DocumentList',
+    component: loadView('DocumentList'),
+    meta: { requiresContext: true }
+  },
+  {
+    path: '/documents/:id',
+    name: 'DocumentView',
+    component: loadView('DocumentView'),
+    meta: { requiresContext: true }
   }
 ]
 
