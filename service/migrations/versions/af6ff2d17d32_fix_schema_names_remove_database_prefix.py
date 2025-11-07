@@ -21,18 +21,34 @@ def upgrade() -> None:
     # Fix schema names in table_facet that contain database prefix
     # (e.g., "DATABASE.SCHEMA" -> "SCHEMA"). This happens when Snowflake
     # returns fully qualified schema names
-    op.execute("""
-        UPDATE table_facet
-        SET schema = SUBSTRING(schema FROM POSITION('.' IN schema) + 1)
-        WHERE schema LIKE '%.%'
-    """)
+    connection = op.get_bind()
 
-    # Also fix schema_name in schema_facet if it has the same issue
-    op.execute("""
-        UPDATE schema_facet
-        SET schema_name = SUBSTRING(schema_name FROM POSITION('.' IN schema_name) + 1)
-        WHERE schema_name LIKE '%.%'
-    """)
+    if connection.dialect.name == "postgresql":
+        # PostgreSQL syntax
+        op.execute("""
+            UPDATE table_facet
+            SET schema = SUBSTRING(schema FROM POSITION('.' IN schema) + 1)
+            WHERE schema LIKE '%.%'
+        """)
+
+        op.execute("""
+            UPDATE schema_facet
+            SET schema_name = SUBSTRING(schema_name FROM POSITION('.' IN schema_name) + 1)
+            WHERE schema_name LIKE '%.%'
+        """)
+    else:
+        # SQLite syntax
+        op.execute("""
+            UPDATE table_facet
+            SET schema = SUBSTR(schema, INSTR(schema, '.') + 1)
+            WHERE schema LIKE '%.%'
+        """)
+
+        op.execute("""
+            UPDATE schema_facet
+            SET schema_name = SUBSTR(schema_name, INSTR(schema_name, '.') + 1)
+            WHERE schema_name LIKE '%.%'
+        """)
 
 
 def downgrade() -> None:
