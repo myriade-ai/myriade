@@ -12,6 +12,7 @@ interface CatalogStats {
 /**
  * Compute catalog statistics from an array of assets
  * This allows calculating stats at any level (database, schema, table)
+ * Note: Columns are excluded from completion rate calculation as they are low-level metadata
  */
 export function computeCatalogStats(assets: CatalogAsset[]): CatalogStats {
   const totalAssets = assets.length
@@ -27,7 +28,11 @@ export function computeCatalogStats(assets: CatalogAsset[]): CatalogStats {
     }
   }
 
-  const assetsWithDescription = assets.filter(
+  // Exclude COLUMN assets from completion rate calculation
+  const assetsForCompletion = assets.filter((asset) => asset.type !== 'COLUMN')
+  const totalAssetsForCompletion = assetsForCompletion.length
+
+  const assetsWithDescription = assetsForCompletion.filter(
     (asset) => asset.description && asset.description.trim()
   ).length
 
@@ -39,7 +44,10 @@ export function computeCatalogStats(assets: CatalogAsset[]): CatalogStats {
 
   const assetsWithAiSuggestions = assets.filter((asset) => asset.ai_suggestion).length
 
-  const completionScore = Math.round((assetsWithDescription / totalAssets) * 100 * 10) / 10
+  const completionScore =
+    totalAssetsForCompletion > 0
+      ? Math.round((assetsWithDescription / totalAssetsForCompletion) * 100 * 10) / 10
+      : 0
 
   return {
     total_assets: totalAssets,
