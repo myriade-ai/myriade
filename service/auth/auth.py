@@ -17,6 +17,19 @@ logger = logging.getLogger(__name__)
 # Format: {session_cookie_hash: {"validation_data": data, "expires": timestamp}}
 _session_validation_cache = {}
 
+# Cache recently refreshed sessions to handle concurrent requests during a
+# refresh window. When one request rotates the sealed session, other requests
+# that are still using the old cookie can reuse the freshly issued session
+# instead of failing with INVALID_JWT.
+# Format: {
+#   old_session_hash: {
+#       "sealed_session": new_session,
+#       "validation_data": data,
+#       "expires": timestamp,
+#   }
+# }
+_session_refresh_cache = {}
+
 
 def _cache_session_validation(session_cookie, validation_data, ttl_minutes=5):
     """Cache session validation result to avoid proxy calls on every request"""
@@ -64,6 +77,51 @@ def _invalidate_session_cache(session_cookie):
     """Remove specific session from validation cache"""
     cache_key = hashlib.sha256(session_cookie.encode()).hexdigest()[:32]
     _session_validation_cache.pop(cache_key, None)
+    _session_refresh_cache.pop(cache_key, None)
+
+
+def _cache_session_refresh(old_session_cookie, new_session_cookie, validation_data, ttl_seconds=60):
+    """Cache refreshed session data for concurrent requests."""
+
+    cache_key = hashlib.sha256(old_session_cookie.encode()).hexdigest()[:32]
+    expires = time.time() + ttl_seconds
+
+    _session_refresh_cache[cache_key] = {
+        "sealed_session": new_session_cookie,
+        "validation_data": validation_data,
+        "expires": expires,
+    }
+
+    _cleanup_expired_refresh_cache()
+
+
+def _get_cached_refreshed_session(session_cookie):
+    """Return cached refreshed session if still valid."""
+
+    cache_key = hashlib.sha256(session_cookie.encode()).hexdigest()[:32]
+    cached = _session_refresh_cache.get(cache_key)
+
+    if not cached:
+        return None
+
+    if time.time() > cached["expires"]:
+        del _session_refresh_cache[cache_key]
+        return None
+
+    return cached
+
+
+def _cleanup_expired_refresh_cache():
+    """Remove expired refreshed session cache entries."""
+
+    current_time = time.time()
+    expired_keys = [
+        key
+        for key, data in _session_refresh_cache.items()
+        if current_time > data["expires"]
+    ]
+    for key in expired_keys:
+        del _session_refresh_cache[key]
 
 
 class UnauthorizedError(Exception):
@@ -131,6 +189,18 @@ def _authenticate_session(session_cookie: str):
     """Authenticate session using cached validation to minimize proxy calls."""
 
     try:
+        # If another concurrent request already refreshed this session, reuse it
+        cached_refresh = _get_cached_refreshed_session(session_cookie)
+        if cached_refresh:
+            logger.info("Using cached refreshed session for concurrent request")
+            new_session = cached_refresh["sealed_session"]
+            validation_data = cached_refresh["validation_data"]
+
+            # Ensure validation cache is also primed for the new session
+            _cache_session_validation(new_session, validation_data)
+
+            return SealedSessionAuthResponse(new_session, validation_data), True
+
         # # First, check if we have a cached validation result
         cached_validation = _get_cached_validation(session_cookie)
         if cached_validation:
@@ -218,6 +288,11 @@ def _try_refresh_session(session_cookie: str):
 
             # Cache the validation result using the NEW session key
             _cache_session_validation(new_sealed_session, validation_data)
+
+            # Map the previous sealed session to the refreshed session so that
+            # concurrent requests using the stale cookie can be transparently
+            # upgraded without triggering INVALID_JWT errors.
+            _cache_session_refresh(session_cookie, new_sealed_session, validation_data)
 
             logger.info("Session refresh successful via sealed session")
             return SealedSessionAuthResponse(new_sealed_session, validation_data)
