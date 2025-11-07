@@ -33,53 +33,73 @@ def upgrade() -> None:
     connection = op.get_bind()
 
     # Update with database name from the database table's details field
-    connection.execute(
-        sa.text("""
-        UPDATE table_facet tf
-        SET database_name = COALESCE(
-            CASE
-                WHEN d.engine IN ('postgres', 'mysql', 'motherduck', 'snowflake')
-                THEN d.details->>'database'
-                WHEN d.engine = 'bigquery'
-                THEN d.details->>'project_id'
-                WHEN d.engine = 'sqlite'
-                THEN d.details->>'filename'
-                WHEN d.engine = 'oracle'
-                THEN COALESCE(d.details->>'service_name', d.details->>'sid')
-                ELSE d.details->>'database'
-            END,
-            'unknown'
+    if connection.dialect.name == "postgresql":
+        # PostgreSQL with JSONB
+        connection.execute(
+            sa.text("""
+            UPDATE table_facet tf
+            SET database_name = COALESCE(
+                CASE
+                    WHEN d.engine IN ('postgres', 'mysql', 'motherduck', 'snowflake')
+                    THEN d.details->>'database'
+                    WHEN d.engine = 'bigquery'
+                    THEN d.details->>'project_id'
+                    WHEN d.engine = 'sqlite'
+                    THEN d.details->>'filename'
+                    WHEN d.engine = 'oracle'
+                    THEN COALESCE(d.details->>'service_name', d.details->>'sid')
+                    ELSE d.details->>'database'
+                END,
+                'unknown'
+            )
+            FROM database d
+            WHERE tf.database_id = d.id
+        """)
         )
-        FROM database d
-        WHERE tf.database_id = d.id
-    """)
-    )
+    else:
+        # SQLite with JSON
+        connection.execute(
+            sa.text("""
+            UPDATE table_facet
+            SET database_name = COALESCE(
+                CASE
+                    WHEN (SELECT engine FROM database d WHERE table_facet.database_id = d.id) IN ('postgres', 'mysql', 'motherduck', 'snowflake')
+                    THEN (SELECT json_extract(details, '$.database') FROM database d WHERE table_facet.database_id = d.id)
+                    WHEN (SELECT engine FROM database d WHERE table_facet.database_id = d.id) = 'bigquery'
+                    THEN (SELECT json_extract(details, '$.project_id') FROM database d WHERE table_facet.database_id = d.id)
+                    WHEN (SELECT engine FROM database d WHERE table_facet.database_id = d.id) = 'sqlite'
+                    THEN (SELECT json_extract(details, '$.filename') FROM database d WHERE table_facet.database_id = d.id)
+                    WHEN (SELECT engine FROM database d WHERE table_facet.database_id = d.id) = 'oracle'
+                    THEN COALESCE(
+                        (SELECT json_extract(details, '$.service_name') FROM database d WHERE table_facet.database_id = d.id),
+                        (SELECT json_extract(details, '$.sid') FROM database d WHERE table_facet.database_id = d.id)
+                    )
+                    ELSE (SELECT json_extract(details, '$.database') FROM database d WHERE table_facet.database_id = d.id)
+                END,
+                'unknown'
+            )
+        """)
+        )
 
-    # Drop old unique constraint
-    op.drop_constraint(
-        "uq_table_facet_database_schema_table", "table_facet", type_="unique"
-    )
-
-    # Add new unique constraint including database_name
-    op.create_unique_constraint(
-        "uq_table_facet_database_name_schema_table",
-        "table_facet",
-        ["database_id", "database_name", "schema", "table_name"],
-    )
+    # Drop old unique constraint and add new one
+    # Use batch mode for SQLite compatibility
+    with op.batch_alter_table("table_facet", schema=None) as batch_op:
+        batch_op.drop_constraint("uq_table_facet_database_schema_table", type_="unique")
+        batch_op.create_unique_constraint(
+            "uq_table_facet_database_name_schema_table",
+            ["database_id", "database_name", "schema", "table_name"],
+        )
 
 
 def downgrade() -> None:
-    # Drop new unique constraint
-    op.drop_constraint(
-        "uq_table_facet_database_name_schema_table", "table_facet", type_="unique"
-    )
-
-    # Restore old unique constraint
-    op.create_unique_constraint(
-        "uq_table_facet_database_schema_table",
-        "table_facet",
-        ["database_id", "schema", "table_name"],
-    )
-
-    # Drop database_name column
-    op.drop_column("table_facet", "database_name")
+    # Drop new unique constraint, restore old one, and drop database_name column
+    # Use batch mode for SQLite compatibility
+    with op.batch_alter_table("table_facet", schema=None) as batch_op:
+        batch_op.drop_constraint(
+            "uq_table_facet_database_name_schema_table", type_="unique"
+        )
+        batch_op.create_unique_constraint(
+            "uq_table_facet_database_schema_table",
+            ["database_id", "schema", "table_name"],
+        )
+        batch_op.drop_column("database_name")

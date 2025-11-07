@@ -61,7 +61,7 @@ target-version = "py39"
 # Enable Pyflakes (`F`) and Import sorting (`I`)
 [tool.ruff.lint]
 select = ["E", "F", "B", "I"]
-ignore = ["E711"]
+ignore = ["E711", "E501"]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided
 fixable = ["ALL"]

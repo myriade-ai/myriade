@@ -12,7 +12,8 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
+
+from db import JSONB, UUID, UtcDateTime, UtcTimestamp
 
 revision: str = "b1c2d3e4f5g6"
 down_revision: Union[str, None] = "a1b2c3d4e5f8"
@@ -24,34 +25,34 @@ def upgrade() -> None:
     # Create dbt table
     op.create_table(
         "dbt",
-        sa.Column("id", sa.UUID(), nullable=False),
-        sa.Column("database_id", sa.UUID(), nullable=False),
-        sa.Column("catalog", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("manifest", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column("id", UUID(), nullable=False),
+        sa.Column("database_id", UUID(), nullable=False),
+        sa.Column("catalog", JSONB(), nullable=True),
+        sa.Column("manifest", JSONB(), nullable=True),
         sa.Column("last_commit_hash", sa.String(), nullable=True),
         sa.Column(
             "last_synced_at",
-            postgresql.TIMESTAMP(timezone=True),
+            UtcDateTime(),
             nullable=True,
         ),
         sa.Column("sync_status", sa.String(), nullable=False, server_default="idle"),
         sa.Column(
             "generation_started_at",
-            postgresql.TIMESTAMP(timezone=True),
+            UtcDateTime(),
             nullable=True,
         ),
         sa.Column("generation_error", sa.String(), nullable=True),
         sa.Column(
             "createdAt",
-            postgresql.TIMESTAMP(timezone=True),
+            UtcDateTime(),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=UtcTimestamp(),
         ),
         sa.Column(
             "updatedAt",
-            postgresql.TIMESTAMP(timezone=True),
+            UtcDateTime(),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=UtcTimestamp(),
         ),
         sa.ForeignKeyConstraint(["database_id"], ["database.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
@@ -63,39 +64,77 @@ def upgrade() -> None:
 
     # Migrate existing DBT data from database table to dbt table
     # Only migrate databases that have at least one non-null DBT field
-    op.execute(
-        """
-        INSERT INTO dbt (
-            id,
-            database_id,
-            catalog,
-            manifest,
-            last_commit_hash,
-            last_synced_at,
-            sync_status,
-            generation_started_at,
-            generation_error,
-            "createdAt",
-            "updatedAt"
+    connection = op.get_bind()
+
+    if connection.dialect.name == "postgresql":
+        op.execute(
+            """
+            INSERT INTO dbt (
+                id,
+                database_id,
+                catalog,
+                manifest,
+                last_commit_hash,
+                last_synced_at,
+                sync_status,
+                generation_started_at,
+                generation_error,
+                "createdAt",
+                "updatedAt"
+            )
+            SELECT
+                gen_random_uuid(),
+                id,
+                dbt_catalog,
+                dbt_manifest,
+                last_dbt_commit_hash,
+                dbt_last_synced_at,
+                COALESCE(dbt_sync_status, 'idle'),
+                dbt_generation_started_at,
+                dbt_generation_error,
+                now(),
+                now()
+            FROM database
+            WHERE dbt_catalog IS NOT NULL
+               OR dbt_manifest IS NOT NULL
+               OR last_dbt_commit_hash IS NOT NULL
+            """
         )
-        SELECT
-            gen_random_uuid(),
-            id,
-            dbt_catalog,
-            dbt_manifest,
-            last_dbt_commit_hash,
-            dbt_last_synced_at,
-            COALESCE(dbt_sync_status, 'idle'),
-            dbt_generation_started_at,
-            dbt_generation_error,
-            now(),
-            now()
-        FROM database
-        WHERE dbt_catalog IS NOT NULL
-           OR dbt_manifest IS NOT NULL
-           OR last_dbt_commit_hash IS NOT NULL
-        """
-    )
+    else:
+        # SQLite version
+        op.execute(
+            """
+            INSERT INTO dbt (
+                id,
+                database_id,
+                catalog,
+                manifest,
+                last_commit_hash,
+                last_synced_at,
+                sync_status,
+                generation_started_at,
+                generation_error,
+                "createdAt",
+                "updatedAt"
+            )
+            SELECT
+                REPLACE(lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-' || '4' || substr(hex(randomblob(2)), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))), '-', ''),
+                id,
+                dbt_catalog,
+                dbt_manifest,
+                last_dbt_commit_hash,
+                dbt_last_synced_at,
+                COALESCE(dbt_sync_status, 'idle'),
+                dbt_generation_started_at,
+                dbt_generation_error,
+                STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')
+            FROM database
+            WHERE dbt_catalog IS NOT NULL
+               OR dbt_manifest IS NOT NULL
+               OR last_dbt_commit_hash IS NOT NULL
+            """
+        )
 
     # Drop old DBT columns from database table
     op.drop_column("database", "dbt_generation_error")
@@ -109,20 +148,14 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Add DBT columns back to database table
-    op.add_column(
-        "database", sa.Column("dbt_catalog", postgresql.JSONB(), nullable=True)
-    )
-    op.add_column(
-        "database", sa.Column("dbt_manifest", postgresql.JSONB(), nullable=True)
-    )
+    op.add_column("database", sa.Column("dbt_catalog", JSONB(), nullable=True))
+    op.add_column("database", sa.Column("dbt_manifest", JSONB(), nullable=True))
     op.add_column(
         "database", sa.Column("last_dbt_commit_hash", sa.String(), nullable=True)
     )
     op.add_column(
         "database",
-        sa.Column(
-            "dbt_last_synced_at", postgresql.TIMESTAMP(timezone=True), nullable=True
-        ),
+        sa.Column("dbt_last_synced_at", UtcDateTime(), nullable=True),
     )
     op.add_column(
         "database",
@@ -134,7 +167,7 @@ def downgrade() -> None:
         "database",
         sa.Column(
             "dbt_generation_started_at",
-            postgresql.TIMESTAMP(timezone=True),
+            UtcDateTime(),
             nullable=True,
         ),
     )
