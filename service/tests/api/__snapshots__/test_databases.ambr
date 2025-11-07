@@ -2,7 +2,6 @@
 # name: test_list_databases
   list([
     dict({
-      'dbt_repo_path': None,
       'description': 'ephemeral test db',
       'details': dict({
         'filename': ':memory:',

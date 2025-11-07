@@ -1,7 +1,10 @@
 <template>
   <div class="border rounded-lg overflow-hidden bg-white">
     <!-- Header badge -->
-    <div class="flex items-center justify-between bg-gray-50 border-b px-3 py-2">
+    <button
+      @click="isExpanded = !isExpanded"
+      class="w-full flex items-center justify-between bg-gray-50 border-b px-3 py-2 hover:bg-gray-100 transition-colors cursor-pointer group"
+    >
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium text-gray-700">✏️ Code Edit</span>
         <span v-if="fileName" class="text-xs text-gray-500 font-mono">{{ fileName }}</span>
@@ -19,14 +22,14 @@
         >
           -{{ stats.removed }}
         </span>
-        <button
-          @click="isExpanded = !isExpanded"
-          class="text-xs text-gray-500 hover:text-gray-700 transition-colors"
-        >
-          {{ isExpanded ? 'Collapse' : 'Show Diff' }}
-        </button>
+        <ChevronDownIcon
+          :class="[
+            'h-4 w-4 text-gray-500 transition-transform group-hover:text-gray-700',
+            isExpanded && 'rotate-180'
+          ]"
+        />
       </div>
-    </div>
+    </button>
 
     <!-- Expandable diff content -->
     <div v-if="isExpanded" class="max-h-96 overflow-y-auto">
@@ -69,16 +72,23 @@
 </template>
 
 <script setup lang="ts">
+import { ChevronDownIcon } from '@heroicons/vue/24/outline'
 import { diffLines, type Change } from 'diff'
 import { computed, ref } from 'vue'
 
-const props = defineProps<{
-  oldString?: string
-  newString?: string
-  fileName?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    oldString?: string
+    newString?: string
+    fileName?: string
+    defaultExpanded?: boolean
+  }>(),
+  {
+    defaultExpanded: false
+  }
+)
 
-const isExpanded = ref(false)
+const isExpanded = ref(props.defaultExpanded)
 
 interface DiffLine {
   type: 'context' | 'added' | 'removed'

@@ -137,8 +137,6 @@ def test_db_id(app_server, session):
         "engine": "sqlite",
         "details": {"filename": ":memory:"},
         "safe_mode": True,
-        "dbt_catalog": None,
-        "dbt_manifest": None,
         "write_mode": "confirmation",
     }
 

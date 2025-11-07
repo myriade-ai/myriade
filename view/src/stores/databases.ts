@@ -24,7 +24,6 @@ export interface Database {
   write_mode: WriteMode
   dbt_catalog?: unknown
   dbt_manifest?: unknown
-  dbt_repo_path: string | null
   tags?: AssetTag[]
   organisationId?: string | null
   ownerId?: string | null
@@ -46,7 +45,6 @@ export const makeEmptyDatabase = () =>
     write_mode: 'confirmation' as WriteMode,
     dbt_catalog: null,
     dbt_manifest: null,
-    dbt_repo_path: null,
     public: false
   }) satisfies Database
 

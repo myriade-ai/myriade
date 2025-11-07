@@ -25,6 +25,8 @@ export interface ConversationInfo {
   projectId: string
   createdAt: Date
   updatedAt: Date
+  workspacePath?: string | null
+  githubPrUrl?: string | null
 }
 
 // Define your message shape
@@ -116,7 +118,6 @@ export const useConversationsStore = defineStore('conversations', () => {
       error: conversationStatuses.value[id]?.error
     }
   }
-
   // If you want a sorted conversation list
   const sortedUserConversations = computed(() => {
     // TODO: filter by user
@@ -134,11 +135,13 @@ export const useConversationsStore = defineStore('conversations', () => {
     const res: AxiosResponse<ConversationInfo[]> = await axios.get('/api/conversations', {
       params: { contextId }
     })
-    const fetchedConversations = res.data.map((conv) => ({
-      ...conv,
-      createdAt: new Date(conv.createdAt),
-      updatedAt: new Date(conv.updatedAt)
-    }))
+    const fetchedConversations = res.data.map((conv) => {
+      return {
+        ...conv,
+        createdAt: new Date(conv.createdAt),
+        updatedAt: new Date(conv.updatedAt)
+      }
+    })
     // Update the conversations store but don't overwrite existing field messages
     fetchedConversations.forEach((conv) => {
       conversations.value[conv.id] = {
@@ -158,12 +161,21 @@ export const useConversationsStore = defineStore('conversations', () => {
   async function fetchMessages(conversationId: string) {
     try {
       const response = await axios.get(`/api/conversations/${conversationId}`)
+      const { ...rest } = response.data
+      // workspace_path => workspacePath
+      const workspacePath = rest.workspace_path ?? null
+      // github_pr_url => githubPrUrl
+      const githubPrUrl = rest.github_pr_url ?? null
+      delete rest.workspace_path
+      delete rest.github_pr_url
       // Update the conversation in the store
       const newConv: Conversation = {
-        ...response.data,
+        ...rest,
         createdAt: new Date(response.data.createdAt),
         updatedAt: new Date(response.data.updatedAt),
-        messages: response.data.messages
+        messages: response.data.messages,
+        workspacePath,
+        githubPrUrl
       }
       conversations.value[conversationId] = newConv
       // Fetch queries for the conversation
@@ -291,8 +303,9 @@ export const useConversationsStore = defineStore('conversations', () => {
       '/api/conversations',
       { contextId }
     )
+    const { ...rest } = newConversation.data as any
     const newConv: Conversation = {
-      ...newConversation.data,
+      ...rest,
       createdAt: new Date(newConversation.data.createdAt),
       updatedAt: new Date(newConversation.data.updatedAt),
       messages: []
@@ -301,6 +314,16 @@ export const useConversationsStore = defineStore('conversations', () => {
     return newConv
   }
 
+  async function createGithubPullRequest(conversationId: string) {
+    const response: AxiosResponse = await axios.post(
+      `/api/conversations/${conversationId}/github/pr`
+    )
+    const conversation = conversations.value[conversationId]
+    if (conversation) {
+      conversation.githubPrUrl = response.data.github_pr_url
+    }
+    return response.data
+  }
   // ——————————————————————————————————————————————————
   // SOCKET EVENT HANDLERS
   // ——————————————————————————————————————————————————
@@ -360,6 +383,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     sendMessage,
     regenerateFromMessage,
     // actions conversations
-    createConversation
+    createConversation,
+    createGithubPullRequest
   }
 })

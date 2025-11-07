@@ -7,6 +7,7 @@ eventlet.monkey_patch()
 import config  # noqa: E402, F401, I001
 import logging  # noqa: E402
 from back.session import get_db_session  # noqa: E402
+from back.scheduler import start_dbt_sync_scheduler  # noqa: E402
 from flask import Flask, g, jsonify, request, send_from_directory  # noqa: E402
 from flask_socketio import SocketIO  # noqa: E402
 from werkzeug.middleware.proxy_fix import ProxyFix  # noqa: E402
@@ -204,5 +205,8 @@ def create_app():
 
     # Initialize demo databases catalog on startup
     initialize_demo_databases()
+
+    # Start periodic DBT documentation sync scheduler
+    start_dbt_sync_scheduler()
 
     return app

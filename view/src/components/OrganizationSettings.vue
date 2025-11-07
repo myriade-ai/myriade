@@ -69,6 +69,15 @@
           </p>
         </div>
       </div>
+
+      <!-- GitHub Integration -->
+      <div class="space-y-3 pt-4 border-t border-gray-100">
+        <label class="text-sm font-medium text-gray-700">GitHub Integration</label>
+        <p class="text-sm text-gray-600">
+          GitHub repositories are now connected per datasource. Open a database from the Databases
+          page to link its GitHub project and enable pull-request workflows.
+        </p>
+      </div>
     </div>
   </div>
 </template>

@@ -33,6 +33,12 @@ const routes: RouteRecordRaw[] = [
     meta: { layout: 'empty' }
   },
   {
+    path: '/github/callback',
+    name: 'GithubCallback',
+    component: loadView('GithubCallback'),
+    meta: { layout: 'empty' }
+  },
+  {
     path: '/subscribe',
     name: 'Subscribe',
     component: loadView('Subscribe'),

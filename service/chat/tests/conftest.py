@@ -41,15 +41,24 @@ def user(session):
 @pytest.fixture
 def database(session):
     """Create a test database"""
+    from models import DBT
+
     database = Database(
         name="test",
         engine="sqlite",
         details={"filename": ":memory:"},
         memory="test memory",
-        dbt_manifest={"sources": {}, "nodes": {}},
-        dbt_catalog={"sources": {}, "nodes": {}},
     )
     session.add(database)
+    session.flush()
+
+    # Create DBT record
+    dbt = DBT(
+        database_id=database.id,
+        manifest={"sources": {}, "nodes": {}},
+        catalog={"sources": {}, "nodes": {}},
+    )
+    session.add(dbt)
     session.commit()
     return database
 
@@ -90,10 +99,20 @@ def analyst_agent(session, conversation):
 @pytest.fixture
 def analyst_agent_dbt(session, conversation):
     """Create a data analyst agent instance with a database and project"""
-    # Set DBT configuration before creating the agent
-    conversation.database.dbt_repo_path = "test"
-    conversation.database.dbt_catalog = {"sources": {}, "nodes": {}}
-    conversation.database.dbt_manifest = {"sources": {}, "nodes": {}}
+    from models import DBT
+
+    # Create or update DBT configuration before creating the agent
+    dbt = session.query(DBT).filter(DBT.database_id == conversation.database.id).first()
+    if not dbt:
+        dbt = DBT(
+            database_id=conversation.database.id,
+            catalog={"sources": {}, "nodes": {}},
+            manifest={"sources": {}, "nodes": {}},
+        )
+        session.add(dbt)
+    else:
+        dbt.catalog = {"sources": {}, "nodes": {}}
+        dbt.manifest = {"sources": {}, "nodes": {}}
     session.flush()  # Make sure changes are persisted
 
     agent = DataAnalystAgent(

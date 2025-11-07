@@ -82,6 +82,9 @@ Analytics Workflow:
 Modelisation:
 1. If can create view, table if the user ask for it.
 2. If you have DBT/CodeEditor tools:
+   * IMPORTANT: Before editing ANY files, you MUST call github.initialize_workspace() to set up your git workspace
+   * This creates a conversation-specific branch for your changes
+   * For data analysis queries that don't require file editing, you do NOT need to initialize the workspace
    * Use them to create view, table, ... (unless the user ask to create the view/table directly)
    * Run commands: tests, compile, ... before answering the user.
 
