@@ -170,7 +170,12 @@ def database_auth_required(f):
             return
 
         kwargs["database_id"] = database_uuid
-        return f(session, *args, **kwargs)
+        # Skip database_id from args if it was passed as first positional argument
+        if len(args) > 0 and isinstance(args[0], str):
+            remaining_args = args[1:]
+        else:
+            remaining_args = args
+        return f(session, *remaining_args, **kwargs)
 
     return decorated_function
 

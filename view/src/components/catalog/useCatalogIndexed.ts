@@ -26,6 +26,7 @@ export interface CatalogIndexes {
   columnsList: ComputedRef<CatalogAsset[]>
 
   // Filter options (deduplicated)
+  databaseOptions: ComputedRef<string[]>
   schemaOptions: ComputedRef<string[]>
 }
 
@@ -203,6 +204,19 @@ export function useCatalogIndexed(assets: ComputedRef<CatalogAsset[] | undefined
   // ========================================
 
   /**
+   * Deduplicated and sorted list of database names
+   * Used for: Database filter dropdown
+   */
+  const databaseOptions = computed(() => {
+    const databases = new Set<string>()
+    for (const table of tablesList.value) {
+      const dbName = table.table_facet?.database_name || ''
+      databases.add(dbName)
+    }
+    return Array.from(databases).sort()
+  })
+
+  /**
    * Deduplicated and sorted list of schema names
    * Used for: Schema filter dropdown
    */
@@ -224,6 +238,7 @@ export function useCatalogIndexed(assets: ComputedRef<CatalogAsset[] | undefined
     assetsByTagIdMap,
     tablesList,
     columnsList,
+    databaseOptions,
     schemaOptions
   }
 }

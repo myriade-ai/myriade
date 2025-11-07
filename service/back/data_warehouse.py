@@ -264,7 +264,11 @@ class AbstractDatabase(ABC):
         raise NotImplementedError("get_column_metadata() must be implemented")
 
     def get_sample_data(
-        self, table_name: str, schema_name: str, limit: int = 10
+        self,
+        table_name: str,
+        schema_name: str,
+        limit: int = 10,
+        database_name: str | None = None,
     ) -> dict | None:
         """
         Get sample data from a table
@@ -272,6 +276,7 @@ class AbstractDatabase(ABC):
             table_name: Name of the table to sample
             schema_name: Schema containing the table
             limit: Number of sample rows to retrieve (max: 20)
+            database_name: Optional database name for fully qualified table names
         """
         if not schema_name or not table_name:
             return {
@@ -281,15 +286,19 @@ class AbstractDatabase(ABC):
         safe_limit = min(limit, 20)
 
         try:
-            # Build the sample query
+            # Build the sample query with optional database prefix
+            if database_name:
+                table_ref = f'"{database_name}"."{schema_name}"."{table_name}"'
+            else:
+                table_ref = f'"{schema_name}"."{table_name}"'
+
             sample_query = f"""
             SELECT *
-            FROM "{schema_name}"."{table_name}"
+            FROM {table_ref}
             ORDER BY RANDOM()
             LIMIT {safe_limit}
             """
 
-            # Execute the query using the database's unprotected method
             rows, *_ = self._query_with_privacy(sample_query.strip())
 
             # Convert rows to list of dictionaries for better YAML output
@@ -322,7 +331,7 @@ class AbstractDatabase(ABC):
 
     def _query_count(self, sql) -> int | None:
         count_request = f"SELECT COUNT(*) FROM ({sql.replace(';', '')}) AS foo"
-        result = self._query_unprotected(count_request)
+        result, *_ = self._query_unprotected(count_request)
         if result and len(result) > 0 and result[0] is not None:
             return result[0].get("count")
         return None
@@ -406,7 +415,10 @@ class AbstractDatabase(ABC):
 
     def test_connection(self):
         # Test connection by running a query
-        self.query("SELECT 1;")
+        try:
+            self.query("SELECT 1;")
+        except Exception as e:
+            raise ConnectionError(e, message=str(e)) from e
 
 
 class SQLDatabase(AbstractDatabase):
@@ -436,25 +448,28 @@ class SQLDatabase(AbstractDatabase):
         return self.engine.name
 
     def load_metadata(self, progress_callback=None):
+        """Load metadata from the connected database."""
+        # Get the current database name
+        current_database = self.engine.url.database
+
+        schemas = self.inspector.get_schema_names()
+
+        # Count total tables
         total_tables = 0
-        # First pass: count total tables/views/materialized views for progress tracking
-        for schema in self.inspector.get_schema_names():
-            if schema == "information_schema":
+        for schema in schemas:
+            if schema in self.SKIP_SCHEMAS:
                 continue
+            table_count = len(self.inspector.get_table_names(schema=schema))
+            total_tables += table_count
 
-            total_tables += len(self.inspector.get_table_names(schema=schema))
-            total_tables += len(self.inspector.get_view_names(schema=schema))
+        if total_tables == 0:
+            logger.warning("No tables found in the database")
+            return self.metadata
 
-            get_mviews = getattr(self.inspector, "get_materialized_view_names", None)
-            if get_mviews:
-                try:
-                    total_tables += len(get_mviews(schema=schema))
-                except NotImplementedError:
-                    # Some dialects (e.g. SQLite) don't support materialized views
-                    pass
-
+        # Load metadata from schemas
         current_count = 0
-        for schema in self.inspector.get_schema_names():
+
+        for schema in schemas:
             if schema in self.SKIP_SCHEMAS:
                 continue
 
@@ -494,6 +509,7 @@ class SQLDatabase(AbstractDatabase):
                     self.metadata.append(
                         {
                             "name": name,
+                            "database": current_database,
                             "description": table_comment(name),
                             "schema": schema,
                             "table_type": table_type,
@@ -507,8 +523,13 @@ class SQLDatabase(AbstractDatabase):
                         progress_callback(
                             current_count,
                             total_tables,
-                            f"{schema}.{name}",
+                            f"{current_database}.{schema}.{name}",
                         )
+
+        logger.info(
+            f"Successfully loaded metadata for {len(self.metadata)} tables "
+            f"from database '{current_database}'"
+        )
         return self.metadata
 
     def _query_unprotected(self, query) -> tuple[list[dict], list[dict]]:
@@ -565,7 +586,11 @@ class SQLDatabase(AbstractDatabase):
             return rows, columns
 
     def get_sample_data(
-        self, table_name: str, schema_name: str, limit: int = 10
+        self,
+        table_name: str,
+        schema_name: str,
+        limit: int = 10,
+        database_name: str | None = None,
     ) -> dict | None:
         """SQL database implementation using RAND() for MySQL, RANDOM() for others"""
         if not schema_name or not table_name:
@@ -576,9 +601,7 @@ class SQLDatabase(AbstractDatabase):
         safe_limit = min(limit, 20)
 
         try:
-            # Use appropriate random function based on dialect
             if self.dialect == "mysql":
-                # MySQL uses RAND()
                 sample_query = f"""
                 SELECT *
                 FROM `{schema_name}`.`{table_name}`
@@ -586,7 +609,6 @@ class SQLDatabase(AbstractDatabase):
                 LIMIT {safe_limit}
                 """
             else:
-                # PostgreSQL, SQLite, and others use RANDOM()
                 sample_query = f"""
                 SELECT *
                 FROM "{schema_name}"."{table_name}"
@@ -643,7 +665,11 @@ class OracleDatabase(SQLDatabase):
         super().__init__(uri, connect_args=self.connect_args)
 
     def get_sample_data(
-        self, table_name: str, schema_name: str, limit: int = 10
+        self,
+        table_name: str,
+        schema_name: str,
+        limit: int = 10,
+        database_name: str | None = None,
     ) -> dict | None:
         """Oracle-specific implementation using DBMS_RANDOM.VALUE()"""
         if not schema_name or not table_name:
@@ -656,6 +682,7 @@ class OracleDatabase(SQLDatabase):
         try:
             # Oracle uses DBMS_RANDOM.VALUE() for random sampling
             # Note: schema_name in Oracle is typically the user/owner name
+            # Oracle doesn't support database prefix in the same way, ignore database_name  # noqa: E501
             sample_query = f"""
             SELECT *
             FROM "{schema_name}"."{table_name}"
@@ -746,8 +773,8 @@ class SnowflakeDatabase(AbstractDatabase):
 
     def load_metadata(self, progress_callback=None):
         """
-        Load metadata from Snowflake database with pagination support.
-        Handles >10K tables by fetching schema by schema, and handles >10K schemas.
+        Load metadata from all Snowflake databases with pagination support.
+        Discovers databases first, then loads schemas and tables from each.
 
         Args:
             progress_callback: Optional callback function(current, total, table_name)
@@ -755,145 +782,214 @@ class SnowflakeDatabase(AbstractDatabase):
         """
         batch_size = 10000  # Snowflake's SHOW command limit
 
-        # Get list of schemas - handle pagination if needed
-        logger.info(f"Fetching schemas from database {self.connection.database}")
-        schemas_query = f"SHOW SCHEMAS IN DATABASE {self.connection.database}"
-        schemas, *_ = self.query(schemas_query)
+        # Discover all accessible databases
+        logger.info("Discovering Snowflake databases")
+        try:
+            databases = self._discover_databases()
+            logger.info(f"Found {len(databases)} databases to process")
+        except Exception as e:
+            logger.error(f"Failed to discover databases: {e}")
+            raise Exception(
+                "No databases found and no database specified in connection"
+            ) from None
 
-        # Filter out system schemas
-        user_schemas = [s for s in schemas if s["name"] not in ["INFORMATION_SCHEMA"]]
+        # Process each database
+        for database_name in databases:
+            logger.info(f"Processing database: {database_name}")
 
-        logger.info(f"Found {len(user_schemas)} user schemas to process")
-
-        # Collect all tables from all schemas in parallel
-        all_tables = []
-
-        def fetch_tables_for_schema(schema):
-            """Fetch tables for a single schema."""
-            schema_name = schema["name"]
+            # Get list of schemas in this database
+            schemas_query = f"SHOW SCHEMAS IN DATABASE {database_name}"
             try:
-                # Fetch tables for this schema
-                schema_tables_query = (
-                    f"SHOW TABLES IN SCHEMA {self.connection.database}.{schema_name}"
-                )
-                schema_tables, _ = self._execute_query(schema_tables_query)
-
-                # If we hit the limit, log a warning
-                if len(schema_tables) >= batch_size:
-                    logger.warning(
-                        f"Schema {schema_name} has {len(schema_tables)} tables "
-                        f"(may be truncated at {batch_size} limit)"
-                    )
-
-                logger.info(
-                    f"Found {len(schema_tables)} tables in schema {schema_name}"
-                )
-
-                return (schema_name, schema_tables)
-
+                schemas, *_ = self.query(schemas_query)
             except Exception as e:
-                logger.error(f"Failed to fetch tables from schema {schema_name}: {e}")
-                return (schema_name, [])
+                logger.error(
+                    f"Failed to fetch schemas from database {database_name}: {e}"
+                )
+                continue
 
-        # Execute schema queries in parallel
-        logger.info(
-            f"Fetching tables from {len(user_schemas)} schemas "
-            f"using {self.SCHEMA_WORKER_COUNT} workers"
-        )
-        with ThreadPoolExecutor(max_workers=self.SCHEMA_WORKER_COUNT) as executor:
-            futures = [
-                executor.submit(fetch_tables_for_schema, schema)
-                for schema in user_schemas
+            # Filter out system schemas
+            user_schemas = [
+                s for s in schemas if s["name"] not in ["INFORMATION_SCHEMA"]
             ]
 
-            # Collect results as they complete
-            for idx, future in enumerate(as_completed(futures), 1):
-                schema_name, schema_tables = future.result()
-                all_tables.extend(schema_tables)
-                logger.debug(
-                    f"Completed schema {idx}/{len(user_schemas)}: {schema_name}"
-                )
+            logger.info(
+                f"Found {len(user_schemas)} user schemas in database {database_name}"
+            )
 
-        total_tables = len(all_tables)
-        logger.info(f"Loading metadata for {total_tables} tables from Snowflake")
+            # Collect all tables from all schemas in parallel
+            all_tables = []
 
-        # Thread-safe counter for progress tracking
-        progress_lock = threading.Lock()
-        processed_count = 0
-
-        def fetch_columns_for_table(table):
-            """Fetch columns for a single table."""
-            nonlocal processed_count
-            schema = table["schema_name"]
-            table_name = table["name"]
-            # Snowflake's SHOW TABLES returns 'kind' column: 'TABLE' or 'VIEW'
-            table_type = table.get("kind", "TABLE")
-
-            try:
-                # Fetch columns for this table
-                result, _ = self._execute_query(
-                    f"SHOW COLUMNS IN {schema}.{table_name}"
-                )
-
-                # Convert result rows to column metadata format
-                columns = []
-                for row in result:
-                    data_type = json.loads(row["data_type"])
-                    columns.append(
-                        {
-                            "name": row["column_name"],
-                            "type": data_type["type"],
-                            "nullable": data_type["nullable"],
-                            "comment": row["comment"],
-                        }
+            def fetch_tables_for_schema(schema, db_name):
+                """Fetch tables for a single schema."""
+                schema_name = schema["name"]
+                try:
+                    # Fetch tables for this schema using current database
+                    schema_tables_query = (
+                        f"SHOW TABLES IN SCHEMA {db_name}.{schema_name}"
                     )
+                    schema_tables, _ = self._execute_query(schema_tables_query)
 
-                # Thread-safe progress update
-                with progress_lock:
-                    processed_count += 1
-                    current = processed_count
-
-                    # Call progress callback if provided
-                    if progress_callback:
-                        progress_callback(
-                            current, total_tables, f"{schema}.{table_name}"
+                    # If we hit the limit, log a warning
+                    if len(schema_tables) >= batch_size:
+                        logger.warning(
+                            f"Schema {schema_name} has {len(schema_tables)} tables "
+                            f"(may be truncated at {batch_size} limit)"
                         )
 
-                return {
-                    "schema": schema,
-                    "name": table_name,
-                    "table_type": table_type,
-                    "columns": columns,
-                }
+                    logger.info(
+                        f"Found {len(schema_tables)} tables in schema {schema_name}"
+                    )
 
-            except Exception as e:
-                logger.warning(
-                    f"Failed to load metadata for {schema}.{table_name}: {e}"
-                )
-                return None
+                    return (schema_name, schema_tables)
 
-        # Execute column queries in parallel
-        logger.info(
-            f"Fetching columns from {total_tables} tables "
-            f"using {self.COLUMN_WORKER_COUNT} workers"
-        )
-        with ThreadPoolExecutor(max_workers=self.COLUMN_WORKER_COUNT) as executor:
-            futures = [
-                executor.submit(fetch_columns_for_table, table) for table in all_tables
-            ]
-
-            # Collect results as they complete
-            for future in as_completed(futures):
-                try:
-                    metadata = future.result()
-                    if metadata:
-                        self.metadata.append(metadata)
                 except Exception as e:
-                    logger.error(f"Error processing table metadata: {e}")
-                    continue
+                    logger.error(
+                        f"Failed to fetch tables from schema {schema_name}: {e}"
+                    )
+                    return (schema_name, [])
 
-        logger.info(f"Successfully loaded metadata for {len(self.metadata)} tables")
+            # Execute schema queries in parallel
+            logger.info(
+                f"Fetching tables from {len(user_schemas)} schemas "
+                f"using {self.SCHEMA_WORKER_COUNT} workers"
+            )
+            with ThreadPoolExecutor(max_workers=self.SCHEMA_WORKER_COUNT) as executor:
+                futures = [
+                    executor.submit(fetch_tables_for_schema, schema, database_name)
+                    for schema in user_schemas
+                ]
+
+                # Collect results as they complete
+                for idx, future in enumerate(as_completed(futures), 1):
+                    schema_name, schema_tables = future.result()
+                    all_tables.extend(schema_tables)
+                    logger.debug(
+                        f"Completed schema {idx}/{len(user_schemas)}: {schema_name}"
+                    )
+
+            total_tables = len(all_tables)
+            logger.info(
+                f"Loading metadata for {total_tables} tables from database "
+                f"{database_name}"
+            )
+
+            # Thread-safe counter for progress tracking
+            progress_lock = threading.Lock()
+            processed_count_container = [0]  # Use list for mutable nonlocal
+
+            def fetch_columns_for_table(
+                table, db_name, ttables, pcallback, plock, pcount_container
+            ):
+                """Fetch columns for a single table."""
+                schema_raw = table["schema_name"]
+                # Extract just the schema name if it's fully qualified
+                # (e.g., "DATABASE.SCHEMA" -> "SCHEMA"). Snowflake sometimes
+                # returns fully qualified names depending on configuration
+                schema = schema_raw.split(".")[-1] if "." in schema_raw else schema_raw
+                table_name = table["name"]
+                # Snowflake's SHOW TABLES returns 'kind' column: 'TABLE' or 'VIEW'
+                table_type = table.get("kind", "TABLE")
+
+                try:
+                    result, _ = self._execute_query(
+                        f"SHOW COLUMNS IN {db_name}.{schema}.{table_name}"
+                    )
+
+                    # Convert result rows to column metadata format
+                    columns = []
+                    for row in result:
+                        data_type = json.loads(row["data_type"])
+                        columns.append(
+                            {
+                                "name": row["column_name"],
+                                "type": data_type["type"],
+                                "nullable": data_type["nullable"],
+                                "comment": row["comment"],
+                            }
+                        )
+
+                    # Thread-safe progress update
+                    with plock:
+                        pcount_container[0] += 1
+                        current = pcount_container[0]
+
+                        # Call progress callback if provided
+                        if pcallback:
+                            pcallback(
+                                current,
+                                ttables,
+                                f"{db_name}.{schema}.{table_name}",
+                            )
+
+                    return {
+                        "database": db_name,
+                        "schema": schema,
+                        "name": table_name,
+                        "table_type": table_type,
+                        "columns": columns,
+                    }
+
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to load metadata for {db_name}.{schema}."
+                        f"{table_name}: {e}"
+                    )
+                    return None
+
+            # Execute column queries in parallel
+            logger.info(
+                f"Fetching columns from {total_tables} tables "
+                f"using {self.COLUMN_WORKER_COUNT} workers"
+            )
+            with ThreadPoolExecutor(max_workers=self.COLUMN_WORKER_COUNT) as executor:
+                futures = [
+                    executor.submit(
+                        fetch_columns_for_table,
+                        table,
+                        database_name,
+                        total_tables,
+                        progress_callback,
+                        progress_lock,
+                        processed_count_container,
+                    )
+                    for table in all_tables
+                ]
+
+                # Collect results as they complete
+                for future in as_completed(futures):
+                    try:
+                        metadata = future.result()
+                        if metadata:
+                            self.metadata.append(metadata)
+                    except Exception as e:
+                        logger.error(f"Error processing table metadata: {e}")
+                        continue
+
+        logger.info(
+            f"Successfully loaded metadata for {len(self.metadata)} tables "
+            f"across all databases"
+        )
         return self.metadata
+
+    def _discover_databases(self) -> list[str]:
+        """
+        Discover all accessible databases in Snowflake account.
+
+        Returns:
+            List of database names
+        """
+        try:
+            databases_query = "SHOW DATABASES IN ACCOUNT"
+            databases, _ = self._execute_query(databases_query)
+            return [db["name"] for db in databases]
+        except Exception as e:
+            logger.error(f"Failed to discover databases: {e}")
+            # Fallback: return current database if discovery fails
+            return (
+                [self.connection.database]
+                if hasattr(self.connection, "database")
+                else []
+            )
 
     def _query_unprotected(self, query):
         """
@@ -967,7 +1063,7 @@ class SnowflakeDatabase(AbstractDatabase):
         # Get table comment using SHOW TABLES
         try:
             query = f"SHOW TABLES LIKE '{table_name}' IN SCHEMA {schema}"
-            tables, _ = self.query(query)
+            tables, *_ = self.query(query)
 
             if tables and len(tables) > 0:
                 table_info = tables[0]
@@ -989,7 +1085,7 @@ class SnowflakeDatabase(AbstractDatabase):
                     '{schema}.{table_name}', 'TABLE'
                 ))
             """
-            tags_result, _ = self.query(tag_query)
+            tags_result, *_ = self.query(tag_query)
 
             if tags_result and len(tags_result) > 0:
                 # Format tags as list of "tag_name: tag_value"
@@ -1022,7 +1118,7 @@ class SnowflakeDatabase(AbstractDatabase):
         # Get column comment using SHOW COLUMNS
         try:
             query = f"SHOW COLUMNS IN {schema}.{table_name}"
-            columns, _ = self.query(query)
+            columns, *_ = self.query(query)
 
             for col in columns:
                 col_name = col.get("column_name", "").lower()
@@ -1046,7 +1142,7 @@ class SnowflakeDatabase(AbstractDatabase):
                     '{schema}.{table_name}.{column_name}', 'COLUMN'
                 ))
             """
-            tags_result, _ = self.query(tag_query)
+            tags_result, *_ = self.query(tag_query)
 
             if tags_result and len(tags_result) > 0:
                 # Format tags as list
@@ -1142,6 +1238,7 @@ class BigQueryDatabase(AbstractDatabase):
                 self.metadata.append(
                     {
                         "name": table.table_id,
+                        "database": self.project_id,
                         "description": table.description,
                         "schema": dataset_id,
                         "table_type": table.table_type,
@@ -1173,8 +1270,12 @@ class BigQueryDatabase(AbstractDatabase):
         # Execute the query
         query_job = self.client.query(query, job_config=job_config)
 
-        # Extract column metadata from schema
-        columns = [{"name": field.name} for field in query_job.schema]
+        # Extract column metadata from schema (handle None case)
+        columns = (
+            [{"name": field.name} for field in query_job.schema]
+            if query_job.schema
+            else []
+        )
 
         rows_list: list[dict] = []
         total_size: int = 0
@@ -1194,7 +1295,11 @@ class BigQueryDatabase(AbstractDatabase):
         return rows_list, columns
 
     def get_sample_data(
-        self, table_name: str, schema_name: str, limit: int = 10
+        self,
+        table_name: str,
+        schema_name: str,
+        limit: int = 10,
+        database_name: str | None = None,
     ) -> dict | None:
         """BigQuery-specific implementation using RAND() instead of RANDOM()"""
         if not schema_name or not table_name:
@@ -1206,6 +1311,8 @@ class BigQueryDatabase(AbstractDatabase):
 
         try:
             # BigQuery uses backticks and RAND() instead of RANDOM()
+            # schema_name is already in format "project.dataset", so we don't
+            # need database_name
             sample_query = f"""
             SELECT *
             FROM `{schema_name}.{table_name}`
@@ -1273,61 +1380,52 @@ class MotherDuckDatabase(AbstractDatabase):
         return "motherduck"
 
     def load_metadata(self, progress_callback=None):
-        """Load metadata from MotherDuck database"""
-        # Use DuckDB information schema queries
-        schemas_query = (
-            "SELECT schema_name FROM information_schema.schemata "
-            "WHERE schema_name NOT IN ('information_schema', 'main')"
-        )
-        schemas, *_ = self.query(schemas_query)
+        """Load metadata from all MotherDuck databases at once"""
+        # MotherDuck/DuckDB in workspace mode: all databases are accessible
+        # without switching. Query across all databases using DuckDB's catalog
+        # system
+        # Query all tables across all databases at once
+        # DuckDB's information_schema shows tables from all attached databases
+        all_tables_query = """
+            SELECT
+                table_catalog as database_name,
+                table_schema as schema_name,
+                table_name,
+                table_type
+            FROM information_schema.tables
+            WHERE table_schema NOT IN ('information_schema', 'main', 'pg_catalog')
+                AND table_catalog NOT IN ('system', 'temp')
+        """
+        all_tables, *_ = self.query(all_tables_query)
 
-        if not schemas:
-            return []
+        logger.info(f"Found {len(all_tables)} tables across all MotherDuck databases")
 
-        # First pass: count total tables
-        total_tables = 0
-        for schema_row in schemas:
-            schema_name = schema_row["schema_name"]
-            tables_query = f"""
-                SELECT table_name, table_type
-                FROM information_schema.tables
-                WHERE table_schema = '{schema_name}'
-            """
-            tables, *_ = self.query(tables_query)
-            if tables:
-                total_tables += len(tables)
+        if not all_tables:
+            logger.warning("No tables found in any MotherDuck database")
+            return self.metadata
 
+        total_tables = len(all_tables)
         current_count = 0
-        for schema_row in schemas:
-            schema_name = schema_row["schema_name"]
 
-            # Get tables for each schema
-            tables_query = f"""
-                SELECT table_name, table_type
-                FROM information_schema.tables
-                WHERE table_schema = '{schema_name}'
-            """
-            tables, *_ = self.query(tables_query)
+        for table_row in all_tables:
+            database_name = table_row["database_name"]
+            schema_name = table_row["schema_name"]
+            table_name = table_row["table_name"]
+            table_type = table_row["table_type"]
 
-            if not tables:
-                continue
-
-            for table_row in tables:
-                table_name = table_row["table_name"]
-                table_type = table_row["table_type"]
-
-                # Get columns for each table
+            try:
+                # Get columns for this table using fully qualified catalog reference
                 columns_query = f"""
                     SELECT column_name, data_type, is_nullable
                     FROM information_schema.columns
-                    WHERE table_schema = '{schema_name}' AND table_name = '{table_name}'
+                    WHERE table_catalog = '{database_name}'
+                        AND table_schema = '{schema_name}'
+                        AND table_name = '{table_name}'
                     ORDER BY ordinal_position
                 """
                 columns, *_ = self.query(columns_query)
 
                 formatted_columns = []
-                if not columns:
-                    continue
                 for col in columns:
                     formatted_columns.append(
                         {
@@ -1341,6 +1439,7 @@ class MotherDuckDatabase(AbstractDatabase):
                 self.metadata.append(
                     {
                         "name": table_name,
+                        "database": database_name,  # Actual database from catalog
                         "schema": schema_name,
                         "table_type": table_type,
                         "columns": formatted_columns,
@@ -1354,9 +1453,20 @@ class MotherDuckDatabase(AbstractDatabase):
                     progress_callback(
                         current_count,
                         total_tables,
-                        f"{schema_name}.{table_name}",
+                        f"{database_name}.{schema_name}.{table_name}",
                     )
 
+            except Exception as e:
+                logger.warning(
+                    f"Failed to load columns for {database_name}.{schema_name}."
+                    f"{table_name}: {e}"
+                )
+                continue
+
+        logger.info(
+            f"Successfully loaded metadata for {len(self.metadata)} tables "
+            f"from MotherDuck"
+        )
         return self.metadata
 
     def _query_unprotected(self, query):
@@ -1421,6 +1531,51 @@ class MotherDuckDatabase(AbstractDatabase):
             except Exception:
                 pass
 
+    def get_sample_data(
+        self,
+        table_name: str,
+        schema_name: str,
+        limit: int = 10,
+        database_name: str | None = None,
+    ) -> dict | None:
+        """MotherDuck/DuckDB-specific implementation using RANDOM() without quotes"""
+        if not schema_name or not table_name:
+            return {
+                "error": ("Cannot sample data: missing schema or table information")
+            }
+
+        safe_limit = min(limit, 20)
+
+        # DuckDB uses simple dot notation without quotes for standard identifiers
+        if database_name:
+            table_ref = f"{database_name}.{schema_name}.{table_name}"
+        else:
+            table_ref = f"{schema_name}.{table_name}"
+
+        sample_query = f"""
+        SELECT *
+        FROM {table_ref}
+        ORDER BY RANDOM()
+        LIMIT {safe_limit}
+        """
+
+        # Execute the query using the database's query method
+        rows, *_ = self._query_with_privacy(sample_query.strip())
+
+        # Convert rows to list of dictionaries for better YAML output
+        columns = list(rows[0].keys()) if rows else []
+        sample_data = [dict(row) for row in rows[:safe_limit]]
+
+        sample_result = {
+            "sample_query": sample_query.strip(),
+            "sample_size": len(sample_data),
+            "columns": columns,
+            "data": sample_data,
+            "note": f"Sample shows first {safe_limit} rows from table",
+        }
+
+        return sample_result
+
 
 class DataWarehouseFactory:
     @staticmethod
@@ -1432,10 +1587,10 @@ class DataWarehouseFactory:
             password = kwargs.get("password", "")
             host = kwargs.get("host")
             port = kwargs.get("port", "5432")
-            # URL-encode username and password to handle special characters
+            database = kwargs.get("database", "postgres")
             encoded_user = quote_plus(user) if user else ""
             encoded_password = quote_plus(password) if password else ""
-            uri = f"postgresql://{encoded_user}:{encoded_password}@{host}:{port}/{kwargs['database']}"
+            uri = f"postgresql://{encoded_user}:{encoded_password}@{host}:{port}/{database}"
             if "options" in kwargs:
                 options_str = "&".join(
                     [f"--{k}={v}" for k, v in kwargs["options"].items()]
@@ -1446,10 +1601,13 @@ class DataWarehouseFactory:
             user = kwargs.get("user")
             password = kwargs.get("password", "")
             host = kwargs.get("host")
+            database = kwargs.get("database")
+            if not database:
+                raise ValueError("database is required for MySQL connection")
             # URL-encode username and password to handle special characters
             encoded_user = quote_plus(user) if user else ""
             encoded_password = quote_plus(password) if password else ""
-            uri = f"mysql+pymysql://{encoded_user}:{encoded_password}@{host}/{kwargs['database']}"
+            uri = f"mysql+pymysql://{encoded_user}:{encoded_password}@{host}/{database}"
             if "options" in kwargs:
                 options_str = "&".join(
                     [f"{k}={v}" for k, v in kwargs["options"].items()]

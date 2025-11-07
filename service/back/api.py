@@ -43,7 +43,13 @@ from models import (
     Query,
     UserFavorite,
 )
-from models.catalog import Asset, AssetTag, ColumnFacet, TableFacet, Term
+from models.catalog import (
+    Asset,
+    AssetTag,
+    ColumnFacet,
+    TableFacet,
+    Term,
+)
 from models.quality import BusinessEntity, Issue
 
 logger = logging.getLogger(__name__)
@@ -846,11 +852,6 @@ def get_favorites():
         .filter(UserFavorite.user_id == g.user.id, Query.databaseId == database_id)
         .all()
     )
-    # print each query as dict
-    print(
-        "🚀 ~ file: api.py:407 ~ get_favorites ~ query_favorites:",
-        [q.to_dict() for q in query_favorites],
-    )
 
     # Include rows and count for favorite queries since they're needed in the UI
     queries = []
@@ -874,14 +875,21 @@ def get_catalog_assets(database_id: UUID):
     if error_response:
         return error_response
 
-    # Build query to fetch all assets with both facets
-    # Use selectinload for parent_table_asset to avoid N+1 queries on columns
+    if database is None:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Build query to fetch all assets with all facets
+    # Use selectinload for parent relationships to avoid N+1 queries
     query = (
         g.session.query(Asset)
         .filter(Asset.database_id == database.id)
+        .outerjoin(Asset.database_facet)
+        .outerjoin(Asset.schema_facet)
         .outerjoin(Asset.table_facet)
         .outerjoin(Asset.column_facet)
         .options(
+            contains_eager(Asset.database_facet),
+            contains_eager(Asset.schema_facet),
             contains_eager(Asset.table_facet),
             contains_eager(Asset.column_facet)
             .selectinload(ColumnFacet.parent_table_asset)
@@ -939,16 +947,39 @@ def get_catalog_assets(database_id: UUID):
 
         # Add facet-specific data - optimize by reducing attribute access
         asset_type = asset.type
-        if asset_type == "TABLE":
+        if asset_type == "DATABASE":
+            df = asset.database_facet
+            if df:
+                asset_dict["database_facet"] = {
+                    "asset_id": asset_id_str,
+                    "database_id": database_id_str,
+                    "database_name": df.database_name,
+                }
+        elif asset_type == "SCHEMA":
+            sf = asset.schema_facet
+            if sf:
+                asset_dict["schema_facet"] = {
+                    "asset_id": asset_id_str,
+                    "database_id": database_id_str,
+                    "database_name": sf.database_name,
+                    "schema_name": sf.schema_name,
+                    "parent_database_asset_id": str(sf.parent_database_asset_id),
+                }
+        elif asset_type == "TABLE":
             tf = asset.table_facet
             if tf:
                 asset_dict["table_facet"] = {
                     "asset_id": asset_id_str,
                     "database_id": database_id_str,
+                    "database_name": tf.database_name,
                     "schema": tf.schema,
                     "table_name": tf.table_name,
                     "table_type": tf.table_type,
                 }
+                if tf.parent_schema_asset_id:
+                    asset_dict["table_facet"]["parent_schema_asset_id"] = str(
+                        tf.parent_schema_asset_id
+                    )
         elif asset_type == "COLUMN":
             cf = asset.column_facet
             if cf:
@@ -1143,6 +1174,7 @@ def get_asset_preview(asset_id: str):
     # Get table details
     schema = asset.table_facet.schema
     table_name = asset.table_facet.table_name
+    database_name = asset.table_facet.database_name
 
     if not table_name:
         return jsonify({"error": "Table name not found"}), 400
@@ -1154,7 +1186,7 @@ def get_asset_preview(asset_id: str):
         dw = database.create_data_warehouse()
 
         # Use the data warehouse's get_sample_data method
-        sample_result = dw.get_sample_data(table_name, schema, limit)
+        sample_result = dw.get_sample_data(table_name, schema, limit, database_name)
 
         if not sample_result:
             return jsonify({"error": "No sample data available"}), 404

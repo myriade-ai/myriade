@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, type WritableComputedRef } from 'vue'
 
 export interface ProjectTable {
+  databaseName: string | null
   schemaName: string | null
   tableName: string | null
 }

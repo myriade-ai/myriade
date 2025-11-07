@@ -14,7 +14,12 @@
         <p>{{ getDatabaseTypeName(engine) }} connection details</p>
       </div>
       <div :class="layout === 'grid' ? 'grid grid-cols-1' : 'space-y-4'">
-        <Field name="Host" v-model="details.host" rules="required" placeholder="localhost" />
+        <Field
+          name="Host"
+          v-model="details.host"
+          :rules="isRequiredField('host') ? 'required' : ''"
+          placeholder="localhost"
+        />
         <!-- Information box for IP whitelisting -->
         <BaseNotification
           v-if="!shouldHideNetworkConfig"
@@ -28,6 +33,7 @@
           v-model="details.port"
           type="number"
           :placeholder="engine === 'postgres' ? '5432' : '3306'"
+          :rules="isRequiredField('port') ? 'required' : ''"
         />
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -40,9 +46,9 @@
         <InputPassword name="Password" v-model="details.password" placeholder="Enter password" />
       </div>
       <Field
-        :name="layout === 'grid' ? 'Database Name' : 'Database'"
+        name="Database"
         v-model="details.database"
-        rules="required"
+        :rules="isRequiredField('database') ? 'required' : ''"
       />
     </div>
 
@@ -54,7 +60,7 @@
       <Field
         name="Path"
         v-model="details.filename"
-        rules="required"
+        :rules="isRequiredField('filename') ? 'required' : ''"
         placeholder="/path/to/database.sqlite"
       />
     </div>
@@ -67,13 +73,13 @@
       <Field
         name="Account Identifier"
         v-model="details.account"
-        rules="required"
+        :rules="isRequiredField('account') ? 'required' : ''"
         placeholder="ORGANIZATION-ACCOUNT"
       />
       <Field
         :name="layout === 'grid' ? 'Username' : 'User'"
         v-model="details.user"
-        rules="required"
+        :rules="isRequiredField('user') ? 'required' : ''"
       />
 
       <!-- RSA Key Authentication -->
@@ -120,13 +126,25 @@
       </div>
 
       <div :class="layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'">
-        <Field name="Database" v-model="details.database" rules="required" />
-        <Field name="Schema" v-model="details.schema" placeholder="PUBLIC" />
+        <Field
+          name="Warehouse"
+          v-model="details.warehouse"
+          placeholder="COMPUTE_WH"
+          :rules="isRequiredField('warehouse') ? 'required' : ''"
+        />
+        <Field
+          name="Role"
+          v-model="details.role"
+          placeholder="ACCOUNTADMIN"
+          :rules="isRequiredField('role') ? 'required' : ''"
+        />
       </div>
-      <div :class="layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'">
-        <Field name="Warehouse" v-model="details.warehouse" placeholder="COMPUTE_WH" />
-        <Field name="Role" v-model="details.role" placeholder="ACCOUNTADMIN" />
-      </div>
+      <BaseNotification
+        color="info"
+        title="Multi-Database Support"
+        message="All accessible databases in your Snowflake account will be automatically discovered and included."
+        class="bg-blue-50"
+      />
     </div>
 
     <!-- BigQuery Fields -->
@@ -137,13 +155,15 @@
       <Field
         name="Project ID"
         v-model="details.project_id"
-        rules="required"
+        :rules="isRequiredField('project_id') ? 'required' : ''"
         placeholder="your-gcp-project-id"
       />
       <div class="space-y-2">
-        <label class="block text-sm font-medium text-gray-700"> 
-          Service Account JSON Key 
-          <span class="text-xs font-normal text-gray-500">(optional - will use Application Default Credentials if not provided)</span>
+        <label class="block text-sm font-medium text-gray-700">
+          Service Account JSON Key
+          <span class="text-xs font-normal text-gray-500"
+            >(optional - will use Application Default Credentials if not provided)</span
+          >
         </label>
         <div class="flex items-center justify-center w-full">
           <label
@@ -176,12 +196,17 @@
       <div class="text-sm text-gray-500" v-if="showEngineTitle">
         <p>MotherDuck connection details</p>
       </div>
-      <Field name="Token" v-model="details.token" rules="required" placeholder="Enter your token" />
       <Field
-        name="Database"
-        v-model="details.database"
-        rules="required"
-        placeholder="Enter your database name"
+        name="Token"
+        v-model="details.token"
+        :rules="isRequiredField('token') ? 'required' : ''"
+        placeholder="Enter your token"
+      />
+      <BaseNotification
+        color="info"
+        title="Multi-Database Support"
+        message="All accessible databases in your MotherDuck account will be automatically discovered and included."
+        class="bg-blue-50"
       />
     </div>
 
@@ -191,7 +216,12 @@
         <p>Oracle connection details</p>
       </div>
       <div :class="layout === 'grid' ? 'grid grid-cols-1' : 'space-y-4'">
-        <Field name="Host" v-model="details.host" rules="required" placeholder="localhost" />
+        <Field
+          name="Host"
+          v-model="details.host"
+          :rules="isRequiredField('host') ? 'required' : ''"
+          placeholder="localhost"
+        />
         <!-- Information box for IP whitelisting -->
         <BaseNotification
           v-if="!shouldHideNetworkConfig"
@@ -200,7 +230,13 @@
           :message="`If necessary, please whitelist the following IP in your cloud-database network rules: ${serverIp}`"
           class="bg-warning-50"
         />
-        <Field name="Port" v-model="details.port" type="number" placeholder="1521" />
+        <Field
+          name="Port"
+          v-model="details.port"
+          type="number"
+          placeholder="1521"
+          :rules="isRequiredField('port') ? 'required' : ''"
+        />
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field
@@ -217,8 +253,14 @@
           name="Service Name"
           v-model="details.service_name"
           placeholder="ORCL (recommended)"
+          :rules="isRequiredField('service_name') ? 'required' : ''"
         />
-        <Field name="SID" v-model="details.sid" placeholder="Alternative to service name" />
+        <Field
+          name="SID"
+          v-model="details.sid"
+          placeholder="Alternative to service name"
+          :rules="isRequiredField('sid') ? 'required' : ''"
+        />
       </div>
     </div>
 
@@ -339,6 +381,21 @@ const handleServiceAccountUpload = (event: Event) => {
     }
     reader.readAsText(file)
   }
+}
+
+const requiredFieldsByEngine: Record<Engine, string[]> = {
+  postgres: ['host', 'user', 'database'],
+  mysql: ['host', 'user', 'database'],
+  snowflake: ['account', 'user', 'private_key_pem'],
+  sqlite: ['filename'],
+  bigquery: ['project_id'],
+  motherduck: ['token'],
+  oracle: ['host', 'user', 'database']
+}
+
+const isRequiredField = (field: string): boolean => {
+  const requiredFields = requiredFieldsByEngine[props.engine] || []
+  return requiredFields.includes(field)
 }
 
 const handlePrivateKeyUpload = (event: Event) => {

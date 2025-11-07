@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class AssetType(Enum):
+    DATABASE = "DATABASE"
+    SCHEMA = "SCHEMA"
     TABLE = "TABLE"
     COLUMN = "COLUMN"
     TERM = "TERM"
@@ -61,8 +63,8 @@ class CatalogTool:
         """
         List catalog assets and terms with optional filtering
         Args:
-            asset_type: Filter by type ("TABLE", "COLUMN", "TERM").
-                       If None, returns only assets (no terms)
+            asset_type: Filter by type ("DATABASE", "SCHEMA", "TABLE", "COLUMN",
+                       "TERM"). If None, returns only assets (no terms)
             limit: Maximum number of results
         """
         results = []
@@ -110,6 +112,7 @@ class CatalogTool:
                     facet = asset.table_facet
                     asset_dict.update(
                         {
+                            "database_name": facet.database_name,
                             "schema": facet.schema,
                             "table_name": facet.table_name,
                         }
@@ -188,26 +191,40 @@ class CatalogTool:
                 )
                 terms = terms_query.all()
 
+        # Build asset results with type-specific fields
+        asset_results = []
+        for asset in assets:
+            asset_dict = {
+                "id": str(asset.id),
+                "urn": asset.urn,
+                "name": asset.name,
+                "type": asset.type,
+                "status": asset.status or None,
+                "description": (
+                    asset.description[:200] + "..."
+                    if asset.description and len(asset.description) > 200
+                    else asset.description
+                ),
+                "tags": [
+                    {"id": str(tag.id), "name": tag.name} for tag in asset.asset_tags
+                ],
+            }
+
+            # Add type-specific information for tables
+            if asset.type == "TABLE" and asset.table_facet:
+                facet = asset.table_facet
+                asset_dict.update(
+                    {
+                        "database_name": facet.database_name,
+                        "schema": facet.schema,
+                        "table_name": facet.table_name,
+                    }
+                )
+
+            asset_results.append(asset_dict)
+
         results = {
-            "assets": [
-                {
-                    "id": str(asset.id),
-                    "urn": asset.urn,
-                    "name": asset.name,
-                    "type": asset.type,
-                    "status": asset.status or None,
-                    "description": (
-                        asset.description[:200] + "..."
-                        if asset.description and len(asset.description) > 200
-                        else asset.description
-                    ),
-                    "tags": [
-                        {"id": str(tag.id), "name": tag.name}
-                        for tag in asset.asset_tags
-                    ],
-                }
-                for asset in assets
-            ]
+            "assets": asset_results
             + [
                 {
                     "id": str(term.id),
@@ -274,6 +291,7 @@ class CatalogTool:
             facet = asset.table_facet
             result.update(
                 {
+                    "database_name": facet.database_name,
                     "schema": facet.schema,
                     "table_name": facet.table_name,
                 }
@@ -281,7 +299,7 @@ class CatalogTool:
             # Add sample data for table assets
             if facet.table_name and facet.schema:
                 sample_data = self.data_warehouse.get_sample_data(
-                    facet.table_name, facet.schema
+                    facet.table_name, facet.schema, database_name=facet.database_name
                 )
                 if sample_data:
                     result["sample_data"] = sample_data

@@ -152,15 +152,12 @@ async function confirmDelete() {
   }
 }
 
-watch(
-  selectedDatabaseId,
-  async (newDatabaseId, oldDatabaseId) => {
-    if (!newDatabaseId || newDatabaseId === oldDatabaseId) {
-      return
-    }
-    await catalogStore.fetchTerms(newDatabaseId)
+watch(selectedDatabaseId, async (newDatabaseId, oldDatabaseId) => {
+  if (!newDatabaseId || newDatabaseId === oldDatabaseId) {
+    return
   }
-)
+  await catalogStore.fetchTerms(newDatabaseId)
+})
 
 onMounted(async () => {
   if (selectedDatabaseId.value) {

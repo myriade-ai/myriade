@@ -216,7 +216,7 @@ import {
 } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import { useQueryClient } from '@tanstack/vue-query'
-import { Columns3, Database, ExternalLink, Info } from 'lucide-vue-next'
+import { Columns3, Database, ExternalLink, FolderTree, Info } from 'lucide-vue-next'
 import { computed, reactive, ref, watch, type Component } from 'vue'
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'
 import { Badge } from './ui/badge'
@@ -271,6 +271,8 @@ const approving = ref(false)
 const isProcessing = computed(() => (props.isProcessing ?? false) || approving.value)
 
 const iconByType: Record<AssetType, Component> = {
+  DATABASE: Database,
+  SCHEMA: FolderTree,
   TABLE: Database,
   COLUMN: Columns3
 }

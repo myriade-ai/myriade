@@ -8,7 +8,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useDatabasesStore } from './databases'
 
-export type AssetType = 'TABLE' | 'COLUMN'
+export type AssetType = 'DATABASE' | 'SCHEMA' | 'TABLE' | 'COLUMN'
 
 export type AssetStatus =
   | 'validated'
@@ -41,6 +41,8 @@ export interface CatalogAsset {
   created_by: string | null
   createdAt: string
   updatedAt: string
+  database_facet?: DatabaseFacet
+  schema_facet?: SchemaFacet
   table_facet?: TableFacet
   column_facet?: ColumnFacet
   status: AssetStatus
@@ -49,11 +51,27 @@ export interface CatalogAsset {
   ai_suggested_tags?: string[] | null
 }
 
+export interface DatabaseFacet {
+  asset_id: string
+  database_id: string
+  database_name: string
+}
+
+export interface SchemaFacet {
+  asset_id: string
+  database_id: string
+  database_name: string
+  schema_name: string
+  parent_database_asset_id: string
+}
+
 export interface TableFacet {
   asset_id: string
+  database_name?: string | null
   schema: string | null
   table_name: string | null
   table_type: string | null
+  parent_schema_asset_id?: string | null
   columns_total_count?: number | null
 }
 

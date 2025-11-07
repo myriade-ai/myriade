@@ -1,7 +1,7 @@
 """remove_sync_status_columns_from_database
 
 Revision ID: 53de7f643cb2
-Revises: d019f75039d5
+Revises: 03ca219fcee9
 Create Date: 2025-10-30 14:56:00.490376
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "53de7f643cb2"
-down_revision: Union[str, None] = "d019f75039d5"
+down_revision: Union[str, None] = "03ca219fcee9"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
