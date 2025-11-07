@@ -42,7 +42,17 @@ def _get_cached_validation(session_cookie):
 
     # Check if expired
     if time.time() > cached["expires"]:
-        del _session_validation_cache[cache_key]
+        return None
+
+    return cached["validation_data"]
+
+
+def _get_cached_validation_for_refresh(session_cookie):
+    """Return cached validation even if expired for refresh attempts."""
+    cache_key = hashlib.sha256(session_cookie.encode()).hexdigest()[:32]
+    cached = _session_validation_cache.get(cache_key)
+
+    if not cached:
         return None
 
     return cached["validation_data"]
@@ -136,6 +146,9 @@ def _authenticate_session(session_cookie: str):
         if cached_validation:
             return SealedSessionAuthResponse(session_cookie, cached_validation), False
 
+        # We may still need cached data (like refresh tokens) if the session expired
+        cached_for_refresh = _get_cached_validation_for_refresh(session_cookie)
+
         # No cache or expired - validate via proxy
 
         headers = {"Authorization": f"Bearer {session_cookie}"}
@@ -156,8 +169,11 @@ def _authenticate_session(session_cookie: str):
         elif response.status_code == 401:
             # Session might be expired, attempt to refresh
             logger.info("Proxy validation failed, attempting to refresh...")
+            _invalidate_session_cache(session_cookie)
             try:
-                refreshed_response = _try_refresh_session(session_cookie)
+                refreshed_response = _try_refresh_session(
+                    session_cookie, cached_for_refresh
+                )
                 if refreshed_response:
                     logger.info("Session refreshed successfully")
                     return refreshed_response, True  # Indicate session was refreshed
@@ -182,18 +198,33 @@ def _authenticate_session(session_cookie: str):
         raise UnauthorizedError("Authentication failed: session error") from e
 
 
-def _try_refresh_session(session_cookie: str):
+def _try_refresh_session(session_cookie: str, cached_validation_data=None):
     """
     Attempt to refresh an expired session by calling the proxy refresh endpoint.
 
     Returns:
         SealedSessionAuthResponse: New auth response with refreshed session,
                                   or None if refresh failed
+    Args:
+        session_cookie: The expired sealed session cookie
+        cached_validation_data: Last known validation payload (may contain refresh token)
     """
     try:
         # Call proxy refresh endpoint
         logger.info("Attempting to refresh session via proxy")
         refresh_data = {"sealed_session": session_cookie}
+
+        # Include refresh token when available to avoid INVALID_JWT errors
+        refresh_token = None
+        if cached_validation_data:
+            refresh_token = cached_validation_data.get("refresh_token")
+
+        if refresh_token:
+            refresh_data["refresh_token"] = refresh_token
+        else:
+            logger.warning(
+                "No refresh token available in cached session data; relying on sealed session"
+            )
 
         headers = {"Content-Type": "application/json"}
         response = requests.post(
