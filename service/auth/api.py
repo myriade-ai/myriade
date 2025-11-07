@@ -94,7 +94,8 @@ def logout():
     session_cookie = request.cookies["session"]
     callback_host = HOST if HOST else request.url_root.rstrip("/")
 
-    # Always clear session from validation cache first
+    # Clear session from validation and refresh caches
+    # This also removes any reverse mappings (old_session → this_session)
     from auth.auth import _invalidate_session_cache
 
     _invalidate_session_cache(session_cookie)
