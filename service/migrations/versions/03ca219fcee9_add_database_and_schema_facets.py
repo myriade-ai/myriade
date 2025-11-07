@@ -11,6 +11,8 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
+from db import UUID
+
 # revision identifiers, used by Alembic.
 revision: str = "03ca219fcee9"
 down_revision: Union[str, None] = "c71588b086e4"
@@ -22,8 +24,8 @@ def upgrade() -> None:
     # Create database_facet table
     op.create_table(
         "database_facet",
-        sa.Column("asset_id", sa.UUID(), nullable=False),
-        sa.Column("database_id", sa.UUID(), nullable=False),
+        sa.Column("asset_id", UUID(), nullable=False),
+        sa.Column("database_id", UUID(), nullable=False),
         sa.Column("database_name", sa.String(), nullable=False),
         sa.ForeignKeyConstraint(
             ["asset_id"],
@@ -40,11 +42,11 @@ def upgrade() -> None:
     # Create schema_facet table
     op.create_table(
         "schema_facet",
-        sa.Column("asset_id", sa.UUID(), nullable=False),
-        sa.Column("database_id", sa.UUID(), nullable=False),
+        sa.Column("asset_id", UUID(), nullable=False),
+        sa.Column("database_id", UUID(), nullable=False),
         sa.Column("database_name", sa.String(), nullable=False),
         sa.Column("schema_name", sa.String(), nullable=False),
-        sa.Column("parent_database_asset_id", sa.UUID(), nullable=False),
+        sa.Column("parent_database_asset_id", UUID(), nullable=False),
         sa.ForeignKeyConstraint(
             ["asset_id"],
             ["asset.id"],
@@ -63,7 +65,7 @@ def upgrade() -> None:
 
     # Add parent_schema_asset_id column to table_facet
     op.add_column(
-        "table_facet", sa.Column("parent_schema_asset_id", sa.UUID(), nullable=True)
+        "table_facet", sa.Column("parent_schema_asset_id", UUID(), nullable=True)
     )
     op.create_foreign_key(
         "fk_table_facet_parent_schema_asset",
@@ -75,11 +77,20 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
+
     # Remove parent_schema_asset_id from table_facet
-    op.drop_constraint(
-        "fk_table_facet_parent_schema_asset", "table_facet", type_="foreignkey"
-    )
-    op.drop_column("table_facet", "parent_schema_asset_id")
+    if bind.dialect.name == "sqlite":
+        with op.batch_alter_table("table_facet") as batch_op:
+            batch_op.drop_constraint(
+                "fk_table_facet_parent_schema_asset", type_="foreignkey"
+            )
+            batch_op.drop_column("parent_schema_asset_id")
+    else:
+        op.drop_constraint(
+            "fk_table_facet_parent_schema_asset", "table_facet", type_="foreignkey"
+        )
+        op.drop_column("table_facet", "parent_schema_asset_id")
 
     # Drop schema_facet table
     op.drop_table("schema_facet")
