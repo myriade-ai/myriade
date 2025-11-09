@@ -49,6 +49,7 @@ import {
   ChevronsUpDown,
   Edit,
   FilePenLine,
+  FileText,
   FolderHeart,
   HatGlasses,
   Inbox,
@@ -85,6 +86,11 @@ const navItems: { title: string; url: string; icon: typeof SquarePen; disabled?:
     title: 'Projects',
     url: '/projects',
     icon: CalendarCog
+  },
+  {
+    title: 'Reports',
+    url: '/documents',
+    icon: FileText
   },
   {
     title: 'Favorites',

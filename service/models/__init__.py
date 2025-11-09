@@ -679,3 +679,84 @@ class Metadata(SerializerMixin, DefaultBase, Base):
         primary_key=True,
         default=uuid.uuid4,
     )
+
+
+@dataclass
+class Document(SerializerMixin, DefaultBase, Base):
+    __tablename__ = "document"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    title: Mapped[Optional[str]] = mapped_column(String)
+    database_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("database.id"), nullable=False
+    )
+    organisation_id: Mapped[Optional[str]] = mapped_column(
+        String, ForeignKey("organisation.id")
+    )
+    content: Mapped[str] = mapped_column(String, nullable=False, default="")
+    created_by: Mapped[Optional[str]] = mapped_column(String, ForeignKey("user.id"))
+    updated_by: Mapped[Optional[str]] = mapped_column(String, ForeignKey("user.id"))
+    archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Note: createdAt and updatedAt are inherited from DefaultBase
+
+    # Relationships
+    database: Mapped["Database"] = relationship("Database")
+    versions: Mapped[List["DocumentVersion"]] = relationship(
+        "DocumentVersion", back_populates="document", cascade="all, delete-orphan"
+    )
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "title": self.title,
+            "databaseId": str(self.database_id),
+            "organisationId": self.organisation_id,
+            "content": self.content,
+            "createdBy": self.created_by,
+            "updatedBy": self.updated_by,
+            "archived": self.archived,
+            "deleted": self.deleted,
+            "createdAt": self.createdAt.isoformat() if self.createdAt else None,
+            "updatedAt": self.updatedAt.isoformat() if self.updatedAt else None,
+        }
+
+
+@dataclass
+class DocumentVersion(SerializerMixin, Base):
+    __tablename__ = "document_version"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("document.id"), nullable=False
+    )
+    content: Mapped[str] = mapped_column(String, nullable=False)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_by: Mapped[Optional[str]] = mapped_column(String, ForeignKey("user.id"))
+    change_description: Mapped[Optional[str]] = mapped_column(String)
+    # Only createdAt, not updatedAt (versions are immutable)
+    createdAt: Mapped[datetime] = mapped_column(
+        UtcDateTime(), nullable=False, server_default=func.now()
+    )
+
+    # Relationships
+    document: Mapped["Document"] = relationship("Document", back_populates="versions")
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "documentId": str(self.document_id),
+            "content": self.content,
+            "versionNumber": self.version_number,
+            "createdBy": self.created_by,
+            "createdAt": self.createdAt.isoformat() if self.createdAt else None,
+            "changeDescription": self.change_description,
+        }

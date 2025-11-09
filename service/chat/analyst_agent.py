@@ -16,6 +16,7 @@ from chat.proxy_provider import ProxyProvider
 from chat.tools.catalog import CatalogTool
 from chat.tools.database import DatabaseTool
 from chat.tools.dbt import DBTDocs, DBTEditor
+from chat.tools.document import DocumentsTool
 from chat.tools.echarts import EchartsTool
 from chat.tools.github import GithubTool
 from chat.tools.quality import SemanticModel
@@ -151,6 +152,12 @@ class DataAnalystAgent:
         )
         self.agent.add_tool(catalog_tool, "catalog")
 
+        # Add Documents tool
+        documents_tool = DocumentsTool(
+            self.session, self.conversation.database, self.conversation
+        )
+        self.agent.add_tool(documents_tool, "documents")
+
         if get_github_integration(self.session, self.conversation.database.id):
             # Add Github tool to the agent
             github_tool = GithubTool(self.session, self.conversation)
@@ -228,8 +235,9 @@ class DataAnalystAgent:
         Give the final response from the user demand/query as a text.
         You can insert a query with it's preview result in the text using the <QUERY:{query_id}> tag.
         You can insert a chart in the text using the <CHART:{chart_id}> tag.
-        Replace {query_id} and {chart_id} with the actual query id and chart id.
-        Show the query / chart only if the user asked for it or if that make sense to have it.
+        You can insert a document in the text using the <DOCUMENT:{document_id}> tag.
+        Replace {query_id}, {chart_id}, and {document_id} with the actual IDs.
+        Show the query / chart / document only if the user asked for it or if that makes sense to have it.
         """  # noqa: E501
 
         chunks = parse_answer_text(text)
