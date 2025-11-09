@@ -1,12 +1,12 @@
 import axios from '@/plugins/axios'
 import type { Document, DocumentVersion } from '@/stores/conversations'
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 
 export const useDocumentsStore = defineStore('documents', () => {
   // State
-  const documents = ref<Map<string, Document>>(new Map())
-  const documentVersions = ref<Map<string, DocumentVersion[]>>(new Map())
+  const documents = reactive<Map<string, Document>>(new Map())
+  const documentVersions = reactive<Map<string, DocumentVersion[]>>(new Map())
   const currentDocumentId = ref<string | null>(null)
   const isDocumentPanelOpen = ref(false)
 
@@ -22,7 +22,7 @@ export const useDocumentsStore = defineStore('documents', () => {
 
     // Update the documents map
     docs.forEach((doc) => {
-      documents.value.set(doc.id, doc)
+      documents.set(doc.id, doc)
     })
 
     return docs
@@ -33,7 +33,7 @@ export const useDocumentsStore = defineStore('documents', () => {
     const doc: Document = response.data
 
     // Update the documents map
-    documents.value.set(doc.id, doc)
+    documents.set(doc.id, doc)
 
     return doc
   }
@@ -46,7 +46,7 @@ export const useDocumentsStore = defineStore('documents', () => {
     const doc: Document = response.data
 
     // Update the documents map
-    documents.value.set(doc.id, doc)
+    documents.set(doc.id, doc)
 
     return doc
   }
@@ -55,8 +55,8 @@ export const useDocumentsStore = defineStore('documents', () => {
     await axios.delete(`/api/documents/${documentId}`)
 
     // Remove from map
-    documents.value.delete(documentId)
-    documentVersions.value.delete(documentId)
+    documents.delete(documentId)
+    documentVersions.delete(documentId)
 
     // Close panel if this document is open
     if (currentDocumentId.value === documentId) {
@@ -69,7 +69,7 @@ export const useDocumentsStore = defineStore('documents', () => {
     const versions: DocumentVersion[] = response.data
 
     // Update the versions map
-    documentVersions.value.set(documentId, versions)
+    documentVersions.set(documentId, versions)
 
     return versions
   }
@@ -88,11 +88,11 @@ export const useDocumentsStore = defineStore('documents', () => {
   }
 
   const getDocument = (documentId: string): Document | undefined => {
-    return documents.value.get(documentId)
+    return documents.get(documentId)
   }
 
   const getVersions = (documentId: string): DocumentVersion[] | undefined => {
-    return documentVersions.value.get(documentId)
+    return documentVersions.get(documentId)
   }
 
   const archiveDocument = async (documentId: string, archived: boolean): Promise<Document> => {
@@ -100,7 +100,7 @@ export const useDocumentsStore = defineStore('documents', () => {
     const doc: Document = response.data
 
     // Update the documents map
-    documents.value.set(doc.id, doc)
+    documents.set(doc.id, doc)
 
     return doc
   }
