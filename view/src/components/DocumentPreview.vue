@@ -48,8 +48,9 @@
 </template>
 
 <script setup lang="ts">
+import { useDocumentQuery } from '@/composables/useDocumentsQuery'
 import { useDocumentsStore } from '@/stores/documents'
-import { onMounted, computed } from 'vue'
+import { computed, toRef } from 'vue'
 
 const props = defineProps<{
   documentId: string
@@ -61,7 +62,9 @@ const emit = defineEmits<{
 
 const documentsStore = useDocumentsStore()
 
-const document = computed(() => documentsStore.getDocument(props.documentId))
+// Use TanStack Query to fetch document
+const documentQuery = useDocumentQuery(toRef(props, 'documentId'))
+const document = computed(() => documentQuery.data.value)
 
 const contentExcerpt = computed(() => {
   if (!document.value) return ''
@@ -85,13 +88,6 @@ const handleOpen = () => {
   emit('open', props.documentId)
   documentsStore.openDocument(props.documentId)
 }
-
-onMounted(async () => {
-  // Fetch document if not in cache
-  if (!document.value) {
-    await documentsStore.fetchDocument(props.documentId)
-  }
-})
 </script>
 
 <style scoped>

@@ -217,10 +217,10 @@ import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import Chart from '@/components/Chart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 import { Card, CardContent } from '@/components/ui/card'
-import { user } from '@/stores/auth'
+import { useDocumentQuery, useDocumentVersionsQuery } from '@/composables/useDocumentsQuery'
 import type { DocumentVersion } from '@/stores/conversations'
 import { useDocumentsStore } from '@/stores/documents'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, toRef, watch } from 'vue'
 
 const documentsStore = useDocumentsStore()
 
@@ -231,14 +231,15 @@ const isEditingTitle = ref(false)
 const showVersionHistory = ref(false)
 const editedContent = ref('')
 const editedTitle = ref('')
-const versions = ref<DocumentVersion[]>([])
 const viewingVersion = ref<DocumentVersion | null>(null)
 
+// Use TanStack Query to fetch document and versions
+const documentQuery = useDocumentQuery(toRef(documentsStore, 'currentDocumentId'))
+const versionsQuery = useDocumentVersionsQuery(toRef(documentsStore, 'currentDocumentId'))
+
 // Computed
-const document = computed(() => {
-  if (!documentsStore.currentDocumentId) return null
-  return documentsStore.getDocument(documentsStore.currentDocumentId)
-})
+const document = computed(() => documentQuery.data.value || null)
+const versions = computed(() => versionsQuery.data.value || [])
 
 const parsedContent = computed<
   Array<{ type: string; content?: string; query_id?: string; chart_id?: string }>
@@ -341,9 +342,12 @@ const saveDocument = async () => {
     isSaving.value = true
     await documentsStore.updateDocument(documentsStore.currentDocumentId, {
       content: editedContent.value,
-      changeDescription: `Edited by ${user.value?.firstName} ${user.value?.lastName} from panel`
+      changeDescription: 'User edit from panel'
     })
     isEditing.value = false
+    // Refetch to show updated content
+    documentQuery.refetch()
+    versionsQuery.refetch()
   } catch (error) {
     console.error('Failed to save document:', error)
     alert('Failed to save document. Please try again.')
@@ -371,25 +375,16 @@ const saveTitle = async () => {
       title: editedTitle.value
     })
     isEditingTitle.value = false
+    // Refetch to show updated title
+    documentQuery.refetch()
   } catch (error) {
     console.error('Failed to update title:', error)
     alert('Failed to update title. Please try again.')
   }
 }
 
-const toggleVersionHistory = async () => {
-  if (!showVersionHistory.value && documentsStore.currentDocumentId) {
-    // Fetch versions if not already loaded
-    if (versions.value.length === 0) {
-      try {
-        versions.value = await documentsStore.fetchVersions(documentsStore.currentDocumentId)
-      } catch (error) {
-        console.error('Failed to fetch versions:', error)
-        alert('Failed to load version history.')
-        return
-      }
-    }
-  }
+const toggleVersionHistory = () => {
+  // Simply toggle - TanStack Query will handle fetching if needed
   showVersionHistory.value = !showVersionHistory.value
 }
 
