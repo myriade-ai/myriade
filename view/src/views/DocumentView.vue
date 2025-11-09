@@ -9,6 +9,7 @@
             size="sm"
             @click="handleDelete"
             :disabled="isDeleting"
+            class="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
           >
             Delete
           </Button>
@@ -56,22 +57,22 @@
     <div class="overflow-y-auto h-screen">
       <div class="px-8 py-6 max-w-4xl mx-auto">
         <!-- Loading state -->
-        <div v-if="loading" class="text-center py-12">
+        <div v-if="documentQuery.isPending.value" class="text-center py-12">
           <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p class="mt-4 text-gray-500">Loading report...</p>
         </div>
 
         <!-- Error state -->
-        <div v-else-if="error" class="text-center py-12">
+        <div v-else-if="documentQuery.isError.value" class="text-center py-12">
           <div class="text-error-500">
-            <p>{{ error }}</p>
+            <p>{{ documentQuery.error.value?.message || 'Failed to load report' }}</p>
           </div>
         </div>
 
         <!-- Version History Sidebar -->
         <div v-else-if="showVersionHistory && document" class="space-y-4">
           <h3 class="text-lg font-semibold mb-4">Version History</h3>
-          <div v-if="versions.length === 0" class="text-center text-gray-500 py-8">
+          <div v-if="versionsQuery.isPending.value" class="text-center text-gray-500 py-8">
             Loading versions...
           </div>
           <div v-else class="space-y-3">
@@ -198,34 +199,34 @@ import PageHeader from '@/components/PageHeader.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
+import { useDocumentQuery, useDocumentVersionsQuery } from '@/composables/useDocumentsQuery'
 import type { DocumentVersion } from '@/stores/conversations'
 import { useDocumentsStore } from '@/stores/documents'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, toRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
 const documentsStore = useDocumentsStore()
 
-const loading = ref(false)
-const error = ref<string | null>(null)
 const isEditing = ref(false)
 const isSaving = ref(false)
 const isArchiving = ref(false)
 const isDeleting = ref(false)
 const editedContent = ref('')
 const showVersionHistory = ref(false)
-const versions = ref<DocumentVersion[]>([])
 const viewingVersion = ref<DocumentVersion | null>(null)
 
 const documentId = computed(() => {
   return Array.isArray(route.params.id) ? route.params.id[0] : route.params.id
 })
 
-const document = computed(() => {
-  if (!documentId.value) return null
-  return documentsStore.getDocument(documentId.value)
-})
+// Use TanStack Query to fetch document and versions
+const documentQuery = useDocumentQuery(toRef(() => documentId.value))
+const versionsQuery = useDocumentVersionsQuery(toRef(() => documentId.value))
+
+const document = computed(() => documentQuery.data.value || null)
+const versions = computed(() => versionsQuery.data.value || [])
 
 const subtitle = computed(() => {
   if (!document.value) return ''
@@ -312,6 +313,9 @@ const saveDocument = async () => {
       changeDescription: 'Edited from report page'
     })
     isEditing.value = false
+    // Refetch to show updated content
+    documentQuery.refetch()
+    versionsQuery.refetch()
   } catch (err) {
     console.error('Failed to save document:', err)
     alert('Failed to save report. Please try again.')
@@ -320,18 +324,8 @@ const saveDocument = async () => {
   }
 }
 
-const toggleVersionHistory = async () => {
-  if (!showVersionHistory.value && documentId.value) {
-    if (versions.value.length === 0) {
-      try {
-        versions.value = await documentsStore.fetchVersions(documentId.value)
-      } catch (err) {
-        console.error('Failed to fetch versions:', err)
-        alert('Failed to load version history.')
-        return
-      }
-    }
-  }
+const toggleVersionHistory = () => {
+  // Simply toggle - TanStack Query will handle fetching if needed
   showVersionHistory.value = !showVersionHistory.value
 }
 
@@ -350,6 +344,8 @@ const toggleArchive = async () => {
   try {
     isArchiving.value = true
     await documentsStore.archiveDocument(documentId.value, !document.value.archived)
+    // Refetch to show updated status
+    documentQuery.refetch()
   } catch (err) {
     console.error('Failed to toggle archive:', err)
     alert('Failed to update archive status. Please try again.')
@@ -390,23 +386,6 @@ const formatDate = (dateString: string): string => {
   if (days < 7) return `${days} days ago`
   return date.toLocaleDateString()
 }
-
-onMounted(async () => {
-  if (!documentId.value) {
-    error.value = 'No document ID provided'
-    return
-  }
-
-  try {
-    loading.value = true
-    await documentsStore.fetchDocument(documentId.value)
-  } catch (err) {
-    console.error('Failed to fetch document:', err)
-    error.value = 'Failed to load report'
-  } finally {
-    loading.value = false
-  }
-})
 </script>
 
 <style scoped>
