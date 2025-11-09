@@ -4,7 +4,7 @@
     <div class="overflow-y-auto h-screen">
       <div class="px-8">
         <!-- Search bar and filters -->
-        <div v-if="!loading && !error" class="flex items-center gap-4 my-6">
+        <div v-if="!documentsQuery.isPending.value" class="flex items-center gap-4 my-6">
           <div class="flex-1">
             <Input
               v-model="searchQuery"
@@ -18,12 +18,12 @@
           </Button>
         </div>
 
-        <div v-if="loading" class="mt-4 text-center">
+        <div v-if="documentsQuery.isPending.value" class="mt-4 text-center">
           <p>Loading reports...</p>
         </div>
 
-        <div v-else-if="error" class="mt-4 text-center text-error-500">
-          <p>{{ error }}</p>
+        <div v-else-if="documentsQuery.isError.value" class="mt-4 text-center text-error-500">
+          <p>{{ documentsQuery.error.value?.message || 'Failed to load reports' }}</p>
         </div>
 
         <div v-else class="space-y-6 my-4">
@@ -99,6 +99,16 @@
                   {{ getContentExcerpt(doc.content) }}
                 </div>
               </CardContent>
+              <CardFooter class="pt-2 justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  @click.stop="toggleArchive(doc)"
+                  class="text-gray-600 hover:text-gray-800"
+                >
+                  {{ doc.archived ? 'Unarchive' : 'Archive' }}
+                </Button>
+              </CardFooter>
             </Card>
           </div>
         </div>
@@ -112,28 +122,26 @@ import PageHeader from '@/components/PageHeader.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
+import CardFooter from '@/components/ui/card/CardFooter.vue'
 import CardHeader from '@/components/ui/card/CardHeader.vue'
 import CardTitle from '@/components/ui/card/CardTitle.vue'
 import Input from '@/components/ui/input/Input.vue'
-import { useContextsStore } from '@/stores/contexts'
+import { useDocumentsQuery } from '@/composables/useDocumentsQuery'
 import { useDocumentsStore } from '@/stores/documents'
 import { FileText as FileTextIcon } from 'lucide-vue-next'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 
 const documentsStore = useDocumentsStore()
-const contextsStore = useContextsStore()
 const router = useRouter()
-
-const loading = ref(true)
-const error = ref<string | null>(null)
 const searchQuery = ref('')
 const showArchived = ref(false)
 
+// Use TanStack Query - automatically refetches when context changes
+const documentsQuery = useDocumentsQuery(showArchived)
+
 const documents = computed(() => {
-  const docs = Array.from(documentsStore.documents.values()).sort((a, b) => {
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  })
+  const docs = documentsQuery.data.value || []
 
   // Filter by search query if provided
   if (!searchQuery.value.trim()) {
@@ -152,14 +160,19 @@ const navigateToDocument = (documentId: string) => {
   router.push(`/documents/${documentId}`)
 }
 
-const toggleShowArchived = async () => {
+const toggleShowArchived = () => {
+  // Toggle the ref - TanStack Query will automatically refetch
   showArchived.value = !showArchived.value
-  // Re-fetch documents with the new filter
+}
+
+const toggleArchive = async (doc: any) => {
   try {
-    const databaseId = contextsStore.getSelectedContextDatabaseId()
-    await documentsStore.fetchDocuments(databaseId, showArchived.value)
+    await documentsStore.archiveDocument(doc.id, !doc.archived)
+    // Refetch to update the UI
+    documentsQuery.refetch()
   } catch (err) {
-    console.error('Failed to fetch documents:', err)
+    console.error('Failed to toggle archive:', err)
+    alert('Failed to update archive status. Please try again.')
   }
 }
 
@@ -185,28 +198,6 @@ const formatDate = (dateString: string): string => {
   if (days < 7) return `${days} days ago`
   return date.toLocaleDateString()
 }
-
-onMounted(async () => {
-  try {
-    loading.value = true
-
-    // Get the database ID from the selected context
-    let databaseId: string
-    try {
-      databaseId = contextsStore.getSelectedContextDatabaseId()
-    } catch {
-      error.value = 'No database selected'
-      return
-    }
-
-    await documentsStore.fetchDocuments(databaseId)
-  } catch (err) {
-    console.error('Failed to fetch documents:', err)
-    error.value = 'Failed to load reports'
-  } finally {
-    loading.value = false
-  }
-})
 </script>
 
 <style scoped>
