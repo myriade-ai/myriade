@@ -72,7 +72,7 @@
       }),
     }),
     dict({
-      'description': "Give the final response from the user demand/query as a text. You can insert a query with it's preview result in the text using the <QUERY:{query_id}> tag. You can insert a chart in the text using the <CHART:{chart_id}> tag. Replace {query_id} and {chart_id} with the actual query id and chart id. Show the query / chart only if the user asked for it or if that make sense to have it.",
+      'description': "Give the final response from the user demand/query as a text. You can insert a query with it's preview result in the text using the <QUERY:{query_id}> tag. You can insert a chart in the text using the <CHART:{chart_id}> tag. You can insert a document in the text using the <DOCUMENT:{document_id}> tag. Replace {query_id}, {chart_id}, and {document_id} with the actual IDs. Show the query / chart / document only if the user asked for it or if that makes sense to have it.",
       'name': 'answer',
       'parameters': dict({
         'properties': dict({
@@ -1144,6 +1144,202 @@
           'definition',
         ]),
         'title': 'Input for `upsert_term`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Create a new report document with the given title and content.',
+      'name': 'DocumentsTool-documents__create_document',
+      'parameters': dict({
+        'properties': dict({
+          'content': dict({
+            'description': 'The markdown content of the report (can include <QUERY:id> and <CHART:id> tags)',
+            'title': 'Content',
+            'type': 'string',
+          }),
+          'title': dict({
+            'description': 'The title of the report',
+            'title': 'Title',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'title',
+          'content',
+        ]),
+        'title': 'Input for `create_document`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Delete a range of lines from the document.',
+      'name': 'DocumentsTool-documents__delete_lines_from_document',
+      'parameters': dict({
+        'properties': dict({
+          'document_id': dict({
+            'description': 'The UUID of the document to edit',
+            'title': 'Document Id',
+            'type': 'string',
+          }),
+          'end_line': dict({
+            'description': 'The last line to delete (1-indexed, inclusive)',
+            'title': 'End Line',
+            'type': 'integer',
+          }),
+          'start_line': dict({
+            'description': 'The first line to delete (1-indexed)',
+            'title': 'Start Line',
+            'type': 'integer',
+          }),
+        }),
+        'required': list([
+          'document_id',
+          'start_line',
+          'end_line',
+        ]),
+        'title': 'Input for `delete_lines_from_document`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': "Replace all occurrences of 'old_string' with 'new_string' in the document.",
+      'name': 'DocumentsTool-documents__edit_document',
+      'parameters': dict({
+        'properties': dict({
+          'document_id': dict({
+            'description': 'The UUID of the document to edit',
+            'title': 'Document Id',
+            'type': 'string',
+          }),
+          'new_string': dict({
+            'description': 'The new text to insert in place of the old text',
+            'title': 'New String',
+            'type': 'string',
+          }),
+          'old_string': dict({
+            'description': 'The text to replace (must match exactly, including whitespace)',
+            'title': 'Old String',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'document_id',
+          'old_string',
+          'new_string',
+        ]),
+        'title': 'Input for `edit_document`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Insert text at the specified line number.',
+      'name': 'DocumentsTool-documents__insert_lines_in_document',
+      'parameters': dict({
+        'properties': dict({
+          'document_id': dict({
+            'description': 'The UUID of the document to edit',
+            'title': 'Document Id',
+            'type': 'string',
+          }),
+          'line_number': dict({
+            'description': 'The line number to insert at (1-indexed)',
+            'title': 'Line Number',
+            'type': 'integer',
+          }),
+          'text': dict({
+            'description': 'The text to insert',
+            'title': 'Text',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'document_id',
+          'line_number',
+          'text',
+        ]),
+        'title': 'Input for `insert_lines_in_document`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'List all reports/documents for the current database. Returns: A formatted list of reports with their IDs and titles.',
+      'name': 'DocumentsTool-documents__list_documents',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `list_documents`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Read a document with line numbers.',
+      'name': 'DocumentsTool-documents__read_document',
+      'parameters': dict({
+        'properties': dict({
+          'document_id': dict({
+            'description': 'The UUID of the document to read',
+            'title': 'Document Id',
+            'type': 'string',
+          }),
+          'end_line': dict({
+            'default': None,
+            'description': 'The line number to end reading at (1-indexed)',
+            'title': 'End Line',
+            'type': 'integer',
+          }),
+          'start_line': dict({
+            'default': 1,
+            'description': 'The line number to start reading from (1-indexed)',
+            'title': 'Start Line',
+            'type': 'integer',
+          }),
+        }),
+        'required': list([
+          'document_id',
+        ]),
+        'title': 'Input for `read_document`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Search reports by title or content.',
+      'name': 'DocumentsTool-documents__search_documents',
+      'parameters': dict({
+        'properties': dict({
+          'query': dict({
+            'description': 'Search query string',
+            'title': 'Query',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'query',
+        ]),
+        'title': 'Input for `search_documents`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Update the document title.',
+      'name': 'DocumentsTool-documents__update_document_title',
+      'parameters': dict({
+        'properties': dict({
+          'document_id': dict({
+            'description': 'The UUID of the document',
+            'title': 'Document Id',
+            'type': 'string',
+          }),
+          'new_title': dict({
+            'description': 'The new title for the document',
+            'title': 'New Title',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'document_id',
+          'new_title',
+        ]),
+        'title': 'Input for `update_document_title`',
         'type': 'object',
       }),
     }),
@@ -1256,6 +1452,14 @@
     'CatalogTool-catalog__update_asset',
     'CatalogTool-catalog__upsert_tag',
     'CatalogTool-catalog__upsert_term',
+    'DocumentsTool-documents__create_document',
+    'DocumentsTool-documents__delete_lines_from_document',
+    'DocumentsTool-documents__edit_document',
+    'DocumentsTool-documents__insert_lines_in_document',
+    'DocumentsTool-documents__list_documents',
+    'DocumentsTool-documents__read_document',
+    'DocumentsTool-documents__search_documents',
+    'DocumentsTool-documents__update_document_title',
     'Notes-notes__close_note',
     'Notes-notes__create_note',
     'Notes-notes__delete_note',
@@ -1336,7 +1540,7 @@
       }),
     }),
     dict({
-      'description': "Give the final response from the user demand/query as a text. You can insert a query with it's preview result in the text using the <QUERY:{query_id}> tag. You can insert a chart in the text using the <CHART:{chart_id}> tag. Replace {query_id} and {chart_id} with the actual query id and chart id. Show the query / chart only if the user asked for it or if that make sense to have it.",
+      'description': "Give the final response from the user demand/query as a text. You can insert a query with it's preview result in the text using the <QUERY:{query_id}> tag. You can insert a chart in the text using the <CHART:{chart_id}> tag. You can insert a document in the text using the <DOCUMENT:{document_id}> tag. Replace {query_id}, {chart_id}, and {document_id} with the actual IDs. Show the query / chart / document only if the user asked for it or if that makes sense to have it.",
       'name': 'answer',
       'parameters': dict({
         'properties': dict({
@@ -2412,6 +2616,202 @@
       }),
     }),
     dict({
+      'description': 'Create a new report document with the given title and content.',
+      'name': 'DocumentsTool-documents__create_document',
+      'parameters': dict({
+        'properties': dict({
+          'content': dict({
+            'description': 'The markdown content of the report (can include <QUERY:id> and <CHART:id> tags)',
+            'title': 'Content',
+            'type': 'string',
+          }),
+          'title': dict({
+            'description': 'The title of the report',
+            'title': 'Title',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'title',
+          'content',
+        ]),
+        'title': 'Input for `create_document`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Delete a range of lines from the document.',
+      'name': 'DocumentsTool-documents__delete_lines_from_document',
+      'parameters': dict({
+        'properties': dict({
+          'document_id': dict({
+            'description': 'The UUID of the document to edit',
+            'title': 'Document Id',
+            'type': 'string',
+          }),
+          'end_line': dict({
+            'description': 'The last line to delete (1-indexed, inclusive)',
+            'title': 'End Line',
+            'type': 'integer',
+          }),
+          'start_line': dict({
+            'description': 'The first line to delete (1-indexed)',
+            'title': 'Start Line',
+            'type': 'integer',
+          }),
+        }),
+        'required': list([
+          'document_id',
+          'start_line',
+          'end_line',
+        ]),
+        'title': 'Input for `delete_lines_from_document`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': "Replace all occurrences of 'old_string' with 'new_string' in the document.",
+      'name': 'DocumentsTool-documents__edit_document',
+      'parameters': dict({
+        'properties': dict({
+          'document_id': dict({
+            'description': 'The UUID of the document to edit',
+            'title': 'Document Id',
+            'type': 'string',
+          }),
+          'new_string': dict({
+            'description': 'The new text to insert in place of the old text',
+            'title': 'New String',
+            'type': 'string',
+          }),
+          'old_string': dict({
+            'description': 'The text to replace (must match exactly, including whitespace)',
+            'title': 'Old String',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'document_id',
+          'old_string',
+          'new_string',
+        ]),
+        'title': 'Input for `edit_document`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Insert text at the specified line number.',
+      'name': 'DocumentsTool-documents__insert_lines_in_document',
+      'parameters': dict({
+        'properties': dict({
+          'document_id': dict({
+            'description': 'The UUID of the document to edit',
+            'title': 'Document Id',
+            'type': 'string',
+          }),
+          'line_number': dict({
+            'description': 'The line number to insert at (1-indexed)',
+            'title': 'Line Number',
+            'type': 'integer',
+          }),
+          'text': dict({
+            'description': 'The text to insert',
+            'title': 'Text',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'document_id',
+          'line_number',
+          'text',
+        ]),
+        'title': 'Input for `insert_lines_in_document`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'List all reports/documents for the current database. Returns: A formatted list of reports with their IDs and titles.',
+      'name': 'DocumentsTool-documents__list_documents',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `list_documents`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Read a document with line numbers.',
+      'name': 'DocumentsTool-documents__read_document',
+      'parameters': dict({
+        'properties': dict({
+          'document_id': dict({
+            'description': 'The UUID of the document to read',
+            'title': 'Document Id',
+            'type': 'string',
+          }),
+          'end_line': dict({
+            'default': None,
+            'description': 'The line number to end reading at (1-indexed)',
+            'title': 'End Line',
+            'type': 'integer',
+          }),
+          'start_line': dict({
+            'default': 1,
+            'description': 'The line number to start reading from (1-indexed)',
+            'title': 'Start Line',
+            'type': 'integer',
+          }),
+        }),
+        'required': list([
+          'document_id',
+        ]),
+        'title': 'Input for `read_document`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Search reports by title or content.',
+      'name': 'DocumentsTool-documents__search_documents',
+      'parameters': dict({
+        'properties': dict({
+          'query': dict({
+            'description': 'Search query string',
+            'title': 'Query',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'query',
+        ]),
+        'title': 'Input for `search_documents`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Update the document title.',
+      'name': 'DocumentsTool-documents__update_document_title',
+      'parameters': dict({
+        'properties': dict({
+          'document_id': dict({
+            'description': 'The UUID of the document',
+            'title': 'Document Id',
+            'type': 'string',
+          }),
+          'new_title': dict({
+            'description': 'The new title for the document',
+            'title': 'New Title',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'document_id',
+          'new_title',
+        ]),
+        'title': 'Input for `update_document_title`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': None,
       'name': 'Notes-notes__close_note',
       'parameters': dict({
@@ -2500,6 +2900,7 @@
   dict({
     'catalog': 'CatalogTool',
     'database': 'DatabaseTool',
+    'documents': 'DocumentsTool',
     'echarts': 'EchartsTool',
     'notes': 'Notes',
     'semantic_model': 'SemanticModel',

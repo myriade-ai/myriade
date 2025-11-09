@@ -262,12 +262,16 @@
         Socket disconnected
       </div>
     </div>
+
+    <!-- Document Panel -->
+    <DocumentPanel />
   </div>
 </template>
 
 <script setup lang="ts">
 import BaseEditor from '@/components/base/BaseEditor.vue'
 import CodeDiffDisplay from '@/components/CodeDiffDisplay.vue'
+import DocumentPanel from '@/components/DocumentPanel.vue'
 import SendButtonWithStatus from '@/components/icons/SendButtonWithStatus.vue'
 import MessageDisplay from '@/components/MessageDisplay.vue'
 import SubscriptionPrompt from '@/components/SubscriptionPrompt.vue'

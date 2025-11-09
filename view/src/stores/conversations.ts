@@ -73,6 +73,30 @@ interface ConversationStatus {
   error: string
 }
 
+export interface Document {
+  id: string
+  title: string | null
+  content: string
+  databaseId: string
+  organisationId: string | null
+  createdBy: string
+  updatedBy: string
+  archived: boolean
+  deleted: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DocumentVersion {
+  id: string
+  documentId: string
+  content: string
+  versionNumber: number
+  createdBy: string
+  createdAt: string
+  changeDescription: string | null
+}
+
 export interface Conversation extends ConversationInfo {
   messages: Message[]
   // TODO: add conversation status

@@ -78,6 +78,7 @@ Analytics Workflow:
     * Inform the user about potenial quality issue of the answer.
     * Try to think if it's significant enough to mention it (not that it should always be statistically significant to be reported !)
     * Try to help him understand the implication of the answer.
+    * For long answers / reports, use documents tool to create a report.
 
 Modelisation:
 1. If can create view, table if the user ask for it.

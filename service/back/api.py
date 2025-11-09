@@ -46,6 +46,8 @@ from models import (
     Conversation,
     ConversationMessage,
     Database,
+    Document,
+    DocumentVersion,
     GithubIntegration,
     Project,
     ProjectTables,
@@ -2143,3 +2145,232 @@ def get_dbt_sync_status(database_id: UUID):
             "error": dbt.generation_error,
         }
     )
+
+
+# Document API routes
+@api.route("/databases/<uuid:database_id>/documents", methods=["GET"])
+@user_middleware
+def list_documents(database_id: UUID):
+    """List all documents for a database."""
+    database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    # Check if we should include archived documents
+    include_archived = request.args.get("includeArchived", "false").lower() == "true"
+
+    query = g.session.query(Document).filter(
+        Document.database_id == database_id,
+        Document.deleted == False,  # noqa: E712
+    )
+
+    # Filter out archived documents by default
+    if not include_archived:
+        query = query.filter(Document.archived == False)  # noqa: E712
+
+    documents = query.order_by(Document.updatedAt.desc()).all()
+
+    return jsonify([doc.to_dict() for doc in documents])
+
+
+@api.route("/documents/<uuid:document_id>", methods=["GET"])
+@user_middleware
+def get_document(document_id: UUID):
+    """Get a single document by ID."""
+    document = g.session.query(Document).filter_by(id=document_id).first()
+    if not document:
+        return jsonify({"error": "Document not found"}), 404
+
+    # Don't allow viewing deleted documents
+    if document.deleted:
+        return jsonify({"error": "Document has been deleted"}), 404
+
+    # Verify user has access through database
+    database = g.session.query(Database).filter_by(id=document.database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    return jsonify(document.to_dict())
+
+
+@api.route("/documents/<uuid:document_id>", methods=["PUT"])
+@user_middleware
+def update_document(document_id: UUID):
+    """Update a document's content and/or title."""
+    document = g.session.query(Document).filter_by(id=document_id).first()
+    if not document:
+        return jsonify({"error": "Document not found"}), 404
+
+    # Verify user has access through database
+    database = g.session.query(Database).filter_by(id=document.database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json(silent=True) or {}
+
+    # Track if content changed to create version
+    content_changed = False
+
+    if "title" in data:
+        document.title = data["title"]
+
+    if "content" in data:
+        new_content = data["content"]
+        if new_content != document.content:
+            document.content = new_content
+            content_changed = True
+
+    document.updated_by = g.user.id
+
+    if content_changed:
+        # Get the latest version number
+        latest_version = (
+            g.session.query(DocumentVersion)
+            .filter(DocumentVersion.document_id == document_id)
+            .order_by(DocumentVersion.version_number.desc())
+            .first()
+        )
+
+        next_version = (latest_version.version_number + 1) if latest_version else 1
+
+        # Create new version
+        version = DocumentVersion(
+            document_id=document_id,
+            content=document.content,
+            version_number=next_version,
+            created_by=g.user.id,
+            change_description=data.get(
+                "change_description",
+                f"Edited by {g.user.email}",
+            ),
+        )
+        g.session.add(version)
+
+    g.session.flush()
+
+    return jsonify(document.to_dict())
+
+
+@api.route("/documents/<uuid:document_id>", methods=["DELETE"])
+@user_middleware
+def delete_document(document_id: UUID):
+    """Soft delete a document."""
+    document = g.session.query(Document).filter_by(id=document_id).first()
+    if not document:
+        return jsonify({"error": "Document not found"}), 404
+
+    # Verify user has access through database
+    database = g.session.query(Database).filter_by(id=document.database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    # Soft delete - just mark as deleted
+    document.deleted = True
+    document.updated_by = g.user.id
+    g.session.flush()
+
+    return jsonify({"success": True})
+
+
+@api.route("/documents/<uuid:document_id>/versions", methods=["GET"])
+@user_middleware
+def get_document_versions(document_id: UUID):
+    """Get version history for a document."""
+    document = g.session.query(Document).filter_by(id=document_id).first()
+    if not document:
+        return jsonify({"error": "Document not found"}), 404
+
+    # Verify user has access through database
+    database = g.session.query(Database).filter_by(id=document.database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    versions = (
+        g.session.query(DocumentVersion)
+        .filter(DocumentVersion.document_id == document_id)
+        .order_by(DocumentVersion.version_number.desc())
+        .all()
+    )
+
+    return jsonify([version.to_dict() for version in versions])
+
+
+@api.route("/documents/<uuid:document_id>/archive", methods=["POST"])
+@user_middleware
+def archive_document(document_id: UUID):
+    """Archive or unarchive a document."""
+    document = g.session.query(Document).filter_by(id=document_id).first()
+    if not document:
+        return jsonify({"error": "Document not found"}), 404
+
+    # Verify user has access through database
+    database = g.session.query(Database).filter_by(id=document.database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json(silent=True) or {}
+    archived = data.get("archived", True)  # Default to archive if not specified
+
+    document.archived = archived
+    document.updated_by = g.user.id
+    g.session.flush()
+
+    return jsonify(document.to_dict())
