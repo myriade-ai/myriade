@@ -65,10 +65,37 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
       selectedSchema: string
       selectedTag: string
       selectedStatus?: string
+      matchingIds?: Set<string> | null
     }
   ): boolean {
-    const { searchQuery, selectedDatabase, selectedSchema, selectedTag, selectedStatus } = options
+    const { selectedDatabase, selectedSchema, selectedTag, selectedStatus, matchingIds } = options
 
+    // If we have server-side search results, use them exclusively
+    if (matchingIds) {
+      // Server handles: text search, tag filtering, status filtering
+      // Check if asset is in server results
+      if (!matchingIds.has(asset.id)) {
+        return false
+      }
+
+      // Only apply database and schema filters client-side (not sent to server)
+      if (
+        selectedDatabase &&
+        selectedDatabase !== '__all__' &&
+        assetDatabase(asset) !== selectedDatabase
+      ) {
+        return false
+      }
+
+      if (selectedSchema && selectedSchema !== '__all__' && assetSchema(asset) !== selectedSchema) {
+        return false
+      }
+
+      // Skip text, tag, and status filters - already handled by server
+      return true
+    }
+
+    // Apply all filters client-side
     if (
       selectedDatabase &&
       selectedDatabase !== '__all__' &&
@@ -94,22 +121,7 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
       }
     }
 
-    if (!searchQuery) {
-      return true
-    }
-
-    const normalizedSearch = searchQuery.trim().toLowerCase()
-    const targetParts: string[] = []
-    if (asset.name) targetParts.push(asset.name)
-    if (asset.description) targetParts.push(asset.description)
-    if (asset.table_facet?.table_name) targetParts.push(asset.table_facet.table_name)
-    if (asset.column_facet?.column_name) targetParts.push(asset.column_facet.column_name)
-    if (asset.column_facet?.data_type) targetParts.push(asset.column_facet.data_type)
-    if (asset.tags?.length) {
-      targetParts.push(...asset.tags.map((tag) => tag.name))
-    }
-
-    return targetParts.some((value) => value.toLowerCase().includes(normalizedSearch))
+    return true
   }
 
   function buildFilteredTree(options: {
@@ -118,8 +130,16 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
     selectedSchema: string
     selectedTag: string
     selectedStatus?: string
+    matchingIds?: Set<string> | null
   }): ExplorerDatabaseNode[] {
-    const { searchQuery, selectedDatabase, selectedSchema, selectedTag, selectedStatus } = options
+    const {
+      searchQuery,
+      selectedDatabase,
+      selectedSchema,
+      selectedTag,
+      selectedStatus,
+      matchingIds
+    } = options
     const databaseMap = new Map<string, ExplorerDatabaseNode>()
     const schemaNodeByAssetId = new Map<
       string,
@@ -223,7 +243,8 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
             selectedDatabase,
             selectedSchema,
             selectedTag,
-            selectedStatus
+            selectedStatus,
+            matchingIds
           })
         )
         const tableMatches = assetMatchesFilters(tableAsset, {
@@ -231,7 +252,8 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
           selectedDatabase,
           selectedSchema,
           selectedTag,
-          selectedStatus
+          selectedStatus,
+          matchingIds
         })
 
         // Only include table if it matches or has matching columns
