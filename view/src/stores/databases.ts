@@ -55,23 +55,21 @@ export const getDefaultDetailsForEngine = (engine: Engine) => {
     case 'mysql':
       return { host: '', port: 3306, user: '', password: '', database: '' }
     case 'snowflake':
-      // No database or schema field - connection-level only, will auto-discover databases
       return {
         account: '',
         user: '',
         role: '',
         warehouse: '',
+        database: '',
         private_key_pem: null,
         private_key_passphrase: ''
       }
     case 'sqlite':
       return { filename: '' }
     case 'bigquery':
-      // project_id is the database equivalent in BigQuery
-      return { project_id: '', service_account_json: null }
+      return { project_id: '', service_account_json: null, database: '' }
     case 'motherduck':
-      // No database field - connection-level only, will auto-discover databases
-      return { token: '' }
+      return { token: '', database: '' }
     case 'oracle':
       // No database field - connection-level only, will auto-discover databases
       return { host: '', port: 1521, user: '', password: '', service_name: '', sid: '' }

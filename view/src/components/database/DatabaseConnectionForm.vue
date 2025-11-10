@@ -139,11 +139,10 @@
           :rules="isRequiredField('role') ? 'required' : ''"
         />
       </div>
-      <BaseNotification
-        color="info"
-        title="Multi-Database Support"
-        message="All accessible databases in your Snowflake account will be automatically discovered and included."
-        class="bg-blue-50"
+      <Field
+        name="Database (Optional)"
+        v-model="details.database"
+        placeholder="Leave empty to access all databases"
       />
     </div>
 
@@ -189,6 +188,11 @@
           </label>
         </div>
       </div>
+      <Field
+        name="Database (Optional)"
+        v-model="details.database"
+        placeholder="Leave empty to access all datasets"
+      />
     </div>
 
     <!-- MotherDuck Fields -->
@@ -202,11 +206,10 @@
         :rules="isRequiredField('token') ? 'required' : ''"
         placeholder="Enter your token"
       />
-      <BaseNotification
-        color="info"
-        title="Multi-Database Support"
-        message="All accessible databases in your MotherDuck account will be automatically discovered and included."
-        class="bg-blue-50"
+      <Field
+        name="Database (Optional)"
+        v-model="details.database"
+        placeholder="Leave empty to access all databases"
       />
     </div>
 
