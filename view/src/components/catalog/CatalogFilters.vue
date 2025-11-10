@@ -25,12 +25,21 @@
         <ChevronsRight />
       </Button>
       <div class="flex min-w-0 flex-1 items-center gap-2 w-full">
-        <Input
-          :model-value="searchQuery"
-          @update:model-value="(value) => $emit('update:searchQuery', String(value))"
-          placeholder="Search tables, columns, descriptions..."
-          class="w-full min-w-0 flex-1"
-        />
+        <div class="relative flex-1 min-w-0">
+          <Input
+            :model-value="searchQuery"
+            @update:model-value="(value) => $emit('update:searchQuery', String(value))"
+            placeholder="Search tables, columns, descriptions..."
+            class="w-full min-w-0"
+          />
+          <!-- Loading indicator for server-side search -->
+          <div
+            v-if="isSearching && searchQuery.length > 0"
+            class="absolute right-3 top-1/2 -translate-y-1/2"
+          >
+            <LoaderIcon :width="40" :height="20" />
+          </div>
+        </div>
         <Button
           variant="outline"
           size="icon"
@@ -107,6 +116,7 @@ import {
 } from '@/components/ui/select'
 import type { AssetTag } from '@/stores/catalog'
 import { ChevronsRight, PanelLeft } from 'lucide-vue-next'
+import LoaderIcon from '../icons/LoaderIcon.vue'
 
 interface Props {
   searchQuery: string
@@ -120,6 +130,7 @@ interface Props {
   hasActiveFilters: boolean
   explorerCollapsed: boolean
   showExplorerShortcut?: boolean
+  isSearching?: boolean
 }
 
 defineProps<Props>()
