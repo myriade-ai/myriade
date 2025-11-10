@@ -22,6 +22,9 @@ class EchartsTool:
         # Reuse provided data_warehouse instance or create new one
         self.data_warehouse = data_warehouse
 
+    def __llm__(self):
+        return "Render Echarts Tool"
+
     def preview_render(
         self,
         chart_options: ChartOptions,
@@ -96,6 +99,3 @@ class EchartsTool:
             return f"Error executing Node.js script: {e.stderr}"
         except Exception as e:
             return f"Unexpected error running chart renderer: {str(e)}"
-
-    def __repr__(self):
-        return "Render Echarts Tool"
