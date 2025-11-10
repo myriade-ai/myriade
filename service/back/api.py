@@ -18,6 +18,7 @@ from back.catalog_events import (
     emit_tag_deleted,
     emit_tag_updated,
 )
+from back.catalog_search import search_assets
 from back.data_warehouse import ConnectionError, DataWarehouseFactory
 from back.dbt_sync import run_dbt_generation_background
 from back.github_manager import (
@@ -1201,6 +1202,57 @@ def get_catalog_assets(database_id: UUID):
         result.append(asset_dict)
 
     return jsonify(result)
+
+
+@api.route("/databases/<uuid:database_id>/catalog/search", methods=["GET"])
+@user_middleware
+def search_catalog_assets_endpoint(database_id: UUID):
+    """
+    Search catalog assets by text query. Returns only asset IDs.
+
+    Query parameters:
+    - q: Search query string (required)
+    - asset_type: Filter by type (optional: "TABLE", "COLUMN", "SCHEMA", "DATABASE")
+    - tag_ids: Filter by tag IDs (optional, array: ?tag_ids=uuid1&tag_ids=uuid2)
+    - statuses: Filter by status values (optional, array: ?statuses=validated&statuses=needs_review)
+
+    Returns: Array of matching asset IDs (strings)
+    """
+    # Verify database exists and user has access
+    database, error_response = _get_catalog_database(database_id)
+    if error_response:
+        return error_response
+
+    if database is None:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Get search query from parameters
+    search_query = request.args.get("q", "").strip()
+    if not search_query:
+        return jsonify({"error": "Search query (q parameter) is required"}), 400
+
+    # Get optional parameters
+    asset_type = request.args.get("asset_type", "").strip() or None
+    tag_ids = request.args.getlist("tag_ids") or None
+    statuses = request.args.getlist("statuses") or None
+
+    try:
+        # Get all matching results (no limit - return all matches)
+        results = search_assets(
+            g.session,
+            database_id,
+            search_query,
+            asset_type=asset_type,
+            tag_ids=tag_ids,
+            statuses=statuses,
+            limit=100,
+        )
+        # Return only asset IDs
+        asset_ids = [asset["id"] for asset in results]
+        return jsonify(asset_ids)
+    except Exception as e:
+        logger.error(f"Error searching catalog assets: {str(e)}", exc_info=True)
+        return jsonify({"error": f"Search failed: {str(e)}"}), 500
 
 
 @api.route("/catalogs/assets/<string:asset_id>", methods=["PATCH"])
