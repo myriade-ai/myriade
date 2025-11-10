@@ -61,55 +61,68 @@
             </div>
           </div>
 
-          <!-- Documents grid -->
-          <div v-else class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Card
-              v-for="doc in documents"
-              :key="doc.id"
-              class="overflow-hidden gap-0 h-fit hover:shadow-md transition-shadow"
-              :class="{ 'opacity-60': doc.archived }"
-            >
-              <CardHeader @click="navigateToDocument(doc.id)" class="cursor-pointer">
-                <div class="flex items-start gap-3">
-                  <div
-                    class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"
-                  >
-                    <FileTextIcon class="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
-                      <CardTitle class="text-lg truncate">
-                        {{ doc.title || 'Untitled Report' }}
-                      </CardTitle>
-                      <span
-                        v-if="doc.archived"
-                        class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded"
-                      >
-                        Archived
-                      </span>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">
-                      Updated {{ formatDate(doc.updatedAt) }}
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent @click="navigateToDocument(doc.id)" class="cursor-pointer">
-                <div class="text-sm text-gray-600 line-clamp-4">
-                  {{ getContentExcerpt(doc.content) }}
-                </div>
-              </CardContent>
-              <CardFooter class="pt-2 justify-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  @click.stop="toggleArchive(doc)"
-                  class="text-gray-600 hover:text-gray-800"
+          <!-- Documents table -->
+          <div v-else class="mt-4 border rounded-lg bg-white">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead class="w-[50%]">Title</TableHead>
+                  <TableHead class="w-[30%]">Preview</TableHead>
+                  <TableHead class="w-[10%]">Updated</TableHead>
+                  <TableHead class="w-[10%] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow
+                  v-for="doc in documents"
+                  :key="doc.id"
+                  class="cursor-pointer"
+                  :class="{ 'opacity-60': doc.archived }"
+                  @click="navigateToDocument(doc.id)"
                 >
-                  {{ doc.archived ? 'Unarchive' : 'Archive' }}
-                </Button>
-              </CardFooter>
-            </Card>
+                  <TableCell>
+                    <div class="flex items-center gap-3">
+                      <div
+                        class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center"
+                      >
+                        <FileTextIcon class="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                          <p class="font-medium text-gray-900 truncate max-w-md">
+                            {{ doc.title || 'Untitled Report' }}
+                          </p>
+                          <span
+                            v-if="doc.archived"
+                            class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded flex-shrink-0"
+                          >
+                            Archived
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div class="text-sm text-gray-600 truncate max-w-md">
+                      {{ getContentExcerpt(doc.content) }}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span class="text-sm text-gray-500">{{ formatDate(doc.updatedAt) }}</span>
+                  </TableCell>
+                  <TableCell class="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      @click.stop="toggleArchive(doc)"
+                      class="text-gray-600 hover:text-gray-800"
+                    >
+                      {{ doc.archived ? 'Unarchive' : 'Archive' }}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </div>
         </div>
       </div>
@@ -120,12 +133,13 @@
 <script setup lang="ts">
 import PageHeader from '@/components/PageHeader.vue'
 import Button from '@/components/ui/button/Button.vue'
-import Card from '@/components/ui/card/Card.vue'
-import CardContent from '@/components/ui/card/CardContent.vue'
-import CardFooter from '@/components/ui/card/CardFooter.vue'
-import CardHeader from '@/components/ui/card/CardHeader.vue'
-import CardTitle from '@/components/ui/card/CardTitle.vue'
 import Input from '@/components/ui/input/Input.vue'
+import Table from '@/components/ui/table/Table.vue'
+import TableBody from '@/components/ui/table/TableBody.vue'
+import TableCell from '@/components/ui/table/TableCell.vue'
+import TableHead from '@/components/ui/table/TableHead.vue'
+import TableHeader from '@/components/ui/table/TableHeader.vue'
+import TableRow from '@/components/ui/table/TableRow.vue'
 import { useDocumentsQuery } from '@/composables/useDocumentsQuery'
 import { useDocumentsStore } from '@/stores/documents'
 import { FileText as FileTextIcon } from 'lucide-vue-next'
@@ -199,13 +213,3 @@ const formatDate = (dateString: string): string => {
   return date.toLocaleDateString()
 }
 </script>
-
-<style scoped>
-.line-clamp-4 {
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-</style>
