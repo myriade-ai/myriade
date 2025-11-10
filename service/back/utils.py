@@ -133,6 +133,7 @@ def get_tables_metadata_from_catalog(
             table_key = (table_facet.schema, table_facet.table_name)
             tables_map[table_key] = {
                 "name": table_facet.table_name,
+                "database_name": table_facet.database_name,
                 "schema": table_facet.schema,
                 "description": asset.description,
                 "table_type": table_facet.table_type,

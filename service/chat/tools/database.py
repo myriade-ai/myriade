@@ -24,7 +24,7 @@ ERROR_TEMPLATE = """An error occurred while executing the SQL query:
 ```Please correct the query and try again.
 """
 
-TABLES_PREVIEW_LIMIT = 50
+TABLES_PER_SCHEMA_PREVIEW_LIMIT = 200
 
 
 def wrap_sql_result(rows, count, columns=None):
@@ -81,12 +81,12 @@ class DatabaseTool:
         self.database = database
         self.data_warehouse = data_warehouse
 
-    def __repr__(self):
+    def __llm__(self):
         # Organize by database -> schema -> tables
         databases = {}
 
         for table in self.data_warehouse.tables_metadata:
-            database_name = table.get("database", "unknown")
+            database_name = table["database_name"]
             schema = table["schema"]
 
             # Initialize database structure if needed
@@ -95,26 +95,23 @@ class DatabaseTool:
 
             # Initialize schema structure if needed
             if schema not in databases[database_name]:
-                databases[database_name][schema] = {"tables": [], "total_tables": 0}
-
-            databases[database_name][schema]["total_tables"] += 1
-
-            # Only add up to 50 tables per schema
-            if len(databases[database_name][schema]["tables"]) < TABLES_PREVIEW_LIMIT:
-                table_preview = {
-                    "name": table["name"],
-                    "columns": [column["name"] for column in table["columns"]],
-                    "table_type": table["table_type"],
+                databases[database_name][schema] = {
+                    "tables": [],
                 }
-                databases[database_name][schema]["tables"].append(table_preview)
 
-        # Add truncation info for each schema in each database
-        for _, schemas in databases.items():
-            for schema_data in schemas.values():
-                schema_data["shown_tables"] = len(schema_data["tables"])
-                schema_data["is_truncated"] = (
-                    schema_data["shown_tables"] < schema_data["total_tables"]
-                )
+            databases[database_name][schema]["tables"].append(table["name"])
+
+        for database_name, schemas in databases.items():
+            for schema, schema_data in schemas.items():
+                tables = schema_data["tables"]
+                if len(tables) > TABLES_PER_SCHEMA_PREVIEW_LIMIT:
+                    databases[database_name][schema]["note"] = (
+                        f"Only showing {TABLES_PER_SCHEMA_PREVIEW_LIMIT} / {len(tables)} tables"
+                    )
+                    # Truncate the list of tables
+                    databases[database_name][schema]["tables"] = tables[
+                        :TABLES_PER_SCHEMA_PREVIEW_LIMIT
+                    ]
 
         context = {
             "CONNECTION": {

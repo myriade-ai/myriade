@@ -612,42 +612,19 @@ def get_questions(context_id):
     database_id, project_id = extract_context(g.session, context_id)
     database = g.session.query(Database).filter_by(id=database_id).first()
 
-    tables_metadata = get_tables_metadata_from_catalog(database.id)
+    context = (
+        "# Database Name: "
+        + database.name
+        + "\n# Memory: "  # TODO: use Catalog asset instead of database.memory
+        + (database.memory or "No memory")
+    )
 
     if project_id:
         project = g.session.query(Project).filter_by(id=project_id).first()
         if not project:
             raise ValueError(f"Project with id {project_id} not found")
-        tables_metadata = [
-            # if any (name match tableName and schema match schemaName)
-            # in project.tables
-            table_metadata
-            for table_metadata in tables_metadata
-            if any(
-                table_metadata["name"] == project_table.tableName
-                and table_metadata["schema"] == project_table.schemaName
-                for project_table in project.tables
-            )
-        ]
-        context = (
-            "# Project Name: "
-            + project.name
-            + "\n# Database Name: "
-            + database.name
-            + "\n# Database Description: "
-            + database.description
-            + "\n# Tables: "
-            + str(tables_metadata)
-        )
-    else:
-        context = (
-            "# Name: "
-            + database.name
-            + "\n# Description: "
-            + database.description
-            + "\n# Tables: "
-            + str(tables_metadata)
-        )
+        context += "\n# Project Name: " + project.name
+        context += "\n# Project Description: " + project.description
 
     if AGENTLYS_PROVIDER == "proxy":
         provider = ProxyProvider
@@ -659,7 +636,6 @@ def get_questions(context_id):
         context=json.dumps(context),
         use_tools_only=True,
     )
-    # TODO: if exist ; add database.memory, dbt.catalog, dbt.manifest
 
     def questions(question1: str, question2: str, question3: str):
         pass
@@ -668,8 +644,9 @@ def get_questions(context_id):
 
     prompt = (
         "Generate 3 business questions about different topics that the user "
-        + "can ask based on the context (database schema, past conversations, etc)"
+        + "can ask based on the context (database name, memory, etc)"
         + f"\nDo it in the user preferred language (Accept-Language: {user_language})"
+        + "If you don't have enough information about the database, this is the questions (explore the data, complete the catalog, ... etc)"
     )
     try:
         message = questionAssistant.ask(

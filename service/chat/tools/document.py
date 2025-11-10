@@ -33,14 +33,14 @@ class DocumentsTool:
                 "total_reports": len(documents),
                 "reports": [
                     {"id": str(doc.id), "title": doc.title or "Untitled Report"}
-                    for doc in documents[:5]
+                    for doc in documents[:20]
                 ],
             }
         }
 
-        if len(documents) > 5:
+        if len(documents) > 20:
             summary["REPORTS"]["note"] = (
-                f"Showing first 5 of {len(documents)} reports. "
+                f"Showing first 20 of {len(documents)} reports. "
                 "Use list_documents() to see all."
             )
 
