@@ -765,6 +765,8 @@ class SnowflakeDatabase(AbstractDatabase):
         self.connection_params = kwargs
         self.connection = DataWarehouseRegistry.get_snowflake_connection(kwargs)
 
+        self.database_filter = kwargs.get("database")
+
         self.metadata = []
 
     @property
@@ -773,8 +775,9 @@ class SnowflakeDatabase(AbstractDatabase):
 
     def load_metadata(self, progress_callback=None):
         """
-        Load metadata from all Snowflake databases with pagination support.
+        Load metadata from Snowflake databases with pagination support.
         Discovers databases first, then loads schemas and tables from each.
+        If database_filter is set, only loads metadata from that database.
 
         Args:
             progress_callback: Optional callback function(current, total, table_name)
@@ -782,16 +785,20 @@ class SnowflakeDatabase(AbstractDatabase):
         """
         batch_size = 10000  # Snowflake's SHOW command limit
 
-        # Discover all accessible databases
-        logger.info("Discovering Snowflake databases")
-        try:
-            databases = self._discover_databases()
-            logger.info(f"Found {len(databases)} databases to process")
-        except Exception as e:
-            logger.error(f"Failed to discover databases: {e}")
-            raise Exception(
-                "No databases found and no database specified in connection"
-            ) from None
+        # Use specified database if provided
+        if self.database_filter:
+            logger.info(f"Loading metadata for database: {self.database_filter}")
+            databases = [self.database_filter]
+        else:
+            logger.info("Discovering Snowflake databases")
+            try:
+                databases = self._discover_databases()
+                logger.info(f"Found {len(databases)} databases to process")
+            except Exception as e:
+                logger.error(f"Failed to discover databases: {e}")
+                raise Exception(
+                    "No databases found and no database specified in connection"
+                ) from None
 
         # Process each database
         for database_name in databases:
@@ -1195,6 +1202,9 @@ class BigQueryDatabase(AbstractDatabase):
         self.client = DataWarehouseRegistry.get_bigquery_client(
             self.project_id, service_account_json
         )
+
+        self.database_filter = kwargs.get("database")
+
         self.metadata = []
 
     @property
@@ -1202,8 +1212,25 @@ class BigQueryDatabase(AbstractDatabase):
         return "bigquery"
 
     def load_metadata(self, progress_callback=None):
-        """Load metadata for all datasets and tables in the project"""
-        datasets = list(self.client.list_datasets())
+        """
+        Load metadata for datasets and tables in the project.
+        If database_filter is set, only loads metadata from that dataset.
+        """
+        # Use specified database if provided
+        if self.database_filter:
+            logger.info(f"Loading metadata for dataset: {self.database_filter}")
+            try:
+                dataset_ref = self.client.dataset(self.database_filter)
+                dataset = self.client.get_dataset(dataset_ref)
+                datasets = [dataset]
+            except Exception as e:
+                logger.error(f"Failed to access dataset {self.database_filter}: {e}")
+                raise Exception(
+                    f"Dataset '{self.database_filter}' not found or not accessible"
+                ) from e
+        else:
+            logger.info("Loading metadata for all datasets")
+            datasets = list(self.client.list_datasets())
 
         # First pass: count total tables
         total_tables = 0
@@ -1359,7 +1386,9 @@ class MotherDuckDatabase(AbstractDatabase):
         if not self.token:
             raise ValueError("token is required for MotherDuck")
 
-        self.database_name = kwargs.get("database", "my_db")
+        self.database_filter = kwargs.get("database")
+
+        self.database_name = self.database_filter or "my_db"
 
         try:
             import duckdb
@@ -1380,41 +1409,50 @@ class MotherDuckDatabase(AbstractDatabase):
         return "motherduck"
 
     def load_metadata(self, progress_callback=None):
-        """Load metadata from all MotherDuck databases at once"""
-        # MotherDuck/DuckDB in workspace mode: all databases are accessible
-        # without switching. Query across all databases using DuckDB's catalog
-        # system
-        # Query all tables across all databases at once
-        # DuckDB's information_schema shows tables from all attached databases
-        all_tables_query = """
-            SELECT
-                table_catalog as database_name,
-                table_schema as schema_name,
-                table_name,
-                table_type
-            FROM information_schema.tables
-            WHERE table_schema NOT IN ('information_schema', 'main', 'pg_catalog')
-                AND table_catalog NOT IN ('system', 'temp')
         """
-        all_tables, *_ = self.query(all_tables_query)
-
-        logger.info(f"Found {len(all_tables)} tables across all MotherDuck databases")
-
-        if not all_tables:
-            logger.warning("No tables found in any MotherDuck database")
-            return self.metadata
-
-        total_tables = len(all_tables)
-        current_count = 0
-
-        for table_row in all_tables:
-            database_name = table_row["database_name"]
-            schema_name = table_row["schema_name"]
-            table_name = table_row["table_name"]
-            table_type = table_row["table_type"]
-
+        Load metadata from MotherDuck databases.
+        If database_filter is set, only loads metadata from that database.
+        """
+        # Discover all available databases first
+        if self.database_filter:
+            logger.info(f"Loading metadata for database: {self.database_filter}")
+            databases = [self.database_filter]
+        else:
+            logger.info("Discovering MotherDuck databases")
             try:
-                # Get columns for this table using fully qualified catalog reference
+                databases = self._discover_databases()
+                logger.info(f"Found {len(databases)} databases to process")
+            except Exception as e:
+                logger.error(f"Failed to discover databases: {e}")
+                # Fallback to current database
+                databases = [self.database_name]
+
+        all_metadata = []
+
+        for database_name in databases:
+            logger.info(f"Processing database: {database_name}")
+
+            # Query tables from this specific database
+            tables_query = f"""
+                SELECT
+                    table_catalog as database_name,
+                    table_schema as schema_name,
+                    table_name,
+                    table_type
+                FROM information_schema.tables
+                WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
+                    AND table_catalog = '{database_name}'
+            """
+
+            tables, *_ = self.query(tables_query)
+            logger.info(f"Found {len(tables)} tables in database {database_name}")
+
+            for table_row in tables:
+                schema_name = table_row["schema_name"]
+                table_name = table_row["table_name"]
+                table_type = table_row["table_type"]
+
+                # Get columns for this table
                 columns_query = f"""
                     SELECT column_name, data_type, is_nullable
                     FROM information_schema.columns
@@ -1436,10 +1474,10 @@ class MotherDuckDatabase(AbstractDatabase):
                         }
                     )
 
-                self.metadata.append(
+                all_metadata.append(
                     {
                         "name": table_name,
-                        "database": database_name,  # Actual database from catalog
+                        "database": database_name,
                         "schema": schema_name,
                         "table_type": table_type,
                         "columns": formatted_columns,
@@ -1447,27 +1485,51 @@ class MotherDuckDatabase(AbstractDatabase):
                     }
                 )
 
-                # Call progress callback if provided
-                current_count += 1
-                if progress_callback:
-                    progress_callback(
-                        current_count,
-                        total_tables,
-                        f"{database_name}.{schema_name}.{table_name}",
-                    )
-
-            except Exception as e:
-                logger.warning(
-                    f"Failed to load columns for {database_name}.{schema_name}."
-                    f"{table_name}: {e}"
+        # Update progress callback
+        total_tables = len(all_metadata)
+        for idx, table_meta in enumerate(all_metadata, 1):
+            self.metadata.append(table_meta)
+            if progress_callback:
+                progress_callback(
+                    idx,
+                    total_tables,
+                    f"{table_meta['database']}.{table_meta['schema']}.{table_meta['name']}",
                 )
-                continue
 
         logger.info(
             f"Successfully loaded metadata for {len(self.metadata)} tables "
             f"from MotherDuck"
         )
         return self.metadata
+
+    def _discover_databases(self) -> list[str]:
+        """
+        Discover all accessible databases in MotherDuck.
+
+        Returns:
+            List of database names
+        """
+        try:
+            # Query the catalog for all databases
+            databases_query = """
+                SELECT DISTINCT catalog_name
+                FROM information_schema.schemata
+                WHERE catalog_name NOT IN ('system', 'temp')
+                ORDER BY catalog_name
+            """
+            result, *_ = self.query(databases_query)
+            databases = [row["catalog_name"] for row in result]
+
+            if not databases:
+                logger.warning("No databases discovered, using current database")
+                return [self.database_name]
+
+            return databases
+
+        except Exception as e:
+            logger.error(f"Failed to discover databases: {e}")
+            # Fallback to current database
+            return [self.database_name]
 
     def _query_unprotected(self, query):
         """
