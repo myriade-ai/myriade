@@ -142,6 +142,13 @@ def get_github_integration(
     )
 
 
+def is_github_oauth_configured() -> bool:
+    """Check if GitHub OAuth environment variables are configured."""
+    client_id = os.getenv("GITHUB_OAUTH_CLIENT_ID")
+    client_secret = os.getenv("GITHUB_OAUTH_CLIENT_SECRET")
+    return bool(client_id and client_secret)
+
+
 def _get_oauth_client_credentials() -> tuple[str, str]:
     client_id = os.getenv("GITHUB_OAUTH_CLIENT_ID")
     client_secret = os.getenv("GITHUB_OAUTH_CLIENT_SECRET")

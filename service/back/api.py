@@ -27,6 +27,7 @@ from back.github_manager import (
     exchange_oauth_code,
     get_github_integration,
     get_workspace_changes,
+    is_github_oauth_configured,
     list_repositories,
     start_oauth_flow,
 )
@@ -88,6 +89,8 @@ def extract_context(session: Session, context_id: str) -> tuple[UUID, UUID | Non
 
 
 def _github_settings_payload(integration: GithubIntegration | None) -> dict[str, Any]:
+    is_oauth_configured = is_github_oauth_configured()
+    
     if not integration:
         return {
             "connected": False,
@@ -97,6 +100,7 @@ def _github_settings_payload(integration: GithubIntegration | None) -> dict[str,
             "repoFullName": None,
             "defaultBranch": None,
             "tokenExpiresAt": None,
+            "isGithubOAuthConfigured": is_oauth_configured,
         }
 
     repo_full_name = (
@@ -114,6 +118,7 @@ def _github_settings_payload(integration: GithubIntegration | None) -> dict[str,
         "tokenExpiresAt": integration.token_expires_at.isoformat()
         if integration.token_expires_at
         else None,
+        "isGithubOAuthConfigured": is_oauth_configured,
     }
 
 

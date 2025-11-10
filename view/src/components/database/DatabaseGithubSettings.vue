@@ -29,11 +29,19 @@
       <p v-if="oauthError" class="text-sm text-error-600">{{ oauthError }}</p>
 
       <div v-if="!githubSettings.hasToken" class="space-y-2">
-        <p class="text-xs text-gray-500">
+        <p v-if="!githubSettings.isGithubOAuthConfigured" class="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+          GitHub integration is not configured on this server. Please contact your administrator to set up the required GitHub OAuth credentials (GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET).
+        </p>
+        <p v-else class="text-xs text-gray-500">
           Authorise Myriade with GitHub to list repositories and push branches for this datasource.
           You will be redirected to GitHub and then returned to this page.
         </p>
-        <Button type="button" @click="startOAuth" :is-loading="oauthStarting">
+        <Button 
+          type="button" 
+          @click="startOAuth" 
+          :is-loading="oauthStarting"
+          :disabled="!githubSettings.isGithubOAuthConfigured"
+        >
           <template #loading>Opening GitHub…</template>
           Connect GitHub
         </Button>
@@ -171,6 +179,7 @@ interface GithubSettingsPayload {
   repoFullName: string | null
   defaultBranch: string | null
   tokenExpiresAt: string | null
+  isGithubOAuthConfigured: boolean
 }
 
 interface Props {
@@ -188,7 +197,8 @@ const githubSettings = ref<GithubSettingsPayload>({
   repoName: null,
   repoFullName: null,
   defaultBranch: null,
-  tokenExpiresAt: null
+  tokenExpiresAt: null,
+  isGithubOAuthConfigured: true
 })
 const repositories = ref<Array<{ full_name: string; default_branch: string }>>([])
 const selectedRepoFullName = ref<string>('')
@@ -233,7 +243,8 @@ const fetchSettings = async () => {
       repoName: response.data.repoName ?? null,
       repoFullName: response.data.repoFullName ?? null,
       defaultBranch: response.data.defaultBranch ?? null,
-      tokenExpiresAt: response.data.tokenExpiresAt ?? null
+      tokenExpiresAt: response.data.tokenExpiresAt ?? null,
+      isGithubOAuthConfigured: response.data.isGithubOAuthConfigured ?? true
     }
     selectedRepoFullName.value = response.data.repoFullName || ''
     selectedDefaultBranch.value = response.data.defaultBranch || 'main'
