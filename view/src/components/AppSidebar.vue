@@ -282,7 +282,7 @@ async function handleDeleteConversation(conversationId: string) {
                 :tooltip="conversation.name || 'Unnamed...'"
                 :class="
                   isActive(conversation.id)
-                    ? 'bg-primary/10 border-l-4 border-primary font-semibold shadow-sm'
+                    ? 'bg-primary/10 font-semibold'
                     : ''
                 "
               >
