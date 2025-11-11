@@ -20,6 +20,7 @@ from chat.tools.document import DocumentsTool
 from chat.tools.echarts import EchartsTool
 from chat.tools.github import GithubTool
 from chat.tools.quality import SemanticModel
+from chat.tools.todo import TodoTool
 from chat.tools.workspace import WorkspaceTool
 from chat.utils import parse_answer_text
 from models import Chart, Conversation, ConversationMessage, Query
@@ -132,6 +133,9 @@ class DataAnalystAgent:
         self.agent.add_function(ask_user)
         self.agent.add_tool(
             WorkspaceTool(self.session, self.conversation.id), "workspace"
+        )
+        self.agent.add_tool(
+            TodoTool(self.session, self.conversation.id), "todo"
         )
         self.agent.add_tool(
             EchartsTool(

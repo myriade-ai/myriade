@@ -682,6 +682,42 @@ class Metadata(SerializerMixin, DefaultBase, Base):
 
 
 @dataclass
+class Todo(SerializerMixin, DefaultBase, Base):
+    __tablename__ = "todo"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("conversation.id"), nullable=False
+    )
+    content: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(
+        Enum("pending", "in_progress", "completed", "cancelled", name="todo_status_enum"),
+        nullable=False,
+        default="pending",
+        server_default="pending",
+    )
+    order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # Relationships
+    conversation: Mapped["Conversation"] = relationship("Conversation")
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "conversationId": str(self.conversation_id),
+            "content": self.content,
+            "status": self.status,
+            "order": self.order,
+            "createdAt": self.createdAt.isoformat() if self.createdAt else None,
+            "updatedAt": self.updatedAt.isoformat() if self.updatedAt else None,
+        }
+
+
+@dataclass
 class Document(SerializerMixin, DefaultBase, Base):
     __tablename__ = "document"
 
