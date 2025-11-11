@@ -3,10 +3,18 @@ from dataclasses import dataclass
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Column, ForeignKey, String, Table, Text, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    Computed,
+    ForeignKey,
+    String,
+    Table,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db import JSONB, UUID, Base, DefaultBase, SerializerMixin
+from db import JSONB, UUID, Base, DefaultBase, SerializerMixin, TSVector
 
 if TYPE_CHECKING:
     from models import Database, User
@@ -51,6 +59,16 @@ class Asset(SerializerMixin, DefaultBase, Base):
     ai_suggestion: Mapped[Optional[str]] = mapped_column(Text)
     ai_flag_reason: Mapped[Optional[str]] = mapped_column(Text)
     ai_suggested_tags: Mapped[Optional[List[str]]] = mapped_column(JSONB)
+
+    # Full-text search vector (computed column in PostgreSQL, nullable string in SQLite)
+    # Deferred to avoid loading in non-search queries
+    # Computed() with persisted=None tells SQLAlchemy this is server-generated and read-only
+    search_vector: Mapped[Optional[str]] = mapped_column(
+        TSVector,
+        Computed("NULL", persisted=None),
+        deferred=True,
+        deferred_group="search",
+    )
 
     # Metadata fields
     created_by: Mapped[Optional[str]] = mapped_column(String, ForeignKey("user.id"))
@@ -217,6 +235,16 @@ class Term(SerializerMixin, DefaultBase, Base):
     synonyms: Mapped[Optional[List[str]]] = mapped_column(JSONB)
     business_domains: Mapped[Optional[List[str]]] = mapped_column(JSONB)
 
+    # Full-text search vector (computed column in PostgreSQL, nullable string in SQLite)
+    # Deferred to avoid loading in non-search queries
+    # Computed() with persisted=None tells SQLAlchemy this is server-generated and read-only
+    search_vector: Mapped[Optional[str]] = mapped_column(
+        TSVector,
+        Computed("NULL", persisted=None),
+        deferred=True,
+        deferred_group="search",
+    )
+
     # Relationships
     database: Mapped["Database"] = relationship("Database")
 
@@ -247,6 +275,16 @@ class AssetTag(SerializerMixin, DefaultBase, Base):
     description: Mapped[Optional[str]] = mapped_column(Text)
     database_id: Mapped[uuid.UUID] = mapped_column(
         UUID(), ForeignKey("database.id"), nullable=False
+    )
+
+    # Full-text search vector (computed column in PostgreSQL, nullable string in SQLite)
+    # Deferred to avoid loading in non-search queries
+    # Computed() with persisted=None tells SQLAlchemy this is server-generated and read-only
+    search_vector: Mapped[Optional[str]] = mapped_column(
+        TSVector,
+        Computed("NULL", persisted=None),
+        deferred=True,
+        deferred_group="search",
     )
 
     __table_args__ = (UniqueConstraint("database_id", "name"),)

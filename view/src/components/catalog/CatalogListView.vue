@@ -3,8 +3,8 @@
     ref="scrollElement"
     class="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50/30 to-stone-50/30"
   >
-    <div v-if="!tables.length" class="p-12 text-center">
-      <p class="text-muted-foreground">No tables found matching the current filters.</p>
+    <div v-if="!assets.length" class="p-12 text-center">
+      <p class="text-muted-foreground">No assets found matching the current filters.</p>
     </div>
 
     <div
@@ -28,45 +28,36 @@
           width: '100%',
           transform: `translateY(${virtualRow.start}px)`
         }"
-        @click="$emit('select-table', tables[virtualRow.index].id)"
+        @click="$emit('select-asset', assets[virtualRow.index].id)"
       >
         <div class="flex items-start justify-between">
           <div class="flex items-center gap-3 flex-1 min-w-0">
-            <component :is="TableIcon" class="h-5 w-5 text-primary-600 flex-shrink-0" />
+            <component
+              :is="getAssetIcon(assets[virtualRow.index])"
+              class="h-5 w-5 text-primary-600 flex-shrink-0"
+            />
             <div class="flex-1 min-w-0">
               <h3 class="font-medium truncate">
-                {{
-                  tables[virtualRow.index].name ||
-                  tables[virtualRow.index].table_facet?.table_name ||
-                  'Unnamed table'
-                }}
+                {{ getAssetTitle(assets[virtualRow.index]) }}
               </h3>
-              <div class="flex items-center gap-2 mt-1">
-                <span class="text-sm text-muted-foreground whitespace-nowrap"
-                  >{{ getColumnCount(tables[virtualRow.index].id) }} columns</span
-                >
-                <span class="text-muted-foreground">·</span>
-                <p class="text-sm text-muted-foreground truncate">
-                  {{ tables[virtualRow.index].table_facet?.schema || 'default' }}.{{
-                    tables[virtualRow.index].table_facet?.table_name
-                  }}
-                </p>
-              </div>
+              <p class="text-sm text-muted-foreground truncate mt-1">
+                {{ getAssetMetadata(assets[virtualRow.index]) }}
+              </p>
             </div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0 ml-4">
-            <AssetBadgeStatus :status="tables[virtualRow.index].status" badge-class="text-xs" />
+            <AssetBadgeStatus :status="assets[virtualRow.index].status" badge-class="text-xs" />
           </div>
         </div>
         <div
-          v-if="tables[virtualRow.index].description"
+          v-if="assets[virtualRow.index].description"
           class="mt-2 text-sm text-muted-foreground line-clamp-2"
         >
-          <MarkdownDisplay :content="tables[virtualRow.index].description" />
+          <MarkdownDisplay :content="assets[virtualRow.index].description ?? ''" />
         </div>
-        <div v-if="tables[virtualRow.index].tags?.length" class="mt-2 flex flex-wrap gap-2">
+        <div v-if="assets[virtualRow.index].tags?.length" class="mt-2 flex flex-wrap gap-2">
           <Badge
-            v-for="tag in tables[virtualRow.index].tags"
+            v-for="tag in assets[virtualRow.index].tags"
             :key="tag.id"
             variant="secondary"
             class="text-xs"
@@ -85,26 +76,92 @@ import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 import { Badge } from '@/components/ui/badge'
 import type { CatalogAsset } from '@/stores/catalog'
 import { useVirtualizer } from '@tanstack/vue-virtual'
-import { Table as TableIcon } from 'lucide-vue-next'
-import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
+import {
+  Columns3,
+  Database,
+  FolderTree,
+  Table as TableIcon,
+  View as ViewIcon
+} from 'lucide-vue-next'
+import { computed, ref, watch, type Component, type ComponentPublicInstance } from 'vue'
 
 interface Props {
-  tables: CatalogAsset[]
+  assets: CatalogAsset[]
   getColumnCount: (tableId: string) => number
 }
 
 const props = defineProps<Props>()
 
 defineEmits<{
-  'select-table': [tableId: string]
+  'select-asset': [assetId: string]
 }>()
 
 const scrollElement = ref<HTMLElement | null>(null)
 
+// Helper functions for asset display
+function getAssetIcon(asset: CatalogAsset): Component {
+  if (asset.type === 'DATABASE') return Database
+  if (asset.type === 'SCHEMA') return FolderTree
+  if (asset.type === 'TABLE') {
+    return asset.table_facet?.table_type === 'VIEW' ? ViewIcon : TableIcon
+  }
+  if (asset.type === 'COLUMN') return Columns3
+  return TableIcon // fallback
+}
+
+function getAssetTitle(asset: CatalogAsset): string {
+  if (asset.type === 'DATABASE') {
+    return asset.database_facet?.database_name || asset.name || 'Unnamed database'
+  }
+  if (asset.type === 'SCHEMA') {
+    return asset.schema_facet?.schema_name || asset.name || 'Unnamed schema'
+  }
+  if (asset.type === 'TABLE') {
+    return asset.table_facet?.table_name || asset.name || 'Unnamed table'
+  }
+  if (asset.type === 'COLUMN') {
+    return asset.column_facet?.column_name || asset.name || 'Unnamed column'
+  }
+  return asset.name || 'Unnamed asset'
+}
+
+function getAssetMetadata(asset: CatalogAsset): string {
+  if (asset.type === 'DATABASE') {
+    return 'Database'
+  }
+  if (asset.type === 'SCHEMA') {
+    const dbName = asset.schema_facet?.database_name || 'unknown'
+    return `Schema in ${dbName}`
+  }
+  if (asset.type === 'TABLE') {
+    const database = asset.table_facet?.database_name || ''
+    const schema = asset.table_facet?.schema || 'default'
+    const tableName = asset.table_facet?.table_name || asset.name || 'unknown'
+    const columnCount = props.getColumnCount(asset.id)
+    const fullPath = database ? `${database}.${schema}.${tableName}` : `${schema}.${tableName}`
+    return `${fullPath} · ${columnCount} columns`
+  }
+  if (asset.type === 'COLUMN') {
+    const dataType = asset.column_facet?.data_type || 'unknown'
+    // Get parent table info if available
+    const parentDatabase = asset.column_facet?.parent_table_facet?.database_name || ''
+    const parentSchema = asset.column_facet?.parent_table_facet?.schema || ''
+    const parentTable = asset.column_facet?.parent_table_facet?.table_name || ''
+    if (parentSchema && parentTable) {
+      const fullPath = parentDatabase
+        ? `${parentDatabase}.${parentSchema}.${parentTable}`
+        : `${parentSchema}.${parentTable}`
+      return `${fullPath} · ${dataType}`
+    }
+    return dataType
+  }
+  return asset.type
+}
+
 // Set up virtualizer with dynamic measurement
 const virtualizer = useVirtualizer(
   computed(() => ({
-    count: props.tables.length,
+    count: props.assets.length,
     getScrollElement: () => scrollElement.value,
     estimateSize: () => 100, // Initial estimate - will be measured dynamically
     overscan: 5 // Number of items to render outside visible area
@@ -118,9 +175,9 @@ function measureElement(el: Element | ComponentPublicInstance | null) {
   virtualizer.value.measureElement(element)
 }
 
-// Reset scroll position only when table count changes (filtering), not on updates
+// Reset scroll position only when asset count changes (filtering), not on updates
 watch(
-  () => props.tables.length,
+  () => props.assets.length,
   () => {
     virtualizer.value.scrollToIndex(0, { align: 'start' })
   }

@@ -6,6 +6,7 @@ from typing import List, Optional
 import yaml
 from sqlalchemy.orm import Session
 
+from back.catalog_search import search_assets_and_terms
 from back.data_warehouse import AbstractDatabase
 from back.utils import get_provider_metadata_for_asset
 from models import Database
@@ -135,110 +136,40 @@ class CatalogTool:
     def search_assets(self, text: str, asset_type: Optional[str] = None) -> str:
         """
         Search assets and terms by name, description, urn, tags, or definition.
-        The search is case-insensitive and matches partial strings.
+        Case-insensitive partial string matching.
+
+        PostgreSQL: Results ordered by trigram similarity to the query
+        SQLite: Results in no particular order
+
         Returns first 50 matches.
+
         Args:
             text: Search query
             asset_type: Filter by type ("TABLE", "COLUMN", "TERM").
                        If None, searches both assets and terms
         """
-        limit = 50
+        # Use the centralized search function
+        results_dict = search_assets_and_terms(
+            self.session,
+            self.database.id,
+            text,
+            asset_type=asset_type,
+            limit=50,
+        )
 
-        assets = []
-        terms = []
-
-        # Handle terms separately
-        if asset_type == "TERM":
-            terms_query = (
-                self.session.query(Term)
-                .filter(Term.database_id == self.database.id)
-                .filter(
-                    Term.name.ilike(f"%{text}%") | Term.definition.ilike(f"%{text}%")
-                )
-                .limit(limit)
-            )
-            terms = terms_query.all()
-        else:
-            # Handle assets - search in name, description, urn, and tag names
-            assets_query = (
-                self.session.query(Asset)
-                .outerjoin(Asset.asset_tags)
-                .filter(Asset.database_id == self.database.id)
-                .filter(
-                    Asset.name.ilike(f"%{text}%")
-                    | Asset.description.ilike(f"%{text}%")
-                    | Asset.urn.ilike(f"%{text}%")
-                    | AssetTag.name.ilike(f"%{text}%")
-                )
-                .distinct()
-            )
-
-            if asset_type:
-                assets_query = assets_query.filter(Asset.type == asset_type.upper())
-
-            assets = assets_query.limit(limit).all()
-
-            # If no specific asset type filter, also search terms
-            if asset_type is None:
-                terms_query = (
-                    self.session.query(Term)
-                    .filter(Term.database_id == self.database.id)
-                    .filter(
-                        Term.name.ilike(f"%{text}%")
-                        | Term.definition.ilike(f"%{text}%")
-                    )
-                    .limit(limit)
-                )
-                terms = terms_query.all()
-
-        # Build asset results with type-specific fields
-        asset_results = []
-        for asset in assets:
-            asset_dict = {
-                "id": str(asset.id),
-                "urn": asset.urn,
-                "name": asset.name,
-                "type": asset.type,
-                "status": asset.status or None,
-                "description": (
-                    asset.description[:200] + "..."
-                    if asset.description and len(asset.description) > 200
-                    else asset.description
-                ),
-                "tags": [
-                    {"id": str(tag.id), "name": tag.name} for tag in asset.asset_tags
-                ],
-            }
-
-            # Add type-specific information for tables
-            if asset.type == "TABLE" and asset.table_facet:
-                facet = asset.table_facet
-                asset_dict.update(
-                    {
-                        "database_name": facet.database_name,
-                        "schema": facet.schema,
-                        "table_name": facet.table_name,
-                    }
-                )
-
-            asset_results.append(asset_dict)
-
+        # Combine assets and terms into single result for backward compatibility
         results = {
-            "assets": asset_results
-            + [
+            "assets": results_dict["assets"],
+            "terms": [
                 {
-                    "id": str(term.id),
-                    "name": term.name,
+                    "id": term["id"],
+                    "name": term["name"],
                     "type": "TERM",
-                    "description": (
-                        term.definition[:200] + "..."
-                        if term.definition and len(term.definition) > 200
-                        else term.definition
-                    ),
-                    "synonyms": term.synonyms,
-                    "business_domains": term.business_domains,
+                    "description": term["description"],
+                    "synonyms": term["synonyms"],
+                    "business_domains": term["business_domains"],
                 }
-                for term in terms
+                for term in results_dict["terms"]
             ],
         }
 

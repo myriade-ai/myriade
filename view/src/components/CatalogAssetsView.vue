@@ -51,6 +51,7 @@
               :has-active-filters="hasActiveFilters"
               :explorer-collapsed="explorerCollapsed"
               :show-explorer-shortcut="isMobile"
+              :is-searching="isSearching"
               @clear-filters="clearFilters"
               @toggle-explorer="openExplorer"
               @open-explorer="openExplorer"
@@ -122,9 +123,9 @@
             <!-- List View (no asset selected) -->
             <CatalogListView
               v-else
-              :tables="tablesForOverview"
+              :assets="filteredAssets"
               :get-column-count="getTableColumnCount"
-              @select-table="handleSelectAsset"
+              @select-asset="handleSelectAsset"
             />
           </div>
         </ResizablePanel>
@@ -176,7 +177,7 @@ import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { EditableDraft } from './catalog/types'
 import { useCatalogData } from './catalog/useCatalogData'
-import { useCatalogAssetsQuery } from './catalog/useCatalogQuery'
+import { useCatalogAssetsQuery, useCatalogSearchQuery } from './catalog/useCatalogQuery'
 import { debounce } from '@/utils/debounce'
 
 interface Props {
@@ -223,6 +224,7 @@ type ExplorerInstance = InstanceType<typeof CatalogExplorer>
 const desktopExplorerRef = ref<ExplorerInstance | null>(null)
 const mobileExplorerRef = ref<ExplorerInstance | null>(null)
 const showExplorerSheet = ref(false)
+const hasAutoSelected = ref(false)
 
 // Debounced search handler
 const debouncedUpdateSearch = debounce((query: string) => {
@@ -259,6 +261,46 @@ const {
   indexes
 } = catalogData
 
+const selectedDatabaseId = computed<string>(() => {
+  return contextsStore.getSelectedContextDatabaseId()
+})
+
+// Server-side search (always enabled when filters are active)
+const searchEnabled = computed(() => {
+  return (
+    !!selectedDatabaseId.value &&
+    (searchQuery.value.length > 0 ||
+      selectedTag.value !== '__all__' ||
+      selectedStatus.value !== '__all__')
+  )
+})
+
+const { data: searchResultIds, isFetching: isSearching } = useCatalogSearchQuery(
+  selectedDatabaseId,
+  searchQuery,
+  searchEnabled,
+  selectedTag,
+  selectedStatus
+)
+
+const matchingIds = computed(() => {
+  if (searchResultIds.value && searchEnabled.value) {
+    return new Set(searchResultIds.value)
+  }
+  return null
+})
+
+// Create order map for search results to preserve backend sorting
+const searchResultOrderMap = computed(() => {
+  if (!searchResultIds.value || !searchEnabled.value) return null
+
+  const orderMap = new Map<string, number>()
+  searchResultIds.value.forEach((id, index) => {
+    orderMap.set(id, index)
+  })
+  return orderMap
+})
+
 // Computed
 const hasActiveFilters = computed(() =>
   Boolean(
@@ -272,11 +314,9 @@ const hasActiveFilters = computed(() =>
 
 const filteredTree = computed(() =>
   buildFilteredTree({
-    searchQuery: searchQuery.value,
     selectedDatabase: selectedDatabase.value,
     selectedSchema: selectedSchema.value,
-    selectedTag: selectedTag.value,
-    selectedStatus: selectedStatus.value
+    matchingIds: matchingIds.value
   })
 )
 
@@ -360,15 +400,24 @@ const assetHasChanges = computed(() => {
 const filteredAssets = computed(() => {
   if (!assetsData.value) return []
 
-  return assetsData.value.filter((asset) =>
+  const filtered = assetsData.value.filter((asset) =>
     assetMatchesFilters(asset, {
-      searchQuery: searchQuery.value,
       selectedDatabase: selectedDatabase.value,
       selectedSchema: selectedSchema.value,
-      selectedTag: selectedTag.value,
-      selectedStatus: selectedStatus.value
+      matchingIds: matchingIds.value
     })
   )
+
+  // Sort by backend search order if available
+  if (searchResultOrderMap.value) {
+    return filtered.slice().sort((a, b) => {
+      const orderA = searchResultOrderMap.value!.get(a.id) ?? Number.MAX_SAFE_INTEGER
+      const orderB = searchResultOrderMap.value!.get(b.id) ?? Number.MAX_SAFE_INTEGER
+      return orderA - orderB
+    })
+  }
+
+  return filtered
 })
 
 // Compute stats for filtered assets
@@ -377,29 +426,6 @@ const filteredStats = computed(() => {
     return null
   }
   return computeCatalogStats(filteredAssets.value)
-})
-
-const tablesForOverview = computed(() => {
-  // Use indexed tables list and filter using assetMatchesFilters
-  const tables = indexes.tablesList.value.filter((table) =>
-    assetMatchesFilters(table, {
-      searchQuery: searchQuery.value,
-      selectedDatabase: selectedDatabase.value,
-      selectedSchema: selectedSchema.value,
-      selectedTag: selectedTag.value,
-      selectedStatus: selectedStatus.value
-    })
-  )
-
-  // Sort by schema and name
-  return tables.slice().sort((a, b) => {
-    const schemaA = a.table_facet?.schema || ''
-    const schemaB = b.table_facet?.schema || ''
-    if (schemaA !== schemaB) return schemaA.localeCompare(schemaB)
-    return (a.name || a.table_facet?.table_name || '').localeCompare(
-      b.name || b.table_facet?.table_name || ''
-    )
-  })
 })
 
 // Route sync
@@ -444,6 +470,7 @@ watch(
       selectedTag.value = '__all__'
       selectedStatus.value = '__all__'
       selectedAssetId.value = null
+      hasAutoSelected.value = false // Reset flag to allow auto-selection in new context
     }
   }
 )
@@ -501,8 +528,43 @@ watch(
 watch([searchQuery, selectedSchema, selectedTag, selectedStatus], () => {
   if (selectedAssetId.value) {
     selectedAssetId.value = null
+    // Don't reset hasAutoSelected - keep it true to prevent re-selection during filtering
   }
 })
+
+// Auto-select first database on initial load or when no asset is selected
+watch(
+  [filteredTree, selectedAssetId, routeAssetId, loading],
+  ([tree, currentSelection, routeId, isLoading]) => {
+    // Only auto-select once on initial load
+    if (hasAutoSelected.value) return
+
+    // Don't auto-select if loading
+    if (isLoading) return
+
+    // Don't auto-select if there's already a selection
+    if (currentSelection) return
+
+    // Don't auto-select if there's a route asset ID (user navigation)
+    if (routeId) return
+
+    // Don't auto-select if user is actively filtering (they want to see the list)
+    const hasActiveFilters =
+      searchQuery.value.trim() ||
+      selectedSchema.value !== '__all__' ||
+      selectedTag.value !== '__all__' ||
+      selectedStatus.value !== '__all__'
+    if (hasActiveFilters) return
+
+    // Auto-select first database if available
+    if (tree.length > 0 && tree[0].asset) {
+      const firstDatabaseId = tree[0].asset.id
+      selectedAssetId.value = firstDatabaseId
+      hasAutoSelected.value = true
+    }
+  },
+  { immediate: true }
+)
 
 function setExplorerSheetOpen(value: boolean) {
   showExplorerSheet.value = value

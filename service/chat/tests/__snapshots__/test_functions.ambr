@@ -933,7 +933,7 @@
       }),
     }),
     dict({
-      'description': 'Search assets and terms by name, description, urn, tags, or definition. The search is case-insensitive and matches partial strings. Returns first 50 matches.',
+      'description': 'Search assets and terms by name, description, urn, tags, or definition. Case-insensitive partial string matching. PostgreSQL: Results ordered by trigram similarity to the query SQLite: Results in no particular order Returns first 50 matches.',
       'name': 'CatalogTool-catalog__search_assets',
       'parameters': dict({
         'properties': dict({
@@ -2353,7 +2353,7 @@
       }),
     }),
     dict({
-      'description': 'Search assets and terms by name, description, urn, tags, or definition. The search is case-insensitive and matches partial strings. Returns first 50 matches.',
+      'description': 'Search assets and terms by name, description, urn, tags, or definition. Case-insensitive partial string matching. PostgreSQL: Results ordered by trigram similarity to the query SQLite: Results in no particular order Returns first 50 matches.',
       'name': 'CatalogTool-catalog__search_assets',
       'parameters': dict({
         'properties': dict({

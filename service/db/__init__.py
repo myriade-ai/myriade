@@ -43,6 +43,7 @@ class JSONB(TypeDecorator):
     """Custom type that uses JSONB for PostgreSQL and JSON for other databases."""
 
     impl = JSON
+    cache_ok = True
 
     def process_bind_param(self, value, dialect):
         if value is not None:
@@ -120,6 +121,27 @@ class UUID(TypeDecorator):
                 else:
                     return uuid.UUID(value)
             return value
+
+
+class TSVector(TypeDecorator):
+    """Custom type that uses TSVECTOR for PostgreSQL and String for other databases.
+
+    This allows full-text search columns to be defined in models without breaking
+    SQLite compatibility in development. For SQLite, the column exists but is not
+    used for search operations.
+    """
+
+    impl = String
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            from sqlalchemy.dialects.postgresql import TSVECTOR
+
+            return dialect.type_descriptor(TSVECTOR())
+        else:
+            # For SQLite and other databases, use String but it will be NULL
+            return dialect.type_descriptor(String())
 
 
 class SerializerMixin:

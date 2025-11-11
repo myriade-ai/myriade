@@ -60,14 +60,16 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
   function assetMatchesFilters(
     asset: CatalogAsset,
     options: {
-      searchQuery: string
       selectedDatabase: string
       selectedSchema: string
-      selectedTag: string
-      selectedStatus?: string
+      matchingIds?: Set<string> | null
     }
   ): boolean {
-    const { searchQuery, selectedDatabase, selectedSchema, selectedTag, selectedStatus } = options
+    const { selectedDatabase, selectedSchema, matchingIds } = options
+
+    if (matchingIds && !matchingIds.has(asset.id)) {
+      return false
+    }
 
     if (
       selectedDatabase &&
@@ -81,45 +83,15 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
       return false
     }
 
-    if (selectedTag && selectedTag !== '__all__') {
-      const hasTag = asset.tags?.some((tag) => tag.id === selectedTag)
-      if (!hasTag) return false
-    }
-
-    if (selectedStatus && selectedStatus !== '__all__') {
-      if (selectedStatus === 'unverified') {
-        if (asset.status !== null) return false
-      } else if (asset.status !== selectedStatus) {
-        return false
-      }
-    }
-
-    if (!searchQuery) {
-      return true
-    }
-
-    const normalizedSearch = searchQuery.trim().toLowerCase()
-    const targetParts: string[] = []
-    if (asset.name) targetParts.push(asset.name)
-    if (asset.description) targetParts.push(asset.description)
-    if (asset.table_facet?.table_name) targetParts.push(asset.table_facet.table_name)
-    if (asset.column_facet?.column_name) targetParts.push(asset.column_facet.column_name)
-    if (asset.column_facet?.data_type) targetParts.push(asset.column_facet.data_type)
-    if (asset.tags?.length) {
-      targetParts.push(...asset.tags.map((tag) => tag.name))
-    }
-
-    return targetParts.some((value) => value.toLowerCase().includes(normalizedSearch))
+    return true
   }
 
   function buildFilteredTree(options: {
-    searchQuery: string
     selectedDatabase: string
     selectedSchema: string
-    selectedTag: string
-    selectedStatus?: string
+    matchingIds?: Set<string> | null
   }): ExplorerDatabaseNode[] {
-    const { searchQuery, selectedDatabase, selectedSchema, selectedTag, selectedStatus } = options
+    const { selectedDatabase, selectedSchema, matchingIds } = options
     const databaseMap = new Map<string, ExplorerDatabaseNode>()
     const schemaNodeByAssetId = new Map<
       string,
@@ -219,19 +191,15 @@ export function useCatalogData(assetsSource: ComputedRef<CatalogAsset[] | undefi
         const columnAssets = columnsByTableId.value.get(tableAsset.id) || []
         const matchedColumns = columnAssets.filter((column) =>
           assetMatchesFilters(column, {
-            searchQuery,
             selectedDatabase,
             selectedSchema,
-            selectedTag,
-            selectedStatus
+            matchingIds
           })
         )
         const tableMatches = assetMatchesFilters(tableAsset, {
-          searchQuery,
           selectedDatabase,
           selectedSchema,
-          selectedTag,
-          selectedStatus
+          matchingIds
         })
 
         // Only include table if it matches or has matching columns

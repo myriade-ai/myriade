@@ -91,11 +91,7 @@ onMounted(async () => {
 
 // Computed properties for sharing
 const canManageSharing = computed(() => {
-  return (
-    user.value.inOrganization &&
-    database.value &&
-    database.value.ownerId === user.value.id
-  )
+  return user.value.inOrganization && database.value && database.value.ownerId === user.value.id
 })
 
 const isSharedWithOrg = computed(() => {
@@ -143,10 +139,7 @@ const toggleSharing = async () => {
   isSharingToggling.value = true
   try {
     const shareToOrg = !isSharedWithOrg.value
-    const updatedDatabase = await databasesStore.shareDatabaseToOrganisation(
-      databaseId,
-      shareToOrg
-    )
+    const updatedDatabase = await databasesStore.shareDatabaseToOrganisation(databaseId, shareToOrg)
     database.value = updatedDatabase
 
     notify({

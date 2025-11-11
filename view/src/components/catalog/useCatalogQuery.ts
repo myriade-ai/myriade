@@ -2,7 +2,7 @@ import axios from '@/plugins/axios'
 import type { CatalogAsset } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import type { Table } from '@/stores/tables'
-import { useQuery, type UseQueryReturnType } from '@tanstack/vue-query'
+import { keepPreviousData, useQuery, type UseQueryReturnType } from '@tanstack/vue-query'
 import type { AxiosResponse } from 'axios'
 import { computed, type Ref } from 'vue'
 
@@ -71,12 +71,8 @@ export function convertCatalogAssetsToTables(assets: CatalogAsset[]): Table[] {
 export function useCatalogAssetsQuery(): UseQueryReturnType<CatalogAsset[], Error> {
   const contextsStore = useContextsStore()
 
-  const databaseId = computed<string | null>(() => {
-    try {
-      return contextsStore.getSelectedContextDatabaseId()
-    } catch (error) {
-      return null
-    }
+  const databaseId = computed(() => {
+    return contextsStore.getSelectedContextDatabaseId()
   })
 
   const query = useQuery({
@@ -150,6 +146,84 @@ export function useAssetSourcesQuery(
     // Retry failed requests
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
+  })
+
+  return query
+}
+
+/**
+ * TanStack Query hook for searching catalog assets
+ * Returns only asset IDs matching the search query using server-side fuzzy matching
+ * Triggered for queries >= 3 characters or when tag/status filters are selected
+ */
+export function useCatalogSearchQuery(
+  databaseId: Ref<string | null>,
+  searchText: Ref<string>,
+  enabled: Ref<boolean>,
+  selectedTag: Ref<string>,
+  selectedStatus: Ref<string>
+): UseQueryReturnType<string[], Error> {
+  const query = useQuery({
+    queryKey: computed(() => [
+      'catalog',
+      'search',
+      databaseId.value,
+      searchText.value,
+      selectedTag.value,
+      selectedStatus.value
+    ]),
+    queryFn: async (): Promise<string[]> => {
+      const currentDatabaseId = databaseId.value
+      const currentSearchText = searchText.value
+      const currentTag = selectedTag.value
+      const currentStatus = selectedStatus.value
+
+      if (!currentDatabaseId || !currentSearchText) {
+        return []
+      }
+
+      // Build query params, excluding "__all__" values
+      const params: {
+        q: string
+        tag_ids?: string[]
+        statuses?: string[]
+      } = {
+        q: currentSearchText
+      }
+
+      if (currentTag && currentTag !== '__all__') {
+        params.tag_ids = [currentTag]
+      }
+
+      if (currentStatus && currentStatus !== '__all__') {
+        params.statuses = [currentStatus]
+      }
+
+      const response: AxiosResponse<string[]> = await axios.get(
+        `/api/databases/${currentDatabaseId}/catalog/search`,
+        { params }
+      )
+
+      return response.data
+    },
+    // Only run query when enabled, we have a database ID, and search text is >= 3 characters
+    enabled: computed(() => enabled.value && !!databaseId.value && searchText.value.length >= 3),
+
+    // Keep previous data while fetching new results (prevents blink effect)
+    placeholderData: keepPreviousData,
+
+    // Cache search results for 2 minutes
+    staleTime: 2 * 60 * 1000,
+
+    // Keep unused search results in cache for 5 minutes
+    gcTime: 5 * 60 * 1000,
+
+    // Don't refetch on window focus
+    refetchOnWindowFocus: false,
+
+    // Retry failed requests
+    retry: 1,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000)
   })
 
   return query

@@ -1,5 +1,5 @@
 <template>
-  <svg width="180px" height="80px" viewBox="0 0 187.3 93.7" preserveAspectRatio="xMidYMid meet">
+  <svg :width="width" :height="height" viewBox="45 22 95 50" preserveAspectRatio="xMidYMid meet">
     <path
       stroke="#2563EB"
       id="outline"
@@ -23,6 +23,18 @@
     />
   </svg>
 </template>
+
+<script setup lang="ts">
+interface Props {
+  width?: number | string
+  height?: number | string
+}
+
+withDefaults(defineProps<Props>(), {
+  width: 70,
+  height: 30
+})
+</script>
 
 <style scoped>
 *,
