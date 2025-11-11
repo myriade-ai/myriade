@@ -578,3 +578,15 @@ def get_provider_metadata_for_asset(
     except Exception as e:
         logger.error(f"Error fetching provider metadata: {e}")
         return None
+
+
+def get_dialect_name(session: Session) -> str:
+    """Get the dialect name of the database connected to the given session.
+
+    Args:
+        session: SQLAlchemy session
+
+    Returns:
+        Dialect name as a string (e.g., 'postgresql', 'mysql', etc.)
+    """
+    return session.get_bind().dialect.name
