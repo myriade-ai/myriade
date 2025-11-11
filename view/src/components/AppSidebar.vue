@@ -120,23 +120,39 @@ function isConversationOngoing(conversationId: string): boolean {
 }
 
 // Helper function to check if conversation has new messages
-// A conversation has "new messages" if it was updated in the last 5 minutes
-// and has at least one non-internal message
+// A conversation has "new messages" if the last public message is:
+// 1. Newer than when the user last viewed the conversation
+// 2. Less than 5 minutes old (to avoid highlighting old conversations)
 function hasNewMessages(conversationId: string): boolean {
   const conv = store.getConversationById(conversationId)
   if (!conv || !conv.messages || conv.messages.length === 0) return false
   
-  // Check if updated in the last 5 minutes
+  // Find the last public message (user or answer)
+  let lastPublicMessage = null
+  for (let i = conv.messages.length - 1; i >= 0; i--) {
+    const msg = conv.messages[i]
+    if (msg.role === 'user' || msg.isAnswer) {
+      lastPublicMessage = msg
+      break
+    }
+  }
+  
+  // If no public message, no new messages
+  if (!lastPublicMessage) return false
+  
+  // Check if message is less than 5 minutes old
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
-  if (conv.updatedAt < fiveMinutesAgo) return false
+  const messageDate = new Date(lastPublicMessage.createdAt)
+  if (messageDate < fiveMinutesAgo) return false
   
-  // Check if the conversation has at least one non-internal (public) message
-  // We consider a message "public" if it's from the user or marked as an answer
-  const hasPublicMessage = conv.messages.some(
-    (msg) => msg.role === 'user' || msg.isAnswer
-  )
+  // Get when user last viewed this conversation
+  const lastViewed = store.getLastViewed(conversationId)
   
-  return hasPublicMessage
+  // If never viewed, show as new
+  if (!lastViewed) return true
+  
+  // Check if last public message is newer than last viewed time
+  return messageDate > lastViewed
 }
 
 function setNameInputRef(id: string) {
