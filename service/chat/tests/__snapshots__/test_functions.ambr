@@ -107,14 +107,22 @@
       }),
     }),
     dict({
-      'description': 'Create a new todo item',
+      'description': 'Create one or multiple todo items',
       'name': 'TodoTool-todo__create_todo',
       'parameters': dict({
         'properties': dict({
           'content': dict({
-            'description': 'The todo content/description',
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'The todo content/description (for single todo creation)',
             'title': 'Content',
-            'type': 'string',
           }),
           'status': dict({
             'default': 'pending',
@@ -122,10 +130,24 @@
             'title': 'Status',
             'type': 'string',
           }),
+          'todos': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                  'additionalProperties': True,
+                  'type': 'object',
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'List of todos to create in bulk. Each dict should have:',
+            'title': 'Todos',
+          }),
         }),
-        'required': list([
-          'content',
-        ]),
         'title': 'Input for `create_todo`',
         'type': 'object',
       }),
@@ -218,6 +240,34 @@
           'todo_id',
         ]),
         'title': 'Input for `update_todo`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Get detailed configuration options for a specific chart type.',
+      'name': 'EchartsTool-echarts__get_chart_configuration',
+      'parameters': dict({
+        'properties': dict({
+          'chart_type': dict({
+            'description': "The type of chart (e.g., 'line', 'bar', 'pie', 'scatter')",
+            'title': 'Chart Type',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'chart_type',
+        ]),
+        'title': 'Input for `get_chart_configuration`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'List all available ECharts chart types with descriptions. Returns: dict: A dictionary containing chart types categorized by their use case',
+      'name': 'EchartsTool-echarts__list_chart_types',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `list_chart_types`',
         'type': 'object',
       }),
     }),
@@ -554,6 +604,16 @@
                   'line',
                   'pie',
                   'scatter',
+                  'heatmap',
+                  'boxplot',
+                  'candlestick',
+                  'radar',
+                  'funnel',
+                  'gauge',
+                  'treemap',
+                  'sunburst',
+                  'sankey',
+                  'graph',
                 ]),
                 'title': 'Type',
                 'type': 'string',
@@ -1458,89 +1518,6 @@
         'type': 'object',
       }),
     }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__close_note',
-      'parameters': dict({
-        'properties': dict({
-          'id': dict({
-            'title': 'Id',
-            'type': 'integer',
-          }),
-        }),
-        'required': list([
-          'id',
-        ]),
-        'title': 'Input for `close_note`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__create_note',
-      'parameters': dict({
-        'properties': dict({
-          'content': dict({
-            'title': 'Content',
-            'type': 'string',
-          }),
-          'title': dict({
-            'title': 'Title',
-            'type': 'string',
-          }),
-        }),
-        'required': list([
-          'title',
-          'content',
-        ]),
-        'title': 'Input for `create_note`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': 'Delete a note from the project',
-      'name': 'Notes-notes__delete_note',
-      'parameters': dict({
-        'properties': dict({
-          'id': dict({
-            'title': 'Id',
-            'type': 'string',
-          }),
-        }),
-        'required': list([
-          'id',
-        ]),
-        'title': 'Input for `delete_note`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__list_notes',
-      'parameters': dict({
-        'properties': dict({
-        }),
-        'title': 'Input for `list_notes`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__open_note',
-      'parameters': dict({
-        'properties': dict({
-          'id': dict({
-            'title': 'Id',
-            'type': 'integer',
-          }),
-        }),
-        'required': list([
-          'id',
-        ]),
-        'title': 'Input for `open_note`',
-        'type': 'object',
-      }),
-    }),
   ])
 # ---
 # name: test_functions
@@ -1555,6 +1532,8 @@
     'TodoTool-todo__delete_todo',
     'TodoTool-todo__list_todos',
     'TodoTool-todo__update_todo',
+    'EchartsTool-echarts__get_chart_configuration',
+    'EchartsTool-echarts__list_chart_types',
     'EchartsTool-echarts__preview_render',
     'SemanticModel-semantic_model__create_entity',
     'SemanticModel-semantic_model__create_issue',
@@ -1579,11 +1558,6 @@
     'DocumentsTool-documents__read_document',
     'DocumentsTool-documents__search_documents',
     'DocumentsTool-documents__update_document_title',
-    'Notes-notes__close_note',
-    'Notes-notes__create_note',
-    'Notes-notes__delete_note',
-    'Notes-notes__list_notes',
-    'Notes-notes__open_note',
   ])
 # ---
 # name: test_functions_schema
@@ -1694,14 +1668,22 @@
       }),
     }),
     dict({
-      'description': 'Create a new todo item',
+      'description': 'Create one or multiple todo items',
       'name': 'TodoTool-todo__create_todo',
       'parameters': dict({
         'properties': dict({
           'content': dict({
-            'description': 'The todo content/description',
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'The todo content/description (for single todo creation)',
             'title': 'Content',
-            'type': 'string',
           }),
           'status': dict({
             'default': 'pending',
@@ -1709,10 +1691,24 @@
             'title': 'Status',
             'type': 'string',
           }),
+          'todos': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                  'additionalProperties': True,
+                  'type': 'object',
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'List of todos to create in bulk. Each dict should have:',
+            'title': 'Todos',
+          }),
         }),
-        'required': list([
-          'content',
-        ]),
         'title': 'Input for `create_todo`',
         'type': 'object',
       }),
@@ -1805,6 +1801,34 @@
           'todo_id',
         ]),
         'title': 'Input for `update_todo`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Get detailed configuration options for a specific chart type.',
+      'name': 'EchartsTool-echarts__get_chart_configuration',
+      'parameters': dict({
+        'properties': dict({
+          'chart_type': dict({
+            'description': "The type of chart (e.g., 'line', 'bar', 'pie', 'scatter')",
+            'title': 'Chart Type',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'chart_type',
+        ]),
+        'title': 'Input for `get_chart_configuration`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'List all available ECharts chart types with descriptions. Returns: dict: A dictionary containing chart types categorized by their use case',
+      'name': 'EchartsTool-echarts__list_chart_types',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `list_chart_types`',
         'type': 'object',
       }),
     }),
@@ -2141,6 +2165,16 @@
                   'line',
                   'pie',
                   'scatter',
+                  'heatmap',
+                  'boxplot',
+                  'candlestick',
+                  'radar',
+                  'funnel',
+                  'gauge',
+                  'treemap',
+                  'sunburst',
+                  'sankey',
+                  'graph',
                 ]),
                 'title': 'Type',
                 'type': 'string',
@@ -3045,89 +3079,6 @@
         'type': 'object',
       }),
     }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__close_note',
-      'parameters': dict({
-        'properties': dict({
-          'id': dict({
-            'title': 'Id',
-            'type': 'integer',
-          }),
-        }),
-        'required': list([
-          'id',
-        ]),
-        'title': 'Input for `close_note`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__create_note',
-      'parameters': dict({
-        'properties': dict({
-          'content': dict({
-            'title': 'Content',
-            'type': 'string',
-          }),
-          'title': dict({
-            'title': 'Title',
-            'type': 'string',
-          }),
-        }),
-        'required': list([
-          'title',
-          'content',
-        ]),
-        'title': 'Input for `create_note`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': 'Delete a note from the project',
-      'name': 'Notes-notes__delete_note',
-      'parameters': dict({
-        'properties': dict({
-          'id': dict({
-            'title': 'Id',
-            'type': 'string',
-          }),
-        }),
-        'required': list([
-          'id',
-        ]),
-        'title': 'Input for `delete_note`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__list_notes',
-      'parameters': dict({
-        'properties': dict({
-        }),
-        'title': 'Input for `list_notes`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__open_note',
-      'parameters': dict({
-        'properties': dict({
-          'id': dict({
-            'title': 'Id',
-            'type': 'integer',
-          }),
-        }),
-        'required': list([
-          'id',
-        ]),
-        'title': 'Input for `open_note`',
-        'type': 'object',
-      }),
-    }),
   ])
 # ---
 # name: test_tools
@@ -3136,7 +3087,6 @@
     'database': 'DatabaseTool',
     'documents': 'DocumentsTool',
     'echarts': 'EchartsTool',
-    'notes': 'Notes',
     'semantic_model': 'SemanticModel',
     'todo': 'TodoTool',
     'workspace': 'WorkspaceTool',
