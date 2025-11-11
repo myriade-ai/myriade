@@ -10,6 +10,37 @@
             <h3 class="font-semibold text-sm">Selected Assets</h3>
             <div class="flex items-center gap-2 text-xs text-muted-foreground">
               <template v-if="selectedAssets.length > 0">
+                <span v-if="selectedAssetsGrouped.databases.length > 0">
+                  {{ selectedAssetsGrouped.databases.length }} database{{
+                    selectedAssetsGrouped.databases.length !== 1 ? 's' : ''
+                  }}
+                </span>
+                <span
+                  v-if="
+                    selectedAssetsGrouped.databases.length > 0 &&
+                    (selectedAssetsGrouped.schemas.length > 0 ||
+                      selectedAssetsGrouped.tables.length > 0 ||
+                      selectedAssetsGrouped.columns.length > 0)
+                  "
+                  class="text-slate-300"
+                >
+                  •
+                </span>
+                <span v-if="selectedAssetsGrouped.schemas.length > 0">
+                  {{ selectedAssetsGrouped.schemas.length }} schema{{
+                    selectedAssetsGrouped.schemas.length !== 1 ? 's' : ''
+                  }}
+                </span>
+                <span
+                  v-if="
+                    selectedAssetsGrouped.schemas.length > 0 &&
+                    (selectedAssetsGrouped.tables.length > 0 ||
+                      selectedAssetsGrouped.columns.length > 0)
+                  "
+                  class="text-slate-300"
+                >
+                  •
+                </span>
                 <span v-if="selectedAssetsGrouped.tables.length > 0">
                   {{ selectedAssetsGrouped.tables.length }} table{{
                     selectedAssetsGrouped.tables.length !== 1 ? 's' : ''
@@ -56,13 +87,61 @@
           </div>
           <p class="text-sm text-muted-foreground mb-1">Click on assets to select them</p>
           <p class="text-xs text-muted-foreground">
-            Use the "Add to Analysis" button on tables or columns
+            Use the "Add to Analysis" button on databases, schemas, tables, or columns
           </p>
+        </div>
+
+        <!-- Databases -->
+        <div v-if="selectedAssetsGrouped.databases.length > 0">
+          <p class="text-xs font-medium text-muted-foreground px-2 py-1">Databases</p>
+          <div
+            v-for="database in selectedAssetsGrouped.databases"
+            :key="database.id"
+            class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-slate-50 group"
+          >
+            <Database class="h-4 w-4 text-primary-600 flex-shrink-0" />
+            <span class="text-sm truncate flex-1">
+              {{ database.database_facet?.database_name || database.name }}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+              @click="catalogStore.toggleAssetSelection(database.id)"
+              title="Remove from selection"
+            >
+              <XIcon class="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+
+        <!-- Schemas -->
+        <div v-if="selectedAssetsGrouped.schemas.length > 0">
+          <p class="text-xs font-medium text-muted-foreground px-2 py-1 mt-2">Schemas</p>
+          <div
+            v-for="schema in selectedAssetsGrouped.schemas"
+            :key="schema.id"
+            class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-slate-50 group"
+          >
+            <FolderTree class="h-4 w-4 text-primary-600 flex-shrink-0" />
+            <span class="text-sm truncate flex-1">
+              {{ schema.schema_facet?.schema_name || schema.name }}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+              @click="catalogStore.toggleAssetSelection(schema.id)"
+              title="Remove from selection"
+            >
+              <XIcon class="h-3 w-3" />
+            </Button>
+          </div>
         </div>
 
         <!-- Tables -->
         <div v-if="selectedAssetsGrouped.tables.length > 0">
-          <p class="text-xs font-medium text-muted-foreground px-2 py-1">Tables</p>
+          <p class="text-xs font-medium text-muted-foreground px-2 py-1 mt-2">Tables</p>
           <div
             v-for="table in selectedAssetsGrouped.tables"
             :key="table.id"
@@ -136,7 +215,7 @@ import { Button } from '@/components/ui/button'
 import { useCatalogStore, type CatalogAsset } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import { useConversationsStore } from '@/stores/conversations'
-import { Columns3, SparklesIcon, Table, XIcon } from 'lucide-vue-next'
+import { Columns3, Database, FolderTree, SparklesIcon, Table, XIcon } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -161,21 +240,33 @@ const selectedAssets = computed(() => {
 
 // Group selected assets by type
 const selectedAssetsGrouped = computed(() => {
+  const databases: CatalogAsset[] = []
+  const schemas: CatalogAsset[] = []
   const tables: CatalogAsset[] = []
   const columns: CatalogAsset[] = []
   selectedAssets.value.forEach((asset) => {
-    if (asset.type === 'TABLE') {
+    if (asset.type === 'DATABASE') {
+      databases.push(asset)
+    } else if (asset.type === 'SCHEMA') {
+      schemas.push(asset)
+    } else if (asset.type === 'TABLE') {
       tables.push(asset)
     } else if (asset.type === 'COLUMN') {
       columns.push(asset)
     }
   })
-  return { tables, columns }
+  return { databases, schemas, tables, columns }
 })
 
 async function analyzeSelected() {
-  const { tables, columns } = selectedAssetsGrouped.value
+  const { databases, schemas, tables, columns } = selectedAssetsGrouped.value
 
+  const databasesList = databases
+    .map((d) => `- ${d.database_facet?.database_name || d.name} (id: ${d.id})`)
+    .join('\n')
+  const schemasList = schemas
+    .map((s) => `- ${s.schema_facet?.database_name}.${s.schema_facet?.schema_name} (id: ${s.id})`)
+    .join('\n')
   const tablesList = tables
     .map((t) => `- ${t.name || t.table_facet?.table_name} (id: ${t.id})`)
     .join('\n')
@@ -188,6 +279,8 @@ async function analyzeSelected() {
 
   const prompt = `Please review and help fill in descriptions for the following selected assets in our data catalog:
 
+${databases.length > 0 ? `**Databases:**\n${databasesList}\n` : ''}
+${schemas.length > 0 ? `**Schemas:**\n${schemasList}\n` : ''}
 ${tables.length > 0 ? `**Tables:**\n${tablesList}\n` : ''}
 ${columns.length > 0 ? `**Columns:**\n${columnsList}\n` : ''}
 
