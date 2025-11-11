@@ -107,6 +107,34 @@
       }),
     }),
     dict({
+      'description': 'Get detailed configuration options for a specific chart type.',
+      'name': 'EchartsTool-echarts__get_chart_configuration',
+      'parameters': dict({
+        'properties': dict({
+          'chart_type': dict({
+            'description': "The type of chart (e.g., 'line', 'bar', 'pie', 'scatter')",
+            'title': 'Chart Type',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'chart_type',
+        ]),
+        'title': 'Input for `get_chart_configuration`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'List all available ECharts chart types with descriptions. Returns: dict: A dictionary containing chart types categorized by their use case',
+      'name': 'EchartsTool-echarts__list_chart_types',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `list_chart_types`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': 'Render a chart (using Echarts 6). This is not shown to the user, but this will create a chart object That you can reference in the answer response. --- Provide the chart_options without the "dataset" parameter We will fill the dataset.source automatically with the SQL result Don\'t forget to Map from Data to Charts (series.encode) using the correct names Don\'t use specific color in the chart_options unless the user asked for it When creating bar charts with ECharts, make sure to set the correct axis types. IMPORTANT: When using formatters with encoded data, use the {@column_name} syntax. For example: - For labels: "formatter": "{@nps_score}%" - For tooltips: "formatter": "Mois: {@mois}<br/>Score NPS: {@nps_score}%" - NOT: "formatter": "{c}%" (this will show [Object Object])',
       'name': 'EchartsTool-echarts__preview_render',
       'parameters': dict({
@@ -439,6 +467,16 @@
                   'line',
                   'pie',
                   'scatter',
+                  'heatmap',
+                  'boxplot',
+                  'candlestick',
+                  'radar',
+                  'funnel',
+                  'gauge',
+                  'treemap',
+                  'sunburst',
+                  'sankey',
+                  'graph',
                 ]),
                 'title': 'Type',
                 'type': 'string',
@@ -1353,6 +1391,8 @@
     'get_date',
     'answer',
     'ask_user',
+    'EchartsTool-echarts__get_chart_configuration',
+    'EchartsTool-echarts__list_chart_types',
     'EchartsTool-echarts__preview_render',
     'SemanticModel-semantic_model__create_entity',
     'SemanticModel-semantic_model__create_issue',
@@ -1483,6 +1523,34 @@
           'question',
         ]),
         'title': 'Input for `ask_user`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Get detailed configuration options for a specific chart type.',
+      'name': 'EchartsTool-echarts__get_chart_configuration',
+      'parameters': dict({
+        'properties': dict({
+          'chart_type': dict({
+            'description': "The type of chart (e.g., 'line', 'bar', 'pie', 'scatter')",
+            'title': 'Chart Type',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'chart_type',
+        ]),
+        'title': 'Input for `get_chart_configuration`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'List all available ECharts chart types with descriptions. Returns: dict: A dictionary containing chart types categorized by their use case',
+      'name': 'EchartsTool-echarts__list_chart_types',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `list_chart_types`',
         'type': 'object',
       }),
     }),
@@ -1819,6 +1887,16 @@
                   'line',
                   'pie',
                   'scatter',
+                  'heatmap',
+                  'boxplot',
+                  'candlestick',
+                  'radar',
+                  'funnel',
+                  'gauge',
+                  'treemap',
+                  'sunburst',
+                  'sankey',
+                  'graph',
                 ]),
                 'title': 'Type',
                 'type': 'string',

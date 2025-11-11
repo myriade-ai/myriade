@@ -49,7 +49,22 @@ class ItemStyle(BaseModel):
 
 
 class Series(BaseModel):
-    type: Literal["bar", "line", "pie", "scatter"]
+    type: Literal[
+        "bar",
+        "line",
+        "pie",
+        "scatter",
+        "heatmap",
+        "boxplot",
+        "candlestick",
+        "radar",
+        "funnel",
+        "gauge",
+        "treemap",
+        "sunburst",
+        "sankey",
+        "graph",
+    ]
     label: Optional[SeriesLabel] = None
     encode: SeriesEncode
     itemStyle: Optional[ItemStyle] = None
