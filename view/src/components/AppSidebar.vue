@@ -280,11 +280,6 @@ async function handleDeleteConversation(conversationId: string) {
                 asChild
                 :isActive="isActive(conversation.id)"
                 :tooltip="conversation.name || 'Unnamed...'"
-                :class="
-                  isActive(conversation.id)
-                    ? 'bg-primary/10 font-semibold'
-                    : ''
-                "
               >
                 <RouterLink :to="`/chat/${conversation.id}`">
                   <span>{{ conversation.name || 'Unnamed...' }}</span>
