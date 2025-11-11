@@ -28,7 +28,7 @@ class EchartsTool:
     def list_chart_types(self) -> dict:
         """
         List all available ECharts chart types with descriptions.
-        
+
         Returns:
             dict: A dictionary containing chart types categorized by their use case
         """
@@ -36,7 +36,11 @@ class EchartsTool:
             "basic_charts": {
                 "line": {
                     "description": "Line chart for showing trends over time or continuous data",
-                    "use_cases": ["Time series", "Trends", "Continuous data comparison"],
+                    "use_cases": [
+                        "Time series",
+                        "Trends",
+                        "Continuous data comparison",
+                    ],
                     "supports_multiple_series": True,
                 },
                 "bar": {
@@ -46,7 +50,11 @@ class EchartsTool:
                 },
                 "pie": {
                     "description": "Pie chart for showing proportions and percentages",
-                    "use_cases": ["Proportions", "Percentages", "Part-to-whole relationships"],
+                    "use_cases": [
+                        "Proportions",
+                        "Percentages",
+                        "Part-to-whole relationships",
+                    ],
                     "supports_multiple_series": False,
                 },
                 "scatter": {
@@ -58,7 +66,11 @@ class EchartsTool:
             "advanced_charts": {
                 "boxplot": {
                     "description": "Box plot for statistical analysis showing quartiles and outliers",
-                    "use_cases": ["Statistical distribution", "Outlier detection", "Data spread"],
+                    "use_cases": [
+                        "Statistical distribution",
+                        "Outlier detection",
+                        "Data spread",
+                    ],
                     "supports_multiple_series": True,
                 },
                 "candlestick": {
@@ -68,12 +80,20 @@ class EchartsTool:
                 },
                 "heatmap": {
                     "description": "Heatmap for showing magnitude of values in a matrix",
-                    "use_cases": ["Matrix data", "Correlation matrices", "Calendar data"],
+                    "use_cases": [
+                        "Matrix data",
+                        "Correlation matrices",
+                        "Calendar data",
+                    ],
                     "supports_multiple_series": False,
                 },
                 "treemap": {
                     "description": "Treemap for hierarchical data with nested rectangles",
-                    "use_cases": ["Hierarchical data", "Part-to-whole with hierarchy", "File systems"],
+                    "use_cases": [
+                        "Hierarchical data",
+                        "Part-to-whole with hierarchy",
+                        "File systems",
+                    ],
                     "supports_multiple_series": False,
                 },
                 "sunburst": {
@@ -88,7 +108,11 @@ class EchartsTool:
                 },
                 "funnel": {
                     "description": "Funnel chart for showing stages in a process",
-                    "use_cases": ["Conversion rates", "Process stages", "Sales funnels"],
+                    "use_cases": [
+                        "Conversion rates",
+                        "Process stages",
+                        "Sales funnels",
+                    ],
                     "supports_multiple_series": True,
                 },
                 "gauge": {
@@ -98,19 +122,32 @@ class EchartsTool:
                 },
                 "radar": {
                     "description": "Radar chart for multivariate data comparison",
-                    "use_cases": ["Multi-dimensional comparison", "Profiles", "Skills assessment"],
+                    "use_cases": [
+                        "Multi-dimensional comparison",
+                        "Profiles",
+                        "Skills assessment",
+                    ],
                     "supports_multiple_series": True,
                 },
                 "graph": {
                     "description": "Graph/Network diagram for relationships and connections",
-                    "use_cases": ["Networks", "Relationships", "Connections", "Social graphs"],
+                    "use_cases": [
+                        "Networks",
+                        "Relationships",
+                        "Connections",
+                        "Social graphs",
+                    ],
                     "supports_multiple_series": False,
                 },
             },
             "map_charts": {
                 "map": {
                     "description": "Geographic map visualization",
-                    "use_cases": ["Geographic data", "Regional analysis", "Location-based metrics"],
+                    "use_cases": [
+                        "Geographic data",
+                        "Regional analysis",
+                        "Location-based metrics",
+                    ],
                     "supports_multiple_series": True,
                 },
             },
@@ -119,10 +156,10 @@ class EchartsTool:
     def get_chart_configuration(self, chart_type: str) -> dict:
         """
         Get detailed configuration options for a specific chart type.
-        
+
         Args:
             chart_type: The type of chart (e.g., 'line', 'bar', 'pie', 'scatter')
-            
+
         Returns:
             dict: Detailed configuration options for the chart type
         """
@@ -160,10 +197,24 @@ class EchartsTool:
                     },
                 },
                 "common_options": {
-                    "title": {"text": "Chart title", "left": "Position: 'left', 'center', 'right'"},
-                    "tooltip": {"trigger": "'axis' or 'item'", "formatter": "Custom formatter"},
-                    "legend": {"data": "Array of series names", "orient": "'horizontal' or 'vertical'"},
-                    "grid": {"left": "Left margin", "right": "Right margin", "top": "Top margin", "bottom": "Bottom margin"},
+                    "title": {
+                        "text": "Chart title",
+                        "left": "Position: 'left', 'center', 'right'",
+                    },
+                    "tooltip": {
+                        "trigger": "'axis' or 'item'",
+                        "formatter": "Custom formatter",
+                    },
+                    "legend": {
+                        "data": "Array of series names",
+                        "orient": "'horizontal' or 'vertical'",
+                    },
+                    "grid": {
+                        "left": "Left margin",
+                        "right": "Right margin",
+                        "top": "Top margin",
+                        "bottom": "Bottom margin",
+                    },
                     "dataZoom": "Enable zoom/pan (array of zoom configs)",
                 },
             },
@@ -192,7 +243,10 @@ class EchartsTool:
                     "xAxis": {
                         "type": "'category' for vertical bars, 'value' for horizontal",
                         "name": "Axis name",
-                        "axisLabel": {"rotate": "Rotate labels (degrees)", "interval": "Label interval"},
+                        "axisLabel": {
+                            "rotate": "Rotate labels (degrees)",
+                            "interval": "Label interval",
+                        },
                     },
                     "yAxis": {
                         "type": "'value' for vertical bars, 'category' for horizontal",
@@ -239,7 +293,10 @@ class EchartsTool:
                 "common_options": {
                     "title": {"text": "Chart title"},
                     "tooltip": {"trigger": "'item' for pie charts"},
-                    "legend": {"orient": "'vertical' or 'horizontal'", "left": "Legend position"},
+                    "legend": {
+                        "orient": "'vertical' or 'horizontal'",
+                        "left": "Legend position",
+                    },
                 },
             },
             "scatter": {
@@ -294,8 +351,14 @@ class EchartsTool:
                     },
                 },
                 "axis_options": {
-                    "xAxis": {"type": "'category'", "splitArea": {"show": "Show split areas"}},
-                    "yAxis": {"type": "'category'", "splitArea": {"show": "Show split areas"}},
+                    "xAxis": {
+                        "type": "'category'",
+                        "splitArea": {"show": "Show split areas"},
+                    },
+                    "yAxis": {
+                        "type": "'category'",
+                        "splitArea": {"show": "Show split areas"},
+                    },
                 },
                 "common_options": {
                     "visualMap": {
@@ -346,7 +409,7 @@ class EchartsTool:
                 },
             },
         }
-        
+
         if chart_type not in configurations:
             available_types = list(configurations.keys())
             return {
@@ -354,7 +417,7 @@ class EchartsTool:
                 "available_types": available_types,
                 "note": "For other chart types, refer to ECharts documentation at https://echarts.apache.org/en/option.html",
             }
-        
+
         return configurations[chart_type]
 
     def preview_render(
