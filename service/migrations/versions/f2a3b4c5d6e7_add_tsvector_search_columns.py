@@ -22,9 +22,8 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     connection = op.get_bind()
 
-    # Only add tsvector columns and indexes for PostgreSQL
     if connection.dialect.name == "postgresql":
-        # Add tsvector columns to asset table
+        # PostgreSQL: Add tsvector computed columns with GIN indexes
         op.add_column(
             "asset",
             sa.Column(
@@ -42,7 +41,6 @@ def upgrade() -> None:
             ),
         )
 
-        # Add GIN index for fast tsvector search on assets
         op.create_index(
             "idx_asset_search_vector_gin",
             "asset",
@@ -50,7 +48,6 @@ def upgrade() -> None:
             postgresql_using="gin",
         )
 
-        # Add tsvector column to term table
         op.add_column(
             "term",
             sa.Column(
@@ -66,7 +63,6 @@ def upgrade() -> None:
             ),
         )
 
-        # Add GIN index for fast tsvector search on terms
         op.create_index(
             "idx_term_search_vector_gin",
             "term",
@@ -74,7 +70,6 @@ def upgrade() -> None:
             postgresql_using="gin",
         )
 
-        # Add tsvector column to asset_tag table
         op.add_column(
             "asset_tag",
             sa.Column(
@@ -90,12 +85,27 @@ def upgrade() -> None:
             ),
         )
 
-        # Add GIN index for fast tsvector search on tags
         op.create_index(
             "idx_asset_tag_search_vector_gin",
             "asset_tag",
             ["search_vector"],
             postgresql_using="gin",
+        )
+    else:
+        # SQLite/other databases: Add nullable string columns (not used, but required for ORM)
+        op.add_column(
+            "asset",
+            sa.Column("search_vector", sa.String(), nullable=True),
+        )
+
+        op.add_column(
+            "term",
+            sa.Column("search_vector", sa.String(), nullable=True),
+        )
+
+        op.add_column(
+            "asset_tag",
+            sa.Column("search_vector", sa.String(), nullable=True),
         )
 
 
@@ -108,7 +118,7 @@ def downgrade() -> None:
         op.drop_index("idx_term_search_vector_gin", table_name="term")
         op.drop_index("idx_asset_search_vector_gin", table_name="asset")
 
-        # Drop columns
-        op.drop_column("asset_tag", "search_vector")
-        op.drop_column("term", "search_vector")
-        op.drop_column("asset", "search_vector")
+    # Drop columns for all databases
+    op.drop_column("asset_tag", "search_vector")
+    op.drop_column("term", "search_vector")
+    op.drop_column("asset", "search_vector")
