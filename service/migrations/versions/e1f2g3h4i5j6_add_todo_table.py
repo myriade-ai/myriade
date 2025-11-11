@@ -29,7 +29,13 @@ def upgrade() -> None:
         sa.Column("content", sa.String(), nullable=False),
         sa.Column(
             "status",
-            sa.Enum("pending", "in_progress", "completed", "cancelled", name="todo_status_enum"),
+            sa.Enum(
+                "pending",
+                "in_progress",
+                "completed",
+                "cancelled",
+                name="todo_status_enum",
+            ),
             nullable=False,
             server_default="pending",
         ),
@@ -46,7 +52,9 @@ def upgrade() -> None:
             server_default=sa.text("(CURRENT_TIMESTAMP)"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(["conversation_id"], ["conversation.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["conversation_id"], ["conversation.id"], ondelete="CASCADE"
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
 

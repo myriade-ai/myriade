@@ -113,7 +113,9 @@ def test_todo_not_found(session, conversation):
     todo_tool = TodoTool(session, conversation.id)
 
     with pytest.raises(ValueError, match="Todo with id"):
-        todo_tool.update_todo("00000000-0000-0000-0000-000000000000", status="completed")
+        todo_tool.update_todo(
+            "00000000-0000-0000-0000-000000000000", status="completed"
+        )
 
     with pytest.raises(ValueError, match="Todo with id"):
         todo_tool.delete_todo("00000000-0000-0000-0000-000000000000")

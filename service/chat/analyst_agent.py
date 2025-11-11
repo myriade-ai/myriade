@@ -134,9 +134,7 @@ class DataAnalystAgent:
         self.agent.add_tool(
             WorkspaceTool(self.session, self.conversation.id), "workspace"
         )
-        self.agent.add_tool(
-            TodoTool(self.session, self.conversation.id), "todo"
-        )
+        self.agent.add_tool(TodoTool(self.session, self.conversation.id), "todo")
         self.agent.add_tool(
             EchartsTool(
                 self.session,

@@ -695,7 +695,9 @@ class Todo(SerializerMixin, DefaultBase, Base):
     )
     content: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[str] = mapped_column(
-        Enum("pending", "in_progress", "completed", "cancelled", name="todo_status_enum"),
+        Enum(
+            "pending", "in_progress", "completed", "cancelled", name="todo_status_enum"
+        ),
         nullable=False,
         default="pending",
         server_default="pending",

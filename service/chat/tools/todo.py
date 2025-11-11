@@ -42,7 +42,9 @@ class TodoTool:
         """
         valid_statuses = ["pending", "in_progress", "completed", "cancelled"]
         if status not in valid_statuses:
-            raise ValueError(f"Invalid status '{status}'. Must be one of: {valid_statuses}")
+            raise ValueError(
+                f"Invalid status '{status}'. Must be one of: {valid_statuses}"
+            )
 
         # Get the max order to append at the end
         max_order = (
