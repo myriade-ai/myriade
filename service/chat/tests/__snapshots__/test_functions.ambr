@@ -1343,89 +1343,6 @@
         'type': 'object',
       }),
     }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__close_note',
-      'parameters': dict({
-        'properties': dict({
-          'id': dict({
-            'title': 'Id',
-            'type': 'integer',
-          }),
-        }),
-        'required': list([
-          'id',
-        ]),
-        'title': 'Input for `close_note`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__create_note',
-      'parameters': dict({
-        'properties': dict({
-          'content': dict({
-            'title': 'Content',
-            'type': 'string',
-          }),
-          'title': dict({
-            'title': 'Title',
-            'type': 'string',
-          }),
-        }),
-        'required': list([
-          'title',
-          'content',
-        ]),
-        'title': 'Input for `create_note`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': 'Delete a note from the project',
-      'name': 'Notes-notes__delete_note',
-      'parameters': dict({
-        'properties': dict({
-          'id': dict({
-            'title': 'Id',
-            'type': 'string',
-          }),
-        }),
-        'required': list([
-          'id',
-        ]),
-        'title': 'Input for `delete_note`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__list_notes',
-      'parameters': dict({
-        'properties': dict({
-        }),
-        'title': 'Input for `list_notes`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__open_note',
-      'parameters': dict({
-        'properties': dict({
-          'id': dict({
-            'title': 'Id',
-            'type': 'integer',
-          }),
-        }),
-        'required': list([
-          'id',
-        ]),
-        'title': 'Input for `open_note`',
-        'type': 'object',
-      }),
-    }),
   ])
 # ---
 # name: test_functions
@@ -1460,11 +1377,6 @@
     'DocumentsTool-documents__read_document',
     'DocumentsTool-documents__search_documents',
     'DocumentsTool-documents__update_document_title',
-    'Notes-notes__close_note',
-    'Notes-notes__create_note',
-    'Notes-notes__delete_note',
-    'Notes-notes__list_notes',
-    'Notes-notes__open_note',
   ])
 # ---
 # name: test_functions_schema
@@ -2811,89 +2723,6 @@
         'type': 'object',
       }),
     }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__close_note',
-      'parameters': dict({
-        'properties': dict({
-          'id': dict({
-            'title': 'Id',
-            'type': 'integer',
-          }),
-        }),
-        'required': list([
-          'id',
-        ]),
-        'title': 'Input for `close_note`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__create_note',
-      'parameters': dict({
-        'properties': dict({
-          'content': dict({
-            'title': 'Content',
-            'type': 'string',
-          }),
-          'title': dict({
-            'title': 'Title',
-            'type': 'string',
-          }),
-        }),
-        'required': list([
-          'title',
-          'content',
-        ]),
-        'title': 'Input for `create_note`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': 'Delete a note from the project',
-      'name': 'Notes-notes__delete_note',
-      'parameters': dict({
-        'properties': dict({
-          'id': dict({
-            'title': 'Id',
-            'type': 'string',
-          }),
-        }),
-        'required': list([
-          'id',
-        ]),
-        'title': 'Input for `delete_note`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__list_notes',
-      'parameters': dict({
-        'properties': dict({
-        }),
-        'title': 'Input for `list_notes`',
-        'type': 'object',
-      }),
-    }),
-    dict({
-      'description': None,
-      'name': 'Notes-notes__open_note',
-      'parameters': dict({
-        'properties': dict({
-          'id': dict({
-            'title': 'Id',
-            'type': 'integer',
-          }),
-        }),
-        'required': list([
-          'id',
-        ]),
-        'title': 'Input for `open_note`',
-        'type': 'object',
-      }),
-    }),
   ])
 # ---
 # name: test_tools
@@ -2902,7 +2731,6 @@
     'database': 'DatabaseTool',
     'documents': 'DocumentsTool',
     'echarts': 'EchartsTool',
-    'notes': 'Notes',
     'semantic_model': 'SemanticModel',
     'workspace': 'WorkspaceTool',
   })
