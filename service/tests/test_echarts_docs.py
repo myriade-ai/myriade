@@ -1,7 +1,8 @@
 """Test ECharts documentation functions."""
 
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 from chat.tools.echarts import EchartsTool
 
