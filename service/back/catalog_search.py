@@ -1,8 +1,13 @@
 """
 Catalog search functionality for both REST API and chat tools.
 
-Provides search capabilities for catalog assets with PostgreSQL trigram similarity
-matching and SQLite ILIKE fallback.
+Provides hybrid search capabilities combining:
+- PostgreSQL trigram similarity (fuzzy matching for typos and variations)
+- PostgreSQL full-text search with tsvector (semantic matching with stemming)
+- SQLite ILIKE fallback for development environments
+
+This hybrid approach gives the best of both worlds: catching typos while
+understanding multi-word queries and word variations.
 """
 
 import logging
@@ -131,7 +136,28 @@ def _execute_asset_search(
 
     if is_postgresql:
         similarity_threshold = 0.3
-        similarity_score = func.similarity(Asset.name, text).label("similarity_score")
+
+        # Create tsquery for full-text search
+        # Use plainto_tsquery to handle user input without special syntax
+        tsquery = func.plainto_tsquery("english", text)
+
+        # Calculate weighted trigram similarity scores
+        # Use COALESCE to handle NULL values (treat as 0 similarity)
+        name_score = func.coalesce(func.similarity(Asset.name, text), 0) * 5
+        tag_score = func.coalesce(func.similarity(AssetTag.name, text), 0)
+        description_score = func.coalesce(func.similarity(Asset.description, text), 0)
+        ai_suggestion_score = func.coalesce(
+            func.similarity(Asset.ai_suggestion, text), 0
+        )
+
+        # Calculate full-text search score using ts_rank
+        # Multiply by 2 to give FTS good weight relative to trigrams
+        fts_score = func.coalesce(func.ts_rank(Asset.search_vector, tsquery), 0) * 2
+
+        # Combined weighted score: trigram similarity + full-text search
+        similarity_score = (
+            name_score + tag_score + description_score + ai_suggestion_score + fts_score
+        ).label("similarity_score")
 
         # Always join tags because we search by tag names AND need to eager load them
         query = (
@@ -140,11 +166,14 @@ def _execute_asset_search(
             .outerjoin(Asset.asset_tags)  # Join for searching tag names
             .filter(Asset.database_id == database_id)
             .filter(
-                # Fuzzy matching on name and tag names (short fields)
+                # Fuzzy matching on name, tags, description, and ai_suggestion
                 (func.similarity(Asset.name, text) > similarity_threshold)
                 | (func.similarity(AssetTag.name, text) > similarity_threshold)
-                # Exact substring matching on description and URN (longer/structured fields)
-                | Asset.description.ilike(f"%{text}%")
+                | (func.similarity(Asset.description, text) > similarity_threshold)
+                | (func.similarity(Asset.ai_suggestion, text) > similarity_threshold)
+                # Full-text search matching using @@ operator
+                | (Asset.search_vector.op("@@")(tsquery))
+                # Exact substring matching on URN (structured field)
                 | Asset.urn.ilike(f"%{text}%")
             )
             .distinct()
@@ -190,6 +219,7 @@ def _execute_asset_search(
             .filter(
                 Asset.name.ilike(f"%{text}%")
                 | Asset.description.ilike(f"%{text}%")
+                | Asset.ai_suggestion.ilike(f"%{text}%")
                 | Asset.urn.ilike(f"%{text}%")
                 | AssetTag.name.ilike(f"%{text}%")  # Search tag names
             )
@@ -245,15 +275,31 @@ def _execute_term_search(
     """
     if is_postgresql:
         similarity_threshold = 0.3
-        similarity_score = func.similarity(Term.name, text).label("similarity_score")
+
+        # Create tsquery for full-text search
+        tsquery = func.plainto_tsquery("english", text)
+
+        # Calculate weighted similarity score: name is 5x more important than definition
+        # Use COALESCE to handle NULL values (treat as 0 similarity)
+        name_score = func.coalesce(func.similarity(Term.name, text), 0) * 5
+        definition_score = func.coalesce(func.similarity(Term.definition, text), 0)
+
+        # Calculate full-text search score using ts_rank
+        fts_score = func.coalesce(func.ts_rank(Term.search_vector, tsquery), 0) * 2
+
+        similarity_score = (name_score + definition_score + fts_score).label(
+            "similarity_score"
+        )
 
         query = (
             session.query(Term, similarity_score)
             .filter(Term.database_id == database_id)
             .filter(
-                # Use similarity for fuzzy matching
+                # Use similarity for fuzzy matching on both name and definition
                 (func.similarity(Term.name, text) > similarity_threshold)
-                | Term.definition.ilike(f"%{text}%")
+                | (func.similarity(Term.definition, text) > similarity_threshold)
+                # Full-text search matching using @@ operator
+                | (Term.search_vector.op("@@")(tsquery))
             )
         )
 

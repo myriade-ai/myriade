@@ -1220,7 +1220,7 @@ def search_catalog_assets(database_id: UUID):
             asset_type=asset_type,
             tag_ids=tag_ids,
             statuses=statuses,
-            limit=100,
+            limit=50,
         )
         asset_ids = [asset["id"] for asset in results]
         return jsonify(asset_ids)
