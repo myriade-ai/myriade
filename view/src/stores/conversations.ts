@@ -109,6 +109,41 @@ export const useConversationsStore = defineStore('conversations', () => {
   const conversations = ref<Record<string, Conversation>>({})
   const conversationStatuses = ref<Record<string, ConversationStatus>>({})
   const subscriptionRequired = ref(false)
+  
+  // Track when user last viewed each conversation
+  const conversationLastViewed = ref<Record<string, Date>>({})
+  
+  // Load last viewed timestamps from localStorage on init
+  const loadLastViewedFromStorage = () => {
+    try {
+      const stored = localStorage.getItem('conversation_last_viewed')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        // Convert ISO strings back to Date objects
+        Object.keys(parsed).forEach((id) => {
+          conversationLastViewed.value[id] = new Date(parsed[id])
+        })
+      }
+    } catch (error) {
+      console.error('Failed to load last viewed timestamps:', error)
+    }
+  }
+  
+  // Save last viewed timestamps to localStorage
+  const saveLastViewedToStorage = () => {
+    try {
+      const toStore: Record<string, string> = {}
+      Object.keys(conversationLastViewed.value).forEach((id) => {
+        toStore[id] = conversationLastViewed.value[id].toISOString()
+      })
+      localStorage.setItem('conversation_last_viewed', JSON.stringify(toStore))
+    } catch (error) {
+      console.error('Failed to save last viewed timestamps:', error)
+    }
+  }
+  
+  // Initialize
+  loadLastViewedFromStorage()
 
   // Watch for context changes and fetch conversations
   const contextsStore = useContextsStore()
@@ -179,6 +214,17 @@ export const useConversationsStore = defineStore('conversations', () => {
         delete conversations.value[id]
       }
     })
+  }
+
+  // Mark conversation as viewed (when user opens it)
+  function markConversationAsViewed(conversationId: string) {
+    conversationLastViewed.value[conversationId] = new Date()
+    saveLastViewedToStorage()
+  }
+  
+  // Get last viewed timestamp for a conversation
+  function getLastViewed(conversationId: string): Date | null {
+    return conversationLastViewed.value[conversationId] || null
   }
 
   // 2) Fetch messages for a single conversation
@@ -408,6 +454,9 @@ export const useConversationsStore = defineStore('conversations', () => {
     regenerateFromMessage,
     // actions conversations
     createConversation,
-    createGithubPullRequest
+    createGithubPullRequest,
+    // tracking
+    markConversationAsViewed,
+    getLastViewed
   }
 })
