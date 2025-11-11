@@ -623,6 +623,8 @@ onMounted(async () => {
   } else {
     // Existing conversation
     conversationsStore.fetchMessages(conversationId.value)
+    // Mark conversation as viewed
+    conversationsStore.markConversationAsViewed(conversationId.value)
   }
 
   checkForChanges()
@@ -635,6 +637,8 @@ watch(
   (newVal) => {
     if (newVal !== null && newVal !== undefined && newVal !== '') {
       conversationsStore.fetchMessages(newVal)
+      // Mark conversation as viewed
+      conversationsStore.markConversationAsViewed(newVal)
       checkForChanges()
     }
   }
