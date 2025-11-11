@@ -1,7 +1,7 @@
 """add_pg_trgm_extension_and_search_indexes
 
 Revision ID: e1f2c3d4e5f6
-Revises: 2dc0b1830c41
+Revises: 0642395ff862
 Create Date: 2025-11-07 12:00:00.000000
 
 """
@@ -12,7 +12,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "e1f2c3d4e5f6"
-down_revision: Union[str, None] = "2dc0b1830c41"
+down_revision: Union[str, None] = "0642395ff862"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
