@@ -111,6 +111,34 @@ const router = useRouter()
 const editingConversationId = ref<string | null>(null)
 const nameInputs = ref<{ [convId: string]: HTMLInputElement }>({})
 
+// Helper function to check if conversation is ongoing
+function isConversationOngoing(conversationId: string): boolean {
+  const conv = store.getConversationById(conversationId)
+  if (!conv) return false
+  const status = conv.status
+  return status === 'running' || status === 'pending'
+}
+
+// Helper function to check if conversation has new messages
+// A conversation has "new messages" if it was updated in the last 5 minutes
+// and has at least one non-internal message
+function hasNewMessages(conversationId: string): boolean {
+  const conv = store.getConversationById(conversationId)
+  if (!conv || !conv.messages || conv.messages.length === 0) return false
+  
+  // Check if updated in the last 5 minutes
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+  if (conv.updatedAt < fiveMinutesAgo) return false
+  
+  // Check if the conversation has at least one non-internal (public) message
+  // We consider a message "public" if it's from the user or marked as an answer
+  const hasPublicMessage = conv.messages.some(
+    (msg) => msg.role === 'user' || msg.isAnswer
+  )
+  
+  return hasPublicMessage
+}
+
 function setNameInputRef(id: string) {
   return (el: unknown) => {
     if (el && el instanceof HTMLInputElement) {
@@ -281,14 +309,32 @@ async function handleDeleteConversation(conversationId: string) {
                 :isActive="isActive(conversation.id)"
                 :tooltip="conversation.name || 'Unnamed...'"
               >
-                <RouterLink :to="`/chat/${conversation.id}`">
-                  <span>{{ conversation.name || 'Unnamed...' }}</span>
+                <RouterLink :to="`/chat/${conversation.id}`" class="flex items-center gap-2 w-full">
+                  <!-- Indicator for ongoing or new messages -->
+                  <div
+                    v-if="isConversationOngoing(conversation.id) || hasNewMessages(conversation.id)"
+                    class="flex-shrink-0 w-2 h-2 rounded-full"
+                    :class="{
+                      'bg-primary-500 animate-pulse': isConversationOngoing(conversation.id),
+                      'bg-green-500': !isConversationOngoing(conversation.id) && hasNewMessages(conversation.id)
+                    }"
+                  />
+                  <span class="flex-1">{{ conversation.name || 'Unnamed...' }}</span>
                 </RouterLink>
               </SidebarMenuButton>
               <div
                 v-else
                 class="flex h-8 w-full items-center gap-2 overflow-hidden rounded-md px-1.5 text-sm font-medium outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground"
               >
+                <!-- Indicator for ongoing or new messages (also in edit mode) -->
+                <div
+                  v-if="isConversationOngoing(conversation.id) || hasNewMessages(conversation.id)"
+                  class="flex-shrink-0 w-2 h-2 rounded-full"
+                  :class="{
+                    'bg-primary-500 animate-pulse': isConversationOngoing(conversation.id),
+                    'bg-green-500': !isConversationOngoing(conversation.id) && hasNewMessages(conversation.id)
+                  }"
+                />
                 <input
                   :ref="setNameInputRef(conversation.id)"
                   v-model="conversation.name"
