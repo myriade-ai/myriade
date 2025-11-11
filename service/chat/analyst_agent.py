@@ -11,7 +11,6 @@ from agentlys_tools.code_editor import CodeEditor
 from app import socketio
 from back.github_manager import get_github_integration
 from chat.lock import STATUS, StopException, emit_status
-from chat.notes import Notes
 from chat.proxy_provider import ProxyProvider
 from chat.tools.catalog import CatalogTool
 from chat.tools.database import DatabaseTool
@@ -185,10 +184,6 @@ class DataAnalystAgent:
                     },
                 )
                 self.agent.add_tool(dbt_editor, "dbt_editor")
-
-        if self.conversation.project:
-            notes = Notes(self.session, self.agent, self.conversation.project)
-            self.agent.add_tool(notes, "notes")
 
     def _get_organization_language(self):
         """Get the organization language if the database belongs to an organization."""
