@@ -30,6 +30,7 @@
             icon="database"
             :expanded="isExpanded(databaseNode.key)"
             :is-selected="props.selectedAssetId === databaseNode.asset.id"
+            :asset-id="databaseNode.asset.id"
             @toggle="handleDatabaseClick(databaseNode.key)"
             @select="$emit('select-asset', databaseNode.asset.id)"
           >
@@ -41,6 +42,7 @@
                     icon="schema"
                     :expanded="isExpanded(schemaNode.key)"
                     :is-selected="schemaNode.asset && props.selectedAssetId === schemaNode.asset.id"
+                    :asset-id="schemaNode.asset?.id"
                     @toggle="handleSchemaClick(schemaNode.key)"
                     @select="
                       schemaNode.asset
@@ -62,6 +64,7 @@
                             "
                             :expanded="isExpanded(tableNode.key)"
                             :is-selected="props.selectedAssetId === tableNode.asset.id"
+                            :asset-id="tableNode.asset.id"
                             @toggle="toggleNode(tableNode.key)"
                             @select="$emit('select-asset', tableNode.asset.id)"
                           >
@@ -80,6 +83,7 @@
                                     "
                                     type="column"
                                     :meta="columnNode.meta"
+                                    :asset-id="columnNode.asset.id"
                                     @select="$emit('select-asset', columnNode.asset.id)"
                                   />
                                 </li>

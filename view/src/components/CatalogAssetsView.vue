@@ -148,6 +148,9 @@
         />
       </SheetContent>
     </Sheet>
+
+    <!-- Selection Summary Panel -->
+    <SelectionSummaryPanel />
   </div>
 </template>
 
@@ -156,6 +159,7 @@ import CatalogDetailsView from '@/components/catalog/CatalogDetailsView.vue'
 import CatalogExplorer from '@/components/catalog/CatalogExplorer.vue'
 import CatalogFilters from '@/components/catalog/CatalogFilters.vue'
 import CatalogListView from '@/components/catalog/CatalogListView.vue'
+import SelectionSummaryPanel from '@/components/catalog/SelectionSummaryPanel.vue'
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import { Button } from '@/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
