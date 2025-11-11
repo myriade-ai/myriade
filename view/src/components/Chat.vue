@@ -113,6 +113,7 @@
                   >
                     <MessageDisplay
                       :message="message"
+                      :is-internal="true"
                       @editInlineClick="editInline"
                       @regenerateFromMessage="conversationsStore.regenerateFromMessage"
                       @rejected="focusInput"
