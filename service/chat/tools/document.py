@@ -147,18 +147,19 @@ class DocumentsTool:
             new_string: The new text to insert in place of the old text
 
         Returns:
-            The content of the document after editing
+            Confirmation message
         """
         document = self._get_document(document_id)
 
         if old_string not in document.content:
             raise ValueError("old_string not found in document")
 
+        occurrences = document.content.count(old_string)
         document.content = document.content.replace(old_string, new_string)
         document.updated_by = getattr(self.conversation, "userId", None)
         self._create_version(document, "Replaced text in document")
 
-        return self._format_document_content(document)
+        return f"Document '{document.title or 'Untitled'}' updated successfully. Replaced {occurrences} occurrence(s)."
 
     def insert_lines_in_document(
         self, document_id: str, line_number: int, text: str
@@ -172,7 +173,7 @@ class DocumentsTool:
             text: The text to insert
 
         Returns:
-            The content of the document after editing
+            Confirmation message
         """
         document = self._get_document(document_id)
         lines = document.content.splitlines()
@@ -188,7 +189,7 @@ class DocumentsTool:
         document.updated_by = getattr(self.conversation, "userId", None)
         self._create_version(document, f"Inserted text at line {line_number}")
 
-        return self._format_document_content(document)
+        return f"Document '{document.title or 'Untitled'}' updated successfully. Text inserted at line {line_number}."
 
     def delete_lines_from_document(
         self, document_id: str, start_line: int, end_line: int
@@ -202,7 +203,7 @@ class DocumentsTool:
             end_line: The last line to delete (1-indexed, inclusive)
 
         Returns:
-            The content of the document after editing
+            Confirmation message
         """
         document = self._get_document(document_id)
         lines = document.content.splitlines()
@@ -214,12 +215,13 @@ class DocumentsTool:
         if start_idx < 0 or end_idx > len(lines) or start_idx >= end_idx:
             raise ValueError(f"Invalid line range: {start_line}-{end_line}")
 
+        lines_deleted = end_idx - start_idx
         del lines[start_idx:end_idx]
         document.content = "\n".join(lines)
         document.updated_by = getattr(self.conversation, "userId", None)
         self._create_version(document, f"Deleted lines {start_line}-{end_line}")
 
-        return self._format_document_content(document)
+        return f"Document '{document.title or 'Untitled'}' updated successfully. Deleted {lines_deleted} line(s) ({start_line}-{end_line})."
 
     def update_document_title(self, document_id: str, new_title: str) -> str:
         """
@@ -290,23 +292,6 @@ class DocumentsTool:
             )
 
         return document
-
-    def _format_document_content(self, document: Document) -> str:
-        """Format document content with line numbers for display."""
-        lines = document.content.splitlines()
-
-        if not lines:
-            return f"Report: {document.title or 'Untitled'}\n(Empty report)"
-
-        display = [f"Report: {document.title or 'Untitled'}", ""]
-        display.extend(DOCUMENT_DISPLAY_HEADERS)
-
-        width = len(str(len(lines)))
-
-        for i, line in enumerate(lines, start=1):
-            display.append(f"{str(i).rjust(width)}|{line}")
-
-        return "\n".join(display)
 
     def _create_version(self, document: Document, change_description: str = None):
         """
