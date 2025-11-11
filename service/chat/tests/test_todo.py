@@ -143,3 +143,108 @@ def test_list_todos_by_status(session, conversation):
 
     assert len(result_dict["todos"]) == 1
     assert result_dict["todos"][0]["status"] == "in_progress"
+
+
+def test_create_bulk_todos(session, conversation):
+    """Test creating multiple todos in bulk"""
+    todo_tool = TodoTool(session, conversation.id)
+
+    todos_to_create = [
+        {"content": "Todo 1", "status": "pending"},
+        {"content": "Todo 2", "status": "in_progress"},
+        {"content": "Todo 3"},  # Should default to pending
+    ]
+
+    result = todo_tool.create_todo(todos=todos_to_create)
+
+    assert "Created 3 todos:" in result
+    assert "Todo 1" in result
+    assert "Todo 2" in result
+    assert "Todo 3" in result
+
+    # Check that all todos were created in the database
+    todos = (
+        session.query(Todo)
+        .filter(Todo.conversation_id == conversation.id)
+        .order_by(Todo.order)
+        .all()
+    )
+    assert len(todos) == 3
+    assert todos[0].content == "Todo 1"
+    assert todos[0].status == "pending"
+    assert todos[0].order == 0
+    assert todos[1].content == "Todo 2"
+    assert todos[1].status == "in_progress"
+    assert todos[1].order == 1
+    assert todos[2].content == "Todo 3"
+    assert todos[2].status == "pending"
+    assert todos[2].order == 2
+
+
+def test_bulk_todos_validation(session, conversation):
+    """Test validation for bulk todo creation"""
+    todo_tool = TodoTool(session, conversation.id)
+
+    # Test empty list
+    with pytest.raises(ValueError, match="must be a non-empty list"):
+        todo_tool.create_todo(todos=[])
+
+    # Test non-list
+    with pytest.raises(ValueError, match="must be a non-empty list"):
+        todo_tool.create_todo(todos="not a list")
+
+    # Test missing content field
+    with pytest.raises(ValueError, match="missing 'content' field"):
+        todo_tool.create_todo(todos=[{"status": "pending"}])
+
+    # Test invalid status
+    with pytest.raises(ValueError, match="Invalid status"):
+        todo_tool.create_todo(todos=[{"content": "Test", "status": "invalid"}])
+
+    # Test non-dict element
+    with pytest.raises(ValueError, match="must be a dictionary"):
+        todo_tool.create_todo(todos=["not a dict"])
+
+
+def test_bulk_todos_order_after_existing(session, conversation):
+    """Test that bulk created todos maintain correct order after existing todos"""
+    todo_tool = TodoTool(session, conversation.id)
+
+    # Create some existing todos
+    todo_tool.create_todo("Existing 1", "pending")
+    todo_tool.create_todo("Existing 2", "pending")
+
+    # Create bulk todos
+    todos_to_create = [
+        {"content": "Bulk 1"},
+        {"content": "Bulk 2"},
+    ]
+
+    todo_tool.create_todo(todos=todos_to_create)
+
+    # Check order
+    todos = (
+        session.query(Todo)
+        .filter(Todo.conversation_id == conversation.id)
+        .order_by(Todo.order)
+        .all()
+    )
+    assert len(todos) == 4
+    assert todos[0].content == "Existing 1"
+    assert todos[0].order == 0
+    assert todos[1].content == "Existing 2"
+    assert todos[1].order == 1
+    assert todos[2].content == "Bulk 1"
+    assert todos[2].order == 2
+    assert todos[3].content == "Bulk 2"
+    assert todos[3].order == 3
+
+
+def test_create_todo_requires_content_or_todos(session, conversation):
+    """Test that create_todo requires either content or todos parameter"""
+    todo_tool = TodoTool(session, conversation.id)
+
+    with pytest.raises(
+        ValueError, match="Either 'content' or 'todos' must be provided"
+    ):
+        todo_tool.create_todo()

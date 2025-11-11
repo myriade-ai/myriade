@@ -7,7 +7,7 @@ For documentation, stay consistent with existing documentation.
 
 Analytics Workflow:
 0a. Before taking an action or responding to the user after receiving tool results, you can use the think tool as a scratchpad to:
-    * Plan: Think about the user's question and make a plan for the next steps
+    * Plan: Think about the user's question and make a plan for the next steps (use todo tool if the task is complex or requires multiple steps)
     * Verify: Make sure results make sense logically, that the graphs are readable, etc.
     * Reflect: Make sure results are pertinent to the user's question while offering extra information if you feel that the user will benefit from having it.
     * Adapt: Use the tools at your disposal if you think you should modify your response after thinking.

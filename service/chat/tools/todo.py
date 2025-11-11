@@ -32,44 +32,111 @@ class TodoTool:
         }
         return yaml.dump(todo_summary)
 
-    def create_todo(self, content: str, status: str = "pending") -> str:
+    def create_todo(
+        self,
+        content: Optional[str] = None,
+        status: str = "pending",
+        todos: Optional[List[dict]] = None,
+    ) -> str:
         """
-        Create a new todo item
+        Create one or multiple todo items
         Args:
-            content: The todo content/description
+            content: The todo content/description (for single todo creation)
             status: The status of the todo (pending, in_progress, completed, cancelled).
-                    Defaults to "pending"
+                    Defaults to "pending" (for single todo creation)
+            todos: List of todos to create in bulk. Each dict should have:
+                   - content (str, required): The todo content/description
+                   - status (str, optional): The status, defaults to "pending"
+                   Example: [{"content": "Task 1", "status": "pending"}, {"content": "Task 2"}]
         """
         valid_statuses = ["pending", "in_progress", "completed", "cancelled"]
-        if status not in valid_statuses:
-            raise ValueError(
-                f"Invalid status '{status}'. Must be one of: {valid_statuses}"
+
+        # Determine if this is bulk or single creation
+        if todos is not None:
+            # Bulk creation
+            if not isinstance(todos, list) or len(todos) == 0:
+                raise ValueError("todos must be a non-empty list")
+
+            # Validate all todos first
+            for idx, todo_data in enumerate(todos):
+                if not isinstance(todo_data, dict):
+                    raise ValueError(f"Todo at index {idx} must be a dictionary")
+                if "content" not in todo_data:
+                    raise ValueError(f"Todo at index {idx} missing 'content' field")
+                todo_status = todo_data.get("status", "pending")
+                if todo_status not in valid_statuses:
+                    raise ValueError(
+                        f"Invalid status '{todo_status}' at index {idx}. Must be one of: {valid_statuses}"
+                    )
+
+            # Get the starting order
+            max_order = (
+                self.session.query(Todo)
+                .filter(Todo.conversation_id == self.conversation_id)
+                .count()
             )
 
-        # Get the max order to append at the end
-        max_order = (
-            self.session.query(Todo)
-            .filter(Todo.conversation_id == self.conversation_id)
-            .count()
-        )
+            created_todos = []
+            for idx, todo_data in enumerate(todos):
+                todo = Todo(
+                    conversation_id=self.conversation_id,
+                    content=todo_data["content"],
+                    status=todo_data.get("status", "pending"),
+                    order=max_order + idx,
+                )
+                self.session.add(todo)
+                created_todos.append(todo)
 
-        todo = Todo(
-            conversation_id=self.conversation_id,
-            content=content,
-            status=status,
-            order=max_order,
-        )
-        self.session.add(todo)
-        self.session.flush()
+            self.session.flush()
 
-        status_emoji = {
-            "pending": "⭕",
-            "in_progress": "🔄",
-            "completed": "✅",
-            "cancelled": "❌",
-        }.get(status, "")
+            status_emoji = {
+                "pending": "⭕",
+                "in_progress": "🔄",
+                "completed": "✅",
+                "cancelled": "❌",
+            }
 
-        return f"Created todo {status_emoji} '{content}' (id: {todo.id})"
+            results = [
+                f"{status_emoji.get(todo.status, '')} '{todo.content}' (id: {todo.id})"
+                for todo in created_todos
+            ]
+
+            return f"Created {len(created_todos)} todos:\n" + "\n".join(results)
+
+        elif content is not None:
+            # Single creation (backward compatible)
+            if status not in valid_statuses:
+                raise ValueError(
+                    f"Invalid status '{status}'. Must be one of: {valid_statuses}"
+                )
+
+            # Get the max order to append at the end
+            max_order = (
+                self.session.query(Todo)
+                .filter(Todo.conversation_id == self.conversation_id)
+                .count()
+            )
+
+            todo = Todo(
+                conversation_id=self.conversation_id,
+                content=content,
+                status=status,
+                order=max_order,
+            )
+            self.session.add(todo)
+            self.session.flush()
+
+            status_emoji = {
+                "pending": "⭕",
+                "in_progress": "🔄",
+                "completed": "✅",
+                "cancelled": "❌",
+            }.get(status, "")
+
+            return f"Created todo {status_emoji} '{content}' (id: {todo.id})"
+
+        else:
+            raise ValueError("Either 'content' or 'todos' must be provided")
 
     def list_todos(
         self, status: Optional[str] = None, include_completed: bool = False
