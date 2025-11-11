@@ -36,19 +36,13 @@
 
         <!-- Normal display mode -->
         <div v-else class="w-full overflow-hidden">
-          <!-- Truncated content wrapper for internal messages -->
+          <!-- Function response renderer for CodeEditor read_file operations -->
           <div
-            :class="{
-              'max-h-[30rem] overflow-hidden relative': props.isInternal && !isExpanded && shouldTruncate
-            }"
+            v-if="props.message.role === 'function' && props.message.name?.includes('read_file')"
           >
-            <!-- Function response renderer for CodeEditor read_file operations -->
-            <div
-              v-if="props.message.role === 'function' && props.message.name?.includes('read_file')"
-            >
-              <CodeFileDisplay :content="props.message.content" />
-            </div>
-            <template v-else v-for="(part, index) in parsedText">
+            <CodeFileDisplay :content="props.message.content" />
+          </div>
+          <template v-else v-for="(part, index) in parsedText">
             <div v-if="part.type === 'markdown'" :key="`text-${index}`" class="w-full">
               <MarkdownDisplay :content="part.content"></MarkdownDisplay>
             </div>
@@ -105,52 +99,37 @@
                 class="mt-2"
               />
             </div>
-            </template>
+          </template>
 
-            <div v-if="props.message.image" class="w-full">
-              <img :src="`data:image/png;base64,${props.message.image}`" class="max-w-full h-auto" />
-            </div>
+          <div v-if="props.message.image" class="w-full">
+            <img :src="`data:image/png;base64,${props.message.image}`" class="max-w-full h-auto" />
+          </div>
 
+          <!-- Wrap FunctionCallRenderer in preview component for internal messages -->
+          <InternalMessagePreview v-if="props.message.functionCall && props.isInternal">
             <FunctionCallRenderer
-              v-else-if="props.message.functionCall"
               :functionCall="props.message.functionCall"
               :queryId="props.message.queryId"
             />
-            <AskQueryConfirmation
-              v-if="needsConfirmation && queryData && props.message.role === 'assistant'"
-              :queryId="queryData.id"
-              :operationType="queryData.operationType"
-              :status="queryData.status"
-              @rejected="emit('rejected')"
-            />
-            <AskCatalogConfirmation
-              v-if="catalogOperation && props.message.role === 'assistant'"
-              :function-call="props.message.functionCall"
-              :asset="props.message.asset"
-              :term="props.message.term"
-            />
-            
-            <!-- Gradient overlay for truncated content -->
-            <div
-              v-if="props.isInternal && !isExpanded && shouldTruncate"
-              class="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-gray-50 to-transparent pointer-events-none"
-            ></div>
-          </div>
-        </div>
-
-        <!-- Expand/Collapse button for long internal messages -->
-        <div
-          v-if="props.isInternal && shouldTruncate"
-          class="flex justify-center mt-2"
-        >
-          <Button
-            variant="ghost"
-            size="sm"
-            @click="isExpanded = !isExpanded"
-            class="text-xs text-gray-600 hover:text-gray-900"
-          >
-            {{ isExpanded ? 'Show less' : 'Show more' }}
-          </Button>
+          </InternalMessagePreview>
+          <FunctionCallRenderer
+            v-else-if="props.message.functionCall"
+            :functionCall="props.message.functionCall"
+            :queryId="props.message.queryId"
+          />
+          <AskQueryConfirmation
+            v-if="needsConfirmation && queryData && props.message.role === 'assistant'"
+            :queryId="queryData.id"
+            :operationType="queryData.operationType"
+            :status="queryData.status"
+            @rejected="emit('rejected')"
+          />
+          <AskCatalogConfirmation
+            v-if="catalogOperation && props.message.role === 'assistant'"
+            :function-call="props.message.functionCall"
+            :asset="props.message.asset"
+            :term="props.message.term"
+          />
         </div>
       </div>
 
@@ -256,6 +235,7 @@ import { Check, Copy, Pencil, RotateCcw, SquarePen } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import CodeFileDisplay from './CodeFileDisplay.vue'
 import FunctionCallRenderer from './FunctionCallRenderer.vue'
+import InternalMessagePreview from './InternalMessagePreview.vue'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { Textarea } from './ui/textarea'
@@ -275,7 +255,6 @@ const editedContent = ref('')
 const isCopied = ref(false)
 const showActions = ref(false)
 const messageRef = ref<HTMLElement | null>(null)
-const isExpanded = ref(false)
 
 // Query confirmation using store
 const queriesStore = useQueriesStore()
@@ -360,18 +339,6 @@ function editInNewTab() {
 function openDocument(documentId: string) {
   documentsStore.openDocument(documentId)
 }
-
-// Check if message content should be truncated (for internal messages)
-const shouldTruncate = computed(() => {
-  if (!props.isInternal) return false
-  
-  // Count lines in the message content
-  const content = props.message.content
-  if (typeof content !== 'string') return false
-  
-  const lines = content.split('\n')
-  return lines.length > 20
-})
 
 const parsedText = computed<
   Array<{ type: string; content: any; query_id?: string; chart_id?: string; document_id?: string }>
