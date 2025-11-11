@@ -107,6 +107,121 @@
       }),
     }),
     dict({
+      'description': 'Create a new todo item',
+      'name': 'TodoTool-todo__create_todo',
+      'parameters': dict({
+        'properties': dict({
+          'content': dict({
+            'description': 'The todo content/description',
+            'title': 'Content',
+            'type': 'string',
+          }),
+          'status': dict({
+            'default': 'pending',
+            'description': 'The status of the todo (pending, in_progress, completed, cancelled).',
+            'title': 'Status',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'content',
+        ]),
+        'title': 'Input for `create_todo`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Delete a todo item',
+      'name': 'TodoTool-todo__delete_todo',
+      'parameters': dict({
+        'properties': dict({
+          'todo_id': dict({
+            'description': 'UUID of the todo to delete',
+            'title': 'Todo Id',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'todo_id',
+        ]),
+        'title': 'Input for `delete_todo`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'List all todos in this conversation',
+      'name': 'TodoTool-todo__list_todos',
+      'parameters': dict({
+        'properties': dict({
+          'include_completed': dict({
+            'default': False,
+            'description': 'If True, include completed and cancelled todos.',
+            'title': 'Include Completed',
+            'type': 'boolean',
+          }),
+          'status': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by status (pending, in_progress, completed, cancelled).',
+            'title': 'Status',
+          }),
+        }),
+        'title': 'Input for `list_todos`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Update a todo item',
+      'name': 'TodoTool-todo__update_todo',
+      'parameters': dict({
+        'properties': dict({
+          'content': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'New content for the todo (optional)',
+            'title': 'Content',
+          }),
+          'status': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'New status for the todo (pending, in_progress, completed, cancelled)',
+            'title': 'Status',
+          }),
+          'todo_id': dict({
+            'description': 'UUID of the todo to update',
+            'title': 'Todo Id',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'todo_id',
+        ]),
+        'title': 'Input for `update_todo`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': 'Render a chart (using Echarts 6). This is not shown to the user, but this will create a chart object That you can reference in the answer response. --- Provide the chart_options without the "dataset" parameter We will fill the dataset.source automatically with the SQL result Don\'t forget to Map from Data to Charts (series.encode) using the correct names Don\'t use specific color in the chart_options unless the user asked for it When creating bar charts with ECharts, make sure to set the correct axis types. IMPORTANT: When using formatters with encoded data, use the {@column_name} syntax. For example: - For labels: "formatter": "{@nps_score}%" - For tooltips: "formatter": "Mois: {@mois}<br/>Score NPS: {@nps_score}%" - NOT: "formatter": "{c}%" (this will show [Object Object])',
       'name': 'EchartsTool-echarts__preview_render',
       'parameters': dict({
@@ -1436,6 +1551,10 @@
     'get_date',
     'answer',
     'ask_user',
+    'TodoTool-todo__create_todo',
+    'TodoTool-todo__delete_todo',
+    'TodoTool-todo__list_todos',
+    'TodoTool-todo__update_todo',
     'EchartsTool-echarts__preview_render',
     'SemanticModel-semantic_model__create_entity',
     'SemanticModel-semantic_model__create_issue',
@@ -1571,6 +1690,121 @@
           'question',
         ]),
         'title': 'Input for `ask_user`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Create a new todo item',
+      'name': 'TodoTool-todo__create_todo',
+      'parameters': dict({
+        'properties': dict({
+          'content': dict({
+            'description': 'The todo content/description',
+            'title': 'Content',
+            'type': 'string',
+          }),
+          'status': dict({
+            'default': 'pending',
+            'description': 'The status of the todo (pending, in_progress, completed, cancelled).',
+            'title': 'Status',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'content',
+        ]),
+        'title': 'Input for `create_todo`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Delete a todo item',
+      'name': 'TodoTool-todo__delete_todo',
+      'parameters': dict({
+        'properties': dict({
+          'todo_id': dict({
+            'description': 'UUID of the todo to delete',
+            'title': 'Todo Id',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'todo_id',
+        ]),
+        'title': 'Input for `delete_todo`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'List all todos in this conversation',
+      'name': 'TodoTool-todo__list_todos',
+      'parameters': dict({
+        'properties': dict({
+          'include_completed': dict({
+            'default': False,
+            'description': 'If True, include completed and cancelled todos.',
+            'title': 'Include Completed',
+            'type': 'boolean',
+          }),
+          'status': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by status (pending, in_progress, completed, cancelled).',
+            'title': 'Status',
+          }),
+        }),
+        'title': 'Input for `list_todos`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Update a todo item',
+      'name': 'TodoTool-todo__update_todo',
+      'parameters': dict({
+        'properties': dict({
+          'content': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'New content for the todo (optional)',
+            'title': 'Content',
+          }),
+          'status': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'New status for the todo (pending, in_progress, completed, cancelled)',
+            'title': 'Status',
+          }),
+          'todo_id': dict({
+            'description': 'UUID of the todo to update',
+            'title': 'Todo Id',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'todo_id',
+        ]),
+        'title': 'Input for `update_todo`',
         'type': 'object',
       }),
     }),
@@ -2904,6 +3138,7 @@
     'echarts': 'EchartsTool',
     'notes': 'Notes',
     'semantic_model': 'SemanticModel',
+    'todo': 'TodoTool',
     'workspace': 'WorkspaceTool',
   })
 # ---
