@@ -157,6 +157,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresContext: true }
   },
   {
+    path: '/catalog/smart-scan',
+    name: 'SmartScanPage',
+    component: loadView('SmartScanPage'),
+    meta: { requiresContext: true }
+  },
+  {
     path: '/documents',
     name: 'DocumentList',
     component: loadView('DocumentList'),
