@@ -1266,13 +1266,13 @@ def get_catalog_dashboard_stats(database_id: UUID):
     assets_by_type = {}
 
     for asset_type, status, count in overall_stats:
-        total_assets += count
         if asset_type not in assets_by_type:
             assets_by_type[asset_type] = {"total": 0, "with_description": 0}
         assets_by_type[asset_type]["total"] += count
 
-        # Only count non-COLUMN assets for completion metrics
+        # Only count non-COLUMN assets for all metrics (including total)
         if asset_type != "COLUMN":
+            total_assets += count
             if status == "validated":
                 assets_validated += count
             elif status == "published_by_ai":

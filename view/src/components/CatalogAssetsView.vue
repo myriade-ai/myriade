@@ -57,45 +57,6 @@
               @open-explorer="openExplorer"
             />
 
-            <!-- Stats Bar (shows stats for filtered view) -->
-            <div
-              v-if="filteredStats && hasActiveFilters"
-              class="flex flex-wrap gap-4 px-4 py-2 border-b bg-blue-50/50 flex-shrink-0 text-sm"
-            >
-              <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-700">Filtered:</span>
-                <span class="font-semibold text-gray-900">{{ filteredStats.total_assets }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-700">Completion:</span>
-                <span
-                  class="font-semibold"
-                  :class="
-                    filteredStats.completion_score >= 70
-                      ? 'text-green-600'
-                      : filteredStats.completion_score >= 40
-                        ? 'text-yellow-600'
-                        : 'text-red-600'
-                  "
-                  >{{ filteredStats.completion_score }}%</span
-                >
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-700">To Review:</span>
-                <span
-                  class="font-semibold"
-                  :class="filteredStats.assets_to_review > 0 ? 'text-orange-600' : 'text-gray-900'"
-                  >{{ filteredStats.assets_to_review }}</span
-                >
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-700">Validated:</span>
-                <span class="font-semibold text-gray-900">{{
-                  filteredStats.assets_validated
-                }}</span>
-              </div>
-            </div>
-
             <!-- Details View (when asset selected) -->
             <CatalogDetailsView
               v-if="selectedAsset"
@@ -170,7 +131,6 @@ import type { CatalogAsset } from '@/stores/catalog'
 import { useCatalogStore } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import type { CatalogAssetUpdatePayload } from '@/types/catalog'
-import { computeCatalogStats } from '@/utils/catalog-stats'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useMediaQuery } from '@vueuse/core'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
@@ -418,14 +378,6 @@ const filteredAssets = computed(() => {
   }
 
   return filtered
-})
-
-// Compute stats for filtered assets
-const filteredStats = computed(() => {
-  if (!filteredAssets.value || filteredAssets.value.length === 0) {
-    return null
-  }
-  return computeCatalogStats(filteredAssets.value)
 })
 
 // Route sync
