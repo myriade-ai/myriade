@@ -31,17 +31,7 @@
     <div class="flex items-start gap-2 flex-shrink-0 lg:flex-nowrap flex-wrap">
       <AssetBadgeStatus :status="asset.status" badge-class="text-sm" />
       <Button
-        v-if="catalogStore.selectionMode"
-        :variant="isSelected ? 'default' : 'ghost'"
-        size="sm"
-        class="-mt-1 whitespace-nowrap"
-        @click="addToAnalysis"
-      >
-        <PlusIcon class="h-4 w-4" />
-        {{ isSelected ? 'Added to Analysis' : 'Add to Analysis' }}
-      </Button>
-      <Button
-        v-else-if="showReviewButton"
+        v-if="showReviewButton"
         variant="ghost"
         size="sm"
         class="-mt-1 whitespace-nowrap"
@@ -59,14 +49,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import AssetBadgeStatus from '@/components/AssetBadgeStatus.vue'
 import type { CatalogAsset } from '@/stores/catalog'
-import { useCatalogStore } from '@/stores/catalog'
 import { useConversationsStore } from '@/stores/conversations'
 import { useContextsStore } from '@/stores/contexts'
 import { computed, type Component } from 'vue'
 import { useRouter } from 'vue-router'
-import { SparklesIcon, PlusIcon } from 'lucide-vue-next'
-
-const catalogStore = useCatalogStore()
+import { SparklesIcon } from 'lucide-vue-next'
 
 interface Props {
   asset: CatalogAsset
@@ -86,15 +73,6 @@ const showReviewButton = computed(() => {
   const status = props.asset.status
   return !status || status === 'human_authored' || status === 'validated'
 })
-
-const isSelected = computed(() => {
-  return catalogStore.isAssetSelected(props.asset.id)
-})
-
-function addToAnalysis() {
-  // Toggle selection for this asset
-  catalogStore.toggleAssetSelection(props.asset.id)
-}
 
 async function reviewWithAI() {
   const contextId = contextsStore.contextSelected?.id
