@@ -581,6 +581,25 @@ function openExplorer() {
 function expandForAsset(assetId: string) {
   const asset = indexes.assetsByIdMap.value.get(assetId)
   if (!asset) return
+
+  const explorers = [desktopExplorerRef.value, mobileExplorerRef.value].filter(
+    (instance): instance is ExplorerInstance => Boolean(instance)
+  )
+
+  // Handle SCHEMA assets
+  if (asset.type === 'SCHEMA' && asset.schema_facet) {
+    const databaseName = asset.schema_facet.database_name
+    const schemaName = asset.schema_facet.schema_name
+    const databaseKey = `database:${databaseName}`
+    const schemaKey = `schema:${databaseName}:${schemaName}`
+    explorers.forEach((explorer) => {
+      explorer.expandNode(databaseKey)
+      explorer.expandNode(schemaKey)
+    })
+    return
+  }
+
+  // Handle TABLE and COLUMN assets
   const table =
     asset.type === 'TABLE'
       ? asset
@@ -588,9 +607,6 @@ function expandForAsset(assetId: string) {
   if (!table) return
   const schemaKey = `schema:${table.table_facet?.schema || ''}`
   const tableKey = `table:${table.id}`
-  const explorers = [desktopExplorerRef.value, mobileExplorerRef.value].filter(
-    (instance): instance is ExplorerInstance => Boolean(instance)
-  )
   explorers.forEach((explorer) => {
     explorer.expandNode(schemaKey)
     if (asset.type === 'COLUMN') {
