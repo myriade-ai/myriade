@@ -2,8 +2,8 @@ import axios from '@/plugins/axios'
 import { socket } from '@/plugins/socket'
 import { useContextsStore } from '@/stores/contexts'
 import type { CatalogAssetUpdatePayload, CatalogTermUpdatePayload } from '@/types/catalog'
-import type { AxiosResponse } from 'axios'
 import { useQueryClient } from '@tanstack/vue-query'
+import type { AxiosResponse } from 'axios'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useDatabasesStore } from './databases'
@@ -106,8 +106,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // Selection mode state
-  const selectionMode = ref(false)
+  // Asset selection state for Smart Scan
   const selectedAssetIds = ref<string[]>([])
 
   // Database sync state for real-time progress updates
@@ -125,6 +124,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     try {
       return contextsStore.getSelectedContextDatabaseId()
     } catch (error) {
+      console.error('[Catalog] Failed to compute selected database id', error)
       return null
     }
   })
@@ -424,15 +424,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  // Selection mode actions
-  function toggleSelectionMode() {
-    selectionMode.value = !selectionMode.value
-    if (!selectionMode.value) {
-      // Clear selection when exiting selection mode
-      selectedAssetIds.value = []
-    }
-  }
-
+  // Asset selection actions for Smart Scan
   function toggleAssetSelection(assetId: string) {
     const isSelected = selectedAssetIds.value.includes(assetId)
 
@@ -648,7 +640,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     syncStatus,
     syncProgress,
     syncError,
-    selectionMode,
     selectedAssetIds,
 
     // getters
@@ -668,7 +659,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     dismissFlag, // NOTE: Caller must invalidate TanStack Query cache
 
     // selection actions
-    toggleSelectionMode,
     toggleAssetSelection,
     addAssetSelection,
     removeAssetSelection,
