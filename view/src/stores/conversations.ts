@@ -109,10 +109,10 @@ export const useConversationsStore = defineStore('conversations', () => {
   const conversations = ref<Record<string, Conversation>>({})
   const conversationStatuses = ref<Record<string, ConversationStatus>>({})
   const subscriptionRequired = ref(false)
-  
+
   // Track when user last viewed each conversation
   const conversationLastViewed = ref<Record<string, Date>>({})
-  
+
   // Load last viewed timestamps from localStorage on init
   const loadLastViewedFromStorage = () => {
     try {
@@ -128,7 +128,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       console.error('Failed to load last viewed timestamps:', error)
     }
   }
-  
+
   // Save last viewed timestamps to localStorage
   const saveLastViewedToStorage = () => {
     try {
@@ -141,7 +141,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       console.error('Failed to save last viewed timestamps:', error)
     }
   }
-  
+
   // Initialize
   loadLastViewedFromStorage()
 
@@ -221,7 +221,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversationLastViewed.value[conversationId] = new Date()
     saveLastViewedToStorage()
   }
-  
+
   // Get last viewed timestamp for a conversation
   function getLastViewed(conversationId: string): Date | null {
     return conversationLastViewed.value[conversationId] || null
