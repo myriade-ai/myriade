@@ -35,11 +35,11 @@ const syncButtonText = computed(() => {
     case 'syncing':
       return `Syncing... ${syncProgress.value}%`
     case 'completed':
-      return 'Sync Database'
+      return 'Re-Sync Catalog'
     case 'failed':
       return 'Retry Sync'
     default:
-      return 'Sync Database'
+      return 'Sync Catalog'
   }
 })
 

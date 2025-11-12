@@ -6,9 +6,9 @@
           <RotateCw class="h-4 w-4 mr-2" :class="{ 'animate-spin': isFetching }" />
           {{ isFetching ? 'Syncing...' : 'Sync' }}
         </Button>
-        <Button size="sm" @click="startScan" :disabled="isFetching">
-          <Zap class="h-4 w-4 mr-2" />
-          Start Scan
+        <Button variant="outline" size="sm" @click="startScan" :disabled="isFetching">
+          <SparklesIcon class="h-4 w-4 mr-2" />
+          Launch Smart Scan
         </Button>
       </template>
     </PageHeader>
@@ -50,7 +50,7 @@
                 <div class="text-2xl font-bold">
                   {{ data.overall.total_assets.toLocaleString() }}
                 </div>
-                <div class="text-xs text-muted-foreground">Total Assets</div>
+                <div class="text-xs text-muted-foreground">Assets to Catalog</div>
               </div>
               <div
                 class="border-r border-slate-200 last:border-r-0 flex flex-col justify-center items-center gap-1"
@@ -93,17 +93,18 @@
 </template>
 
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
 import PageHeader from '@/components/PageHeader.vue'
-import ProgressBar from '@/components/catalog/ProgressBar.vue'
 import DatabaseCard from '@/components/catalog/DatabaseCard.vue'
+import ProgressBar from '@/components/catalog/ProgressBar.vue'
+import { Button } from '@/components/ui/button'
 import { useDashboardStatsQuery } from '@/composables/useDashboardStats'
-import { RotateCw, Zap } from 'lucide-vue-next'
+import { RotateCw, SparklesIcon } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 
 const { data, isLoading, error, isFetching, refetch } = useDashboardStatsQuery()
+const router = useRouter()
 
 const startScan = () => {
-  // TODO: Implement scan functionality
-  console.log('Start scan clicked')
+  router.push({ name: 'SmartScanPage' })
 }
 </script>
