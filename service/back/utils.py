@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 from uuid import UUID
 
 from flask import g
@@ -10,6 +10,61 @@ from models import Database
 from models.catalog import Asset, ColumnFacet, DatabaseFacet, SchemaFacet, TableFacet
 
 logger = logging.getLogger(__name__)
+
+
+def _build_asset_urn(
+    asset_type: Literal["DATABASE", "SCHEMA", "TABLE", "COLUMN"],
+    connection_id: UUID,
+    database_name: Optional[str],
+    schema_name: Optional[str] = None,
+    table_name: Optional[str] = None,
+    column_name: Optional[str] = None,
+) -> str:
+    """
+    Build a consistent URN for catalog assets.
+
+    URN format follows a hierarchical structure prefixed with connection ID:
+    - Database: urn:connection:{connection_id}:db:{database_name}
+    - Schema: urn:connection:{connection_id}:db:{database_name}:{schema_name}
+    - Table: urn:connection:{connection_id}:db:{database_name}:{schema_name}:{table_name}
+    - Column: urn:connection:{connection_id}:db:{database_name}:{schema_name}:{table_name}:{column_name}
+
+    Args:
+        asset_type: Type of asset ("DATABASE", "SCHEMA", "TABLE", "COLUMN")
+        connection_id: UUID of the database connection (ensures global uniqueness)
+        database_name: Name of the database from the provider (required for all types)
+        schema_name: Schema name (required for SCHEMA, TABLE, COLUMN)
+        table_name: Table name (required for TABLE, COLUMN)
+        column_name: Column name (required for COLUMN)
+
+    Returns:
+        URN string for the asset
+
+    Raises:
+        ValueError: If required parameters are None for the given asset type
+    """
+
+    if database_name is None:
+        raise ValueError("database_name is required for all asset types")
+
+    parts = ["urn:connection", str(connection_id), "db", database_name]
+
+    if asset_type in ("SCHEMA", "TABLE", "COLUMN"):
+        if schema_name is None:
+            raise ValueError(f"schema_name is required for {asset_type} assets")
+        parts.append(schema_name)
+
+    if asset_type in ("TABLE", "COLUMN"):
+        if table_name is None:
+            raise ValueError(f"table_name is required for {asset_type} assets")
+        parts.append(table_name)
+
+    if asset_type == "COLUMN":
+        if column_name is None:
+            raise ValueError("column_name is required for COLUMN assets")
+        parts.append(column_name)
+
+    return ":".join(parts)
 
 
 def create_database(
@@ -201,21 +256,21 @@ def sync_database_metadata_to_assets(
     # Step 1: Extract unique databases from metadata
     unique_databases = {}
     for table_meta in tables_metadata:
-        db_name = table_meta.get("database")
-        if db_name and db_name not in unique_databases:
-            unique_databases[db_name] = db_name
+        database_name = table_meta.get("database")
+        if database_name and database_name not in unique_databases:
+            unique_databases[database_name] = database_name
 
     # Step 2: Create/update database assets
     database_assets = {}
-    for db_name in unique_databases:
-        database_urn = f"urn:database:{database_id}:{db_name}"
+    for database_name in unique_databases:
+        database_urn = _build_asset_urn("DATABASE", database_id, database_name)
         valid_urns.add(database_urn)
 
         database_asset = existing_assets_by_urn.get(database_urn)
         if not database_asset:
             # Create new database asset
             database_asset = Asset(
-                name=db_name,
+                name=database_name,
                 urn=database_urn,
                 type="DATABASE",
                 database_id=database_id,
@@ -227,39 +282,45 @@ def sync_database_metadata_to_assets(
             database_facet = DatabaseFacet(
                 asset_id=database_asset.id,
                 database_id=database_id,
-                database_name=db_name,
+                database_name=database_name,
             )
             db_session.add(database_facet)
             created_count += 1
 
-        database_assets[db_name] = database_asset
+        database_assets[database_name] = database_asset
 
     # Step 3: Extract unique schemas from metadata
     unique_schemas = {}
     for table_meta in tables_metadata:
-        db_name = table_meta.get("database")
+        database_name = table_meta.get("database")
         schema_name = table_meta.get("schema")
-        if db_name and schema_name:
-            key = (db_name, schema_name)
+        if database_name and schema_name:
+            key = (database_name, schema_name)
             if key not in unique_schemas:
-                unique_schemas[key] = (db_name, schema_name)
+                unique_schemas[key] = (database_name, schema_name)
 
     # Step 4: Create/update schema assets
     schema_assets = {}
-    for db_name, schema_name in unique_schemas.values():
-        schema_urn = f"urn:schema:{database_id}:{db_name}:{schema_name}"
+    for database_name, schema_name in unique_schemas.values():
+        # Get the database asset ID to use in schema URN
+        parent_database_asset = database_assets.get(database_name)
+        if not parent_database_asset:
+            raise ValueError(
+                f"Parent database asset not found for schema: {database_name}.{schema_name}. "
+                f"Database assets must be created before schemas."
+            )
+
+        schema_urn = _build_asset_urn(
+            "SCHEMA",
+            database_id,
+            database_name,
+            schema_name,
+        )
         valid_urns.add(schema_urn)
 
         schema_asset = existing_assets_by_urn.get(schema_urn)
         if not schema_asset:
             # Create new schema asset
-            parent_database_asset = database_assets.get(db_name)
-            if not parent_database_asset:
-                logger.warning(
-                    f"Parent database asset not found for schema: {schema_name}"
-                )
-                continue
-
             schema_asset = Asset(
                 name=schema_name,
                 urn=schema_urn,
@@ -273,14 +334,14 @@ def sync_database_metadata_to_assets(
             schema_facet = SchemaFacet(
                 asset_id=schema_asset.id,
                 database_id=database_id,
-                database_name=db_name,
+                database_name=database_name,
                 schema_name=schema_name,
                 parent_database_asset_id=parent_database_asset.id,
             )
             db_session.add(schema_facet)
             created_count += 1
 
-        schema_assets[(db_name, schema_name)] = schema_asset
+        schema_assets[(database_name, schema_name)] = schema_asset
 
     # Commit database and schema assets
     db_session.commit()
@@ -299,9 +360,21 @@ def sync_database_metadata_to_assets(
         schema_name = table_meta.get("schema")
         table_name = table_meta.get("name")
 
+        # Get the database asset ID to use in table URN
+        parent_database_asset = database_assets.get(database_name)
+        if not parent_database_asset:
+            raise ValueError(
+                f"Parent database asset not found for table: {database_name}.{schema_name}.{table_name}. "
+                f"Database assets must be created before tables."
+            )
+
         # Generate URN for table
-        table_urn = (
-            f"urn:table:{database_id}:{database_name}:{schema_name}:{table_name}"
+        table_urn = _build_asset_urn(
+            "TABLE",
+            database_id,
+            database_name,
+            schema_name,
+            table_name,
         )
         valid_urns.add(table_urn)
 
@@ -358,9 +431,13 @@ def sync_database_metadata_to_assets(
             column_name = column.get("name")
 
             # Generate URN for column
-            column_urn = (
-                f"urn:column:{database_id}:{database_name}:{schema_name}:"
-                f"{table_name}:{column_name}"
+            column_urn = _build_asset_urn(
+                "COLUMN",
+                database_id,
+                database_name,
+                schema_name,
+                table_name,
+                column_name,
             )
             valid_urns.add(column_urn)
 
@@ -486,9 +563,29 @@ def update_catalog_privacy(
 
     db_session = session if session is not None else g.session
 
+    # Build a map of database names to their asset IDs
+    database_assets = (
+        db_session.query(Asset)
+        .filter(
+            Asset.database_id == database_id,
+            Asset.type == "DATABASE",
+        )
+        .all()
+    )
+    database_name_to_asset_id = {asset.name: asset.id for asset in database_assets}
+
     for table_meta in tables_metadata:
+        database_name = table_meta.get("database")
         schema_name = table_meta.get("schema")
         table_name = table_meta.get("name")
+
+        # Get the database asset ID
+        database_asset_id = database_name_to_asset_id.get(database_name)
+        if not database_asset_id:
+            raise ValueError(
+                f"Database asset not found for {database_name}. "
+                f"Cannot update privacy for {database_name}.{schema_name}.{table_name}"
+            )
 
         # Update column privacy settings
         for column in table_meta.get("columns", []):
@@ -496,8 +593,13 @@ def update_catalog_privacy(
             privacy_settings = column.get("privacy", {})
 
             # Generate URN for column
-            column_urn = (
-                f"urn:column:{database_id}:{schema_name}:{table_name}:{column_name}"
+            column_urn = _build_asset_urn(
+                "COLUMN",
+                database_id,
+                database_name,
+                schema_name,
+                table_name,
+                column_name,
             )
 
             # Find existing column asset
