@@ -107,6 +107,7 @@
 <script setup lang="ts">
 import PageHeader from '@/components/PageHeader.vue'
 import DatabaseCard from '@/components/catalog/DatabaseCard.vue'
+import ProgressBar from '@/components/catalog/ProgressBar.vue'
 import { useCatalogAssetsQuery } from '@/components/catalog/useCatalogQuery'
 import { Button } from '@/components/ui/button'
 import { computeDashboardStats } from '@/composables/useDashboardStats'

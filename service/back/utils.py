@@ -539,6 +539,10 @@ def sync_database_metadata_to_assets(
             ).delete()
         db_session.delete(asset)
 
+    if orphaned_assets:
+        db_session.commit()
+        logger.info(f"Deleted {len(orphaned_assets)} orphaned assets")
+
     return {
         "created_count": created_count,
         "updated_count": updated_count,
