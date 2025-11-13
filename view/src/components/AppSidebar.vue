@@ -291,7 +291,7 @@ async function handleDeleteConversation(conversationId: string) {
                 <SidebarMenuSubItem key="dashboard">
                   <SidebarMenuSubButton as-child :isActive="isActive('/catalog/dashboard')">
                     <RouterLink :to="`/catalog/dashboard`">
-                      <span>Dashboard</span>
+                      <span>Overview</span>
                     </RouterLink>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
