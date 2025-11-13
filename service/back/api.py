@@ -1325,7 +1325,12 @@ def update_catalog_asset(asset_id: str):
 
     asset_dict = asset.to_dict()
     asset_dict["tags"] = [tag.to_dict() for tag in asset.asset_tags]
-    if asset.type == "TABLE" and asset.table_facet:
+
+    if asset.type == "DATABASE" and asset.database_facet:
+        asset_dict["database_facet"] = asset.database_facet.to_dict()
+    elif asset.type == "SCHEMA" and asset.schema_facet:
+        asset_dict["schema_facet"] = asset.schema_facet.to_dict()
+    elif asset.type == "TABLE" and asset.table_facet:
         asset_dict["table_facet"] = asset.table_facet.to_dict()
     elif asset.type == "COLUMN" and asset.column_facet:
         column_facet_dict = asset.column_facet.to_dict()
