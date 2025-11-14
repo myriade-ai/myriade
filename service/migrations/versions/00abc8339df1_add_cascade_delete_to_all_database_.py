@@ -24,340 +24,239 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def is_sqlite():
+    """Check if we're running on SQLite."""
+    bind = op.get_bind()
+    return bind.dialect.name == "sqlite"
+
+
+def modify_foreign_key(
+    table_name, constraint_name, referent_table, local_cols, remote_cols, ondelete=None
+):
+    """
+    Helper to modify a foreign key constraint in a cross-database compatible way.
+    For SQLite: recreates the table with new constraints
+    For PostgreSQL: drops and recreates the constraint
+    """
+    sqlite = is_sqlite()
+    with op.batch_alter_table(
+        table_name, schema=None, recreate="always" if sqlite else "auto"
+    ) as batch_op:
+        if not sqlite:
+            # PostgreSQL: explicitly drop the old constraint
+            batch_op.drop_constraint(constraint_name, type_="foreignkey")
+        # Create the new constraint with ondelete
+        batch_op.create_foreign_key(
+            constraint_name,
+            referent_table,
+            local_cols,
+            remote_cols,
+            ondelete=ondelete,
+        )
+
+
 def upgrade() -> None:
     # =====================================================================
-    # Part 1: Foreign keys referencing database.id
+    # Part 1: Foreign keys referencing database.id (CASCADE or SET NULL)
     # =====================================================================
 
-    # Query.databaseId -> Database.id (CASCADE)
-    op.drop_constraint("query_databaseId_fkey", "query", type_="foreignkey")
-    op.create_foreign_key(
-        "query_databaseId_fkey",
-        "query",
-        "database",
-        ["databaseId"],
-        ["id"],
-        ondelete="CASCADE",
+    modify_foreign_key(
+        "query", "query_databaseId_fkey", "database", ["databaseId"], ["id"], "CASCADE"
     )
-
-    # Project.databaseId -> Database.id (CASCADE)
-    op.drop_constraint("project_databaseId_fkey", "project", type_="foreignkey")
-    op.create_foreign_key(
-        "project_databaseId_fkey",
+    modify_foreign_key(
         "project",
+        "project_databaseId_fkey",
         "database",
         ["databaseId"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # GithubIntegration.databaseId -> Database.id (CASCADE)
-    op.drop_constraint(
-        "github_integration_databaseId_fkey", "github_integration", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "github_integration_databaseId_fkey",
+    modify_foreign_key(
         "github_integration",
+        "github_integration_databaseId_fkey",
         "database",
         ["databaseId"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # GithubOAuthState.databaseId -> Database.id (CASCADE)
-    op.drop_constraint(
-        "github_oauth_state_databaseId_fkey", "github_oauth_state", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "github_oauth_state_databaseId_fkey",
+    modify_foreign_key(
         "github_oauth_state",
+        "github_oauth_state_databaseId_fkey",
         "database",
         ["databaseId"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # Document.database_id -> Database.id (CASCADE)
-    op.drop_constraint("document_database_id_fkey", "document", type_="foreignkey")
-    op.create_foreign_key(
-        "document_database_id_fkey",
+    modify_foreign_key(
         "document",
+        "document_database_id_fkey",
         "database",
         ["database_id"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # Asset.database_id -> Database.id (CASCADE)
-    op.drop_constraint("asset_database_id_fkey", "asset", type_="foreignkey")
-    op.create_foreign_key(
-        "asset_database_id_fkey",
+    modify_foreign_key(
         "asset",
+        "asset_database_id_fkey",
         "database",
         ["database_id"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # Term.database_id -> Database.id (CASCADE)
-    op.drop_constraint("term_database_id_fkey", "term", type_="foreignkey")
-    op.create_foreign_key(
-        "term_database_id_fkey",
-        "term",
-        "database",
-        ["database_id"],
-        ["id"],
-        ondelete="CASCADE",
+    modify_foreign_key(
+        "term", "term_database_id_fkey", "database", ["database_id"], ["id"], "CASCADE"
     )
-
-    # AssetTag.database_id -> Database.id (CASCADE)
-    op.drop_constraint("asset_tag_database_id_fkey", "asset_tag", type_="foreignkey")
-    op.create_foreign_key(
-        "asset_tag_database_id_fkey",
+    modify_foreign_key(
         "asset_tag",
+        "asset_tag_database_id_fkey",
         "database",
         ["database_id"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # Issue.database_id -> Database.id (SET NULL - nullable field)
-    op.drop_constraint("issues_database_id_fkey", "issues", type_="foreignkey")
-    op.create_foreign_key(
-        "issues_database_id_fkey",
+    modify_foreign_key(
         "issues",
+        "issues_database_id_fkey",
         "database",
         ["database_id"],
         ["id"],
-        ondelete="SET NULL",
+        "SET NULL",
     )
-
-    # BusinessEntity.database_id -> Database.id (CASCADE)
-    op.drop_constraint(
-        "business_entity_database_id_fkey", "business_entity", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "business_entity_database_id_fkey",
+    modify_foreign_key(
         "business_entity",
+        "business_entity_database_id_fkey",
         "database",
         ["database_id"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # DatabaseFacet.database_id -> Database.id (CASCADE)
-    op.drop_constraint(
-        "database_facet_database_id_fkey", "database_facet", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "database_facet_database_id_fkey",
+    modify_foreign_key(
         "database_facet",
+        "database_facet_database_id_fkey",
         "database",
         ["database_id"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # SchemaFacet.database_id -> Database.id (CASCADE)
-    op.drop_constraint(
-        "schema_facet_database_id_fkey", "schema_facet", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "schema_facet_database_id_fkey",
+    modify_foreign_key(
         "schema_facet",
+        "schema_facet_database_id_fkey",
         "database",
         ["database_id"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # TableFacet.database_id -> Database.id (CASCADE)
-    op.drop_constraint(
-        "table_facet_database_id_fkey", "table_facet", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "table_facet_database_id_fkey",
+    modify_foreign_key(
         "table_facet",
+        "table_facet_database_id_fkey",
         "database",
         ["database_id"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # Conversation.databaseId -> Database.id (CASCADE)
-    op.drop_constraint(
-        "conversation_databaseId_fkey", "conversation", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "conversation_databaseId_fkey",
+    modify_foreign_key(
         "conversation",
+        "conversation_databaseId_fkey",
         "database",
         ["databaseId"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # DBT.database_id -> Database.id (CASCADE)
-    op.drop_constraint("dbt_database_id_fkey", "dbt", type_="foreignkey")
-    op.create_foreign_key(
-        "dbt_database_id_fkey",
-        "dbt",
-        "database",
-        ["database_id"],
-        ["id"],
-        ondelete="CASCADE",
+    modify_foreign_key(
+        "dbt", "dbt_database_id_fkey", "database", ["database_id"], ["id"], "CASCADE"
     )
 
     # =====================================================================
     # Part 2: Foreign keys referencing query.id and project.id
     # =====================================================================
 
-    # Chart.queryId -> Query.id (CASCADE)
-    op.drop_constraint("chart_queryId_fkey", "chart", type_="foreignkey")
-    op.create_foreign_key(
-        "chart_queryId_fkey",
-        "chart",
-        "query",
-        ["queryId"],
-        ["id"],
-        ondelete="CASCADE",
+    modify_foreign_key(
+        "chart", "chart_queryId_fkey", "query", ["queryId"], ["id"], "CASCADE"
     )
-
-    # ProjectTables.projectId -> Project.id (CASCADE)
-    op.drop_constraint(
-        "project_tables_projectId_fkey", "project_tables", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "project_tables_projectId_fkey",
+    modify_foreign_key(
         "project_tables",
+        "project_tables_projectId_fkey",
         "project",
         ["projectId"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # Note.projectId -> Project.id (CASCADE)
-    op.drop_constraint("note_projectId_fkey", "note", type_="foreignkey")
-    op.create_foreign_key(
-        "note_projectId_fkey",
-        "note",
-        "project",
-        ["projectId"],
-        ["id"],
-        ondelete="CASCADE",
+    modify_foreign_key(
+        "note", "note_projectId_fkey", "project", ["projectId"], ["id"], "CASCADE"
     )
-
-    # Conversation.projectId -> Project.id (SET NULL - nullable field)
-    op.drop_constraint(
-        "conversation_projectId_fkey", "conversation", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "conversation_projectId_fkey",
+    modify_foreign_key(
         "conversation",
+        "conversation_projectId_fkey",
         "project",
         ["projectId"],
         ["id"],
-        ondelete="SET NULL",
+        "SET NULL",
     )
 
     # =====================================================================
     # Part 3: Asset self-references (hierarchy in catalog)
     # =====================================================================
 
-    # ColumnFacet.parent_table_asset_id -> Asset.id (CASCADE)
-    op.drop_constraint(
-        "column_facet_parent_table_asset_id_fkey", "column_facet", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "column_facet_parent_table_asset_id_fkey",
+    modify_foreign_key(
         "column_facet",
+        "column_facet_parent_table_asset_id_fkey",
         "asset",
         ["parent_table_asset_id"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # TableFacet.parent_schema_asset_id -> Asset.id (CASCADE)
-    # Note: This constraint has a different name in the database
-    op.drop_constraint(
-        "fk_table_facet_parent_schema_asset", "table_facet", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "fk_table_facet_parent_schema_asset",
+    modify_foreign_key(
         "table_facet",
+        "fk_table_facet_parent_schema_asset",
         "asset",
         ["parent_schema_asset_id"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # SchemaFacet.parent_database_asset_id -> Asset.id (CASCADE)
-    op.drop_constraint(
-        "schema_facet_parent_database_asset_id_fkey", "schema_facet", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "schema_facet_parent_database_asset_id_fkey",
+    modify_foreign_key(
         "schema_facet",
+        "schema_facet_parent_database_asset_id_fkey",
         "asset",
         ["parent_database_asset_id"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
 
     # =====================================================================
     # Part 4: Foreign keys referencing conversation.id and conversation_message.id
     # =====================================================================
 
-    # ConversationMessage.conversationId -> Conversation.id (CASCADE)
-    op.drop_constraint(
-        "conversation_message_conversationId_fkey",
+    modify_foreign_key(
         "conversation_message",
-        type_="foreignkey",
-    )
-    op.create_foreign_key(
         "conversation_message_conversationId_fkey",
-        "conversation_message",
         "conversation",
         ["conversationId"],
         ["id"],
-        ondelete="CASCADE",
+        "CASCADE",
     )
-
-    # Issue.message_id -> ConversationMessage.id (SET NULL - nullable field)
-    op.drop_constraint("issues_message_id_fkey", "issues", type_="foreignkey")
-    op.create_foreign_key(
-        "issues_message_id_fkey",
+    modify_foreign_key(
         "issues",
+        "issues_message_id_fkey",
         "conversation_message",
         ["message_id"],
         ["id"],
-        ondelete="SET NULL",
+        "SET NULL",
     )
-
-    # BusinessEntity.review_conversation_id -> Conversation.id (SET NULL - nullable field)
-    op.drop_constraint(
-        "business_entity_review_conversation_id_fkey",
+    modify_foreign_key(
         "business_entity",
-        type_="foreignkey",
-    )
-    op.create_foreign_key(
         "business_entity_review_conversation_id_fkey",
-        "business_entity",
         "conversation",
         ["review_conversation_id"],
         ["id"],
-        ondelete="SET NULL",
+        "SET NULL",
     )
-
-    # Issue.business_entity_id -> BusinessEntity.id (SET NULL - nullable field)
-    op.drop_constraint("issues_business_entity_id_fkey", "issues", type_="foreignkey")
-    op.create_foreign_key(
-        "issues_business_entity_id_fkey",
+    modify_foreign_key(
         "issues",
+        "issues_business_entity_id_fkey",
         "business_entity",
         ["business_entity_id"],
         ["id"],
-        ondelete="SET NULL",
+        "SET NULL",
     )
 
 
@@ -366,271 +265,147 @@ def downgrade() -> None:
     # In reverse order of upgrade
 
     # Part 4: Conversation and ConversationMessage references
-    op.drop_constraint("issues_business_entity_id_fkey", "issues", type_="foreignkey")
-    op.create_foreign_key(
-        "issues_business_entity_id_fkey",
+    modify_foreign_key(
         "issues",
+        "issues_business_entity_id_fkey",
         "business_entity",
         ["business_entity_id"],
         ["id"],
     )
-
-    op.drop_constraint(
-        "business_entity_review_conversation_id_fkey",
+    modify_foreign_key(
         "business_entity",
-        type_="foreignkey",
-    )
-    op.create_foreign_key(
         "business_entity_review_conversation_id_fkey",
-        "business_entity",
         "conversation",
         ["review_conversation_id"],
         ["id"],
     )
-
-    op.drop_constraint("issues_message_id_fkey", "issues", type_="foreignkey")
-    op.create_foreign_key(
-        "issues_message_id_fkey",
+    modify_foreign_key(
         "issues",
+        "issues_message_id_fkey",
         "conversation_message",
         ["message_id"],
         ["id"],
     )
-
-    op.drop_constraint(
-        "conversation_message_conversationId_fkey",
+    modify_foreign_key(
         "conversation_message",
-        type_="foreignkey",
-    )
-    op.create_foreign_key(
         "conversation_message_conversationId_fkey",
-        "conversation_message",
         "conversation",
         ["conversationId"],
         ["id"],
     )
 
     # Part 3: Asset self-references
-    op.drop_constraint(
-        "schema_facet_parent_database_asset_id_fkey", "schema_facet", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "schema_facet_parent_database_asset_id_fkey",
+    modify_foreign_key(
         "schema_facet",
+        "schema_facet_parent_database_asset_id_fkey",
         "asset",
         ["parent_database_asset_id"],
         ["id"],
     )
-
-    op.drop_constraint(
-        "fk_table_facet_parent_schema_asset", "table_facet", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "fk_table_facet_parent_schema_asset",
+    modify_foreign_key(
         "table_facet",
+        "fk_table_facet_parent_schema_asset",
         "asset",
         ["parent_schema_asset_id"],
         ["id"],
     )
-
-    op.drop_constraint(
-        "column_facet_parent_table_asset_id_fkey", "column_facet", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "column_facet_parent_table_asset_id_fkey",
+    modify_foreign_key(
         "column_facet",
+        "column_facet_parent_table_asset_id_fkey",
         "asset",
         ["parent_table_asset_id"],
         ["id"],
     )
 
     # Part 2: Query and Project references
-    op.drop_constraint(
-        "conversation_projectId_fkey", "conversation", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "conversation_projectId_fkey",
+    modify_foreign_key(
         "conversation",
+        "conversation_projectId_fkey",
         "project",
         ["projectId"],
         ["id"],
     )
-
-    op.drop_constraint("note_projectId_fkey", "note", type_="foreignkey")
-    op.create_foreign_key(
-        "note_projectId_fkey",
-        "note",
-        "project",
-        ["projectId"],
-        ["id"],
-    )
-
-    op.drop_constraint(
-        "project_tables_projectId_fkey", "project_tables", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "project_tables_projectId_fkey",
+    modify_foreign_key("note", "note_projectId_fkey", "project", ["projectId"], ["id"])
+    modify_foreign_key(
         "project_tables",
+        "project_tables_projectId_fkey",
         "project",
         ["projectId"],
         ["id"],
     )
-
-    op.drop_constraint("chart_queryId_fkey", "chart", type_="foreignkey")
-    op.create_foreign_key(
-        "chart_queryId_fkey",
-        "chart",
-        "query",
-        ["queryId"],
-        ["id"],
-    )
+    modify_foreign_key("chart", "chart_queryId_fkey", "query", ["queryId"], ["id"])
 
     # Part 1: Database references
-    op.drop_constraint(
-        "table_facet_database_id_fkey", "table_facet", type_="foreignkey"
+    modify_foreign_key(
+        "dbt", "dbt_database_id_fkey", "database", ["database_id"], ["id"]
     )
-    op.create_foreign_key(
-        "table_facet_database_id_fkey",
-        "table_facet",
-        "database",
-        ["database_id"],
-        ["id"],
-    )
-
-    op.drop_constraint(
-        "schema_facet_database_id_fkey", "schema_facet", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "schema_facet_database_id_fkey",
-        "schema_facet",
-        "database",
-        ["database_id"],
-        ["id"],
-    )
-
-    op.drop_constraint(
-        "database_facet_database_id_fkey", "database_facet", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "database_facet_database_id_fkey",
-        "database_facet",
-        "database",
-        ["database_id"],
-        ["id"],
-    )
-
-    op.drop_constraint(
-        "business_entity_database_id_fkey", "business_entity", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "business_entity_database_id_fkey",
-        "business_entity",
-        "database",
-        ["database_id"],
-        ["id"],
-    )
-
-    op.drop_constraint("issues_database_id_fkey", "issues", type_="foreignkey")
-    op.create_foreign_key(
-        "issues_database_id_fkey",
-        "issues",
-        "database",
-        ["database_id"],
-        ["id"],
-    )
-
-    op.drop_constraint("asset_tag_database_id_fkey", "asset_tag", type_="foreignkey")
-    op.create_foreign_key(
-        "asset_tag_database_id_fkey",
-        "asset_tag",
-        "database",
-        ["database_id"],
-        ["id"],
-    )
-
-    op.drop_constraint("term_database_id_fkey", "term", type_="foreignkey")
-    op.create_foreign_key(
-        "term_database_id_fkey",
-        "term",
-        "database",
-        ["database_id"],
-        ["id"],
-    )
-
-    op.drop_constraint("asset_database_id_fkey", "asset", type_="foreignkey")
-    op.create_foreign_key(
-        "asset_database_id_fkey",
-        "asset",
-        "database",
-        ["database_id"],
-        ["id"],
-    )
-
-    op.drop_constraint("document_database_id_fkey", "document", type_="foreignkey")
-    op.create_foreign_key(
-        "document_database_id_fkey",
-        "document",
-        "database",
-        ["database_id"],
-        ["id"],
-    )
-
-    op.drop_constraint(
-        "github_oauth_state_databaseId_fkey", "github_oauth_state", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "github_oauth_state_databaseId_fkey",
-        "github_oauth_state",
-        "database",
-        ["databaseId"],
-        ["id"],
-    )
-
-    op.drop_constraint(
-        "github_integration_databaseId_fkey", "github_integration", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "github_integration_databaseId_fkey",
-        "github_integration",
-        "database",
-        ["databaseId"],
-        ["id"],
-    )
-
-    op.drop_constraint("project_databaseId_fkey", "project", type_="foreignkey")
-    op.create_foreign_key(
-        "project_databaseId_fkey",
-        "project",
-        "database",
-        ["databaseId"],
-        ["id"],
-    )
-
-    op.drop_constraint("query_databaseId_fkey", "query", type_="foreignkey")
-    op.create_foreign_key(
-        "query_databaseId_fkey",
-        "query",
-        "database",
-        ["databaseId"],
-        ["id"],
-    )
-
-    op.drop_constraint("dbt_database_id_fkey", "dbt", type_="foreignkey")
-    op.create_foreign_key(
-        "dbt_database_id_fkey",
-        "dbt",
-        "database",
-        ["database_id"],
-        ["id"],
-    )
-
-    op.drop_constraint(
-        "conversation_databaseId_fkey", "conversation", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        "conversation_databaseId_fkey",
+    modify_foreign_key(
         "conversation",
+        "conversation_databaseId_fkey",
         "database",
         ["databaseId"],
         ["id"],
+    )
+    modify_foreign_key(
+        "table_facet",
+        "table_facet_database_id_fkey",
+        "database",
+        ["database_id"],
+        ["id"],
+    )
+    modify_foreign_key(
+        "schema_facet",
+        "schema_facet_database_id_fkey",
+        "database",
+        ["database_id"],
+        ["id"],
+    )
+    modify_foreign_key(
+        "database_facet",
+        "database_facet_database_id_fkey",
+        "database",
+        ["database_id"],
+        ["id"],
+    )
+    modify_foreign_key(
+        "business_entity",
+        "business_entity_database_id_fkey",
+        "database",
+        ["database_id"],
+        ["id"],
+    )
+    modify_foreign_key(
+        "issues", "issues_database_id_fkey", "database", ["database_id"], ["id"]
+    )
+    modify_foreign_key(
+        "asset_tag", "asset_tag_database_id_fkey", "database", ["database_id"], ["id"]
+    )
+    modify_foreign_key(
+        "term", "term_database_id_fkey", "database", ["database_id"], ["id"]
+    )
+    modify_foreign_key(
+        "asset", "asset_database_id_fkey", "database", ["database_id"], ["id"]
+    )
+    modify_foreign_key(
+        "document", "document_database_id_fkey", "database", ["database_id"], ["id"]
+    )
+    modify_foreign_key(
+        "github_oauth_state",
+        "github_oauth_state_databaseId_fkey",
+        "database",
+        ["databaseId"],
+        ["id"],
+    )
+    modify_foreign_key(
+        "github_integration",
+        "github_integration_databaseId_fkey",
+        "database",
+        ["databaseId"],
+        ["id"],
+    )
+    modify_foreign_key(
+        "project", "project_databaseId_fkey", "database", ["databaseId"], ["id"]
+    )
+    modify_foreign_key(
+        "query", "query_databaseId_fkey", "database", ["databaseId"], ["id"]
     )
