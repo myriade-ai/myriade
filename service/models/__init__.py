@@ -440,7 +440,7 @@ class GithubOAuthState(SerializerMixin, DefaultBase, Base):
         default=uuid.uuid4,
     )
     databaseId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
     userId: Mapped[str] = mapped_column(String, nullable=False)
     state: Mapped[str] = mapped_column(String, unique=True, nullable=False)
