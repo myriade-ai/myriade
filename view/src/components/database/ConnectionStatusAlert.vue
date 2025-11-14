@@ -16,6 +16,8 @@
       <CircleAlert class="h-5 w-5" />
       <AlertTitle> There is an error 😔</AlertTitle>
       <AlertDescription>
+        <p>> {{ message }}</p>
+        <hr />
         <p>
           The server was unable to establish a connection to your database.
           <b>Verify that your connection details are correct.</b>

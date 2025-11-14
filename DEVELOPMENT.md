@@ -49,7 +49,7 @@
    AGENTLYS_PROVIDER=anthropic
    AGENTLYS_MODEL=claude-sonnet-4-5-20250929
    ANTHROPIC_API_KEY=<Your_Anthropic_API_Key>
-   DATABASE_URL=postgresql://user:pass@localhost:5432/myriade
+   DATABASE_URL=postgresql://<db_user>:<strong_password>@localhost:5432/myriade
    ```
 
    **Example – OpenAI**
@@ -58,7 +58,7 @@
    AGENTLYS_PROVIDER=openai
    AGENTLYS_MODEL=o4-mini
    OPENAI_API_KEY=<Your_OpenAI_API_Key>
-   DATABASE_URL=postgresql://user:pass@localhost:5432/myriade
+   DATABASE_URL=postgresql://<db_user>:<strong_password>@localhost:5432/myriade
    ```
 
    **Tip:** You can also use SQLite for a zero-config local dev:

@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import socket
 from typing import Any
 from uuid import UUID
 
@@ -8,6 +9,7 @@ import anthropic
 from agentlys import Agentlys
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import and_, or_
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import Session, contains_eager, joinedload, selectinload
 from sqlalchemy.sql.expression import true
 
@@ -40,6 +42,7 @@ from back.utils import (
     update_catalog_privacy,
 )
 from chat.proxy_provider import ProxyProvider
+from config import DATABASE_URL
 from middleware import admin_required, user_middleware
 from models import (
     DBT,
@@ -68,6 +71,90 @@ logger = logging.getLogger(__name__)
 api = Blueprint("back_api", __name__)
 
 AGENTLYS_PROVIDER = os.getenv("AGENTLYS_PROVIDER", "proxy")
+
+
+try:
+    _INTERNAL_DATABASE_URL = make_url(DATABASE_URL)
+except Exception:
+    _INTERNAL_DATABASE_URL = None
+
+
+def _normalize_host(value: Any) -> str | None:
+    if value is None:
+        return None
+    return str(value).strip().lower()
+
+
+def _resolve_host_to_ips(host: str | None) -> set[str]:
+    """
+    Resolve a hostname to its IP addresses.
+    Returns a set of IP addresses that the hostname resolves to.
+    Returns empty set if host is None or resolution fails.
+    """
+    if not host:
+        return set()
+
+    normalized_host = _normalize_host(host)
+    if not normalized_host:
+        return set()
+
+    resolved_ips = set()
+
+    try:
+        # Get all IP addresses for the hostname
+        addr_info = socket.getaddrinfo(normalized_host, None)
+        for info in addr_info:
+            ip_address = info[4][0]
+            # Normalize IPv6 addresses by removing zone identifiers and converting to lowercase
+            if "%" in ip_address:
+                ip_address = ip_address.split("%")[0]
+            resolved_ips.add(ip_address.lower())
+    except (socket.gaierror, socket.error, OSError):
+        # If resolution fails, fall back to comparing the normalized string
+        # This ensures we don't accidentally allow connections due to DNS errors
+        resolved_ips.add(normalized_host)
+
+    return resolved_ips
+
+
+def _is_internal_database(engine: str, details: dict[str, Any]) -> bool:
+    """
+    Prevent users from connecting to the application's own database.
+    Resolves hostnames to IPs to prevent bypasses via alternative addresses
+    (e.g., localhost vs 127.0.0.1, Docker service names vs IPs).
+    """
+
+    if not _INTERNAL_DATABASE_URL:
+        return False
+
+    driver_name = _INTERNAL_DATABASE_URL.get_backend_name()
+
+    if engine == "postgres" and driver_name.startswith("postgres"):
+        # Resolve both hosts to IPs for comparison
+        request_host_ips = _resolve_host_to_ips(details.get("host"))
+        internal_host_ips = _resolve_host_to_ips(_INTERNAL_DATABASE_URL.host)
+
+        # If any IP addresses match, the hosts refer to the same machine
+        if not request_host_ips.isdisjoint(internal_host_ips):
+            port = str(details.get("port", "5432"))
+            internal_port = str(_INTERNAL_DATABASE_URL.port or "5432")
+
+            database = details.get("database", "postgres")
+            internal_database = _INTERNAL_DATABASE_URL.database or "postgres"
+
+            return port == internal_port and database == internal_database
+
+        return False
+
+    if engine == "sqlite" and driver_name.startswith("sqlite"):
+        filename = details.get("filename")
+        if not filename or not _INTERNAL_DATABASE_URL.database:
+            return False
+        return os.path.abspath(filename) == os.path.abspath(
+            _INTERNAL_DATABASE_URL.database
+        )
+
+    return False
 
 
 def extract_context(session: Session, context_id: str) -> tuple[UUID, UUID | None]:
@@ -402,6 +489,16 @@ def create_database_route():
     """Create a new database and sync its metadata to the catalog."""
     data = request.get_json()
 
+    if _is_internal_database(data["engine"], data["details"]):
+        return (
+            jsonify(
+                {
+                    "message": "Connecting to the internal Myriade database is not allowed."
+                }
+            ),
+            400,
+        )
+
     try:
         # Instantiate a new data_warehouse object
         data_warehouse = DataWarehouseFactory.create(
@@ -449,6 +546,17 @@ def create_database_route():
 def test_database_connection():
     """Test database connection without creating the database."""
     data = request.get_json()
+
+    if _is_internal_database(data["engine"], data["details"]):
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "message": "Connecting to the internal Myriade database is not allowed.",
+                }
+            ),
+            400,
+        )
 
     try:
         # Instantiate a new data_warehouse object
@@ -510,6 +618,17 @@ def update_database(database_id: UUID):
     database.description = data["description"]
     if g.organization_id:
         database.organisationId = g.organization_id
+
+    if _is_internal_database(data["engine"], data["details"]):
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "message": "Connecting to the internal Myriade database is not allowed.",
+                }
+            ),
+            400,
+        )
 
     try:
         # If the engine info has changed, we need to check the connection
