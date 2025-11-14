@@ -1,7 +1,7 @@
 <template>
   <div
     ref="dropdownRef"
-    class="z-50 w-[36rem] max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg py-2"
+    class="z-50 w-[36rem] max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg"
   >
     <!-- Loading state -->
     <div v-if="isLoading" class="p-4 text-center text-sm text-gray-500">
@@ -16,81 +16,44 @@
 
     <!-- Mentions list -->
     <div v-else class="py-2">
-      <!-- Recent section -->
-      <div v-if="recentMentions.length > 0 && !props.query.trim()">
-        <div class="px-3 py-1 text-xs font-medium text-gray-500 uppercase">Recent</div>
-        <button
-          v-for="(item, index) in recentMentions"
-          :key="`recent-${item.id}`"
-          @click="selectItem(index)"
-          @mouseenter="selectedIndex = index"
-          :class="[
-            'w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none transition-colors',
-            selectedIndex === index && 'bg-gray-100'
-          ]"
-        >
-          <div class="flex items-start gap-2">
-            <component
-              :is="item.type === 'query' ? FileCode : BarChart3"
-              class="w-4 h-4 mt-0.5 flex-shrink-0"
-              :class="item.type === 'query' ? 'text-blue-600' : 'text-green-600'"
-            />
-            <div class="flex-1 min-w-0">
-              <div class="font-medium text-sm truncate text-black">{{ item.title }}</div>
-              <div v-if="item.type === 'query' && item.sql" class="text-xs text-gray-500 truncate">
-                {{ item.sql }}
-              </div>
+      <!-- Show section header for recent items when not searching -->
+      <div v-if="!hasSearch" class="px-3 py-1 text-xs font-medium text-gray-500 uppercase">
+        Recent
+      </div>
+      <button
+        v-for="(item, index) in displayedItems"
+        :key="item.id"
+        @click="selectItem(index)"
+        @mouseenter="selectedIndex = index"
+        :class="[
+          'w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none transition-colors',
+          selectedIndex === index && 'bg-gray-100'
+        ]"
+      >
+        <div class="flex items-start gap-2">
+          <component
+            :is="item.type === 'query' ? FileCode : BarChart3"
+            class="w-4 h-4 mt-0.5 flex-shrink-0"
+            :class="item.type === 'query' ? 'text-blue-600' : 'text-green-600'"
+          />
+          <div class="flex-1 min-w-0 leading-normal">
+            <div class="font-medium text-sm truncate text-black">{{ item.title }}</div>
+            <div v-if="item.type === 'query' && item.sql" class="text-xs text-gray-500 truncate">
+              {{ item.sql }}
             </div>
           </div>
-        </button>
-        <div v-if="otherMentions.length > 0" class="my-2 border-t border-gray-200"></div>
-      </div>
-
-      <!-- Other mentions / All results -->
-      <div v-if="otherMentions.length > 0">
-        <div
-          v-if="recentMentions.length > 0 && !props.query.trim()"
-          class="px-3 py-1 text-xs font-medium text-gray-500 uppercase"
-        >
-          All Items
         </div>
-        <button
-          v-for="(item, index) in otherMentions"
-          :key="item.id"
-          @click="selectItem(recentMentions.length + index)"
-          @mouseenter="selectedIndex = recentMentions.length + index"
-          :class="[
-            'w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none transition-colors',
-            selectedIndex === recentMentions.length + index && 'bg-gray-100'
-          ]"
-        >
-          <div class="flex items-start gap-2">
-            <component
-              :is="item.type === 'query' ? FileCode : BarChart3"
-              class="w-4 h-4 mt-0.5 flex-shrink-0"
-              :class="item.type === 'query' ? 'text-blue-600' : 'text-green-600'"
-            />
-            <div class="flex-1 min-w-0">
-              <div class="font-medium text-sm truncate text-black">{{ item.title }}</div>
-              <div v-if="item.type === 'query' && item.sql" class="text-xs text-gray-500 truncate">
-                {{ item.sql }}
-              </div>
-            </div>
-          </div>
-        </button>
-      </div>
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import {
-  getRecentMentions,
-  mergeWithRecent,
-  useMentionsQuery,
+  useRecentMentionsQuery,
+  useSearchMentionsQuery,
   type MentionItem
 } from '@/composables/useDocumentMentions'
-import { useContextsStore } from '@/stores/contexts'
 import { debounce } from '@/utils/debounce'
 import { BarChart3, FileCode, Loader2 } from 'lucide-vue-next'
 import { computed, nextTick, ref, watch } from 'vue'
@@ -102,7 +65,6 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const contextsStore = useContextsStore()
 const dropdownRef = ref<HTMLDivElement | null>(null)
 const selectedIndex = ref(0)
 
@@ -122,41 +84,29 @@ watch(
   { immediate: true }
 )
 
-// Context ID for recent mentions
-const contextId = computed(() => {
-  const context = contextsStore.contextSelected
-  if (!context) return ''
-  return context.id
-})
+// Use recent mentions query when no search, otherwise use search query
+const hasSearch = computed(() => debouncedSearchQuery.value.trim() !== '')
 
-// Fetch mentions with debounced search using TanStack Query
+// Fetch recent mentions (backend-provided, last 10 items sorted by updatedAt)
+const { data: recentData, isLoading: isLoadingRecent } = useRecentMentionsQuery()
+
+// Fetch search results with debounced search using TanStack Query
 const searchRef = computed(() => debouncedSearchQuery.value)
-const { data: mentionsData, isLoading } = useMentionsQuery(searchRef)
+const { data: searchData, isLoading: isLoadingSearch } = useSearchMentionsQuery(searchRef)
 
-// Get recent mentions
-const recentMentionsArray = computed(() => {
-  if (!contextId.value) return []
-  return getRecentMentions(contextId.value)
-})
-
-// Merge with recent mentions
+// Determine which data to display
 const displayedItems = computed(() => {
-  if (!mentionsData.value) return []
-  if (props.query.trim()) {
-    return mentionsData.value
+  if (hasSearch.value) {
+    return searchData.value || []
   }
-  return mergeWithRecent(mentionsData.value, recentMentionsArray.value)
+  return recentData.value || []
 })
 
-// Split into recent and other for display
-const recentMentions = computed(() => {
-  if (props.query.trim()) return []
-  return displayedItems.value.slice(0, Math.min(recentMentionsArray.value.length, 5))
-})
-
-const otherMentions = computed(() => {
-  if (props.query.trim()) return displayedItems.value
-  return displayedItems.value.slice(recentMentions.value.length)
+const isLoading = computed(() => {
+  if (hasSearch.value) {
+    return isLoadingSearch.value
+  }
+  return isLoadingRecent.value
 })
 
 // Reset selectedIndex when items change (like in official TipTap example)
