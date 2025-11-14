@@ -64,7 +64,7 @@ class DBT(SerializerMixin, DefaultBase, Base):
         default=uuid.uuid4,
     )
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False, unique=True
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False, unique=True
     )
 
     # DBT documentation (catalog and manifest JSON)
@@ -105,7 +105,10 @@ class Database(SerializerMixin, DefaultBase, Base):
 
     # DBT relationship (one-to-one)
     dbt: Mapped[Optional["DBT"]] = relationship(
-        "DBT", back_populates="database", uselist=False
+        "DBT",
+        back_populates="database",
+        uselist=False,
+        passive_deletes=True,
     )
 
     # organisation: Mapped[Optional["Organisation"]] = relationship()

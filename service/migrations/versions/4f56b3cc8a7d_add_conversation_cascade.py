@@ -20,6 +20,7 @@ CONVERSATION_DB_FK = "conversation_databaseId_fkey"
 CONV_MESSAGE_CONV_FK = "conversation_message_conversationId_fkey"
 ISSUES_MESSAGE_FK = "issues_message_id_fkey"
 BUSINESS_ENTITY_REVIEW_FK = "business_entity_review_conversation_id_fkey"
+DBT_DATABASE_FK = "dbt_database_id_fkey"
 
 
 def upgrade() -> None:
@@ -39,6 +40,16 @@ def upgrade() -> None:
             CONV_MESSAGE_CONV_FK,
             "conversation",
             ["conversationId"],
+            ["id"],
+            ondelete="CASCADE",
+        )
+
+    with op.batch_alter_table("dbt", schema=None) as batch_op:
+        batch_op.drop_constraint(DBT_DATABASE_FK, type_="foreignkey")
+        batch_op.create_foreign_key(
+            DBT_DATABASE_FK,
+            "database",
+            ["database_id"],
             ["id"],
             ondelete="CASCADE",
         )
@@ -89,6 +100,15 @@ def downgrade() -> None:
             CONV_MESSAGE_CONV_FK,
             "conversation",
             ["conversationId"],
+            ["id"],
+        )
+
+    with op.batch_alter_table("dbt", schema=None) as batch_op:
+        batch_op.drop_constraint(DBT_DATABASE_FK, type_="foreignkey")
+        batch_op.create_foreign_key(
+            DBT_DATABASE_FK,
+            "database",
+            ["database_id"],
             ["id"],
         )
 
