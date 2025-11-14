@@ -126,7 +126,7 @@ function isConversationOngoing(conversationId: string): boolean {
 function hasNewMessages(conversationId: string): boolean {
   const conv = store.getConversationById(conversationId)
   if (!conv || !conv.messages || conv.messages.length === 0) return false
-  
+
   // Find the last public message (user or answer)
   let lastPublicMessage = null
   for (let i = conv.messages.length - 1; i >= 0; i--) {
@@ -136,21 +136,21 @@ function hasNewMessages(conversationId: string): boolean {
       break
     }
   }
-  
+
   // If no public message, no new messages
   if (!lastPublicMessage) return false
-  
+
   // Check if message is less than 5 minutes old
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
   const messageDate = new Date(lastPublicMessage.createdAt)
   if (messageDate < fiveMinutesAgo) return false
-  
+
   // Get when user last viewed this conversation
   const lastViewed = store.getLastViewed(conversationId)
-  
+
   // If never viewed, show as new
   if (!lastViewed) return true
-  
+
   // Check if last public message is newer than last viewed time
   return messageDate > lastViewed
 }
@@ -288,6 +288,13 @@ async function handleDeleteConversation(conversationId: string) {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <SidebarMenuSub>
+                <SidebarMenuSubItem key="overview">
+                  <SidebarMenuSubButton as-child :isActive="isActive('/catalog/overview')">
+                    <RouterLink :to="`/catalog/overview`">
+                      <span>Overview</span>
+                    </RouterLink>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
                 <SidebarMenuSubItem key="assets">
                   <SidebarMenuSubButton as-child :isActive="isActive('/catalog/assets')">
                     <RouterLink :to="`/catalog/assets`">
@@ -332,7 +339,8 @@ async function handleDeleteConversation(conversationId: string) {
                     class="flex-shrink-0 w-2 h-2 rounded-full"
                     :class="{
                       'bg-primary-500 animate-pulse': isConversationOngoing(conversation.id),
-                      'bg-green-500': !isConversationOngoing(conversation.id) && hasNewMessages(conversation.id)
+                      'bg-green-500':
+                        !isConversationOngoing(conversation.id) && hasNewMessages(conversation.id)
                     }"
                   />
                   <span class="flex-1">{{ conversation.name || 'Unnamed...' }}</span>
@@ -348,7 +356,8 @@ async function handleDeleteConversation(conversationId: string) {
                   class="flex-shrink-0 w-2 h-2 rounded-full"
                   :class="{
                     'bg-primary-500 animate-pulse': isConversationOngoing(conversation.id),
-                    'bg-green-500': !isConversationOngoing(conversation.id) && hasNewMessages(conversation.id)
+                    'bg-green-500':
+                      !isConversationOngoing(conversation.id) && hasNewMessages(conversation.id)
                   }"
                 />
                 <input

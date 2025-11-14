@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import SelectionSummaryPanel from '@/components/catalog/SelectionSummaryPanel.vue'
 import { useCatalogAssetsQuery } from '@/components/catalog/useCatalogQuery'
 import CatalogAssetsView from '@/components/CatalogAssetsView.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -11,10 +10,12 @@ import { computeCatalogStats } from '@/utils/catalog-stats'
 import { RefreshCwIcon, SparklesIcon } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
 import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
 const contextsStore = useContextsStore()
 const catalogStore = useCatalogStore()
 const databasesStore = useDatabasesStore()
+const router = useRouter()
 const { syncStatus, syncProgress } = storeToRefs(catalogStore)
 
 const { data: assets, isLoading, isFetching } = useCatalogAssetsQuery()
@@ -34,11 +35,11 @@ const syncButtonText = computed(() => {
     case 'syncing':
       return `Syncing... ${syncProgress.value}%`
     case 'completed':
-      return 'Sync Database'
+      return 'Re-Sync Catalog'
     case 'failed':
       return 'Retry Sync'
     default:
-      return 'Sync Database'
+      return 'Sync Catalog'
   }
 })
 
@@ -65,6 +66,10 @@ async function syncDatabaseMetadata() {
       err?.response?.data?.error || 'Failed to start sync'
     )
   }
+}
+
+function launchSmartScan() {
+  router.push({ name: 'SmartScanPage' })
 }
 
 // Check sync status on mount
@@ -105,13 +110,9 @@ onMounted(async () => {
           <RefreshCwIcon class="h-4 w-4" :class="{ 'animate-spin': syncStatus === 'syncing' }" />
           {{ syncButtonText }}
         </Button>
-        <Button
-          @click="catalogStore.toggleSelectionMode"
-          :variant="catalogStore.selectionMode ? 'default' : 'outline'"
-          class="hidden md:flex"
-        >
+        <Button @click="launchSmartScan" variant="outline" class="md:gap-2">
           <SparklesIcon class="h-4 w-4" />
-          {{ catalogStore.selectionMode ? 'Exit Selection Mode' : 'Select Assets for Analysis' }}
+          <span class="hidden md:inline">Launch Smart Scan</span>
         </Button>
       </template>
     </PageHeader>
@@ -162,8 +163,5 @@ onMounted(async () => {
     <div class="flex-1 min-h-0 h-full">
       <CatalogAssetsView :is-loading="isLoading" :is-fetching="isFetching" />
     </div>
-
-    <!-- Selection Summary Panel (Floating) -->
-    <SelectionSummaryPanel />
   </div>
 </template>

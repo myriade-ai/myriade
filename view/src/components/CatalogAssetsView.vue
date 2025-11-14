@@ -57,45 +57,6 @@
               @open-explorer="openExplorer"
             />
 
-            <!-- Stats Bar (shows stats for filtered view) -->
-            <div
-              v-if="filteredStats && hasActiveFilters"
-              class="flex flex-wrap gap-4 px-4 py-2 border-b bg-blue-50/50 flex-shrink-0 text-sm"
-            >
-              <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-700">Filtered:</span>
-                <span class="font-semibold text-gray-900">{{ filteredStats.total_assets }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-700">Completion:</span>
-                <span
-                  class="font-semibold"
-                  :class="
-                    filteredStats.completion_score >= 70
-                      ? 'text-green-600'
-                      : filteredStats.completion_score >= 40
-                        ? 'text-yellow-600'
-                        : 'text-red-600'
-                  "
-                  >{{ filteredStats.completion_score }}%</span
-                >
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-700">To Review:</span>
-                <span
-                  class="font-semibold"
-                  :class="filteredStats.assets_to_review > 0 ? 'text-orange-600' : 'text-gray-900'"
-                  >{{ filteredStats.assets_to_review }}</span
-                >
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-700">Validated:</span>
-                <span class="font-semibold text-gray-900">{{
-                  filteredStats.assets_validated
-                }}</span>
-              </div>
-            </div>
-
             <!-- Details View (when asset selected) -->
             <CatalogDetailsView
               v-if="selectedAsset"
@@ -170,7 +131,6 @@ import type { CatalogAsset } from '@/stores/catalog'
 import { useCatalogStore } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import type { CatalogAssetUpdatePayload } from '@/types/catalog'
-import { computeCatalogStats } from '@/utils/catalog-stats'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useMediaQuery } from '@vueuse/core'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
@@ -352,7 +312,7 @@ const schemasForSelectedDatabase = computed(() => {
   if (!asset || asset.type !== 'DATABASE') return []
 
   // Find the database node in the filtered tree
-  const databaseNode = filteredTree.value.find((db) => db.asset.id === asset.id)
+  const databaseNode = filteredTree.value.find((db) => db.asset?.id === asset.id)
   return databaseNode?.schemas || []
 })
 
@@ -362,6 +322,7 @@ const tablesForSelectedSchema = computed(() => {
 
   // Find the schema node in the filtered tree
   for (const dbNode of filteredTree.value) {
+    if (!dbNode.schemas) continue
     const schemaNode = dbNode.schemas.find((s) => s.asset?.id === asset.id)
     if (schemaNode) {
       return schemaNode.tables || []
@@ -418,14 +379,6 @@ const filteredAssets = computed(() => {
   }
 
   return filtered
-})
-
-// Compute stats for filtered assets
-const filteredStats = computed(() => {
-  if (!filteredAssets.value || filteredAssets.value.length === 0) {
-    return null
-  }
-  return computeCatalogStats(filteredAssets.value)
 })
 
 // Route sync
@@ -581,6 +534,25 @@ function openExplorer() {
 function expandForAsset(assetId: string) {
   const asset = indexes.assetsByIdMap.value.get(assetId)
   if (!asset) return
+
+  const explorers = [desktopExplorerRef.value, mobileExplorerRef.value].filter(
+    (instance): instance is ExplorerInstance => Boolean(instance)
+  )
+
+  // Handle SCHEMA assets
+  if (asset.type === 'SCHEMA' && asset.schema_facet) {
+    const databaseName = asset.schema_facet.database_name
+    const schemaName = asset.schema_facet.schema_name
+    const databaseKey = `database:${databaseName}`
+    const schemaKey = `schema:${databaseName}:${schemaName}`
+    explorers.forEach((explorer) => {
+      explorer.expandNode(databaseKey)
+      explorer.expandNode(schemaKey)
+    })
+    return
+  }
+
+  // Handle TABLE and COLUMN assets
   const table =
     asset.type === 'TABLE'
       ? asset
@@ -588,9 +560,6 @@ function expandForAsset(assetId: string) {
   if (!table) return
   const schemaKey = `schema:${table.table_facet?.schema || ''}`
   const tableKey = `table:${table.id}`
-  const explorers = [desktopExplorerRef.value, mobileExplorerRef.value].filter(
-    (instance): instance is ExplorerInstance => Boolean(instance)
-  )
   explorers.forEach((explorer) => {
     explorer.expandNode(schemaKey)
     if (asset.type === 'COLUMN') {

@@ -157,6 +157,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresContext: true }
   },
   {
+    path: '/catalog/smart-scan',
+    name: 'SmartScanPage',
+    component: loadView('SmartScanPage'),
+    meta: { requiresContext: true }
+  },
+  {
     path: '/documents',
     name: 'DocumentList',
     component: loadView('DocumentList'),
@@ -166,6 +172,12 @@ const routes: RouteRecordRaw[] = [
     path: '/documents/:id',
     name: 'DocumentView',
     component: loadView('DocumentView'),
+    meta: { requiresContext: true }
+  },
+  {
+    path: '/catalog/overview',
+    name: 'CatalogOverview',
+    component: loadView('CatalogDashboardPage'),
     meta: { requiresContext: true }
   }
 ]
