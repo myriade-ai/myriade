@@ -8,6 +8,7 @@ import anthropic
 from agentlys import Agentlys
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import and_, or_
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import Session, contains_eager, joinedload, selectinload
 from sqlalchemy.sql.expression import true
 
@@ -39,6 +40,7 @@ from back.utils import (
     get_tables_metadata_from_catalog,
     update_catalog_privacy,
 )
+from config import DATABASE_URL
 from chat.proxy_provider import ProxyProvider
 from middleware import admin_required, user_middleware
 from models import (
@@ -68,6 +70,52 @@ logger = logging.getLogger(__name__)
 api = Blueprint("back_api", __name__)
 
 AGENTLYS_PROVIDER = os.getenv("AGENTLYS_PROVIDER", "proxy")
+
+
+try:
+    _INTERNAL_DATABASE_URL = make_url(DATABASE_URL)
+except Exception:
+    _INTERNAL_DATABASE_URL = None
+
+
+def _normalize_host(value: Any) -> str | None:
+    if value is None:
+        return None
+    return str(value).strip().lower()
+
+
+def _is_internal_database(engine: str, details: dict[str, Any]) -> bool:
+    """Prevent users from connecting to the application's own database."""
+
+    if not _INTERNAL_DATABASE_URL:
+        return False
+
+    driver_name = _INTERNAL_DATABASE_URL.get_backend_name()
+
+    if engine == "postgres" and driver_name.startswith("postgres"):
+        host = _normalize_host(details.get("host"))
+        internal_host = _normalize_host(_INTERNAL_DATABASE_URL.host)
+
+        if host != internal_host:
+            return False
+
+        port = str(details.get("port", "5432"))
+        internal_port = str(_INTERNAL_DATABASE_URL.port or "5432")
+
+        database = details.get("database", "postgres")
+        internal_database = _INTERNAL_DATABASE_URL.database or "postgres"
+
+        return port == internal_port and database == internal_database
+
+    if engine == "sqlite" and driver_name.startswith("sqlite"):
+        filename = details.get("filename")
+        if not filename or not _INTERNAL_DATABASE_URL.database:
+            return False
+        return os.path.abspath(filename) == os.path.abspath(
+            _INTERNAL_DATABASE_URL.database
+        )
+
+    return False
 
 
 def extract_context(session: Session, context_id: str) -> tuple[UUID, UUID | None]:
@@ -402,6 +450,16 @@ def create_database_route():
     """Create a new database and sync its metadata to the catalog."""
     data = request.get_json()
 
+    if _is_internal_database(data["engine"], data["details"]):
+        return (
+            jsonify(
+                {
+                    "message": "Connecting to the internal Myriade database is not allowed."
+                }
+            ),
+            400,
+        )
+
     try:
         # Instantiate a new data_warehouse object
         data_warehouse = DataWarehouseFactory.create(
@@ -449,6 +507,17 @@ def create_database_route():
 def test_database_connection():
     """Test database connection without creating the database."""
     data = request.get_json()
+
+    if _is_internal_database(data["engine"], data["details"]):
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "message": "Connecting to the internal Myriade database is not allowed.",
+                }
+            ),
+            400,
+        )
 
     try:
         # Instantiate a new data_warehouse object
@@ -510,6 +579,17 @@ def update_database(database_id: UUID):
     database.description = data["description"]
     if g.organization_id:
         database.organisationId = g.organization_id
+
+    if _is_internal_database(data["engine"], data["details"]):
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "message": "Connecting to the internal Myriade database is not allowed.",
+                }
+            ),
+            400,
+        )
 
     try:
         # If the engine info has changed, we need to check the connection
