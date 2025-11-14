@@ -53,6 +53,7 @@ from models import (
     Document,
     DocumentVersion,
     GithubIntegration,
+    GithubOAuthState,
     Project,
     ProjectTables,
     Query,
@@ -589,6 +590,178 @@ def delete_database(database_id: UUID):
     if not database:
         return jsonify({"error": "Database not found"}), 404
 
+    # Delete all related records to avoid foreign key violations
+    # Order matters: delete children before parents
+
+    # Get conversation message IDs for this database before deletion
+    conversation_message_ids = [
+        msg.id
+        for msg in g.session.query(ConversationMessage.id)
+        .filter(
+            ConversationMessage.conversationId.in_(
+                g.session.query(Conversation.id).filter(
+                    Conversation.databaseId == database_id
+                )
+            )
+        )
+        .all()
+    ]
+
+    # Set issue.message_id to NULL for issues referencing these messages
+    if conversation_message_ids:
+        g.session.query(Issue).filter(
+            Issue.message_id.in_(conversation_message_ids)
+        ).update({"message_id": None}, synchronize_session=False)
+
+    # Delete conversation messages (they reference queries and charts)
+    g.session.query(ConversationMessage).filter(
+        ConversationMessage.conversationId.in_(
+            g.session.query(Conversation.id).filter(
+                Conversation.databaseId == database_id
+            )
+        )
+    ).delete(synchronize_session=False)
+
+    # Delete user favorites for queries/charts in this database
+    g.session.query(UserFavorite).filter(
+        or_(
+            UserFavorite.query_id.in_(
+                g.session.query(Query.id).filter(Query.databaseId == database_id)
+            ),
+            UserFavorite.chart_id.in_(
+                g.session.query(Chart.id).filter(
+                    Chart.queryId.in_(
+                        g.session.query(Query.id).filter(
+                            Query.databaseId == database_id
+                        )
+                    )
+                )
+            ),
+        )
+    ).delete(synchronize_session=False)
+
+    # Delete charts (references queries)
+    g.session.query(Chart).filter(
+        Chart.queryId.in_(
+            g.session.query(Query.id).filter(Query.databaseId == database_id)
+        )
+    ).delete(synchronize_session=False)
+
+    # Delete queries
+    g.session.query(Query).filter(Query.databaseId == database_id).delete(
+        synchronize_session=False
+    )
+
+    # Delete catalog-related records
+    # Delete facets first (column_facet has parent_table_asset_id FK to asset)
+    from models.catalog import (
+        ColumnFacet,
+        DatabaseFacet,
+        SchemaFacet,
+        TableFacet,
+        asset_tag_association,
+    )
+
+    # Get all asset IDs for this database
+    asset_ids = [
+        asset.id
+        for asset in g.session.query(Asset.id)
+        .filter(Asset.database_id == database_id)
+        .all()
+    ]
+
+    if asset_ids:
+        # Delete asset-tag associations first
+        g.session.execute(
+            asset_tag_association.delete().where(
+                asset_tag_association.c.asset_id.in_(asset_ids)
+            )
+        )
+
+        # Delete facets explicitly to avoid FK violations
+        g.session.query(ColumnFacet).filter(ColumnFacet.asset_id.in_(asset_ids)).delete(
+            synchronize_session=False
+        )
+        g.session.query(TableFacet).filter(TableFacet.asset_id.in_(asset_ids)).delete(
+            synchronize_session=False
+        )
+        g.session.query(SchemaFacet).filter(SchemaFacet.asset_id.in_(asset_ids)).delete(
+            synchronize_session=False
+        )
+        g.session.query(DatabaseFacet).filter(
+            DatabaseFacet.asset_id.in_(asset_ids)
+        ).delete(synchronize_session=False)
+
+        # Now safe to delete assets
+        g.session.query(Asset).filter(Asset.database_id == database_id).delete(
+            synchronize_session=False
+        )
+
+    # Delete terms
+    g.session.query(Term).filter(Term.database_id == database_id).delete(
+        synchronize_session=False
+    )
+
+    # Delete asset tags
+    g.session.query(AssetTag).filter(AssetTag.database_id == database_id).delete(
+        synchronize_session=False
+    )
+
+    # Delete issues
+    g.session.query(Issue).filter(Issue.database_id == database_id).delete(
+        synchronize_session=False
+    )
+
+    # Delete business entities
+    g.session.query(BusinessEntity).filter(
+        BusinessEntity.database_id == database_id
+    ).delete(synchronize_session=False)
+
+    # Delete projects
+    g.session.query(Project).filter(Project.databaseId == database_id).delete(
+        synchronize_session=False
+    )
+
+    # Delete documents (document versions will cascade)
+    g.session.query(Document).filter(Document.database_id == database_id).delete(
+        synchronize_session=False
+    )
+
+    # Delete GitHub integration
+    g.session.query(GithubIntegration).filter(
+        GithubIntegration.databaseId == database_id
+    ).delete(synchronize_session=False)
+
+    # Delete GitHub OAuth state
+    g.session.query(GithubOAuthState).filter(
+        GithubOAuthState.databaseId == database_id
+    ).delete(synchronize_session=False)
+
+    # Get conversation IDs before deletion
+    conversation_ids = [
+        conv.id
+        for conv in g.session.query(Conversation.id)
+        .filter(Conversation.databaseId == database_id)
+        .all()
+    ]
+
+    # Set business_entity.review_conversation_id to NULL for entities referencing these conversations
+    if conversation_ids:
+        g.session.query(BusinessEntity).filter(
+            BusinessEntity.review_conversation_id.in_(conversation_ids)
+        ).update({"review_conversation_id": None}, synchronize_session=False)
+
+    # Delete conversations (messages already deleted above)
+    g.session.query(Conversation).filter(Conversation.databaseId == database_id).delete(
+        synchronize_session=False
+    )
+
+    # Delete DBT records
+    g.session.query(DBT).filter(DBT.database_id == database_id).delete(
+        synchronize_session=False
+    )
+
+    # Now safe to delete the database
     g.session.delete(database)
     g.session.flush()
     return jsonify({"success": True})
