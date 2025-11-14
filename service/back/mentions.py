@@ -1,7 +1,6 @@
 """API endpoints for @ mention functionality in markdown editors."""
 
 import logging
-from typing import Any
 
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import and_, or_
@@ -12,40 +11,6 @@ from models import Chart, Query
 
 logger = logging.getLogger(__name__)
 mentions_api = Blueprint("mentions_api", __name__)
-
-
-def extract_chart_title(config: dict[str, Any]) -> str:
-    """
-    Extract the title from a chart config object.
-    ECharts config can have title in various places:
-    - config.title (string)
-    - config.title.text (string)
-    - config.option.title.text (for some chart types)
-    """
-    if not config:
-        return "Untitled Chart"
-
-    # Try direct title field (string)
-    if isinstance(config.get("title"), str):
-        return config["title"]
-
-    # Try title.text (ECharts format)
-    title_obj = config.get("title", {})
-    if isinstance(title_obj, dict):
-        text = title_obj.get("text")
-        if text:
-            return text
-
-    # Try option.title.text (nested format)
-    option = config.get("option", {})
-    if isinstance(option, dict):
-        title_obj = option.get("title", {})
-        if isinstance(title_obj, dict):
-            text = title_obj.get("text")
-            if text:
-                return text
-
-    return "Untitled Chart"
 
 
 @mentions_api.route("/contexts/<context_id>/mentions", methods=["GET"])
@@ -101,28 +66,14 @@ def get_mentions(context_id: str):
         .filter(Query.databaseId == database_id)
     )
 
-    # For charts, we need to search in the config JSON
-    # Note: Searching in JSON is database-specific
-    # For PostgreSQL, we can use JSON operators
-    # For SQLite, we'll fetch all and filter in Python (less efficient but works)
-    charts_query = charts_query.order_by(Chart.createdAt.desc())
-
-    # Fetch charts (limit after filtering if search is provided)
+    # Apply search filter for charts using the title column
     if search:
-        # Fetch more than needed and filter in Python
-        all_charts = charts_query.limit(limit * 3).all()
-        search_lower = search.lower()
+        search_pattern = f"%{search}%"
+        charts_query = charts_query.filter(Chart.title.ilike(search_pattern))
 
-        filtered_charts = []
-        for chart in all_charts:
-            title = extract_chart_title(chart.config)
-            if search_lower in title.lower():
-                filtered_charts.append(chart)
-                if len(filtered_charts) >= limit:
-                    break
-        charts = filtered_charts
-    else:
-        charts = charts_query.limit(limit).all()
+    # Order by most recent and limit
+    charts_query = charts_query.order_by(Chart.createdAt.desc()).limit(limit)
+    charts = charts_query.all()
 
     # Format response
     queries_data = []
@@ -141,7 +92,7 @@ def get_mentions(context_id: str):
         charts_data.append(
             {
                 "id": str(chart.id),
-                "title": extract_chart_title(chart.config),
+                "title": chart.title or "Untitled Chart",
                 "updated_at": chart.createdAt.isoformat() if chart.createdAt else None,
             }
         )
