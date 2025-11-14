@@ -1,7 +1,12 @@
+import uuid
 from unittest.mock import patch
 
 import requests
+from sqlalchemy import text
+from sqlalchemy.orm import sessionmaker
 
+from models import Conversation, ConversationMessage
+from models.quality import Issue
 from tests.utils import normalise_json
 
 
@@ -24,6 +29,80 @@ def test_list_databases(app_server, test_db_id, snapshot):
 #     )
 #     assert r.status_code == 200
 #     assert normalise_json(r.json()) == snapshot()
+
+
+def test_delete_database_with_conversations(app_server, session):
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    session.commit()
+
+    payload = {
+        "name": "cascade-test-db",
+        "description": "Database with conversations",
+        "engine": "sqlite",
+        "details": {"filename": ":memory:"},
+        "safe_mode": True,
+        "write_mode": "confirmation",
+    }
+
+    create_resp = requests.post(
+        f"{app_server}/databases", json=payload, cookies={"session": "MOCK"}
+    )
+    assert create_resp.status_code == 200
+    database_id = create_resp.json()["id"]
+
+    conversation_resp = requests.post(
+        f"{app_server}/conversations",
+        json={"contextId": f"database-{database_id}"},
+        cookies={"session": "MOCK"},
+    )
+    assert conversation_resp.status_code == 200
+    conversation_id = uuid.UUID(conversation_resp.json()["id"])
+
+    message = ConversationMessage(
+        conversationId=conversation_id,
+        role="user",
+        content="hello",
+    )
+    session.add(message)
+    session.flush()
+
+    issue = Issue(title="orphaned issue", message_id=message.id)
+    session.add(issue)
+    session.flush()
+    message_id = message.id
+    issue_id = issue.id
+    session.commit()
+
+    delete_resp = requests.delete(
+        f"{app_server}/databases/{database_id}", cookies={"session": "MOCK"}
+    )
+    assert delete_resp.status_code == 200
+    assert delete_resp.json() == {"success": True}
+
+    session.expire_all()
+
+    SessionFactory = sessionmaker(bind=session.get_bind())
+    verify_session = SessionFactory()
+    try:
+        assert (
+            verify_session.query(Conversation)
+            .filter(Conversation.id == conversation_id)
+            .first()
+            is None
+        )
+        assert (
+            verify_session.query(ConversationMessage)
+            .filter(ConversationMessage.id == message_id)
+            .first()
+            is None
+        )
+
+        refreshed_issue = (
+            verify_session.query(Issue).filter(Issue.id == issue_id).one()
+        )
+        assert refreshed_issue.message_id is None
+    finally:
+        verify_session.close()
 
 
 def test_authorization_null_organization_vulnerability(app_server, session):

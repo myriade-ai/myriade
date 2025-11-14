@@ -64,9 +64,13 @@ class Issue(SerializerMixin, Base, DefaultBase):
     )
     database = relationship("Database", back_populates="issues")
     message_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("conversation_message.id"), nullable=True
+        UUID(), ForeignKey("conversation_message.id", ondelete="SET NULL"), nullable=True
     )
-    from_message = relationship("ConversationMessage", back_populates="issues")
+    from_message = relationship(
+        "ConversationMessage",
+        back_populates="issues",
+        passive_deletes=True,
+    )
     business_entity_id: Mapped[uuid.UUID] = mapped_column(
         UUID(), ForeignKey("business_entity.id"), nullable=True
     )
@@ -100,7 +104,7 @@ class BusinessEntity(SerializerMixin, Base, DefaultBase):
         UUID(), ForeignKey("database.id"), nullable=False
     )
     review_conversation_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(), ForeignKey("conversation.id"), nullable=True
+        UUID(), ForeignKey("conversation.id", ondelete="SET NULL"), nullable=True
     )
     issues: Mapped[List["Issue"]] = relationship(
         "Issue", back_populates="business_entity"
