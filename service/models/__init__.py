@@ -380,7 +380,7 @@ class Conversation(SerializerMixin, DefaultBase, Base):
     name: Mapped[Optional[str]] = mapped_column(String)
     ownerId: Mapped[Optional[str]] = mapped_column(String, ForeignKey("user.id"))
     projectId: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(), ForeignKey("project.id")
+        UUID(), ForeignKey("project.id", ondelete="SET NULL")
     )
     databaseId: Mapped[uuid.UUID] = mapped_column(
         UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
@@ -531,7 +531,9 @@ class Chart(SerializerMixin, DefaultBase, Base):
         default=uuid.uuid4,
     )
     config: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
-    queryId: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(), ForeignKey("query.id"))
+    queryId: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(), ForeignKey("query.id", ondelete="CASCADE")
+    )
     query: Mapped[Optional["Query"]] = relationship(back_populates="charts")
     conversation_messages: Mapped[List["ConversationMessage"]] = relationship(
         "ConversationMessage", back_populates="chart", lazy="joined"
@@ -574,7 +576,7 @@ class ProjectTables(SerializerMixin, DefaultBase, Base):
         default=uuid.uuid4,
     )
     projectId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("project.id"), nullable=False
+        UUID(), ForeignKey("project.id", ondelete="CASCADE"), nullable=False
     )
     databaseName: Mapped[Optional[str]] = mapped_column(String)
     schemaName: Mapped[Optional[str]] = mapped_column(String)
@@ -636,7 +638,7 @@ class Note(SerializerMixin, DefaultBase, Base):
     title: Mapped[Optional[str]] = mapped_column(String)
     content: Mapped[Optional[str]] = mapped_column(String)
     projectId: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(), ForeignKey("project.id")
+        UUID(), ForeignKey("project.id", ondelete="CASCADE")
     )
     project: Mapped[Optional["Project"]] = relationship(back_populates="notes")
 

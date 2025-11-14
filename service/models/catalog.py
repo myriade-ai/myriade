@@ -149,7 +149,7 @@ class SchemaFacet(SerializerMixin, Base):
     database_name: Mapped[str] = mapped_column(String, nullable=False)
     schema_name: Mapped[str] = mapped_column(String, nullable=False)
     parent_database_asset_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("asset.id")
+        UUID(), ForeignKey("asset.id", ondelete="CASCADE")
     )
 
     __table_args__ = (UniqueConstraint("database_id", "database_name", "schema_name"),)
@@ -180,7 +180,7 @@ class TableFacet(SerializerMixin, Base):
     table_name: Mapped[Optional[str]] = mapped_column(String)
     table_type: Mapped[Optional[str]] = mapped_column(String)
     parent_schema_asset_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(), ForeignKey("asset.id")
+        UUID(), ForeignKey("asset.id", ondelete="CASCADE")
     )
 
     __table_args__ = (
@@ -206,7 +206,7 @@ class ColumnFacet(SerializerMixin, Base):
         back_populates="column_facet", foreign_keys=[asset_id]
     )
     parent_table_asset_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("asset.id")
+        UUID(), ForeignKey("asset.id", ondelete="CASCADE")
     )
     column_name: Mapped[str] = mapped_column(String, nullable=False)
     ordinal: Mapped[Optional[int]] = mapped_column()
