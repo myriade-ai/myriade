@@ -312,7 +312,7 @@ const schemasForSelectedDatabase = computed(() => {
   if (!asset || asset.type !== 'DATABASE') return []
 
   // Find the database node in the filtered tree
-  const databaseNode = filteredTree.value.find((db) => db.asset.id === asset.id)
+  const databaseNode = filteredTree.value.find((db) => db.asset?.id === asset.id)
   return databaseNode?.schemas || []
 })
 
@@ -322,6 +322,7 @@ const tablesForSelectedSchema = computed(() => {
 
   // Find the schema node in the filtered tree
   for (const dbNode of filteredTree.value) {
+    if (!dbNode.schemas) continue
     const schemaNode = dbNode.schemas.find((s) => s.asset?.id === asset.id)
     if (schemaNode) {
       return schemaNode.tables || []

@@ -172,7 +172,12 @@ const handleAssetApprove = async (payload: {
     const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
     queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
       if (!oldData) return oldData
-      return oldData.map((a) => (a.id === updated.id ? updated : a))
+      return oldData.map((a) => {
+        if (a.id === updated.id) {
+          return { ...a, ...updated }
+        }
+        return a
+      })
     })
 
     // Update local asset data

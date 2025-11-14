@@ -40,7 +40,19 @@
               <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">
                 Overall Completion
               </h2>
-              <span class="text-lg font-bold">{{ data.overall.completion_percentage }}%</span>
+              <div class="flex items-baseline gap-2">
+                <span class="text-xs text-muted-foreground leading-none">
+                  {{
+                    (
+                      data.overall.assets_validated + data.overall.assets_ai_generated
+                    ).toLocaleString()
+                  }}
+                  / {{ data.overall.total_assets.toLocaleString() }}
+                </span>
+                <span class="text-lg font-bold leading-none"
+                  >{{ data.overall.completion_percentage }}%</span
+                >
+              </div>
             </div>
             <ProgressBar :percentage="data.overall.completion_percentage" size="md" class="mb-4" />
             <div class="grid grid-cols-4 gap-6">
@@ -96,13 +108,18 @@
 import PageHeader from '@/components/PageHeader.vue'
 import DatabaseCard from '@/components/catalog/DatabaseCard.vue'
 import ProgressBar from '@/components/catalog/ProgressBar.vue'
+import { useCatalogAssetsQuery } from '@/components/catalog/useCatalogQuery'
 import { Button } from '@/components/ui/button'
-import { useDashboardStatsQuery } from '@/composables/useDashboardStats'
+import { computeDashboardStats } from '@/composables/useDashboardStats'
 import { RotateCw, SparklesIcon } from 'lucide-vue-next'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
-const { data, isLoading, error, isFetching, refetch } = useDashboardStatsQuery()
+const assetsQuery = useCatalogAssetsQuery()
+const { data: catalogAssets, isLoading, error, isFetching, refetch } = assetsQuery
 const router = useRouter()
+
+const data = computeDashboardStats(computed(() => catalogAssets.value))
 
 const startScan = () => {
   router.push({ name: 'SmartScanPage' })
