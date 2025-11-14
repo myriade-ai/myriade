@@ -79,9 +79,12 @@ Open: [http://localhost:8080](http://localhost:8080)
 
 ```bash
 docker run -p 8080:8080 \
-  -e DATABASE_URL=postgresql://user:pass@localhost:5432/myriade \
+  -e DATABASE_URL=postgresql://<db_user>:<strong_password>@localhost:5432/myriade \
   myriadeai/myriade:latest
 ```
+
+> ⚠️ Always use dedicated, non-default credentials. Myriade blocks attempts to
+> connect to its own metadata database from within the app.
 
 > [See full setup docs →](./DEVELOPMENT.md)
 
