@@ -64,7 +64,10 @@ class DBT(SerializerMixin, DefaultBase, Base):
         default=uuid.uuid4,
     )
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False, unique=True
+        UUID(),
+        ForeignKey("database.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
     )
 
     # DBT documentation (catalog and manifest JSON)
@@ -410,7 +413,10 @@ class GithubIntegration(SerializerMixin, DefaultBase, Base):
         default=uuid.uuid4,
     )
     databaseId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), unique=True, nullable=False
+        UUID(),
+        ForeignKey("database.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
     )
     access_token: Mapped[Optional[str]] = mapped_column(String)
     refresh_token: Mapped[Optional[str]] = mapped_column(String)
@@ -455,7 +461,7 @@ class Query(SerializerMixin, DefaultBase, Base):
     )
     title: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     databaseId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
     sql: Mapped[Optional[str]] = mapped_column(String)
     # Optimal type to store large results
@@ -595,7 +601,7 @@ class Project(SerializerMixin, DefaultBase, Base):
         String, ForeignKey("organisation.id")
     )
     databaseId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
 
     creator: Mapped["User"] = relationship()
@@ -702,7 +708,7 @@ class Document(SerializerMixin, DefaultBase, Base):
     )
     title: Mapped[Optional[str]] = mapped_column(String)
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
     organisation_id: Mapped[Optional[str]] = mapped_column(
         String, ForeignKey("organisation.id")

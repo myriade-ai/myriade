@@ -60,11 +60,13 @@ class Issue(SerializerMixin, Base, DefaultBase):
     severity: Mapped[Severity] = mapped_column(Enum(Severity), nullable=True)
     status: Mapped[Status] = mapped_column(Enum(Status), default=Status.OPEN)
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=True
+        UUID(), ForeignKey("database.id", ondelete="SET NULL"), nullable=True
     )
     database = relationship("Database", back_populates="issues")
     message_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("conversation_message.id", ondelete="SET NULL"), nullable=True
+        UUID(),
+        ForeignKey("conversation_message.id", ondelete="SET NULL"),
+        nullable=True,
     )
     from_message = relationship(
         "ConversationMessage",
@@ -101,7 +103,7 @@ class BusinessEntity(SerializerMixin, Base, DefaultBase):
     )
     report: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
     review_conversation_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(), ForeignKey("conversation.id", ondelete="SET NULL"), nullable=True

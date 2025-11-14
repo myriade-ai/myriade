@@ -52,7 +52,7 @@ class Asset(SerializerMixin, DefaultBase, Base):
     name: Mapped[Optional[str]] = mapped_column(String)
     description: Mapped[Optional[str]] = mapped_column(Text)
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
 
     status: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -122,7 +122,7 @@ class DatabaseFacet(SerializerMixin, Base):
         back_populates="database_facet", foreign_keys=[asset_id]
     )
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
     database_name: Mapped[str] = mapped_column(String, nullable=False)
 
@@ -144,7 +144,7 @@ class SchemaFacet(SerializerMixin, Base):
         back_populates="schema_facet", foreign_keys=[asset_id]
     )
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
     database_name: Mapped[str] = mapped_column(String, nullable=False)
     schema_name: Mapped[str] = mapped_column(String, nullable=False)
@@ -173,7 +173,7 @@ class TableFacet(SerializerMixin, Base):
         back_populates="table_facet", foreign_keys=[asset_id]
     )
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
     database_name: Mapped[Optional[str]] = mapped_column(String)
     schema: Mapped[Optional[str]] = mapped_column(String)
@@ -230,7 +230,7 @@ class Term(SerializerMixin, DefaultBase, Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     definition: Mapped[str] = mapped_column(Text, nullable=False)
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
     synonyms: Mapped[Optional[List[str]]] = mapped_column(JSONB)
     business_domains: Mapped[Optional[List[str]]] = mapped_column(JSONB)
@@ -274,7 +274,7 @@ class AssetTag(SerializerMixin, DefaultBase, Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
 
     # Full-text search vector (computed column in PostgreSQL, nullable string in SQLite)
