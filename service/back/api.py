@@ -42,6 +42,7 @@ from back.utils import (
 )
 from config import DATABASE_URL
 from chat.proxy_provider import ProxyProvider
+from config import DATABASE_URL
 from middleware import admin_required, user_middleware
 from models import (
     DBT,
