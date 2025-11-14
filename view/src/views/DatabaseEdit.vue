@@ -49,13 +49,49 @@
       <!-- Action Buttons -->
       <div class="py-5 max-w-lg">
         <div class="flex justify-between space-x-3">
-          <Button :is-loading="isDeleting" @click="clickDelete" variant="destructive">
+          <Button :is-loading="isDeleting" @click="showDeleteDialog = true" variant="destructive">
             Delete
           </Button>
           <Button :is-loading="isSaving" @click="clickSave"> Save </Button>
         </div>
       </div>
     </div>
+
+    <!-- Delete Confirmation Dialog -->
+    <AlertDialog :open="showDeleteDialog" @update:open="showDeleteDialog = $event">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Database Connection?</AlertDialogTitle>
+          <AlertDialogDescription>
+            <p class="mb-4">
+              This action cannot be undone. Deleting this database will permanently remove:
+            </p>
+            <ul class="list-disc list-inside space-y-2 text-sm text-gray-700 mb-4">
+              <li>All conversations and chat history</li>
+              <li>All saved queries and charts</li>
+              <li>All projects and their configurations</li>
+              <li>All catalog metadata (assets, tags, terms)</li>
+              <li>All data quality issues and business entities</li>
+              <li>All documents and documentation</li>
+              <li>All DBT configurations</li>
+              <li>All GitHub integrations</li>
+            </ul>
+            <p class="text-sm font-medium text-red-600">
+              Are you sure you want to permanently delete "{{ database?.name }}"?
+            </p>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            @click="confirmDelete"
+            class="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+          >
+            Delete Permanently
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
 
@@ -63,6 +99,16 @@
 import DatabaseForm from '@/components/database/DatabaseForm.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
 import router from '@/router'
 import { user } from '@/stores/auth'
 import { useDatabasesStore, type Database } from '@/stores/databases'
@@ -77,6 +123,7 @@ const databaseId = route.params.id as string
 const isSaving = ref(false)
 const isDeleting = ref(false)
 const isSharingToggling = ref(false)
+const showDeleteDialog = ref(false)
 const databasesStore = useDatabasesStore()
 const database = ref<Database | null>(null)
 
@@ -103,17 +150,23 @@ const clickCancel = () => {
   router.push({ name: 'DatabaseList' })
 }
 
-const clickDelete = async () => {
+const confirmDelete = async () => {
+  showDeleteDialog.value = false
   isDeleting.value = true
   try {
     await databasesStore.deleteDatabase(databaseId)
+    notify({
+      title: 'Database deleted',
+      text: 'The database and all related data have been permanently deleted',
+      type: 'success'
+    })
     isDeleting.value = false
     router.push({ name: 'DatabaseList' })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Database delete failed:', error)
     notify({
       title: 'Database delete failed',
-      text: error.response.data.error,
+      text: error.response?.data?.error || 'An error occurred while deleting the database',
       type: 'error'
     })
     isDeleting.value = false
