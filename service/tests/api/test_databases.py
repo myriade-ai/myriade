@@ -5,7 +5,7 @@ import requests
 from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
 
-from models import Conversation, ConversationMessage
+from models import Conversation, ConversationMessage, DBT
 from models.quality import Issue
 from tests.utils import normalise_json
 
@@ -49,6 +49,7 @@ def test_delete_database_with_conversations(app_server, session):
     )
     assert create_resp.status_code == 200
     database_id = create_resp.json()["id"]
+    database_uuid = uuid.UUID(database_id)
 
     conversation_resp = requests.post(
         f"{app_server}/conversations",
@@ -57,6 +58,10 @@ def test_delete_database_with_conversations(app_server, session):
     )
     assert conversation_resp.status_code == 200
     conversation_id = uuid.UUID(conversation_resp.json()["id"])
+
+    dbt_entry = DBT(database_id=database_uuid)
+    session.add(dbt_entry)
+    session.flush()
 
     message = ConversationMessage(
         conversationId=conversation_id,
@@ -93,6 +98,12 @@ def test_delete_database_with_conversations(app_server, session):
         assert (
             verify_session.query(ConversationMessage)
             .filter(ConversationMessage.id == message_id)
+            .first()
+            is None
+        )
+        assert (
+            verify_session.query(DBT)
+            .filter(DBT.database_id == database_uuid)
             .first()
             is None
         )
