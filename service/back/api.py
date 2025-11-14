@@ -54,6 +54,7 @@ from models import (
     DocumentVersion,
     GithubIntegration,
     GithubOAuthState,
+    Note,
     Project,
     ProjectTables,
     Query,
@@ -725,13 +726,23 @@ def delete_database(database_id: UUID):
         .all()
     ]
 
-    # Set conversation.projectId to NULL for conversations in these projects
     if project_ids:
+        # Set conversation.projectId to NULL for conversations in these projects
         g.session.query(Conversation).filter(
             Conversation.projectId.in_(project_ids)
         ).update({"projectId": None}, synchronize_session=False)
 
-    # Delete projects (project_tables and notes have cascade configured)
+        # Delete project_tables (bulk delete bypasses ORM cascades)
+        g.session.query(ProjectTables).filter(
+            ProjectTables.projectId.in_(project_ids)
+        ).delete(synchronize_session=False)
+
+        # Delete notes
+        g.session.query(Note).filter(Note.projectId.in_(project_ids)).delete(
+            synchronize_session=False
+        )
+
+    # Delete projects
     g.session.query(Project).filter(Project.databaseId == database_id).delete(
         synchronize_session=False
     )
