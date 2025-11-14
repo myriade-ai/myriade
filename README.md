@@ -83,9 +83,6 @@ docker run -p 8080:8080 \
   myriadeai/myriade:latest
 ```
 
-> ⚠️ Always use dedicated, non-default credentials. Myriade blocks attempts to
-> connect to its own metadata database from within the app.
-
 > [See full setup docs →](./DEVELOPMENT.md)
 
 ---
