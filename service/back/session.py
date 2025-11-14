@@ -44,6 +44,7 @@ engine = create_engine(
 )
 
 if engine.url.get_backend_name() == "sqlite":
+
     @event.listens_for(engine, "connect")
     def _set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
@@ -51,6 +52,7 @@ if engine.url.get_backend_name() == "sqlite":
             cursor.execute("PRAGMA foreign_keys=ON")
         finally:
             cursor.close()
+
 
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
