@@ -64,7 +64,10 @@ class DBT(SerializerMixin, DefaultBase, Base):
         default=uuid.uuid4,
     )
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False, unique=True
+        UUID(),
+        ForeignKey("database.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
     )
 
     # DBT documentation (catalog and manifest JSON)
@@ -105,7 +108,10 @@ class Database(SerializerMixin, DefaultBase, Base):
 
     # DBT relationship (one-to-one)
     dbt: Mapped[Optional["DBT"]] = relationship(
-        "DBT", back_populates="database", uselist=False
+        "DBT",
+        back_populates="database",
+        uselist=False,
+        passive_deletes=True,
     )
 
     # organisation: Mapped[Optional["Organisation"]] = relationship()
@@ -185,7 +191,7 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
         default=uuid.uuid4,
     )
     conversationId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("conversation.id"), nullable=False
+        UUID(), ForeignKey("conversation.id", ondelete="CASCADE"), nullable=False
     )
     role: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[Optional[str]] = mapped_column(String)
@@ -203,14 +209,20 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
         UUID(), ForeignKey("chart.id"), nullable=True
     )
 
-    conversation: Mapped["Conversation"] = relationship(back_populates="messages")
+    conversation: Mapped["Conversation"] = relationship(
+        back_populates="messages",
+        passive_deletes=True,
+    )
     query: Mapped[Optional["Query"]] = relationship(
         back_populates="conversation_messages"
     )
     chart: Mapped[Optional["Chart"]] = relationship(
         back_populates="conversation_messages"
     )
-    issues: Mapped[List[Issue]] = relationship(back_populates="from_message")
+    issues: Mapped[List[Issue]] = relationship(
+        back_populates="from_message",
+        passive_deletes=True,
+    )
 
     # format params before creating the object
     def __init__(self, **kwargs):
@@ -368,10 +380,10 @@ class Conversation(SerializerMixin, DefaultBase, Base):
     name: Mapped[Optional[str]] = mapped_column(String)
     ownerId: Mapped[Optional[str]] = mapped_column(String, ForeignKey("user.id"))
     projectId: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(), ForeignKey("project.id")
+        UUID(), ForeignKey("project.id", ondelete="SET NULL")
     )
     databaseId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
     github_pr_url: Mapped[Optional[str]] = mapped_column(String)
     workspace_path: Mapped[Optional[str]] = mapped_column(String)
@@ -382,6 +394,7 @@ class Conversation(SerializerMixin, DefaultBase, Base):
         "ConversationMessage",
         back_populates="conversation",
         lazy="joined",
+        passive_deletes=True,
         # Order by createdAt
         order_by="ConversationMessage.createdAt",
     )
@@ -400,7 +413,10 @@ class GithubIntegration(SerializerMixin, DefaultBase, Base):
         default=uuid.uuid4,
     )
     databaseId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), unique=True, nullable=False
+        UUID(),
+        ForeignKey("database.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
     )
     access_token: Mapped[Optional[str]] = mapped_column(String)
     refresh_token: Mapped[Optional[str]] = mapped_column(String)
@@ -424,7 +440,7 @@ class GithubOAuthState(SerializerMixin, DefaultBase, Base):
         default=uuid.uuid4,
     )
     databaseId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
     userId: Mapped[str] = mapped_column(String, nullable=False)
     state: Mapped[str] = mapped_column(String, unique=True, nullable=False)
@@ -445,7 +461,7 @@ class Query(SerializerMixin, DefaultBase, Base):
     )
     title: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     databaseId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
     sql: Mapped[Optional[str]] = mapped_column(String)
     # Optimal type to store large results
@@ -515,7 +531,9 @@ class Chart(SerializerMixin, DefaultBase, Base):
         default=uuid.uuid4,
     )
     config: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
-    queryId: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(), ForeignKey("query.id"))
+    queryId: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(), ForeignKey("query.id", ondelete="CASCADE")
+    )
     query: Mapped[Optional["Query"]] = relationship(back_populates="charts")
     conversation_messages: Mapped[List["ConversationMessage"]] = relationship(
         "ConversationMessage", back_populates="chart", lazy="joined"
@@ -558,7 +576,7 @@ class ProjectTables(SerializerMixin, DefaultBase, Base):
         default=uuid.uuid4,
     )
     projectId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("project.id"), nullable=False
+        UUID(), ForeignKey("project.id", ondelete="CASCADE"), nullable=False
     )
     databaseName: Mapped[Optional[str]] = mapped_column(String)
     schemaName: Mapped[Optional[str]] = mapped_column(String)
@@ -585,7 +603,7 @@ class Project(SerializerMixin, DefaultBase, Base):
         String, ForeignKey("organisation.id")
     )
     databaseId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
 
     creator: Mapped["User"] = relationship()
@@ -620,7 +638,7 @@ class Note(SerializerMixin, DefaultBase, Base):
     title: Mapped[Optional[str]] = mapped_column(String)
     content: Mapped[Optional[str]] = mapped_column(String)
     projectId: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(), ForeignKey("project.id")
+        UUID(), ForeignKey("project.id", ondelete="CASCADE")
     )
     project: Mapped[Optional["Project"]] = relationship(back_populates="notes")
 
@@ -692,7 +710,7 @@ class Document(SerializerMixin, DefaultBase, Base):
     )
     title: Mapped[Optional[str]] = mapped_column(String)
     database_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
     organisation_id: Mapped[Optional[str]] = mapped_column(
         String, ForeignKey("organisation.id")
