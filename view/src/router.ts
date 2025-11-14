@@ -175,8 +175,8 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresContext: true }
   },
   {
-    path: '/catalog/dashboard',
-    name: 'CatalogDashboard',
+    path: '/catalog/overview',
+    name: 'CatalogOverview',
     component: loadView('CatalogDashboardPage'),
     meta: { requiresContext: true }
   }

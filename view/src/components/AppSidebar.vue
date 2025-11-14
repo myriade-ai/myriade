@@ -288,9 +288,9 @@ async function handleDeleteConversation(conversationId: string) {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <SidebarMenuSub>
-                <SidebarMenuSubItem key="dashboard">
-                  <SidebarMenuSubButton as-child :isActive="isActive('/catalog/dashboard')">
-                    <RouterLink :to="`/catalog/dashboard`">
+                <SidebarMenuSubItem key="overview">
+                  <SidebarMenuSubButton as-child :isActive="isActive('/catalog/overview')">
+                    <RouterLink :to="`/catalog/overview`">
                       <span>Overview</span>
                     </RouterLink>
                   </SidebarMenuSubButton>
