@@ -185,7 +185,7 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
         default=uuid.uuid4,
     )
     conversationId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("conversation.id"), nullable=False
+        UUID(), ForeignKey("conversation.id", ondelete="CASCADE"), nullable=False
     )
     role: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[Optional[str]] = mapped_column(String)
@@ -203,14 +203,20 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
         UUID(), ForeignKey("chart.id"), nullable=True
     )
 
-    conversation: Mapped["Conversation"] = relationship(back_populates="messages")
+    conversation: Mapped["Conversation"] = relationship(
+        back_populates="messages",
+        passive_deletes=True,
+    )
     query: Mapped[Optional["Query"]] = relationship(
         back_populates="conversation_messages"
     )
     chart: Mapped[Optional["Chart"]] = relationship(
         back_populates="conversation_messages"
     )
-    issues: Mapped[List[Issue]] = relationship(back_populates="from_message")
+    issues: Mapped[List[Issue]] = relationship(
+        back_populates="from_message",
+        passive_deletes=True,
+    )
 
     # format params before creating the object
     def __init__(self, **kwargs):
@@ -371,7 +377,7 @@ class Conversation(SerializerMixin, DefaultBase, Base):
         UUID(), ForeignKey("project.id")
     )
     databaseId: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("database.id"), nullable=False
+        UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
     github_pr_url: Mapped[Optional[str]] = mapped_column(String)
     workspace_path: Mapped[Optional[str]] = mapped_column(String)
@@ -382,6 +388,7 @@ class Conversation(SerializerMixin, DefaultBase, Base):
         "ConversationMessage",
         back_populates="conversation",
         lazy="joined",
+        passive_deletes=True,
         # Order by createdAt
         order_by="ConversationMessage.createdAt",
     )
