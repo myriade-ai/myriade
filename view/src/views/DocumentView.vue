@@ -33,23 +33,24 @@
             </svg>
             Version History
           </Button>
-          <Button v-if="!isEditing" size="sm" @click="startEdit">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div v-if="isSaving" class="text-sm text-gray-500 flex items-center gap-2">
+            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
               <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              />
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
             </svg>
-            Edit
-          </Button>
-          <template v-else>
-            <Button variant="outline" size="sm" @click="cancelEdit"> Cancel </Button>
-            <Button size="sm" @click="saveDocument" :disabled="isSaving">
-              {{ isSaving ? 'Saving...' : 'Save' }}
-            </Button>
-          </template>
+            Saving...
+          </div>
         </div>
       </template>
     </PageHeader>
@@ -153,16 +154,17 @@
             </div>
           </div>
 
-          <!-- Edit Mode -->
-          <div v-if="isEditing" class="space-y-4">
-            <textarea
-              v-model="editedContent"
-              class="w-full min-h-[500px] p-4 border rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Write your document content in Markdown..."
-            ></textarea>
+          <!-- Unified Editor/Viewer (Notion-like) -->
+          <div v-if="!viewingVersion">
+            <UnifiedMarkdownEditor
+              :model-value="document.content"
+              @update:model-value="handleContentChange"
+              :disabled="document.archived"
+              placeholder="Click to start writing... Use @ to mention queries or charts"
+            />
           </div>
 
-          <!-- View Mode -->
+          <!-- Historical Version View (read-only) -->
           <div v-else class="prose max-w-none">
             <template v-for="(part, index) in parsedContent" :key="index">
               <MarkdownDisplay
@@ -195,6 +197,7 @@
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import Chart from '@/components/Chart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
+import UnifiedMarkdownEditor from '@/components/UnifiedMarkdownEditor.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Card from '@/components/ui/card/Card.vue'
@@ -202,20 +205,27 @@ import CardContent from '@/components/ui/card/CardContent.vue'
 import { useDocumentQuery, useDocumentVersionsQuery } from '@/composables/useDocumentsQuery'
 import type { DocumentVersion } from '@/stores/conversations'
 import { useDocumentsStore } from '@/stores/documents'
-import { computed, ref, toRef } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
+import { computed, onBeforeUnmount, ref, toRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
 const documentsStore = useDocumentsStore()
+const queryClient = useQueryClient()
 
-const isEditing = ref(false)
 const isSaving = ref(false)
 const isArchiving = ref(false)
 const isDeleting = ref(false)
-const editedContent = ref('')
 const showVersionHistory = ref(false)
 const viewingVersion = ref<DocumentVersion | null>(null)
+const saveTimeout = ref<number | null>(null)
+const currentContent = ref('')
+
+// Enhanced save management
+const saveVersion = ref(0) // Track save versions to detect stale responses
+const currentSaveRequest = ref<AbortController | null>(null) // For canceling in-flight requests
+const pendingSaveContent = ref<string>('') // Content that's being saved
 
 const documentId = computed(() => {
   return Array.isArray(route.params.id) ? route.params.id[0] : route.params.id
@@ -233,12 +243,26 @@ const subtitle = computed(() => {
   return `Updated ${formatDate(document.value.updatedAt)}`
 })
 
+// Initialize current content from document
+watch(
+  document,
+  (newDoc) => {
+    if (newDoc && !currentContent.value) {
+      currentContent.value = newDoc.content
+    }
+  },
+  { immediate: true }
+)
+
 const parsedContent = computed<
   Array<{ type: string; content?: string; query_id?: string; chart_id?: string }>
 >(() => {
   if (!document.value) return []
 
-  const content = viewingVersion.value ? viewingVersion.value.content : document.value.content
+  // Use viewing version content, or current edited content
+  const content = viewingVersion.value
+    ? viewingVersion.value.content
+    : currentContent.value || document.value.content
 
   const chunks: Array<{
     type: string
@@ -292,35 +316,93 @@ const parsedContent = computed<
   return chunks
 })
 
-const startEdit = () => {
-  if (!document.value) return
-  editedContent.value = document.value.content
-  isEditing.value = true
-}
+// Handle content changes with debounced auto-save
+const handleContentChange = (newContent: string) => {
+  currentContent.value = newContent
 
-const cancelEdit = () => {
-  isEditing.value = false
-  editedContent.value = ''
+  // Clear existing timeout
+  if (saveTimeout.value !== null) {
+    clearTimeout(saveTimeout.value)
+  }
+
+  // Set new timeout for auto-save (2 seconds after last change)
+  saveTimeout.value = window.setTimeout(() => {
+    saveDocument()
+  }, 2000)
 }
 
 const saveDocument = async () => {
-  if (!document.value || !documentId.value) return
+  if (!document.value || !documentId.value || !currentContent.value) return
+
+  // Don't save if content hasn't changed
+  if (currentContent.value === document.value.content) return
+
+  // Cancel any existing save request
+  if (currentSaveRequest.value) {
+    currentSaveRequest.value.abort()
+  }
+
+  // Create new abort controller for this save
+  currentSaveRequest.value = new AbortController()
+  const thisRequestController = currentSaveRequest.value
+
+  // Increment save version and capture content being saved
+  saveVersion.value += 1
+  const thisSaveVersion = saveVersion.value
+  const contentToSave = currentContent.value
+  pendingSaveContent.value = contentToSave
 
   try {
     isSaving.value = true
-    await documentsStore.updateDocument(documentId.value, {
-      content: editedContent.value,
-      changeDescription: 'Edited from report page'
+
+    // Update document and get the response with updated metadata
+    const updatedDocument = await documentsStore.updateDocument(documentId.value, {
+      content: contentToSave,
+      changeDescription: 'Auto-saved'
     })
-    isEditing.value = false
-    // Refetch to show updated content
-    documentQuery.refetch()
-    versionsQuery.refetch()
-  } catch (err) {
-    console.error('Failed to save document:', err)
-    alert('Failed to save report. Please try again.')
+
+    // Only update cache if this is still the current save version
+    // and the request wasn't aborted
+    if (thisSaveVersion === saveVersion.value &&
+        !thisRequestController.signal.aborted &&
+        currentSaveRequest.value === thisRequestController) {
+
+      // Only apply update if current content hasn't changed beyond what we saved
+      // This prevents stale responses from overwriting newer user edits
+      if (currentContent.value === contentToSave) {
+        queryClient.setQueryData(['document', documentId.value], updatedDocument)
+
+        // Only refetch versions if version history is currently visible
+        if (showVersionHistory.value) {
+          versionsQuery.refetch()
+        }
+      } else {
+        // Content has changed since save started - don't update cache with stale data
+        console.log('Skipping cache update - user has newer edits:', {
+          saved: contentToSave.substring(0, 50),
+          current: currentContent.value.substring(0, 50)
+        })
+
+        // Trigger a new save for the current content after a short delay
+        if (!saveTimeout.value) {
+          saveTimeout.value = window.setTimeout(() => {
+            saveDocument()
+          }, 1000) // Short delay to save the newer content
+        }
+      }
+    }
+  } catch (err: any) {
+    // Don't log abort errors, they're expected
+    if (err?.name !== 'AbortError') {
+      console.error('Failed to save document:', err)
+    }
   } finally {
-    isSaving.value = false
+    // Only clear saving state if this is still the current request
+    if (currentSaveRequest.value === thisRequestController) {
+      isSaving.value = false
+      currentSaveRequest.value = null
+      pendingSaveContent.value = ''
+    }
   }
 }
 
@@ -386,6 +468,19 @@ const formatDate = (dateString: string): string => {
   if (days < 7) return `${days} days ago`
   return date.toLocaleDateString()
 }
+
+// Cleanup on component unmount
+onBeforeUnmount(() => {
+  // Clear any pending save timeout
+  if (saveTimeout.value !== null) {
+    clearTimeout(saveTimeout.value)
+  }
+
+  // Cancel any in-flight save request
+  if (currentSaveRequest.value) {
+    currentSaveRequest.value.abort()
+  }
+})
 </script>
 
 <style scoped>

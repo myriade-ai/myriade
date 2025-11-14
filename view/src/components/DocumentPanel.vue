@@ -124,16 +124,17 @@
           </div>
         </div>
 
-        <!-- Edit Mode -->
-        <div v-else-if="isEditing" class="space-y-4">
-          <textarea
-            v-model="editedContent"
-            class="w-full h-[calc(100vh-250px)] p-4 border rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Write your document content in Markdown..."
-          ></textarea>
+        <!-- Unified Editor/Viewer (Notion-like) -->
+        <div v-else-if="!viewingVersion">
+          <UnifiedMarkdownEditor
+            :model-value="document.content"
+            @update:model-value="handleContentChange"
+            :disabled="false"
+            placeholder="Click to start writing... Use @ to mention queries or charts"
+          />
         </div>
 
-        <!-- View Mode -->
+        <!-- Historical Version View (read-only) -->
         <div v-else class="prose max-w-none">
           <template v-for="(part, index) in parsedContent" :key="index">
             <MarkdownDisplay
@@ -165,6 +166,24 @@
           <span v-else-if="viewingVersion">
             Version {{ viewingVersion.versionNumber }} - {{ formatDate(viewingVersion.createdAt) }}
           </span>
+          <span v-else-if="isSaving" class="flex items-center gap-2">
+            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            Saving...
+          </span>
           <span v-else> Updated {{ formatDate(document.updatedAt) }} </span>
         </div>
 
@@ -176,35 +195,12 @@
           >
             Back to Document
           </button>
-          <template v-else-if="isEditing">
-            <button
-              @click="cancelEdit"
-              class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              @click="saveDocument"
-              :disabled="isSaving"
-              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50"
-            >
-              {{ isSaving ? 'Saving...' : 'Save' }}
-            </button>
-          </template>
-          <template v-else-if="viewingVersion">
-            <button
-              @click="viewCurrentVersion"
-              class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-            >
-              Current Version
-            </button>
-          </template>
           <button
-            v-else
-            @click="startEdit"
-            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+            v-else-if="viewingVersion"
+            @click="viewCurrentVersion"
+            class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
           >
-            Edit
+            Current Version
           </button>
         </div>
       </div>
@@ -216,6 +212,7 @@
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import Chart from '@/components/Chart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
+import UnifiedMarkdownEditor from '@/components/UnifiedMarkdownEditor.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDocumentQuery, useDocumentVersionsQuery } from '@/composables/useDocumentsQuery'
 import type { DocumentVersion } from '@/stores/conversations'
@@ -225,13 +222,13 @@ import { computed, ref, toRef, watch } from 'vue'
 const documentsStore = useDocumentsStore()
 
 // Reactive state
-const isEditing = ref(false)
 const isSaving = ref(false)
 const isEditingTitle = ref(false)
 const showVersionHistory = ref(false)
-const editedContent = ref('')
 const editedTitle = ref('')
 const viewingVersion = ref<DocumentVersion | null>(null)
+const saveTimeout = ref<number | null>(null)
+const currentContent = ref('')
 
 // Use TanStack Query to fetch document and versions
 const documentQuery = useDocumentQuery(toRef(documentsStore, 'currentDocumentId'))
@@ -241,13 +238,26 @@ const versionsQuery = useDocumentVersionsQuery(toRef(documentsStore, 'currentDoc
 const document = computed(() => documentQuery.data.value || null)
 const versions = computed(() => versionsQuery.data.value || [])
 
+// Initialize current content from document
+watch(
+  document,
+  (newDoc) => {
+    if (newDoc && !currentContent.value) {
+      currentContent.value = newDoc.content
+    }
+  },
+  { immediate: true }
+)
+
 const parsedContent = computed<
   Array<{ type: string; content?: string; query_id?: string; chart_id?: string }>
 >(() => {
   if (!document.value) return []
 
-  // Get the content to parse (either viewing version or current document)
-  const content = viewingVersion.value ? viewingVersion.value.content : document.value.content
+  // Get the content to parse (either viewing version or current edited content)
+  const content = viewingVersion.value
+    ? viewingVersion.value.content
+    : currentContent.value || document.value.content
 
   const chunks: Array<{
     type: string
@@ -315,42 +325,46 @@ watch(
   () => documentsStore.currentDocumentId,
   (newId) => {
     if (newId) {
-      isEditing.value = false
       showVersionHistory.value = false
       viewingVersion.value = null
-      versions.value = []
+      currentContent.value = ''
     }
   }
 )
 
-// Methods
-const startEdit = () => {
-  if (!document.value) return
-  editedContent.value = document.value.content
-  isEditing.value = true
-}
+// Handle content changes with debounced auto-save
+const handleContentChange = (newContent: string) => {
+  currentContent.value = newContent
 
-const cancelEdit = () => {
-  isEditing.value = false
-  editedContent.value = ''
+  // Clear existing timeout
+  if (saveTimeout.value !== null) {
+    clearTimeout(saveTimeout.value)
+  }
+
+  // Set new timeout for auto-save (2 seconds after last change)
+  saveTimeout.value = window.setTimeout(() => {
+    saveDocument()
+  }, 2000)
 }
 
 const saveDocument = async () => {
-  if (!document.value || !documentsStore.currentDocumentId) return
+  if (!document.value || !documentsStore.currentDocumentId || !currentContent.value) return
+
+  // Don't save if content hasn't changed
+  if (currentContent.value === document.value.content) return
 
   try {
     isSaving.value = true
     await documentsStore.updateDocument(documentsStore.currentDocumentId, {
-      content: editedContent.value,
-      changeDescription: 'User edit from panel'
+      content: currentContent.value,
+      changeDescription: 'Auto-saved'
     })
-    isEditing.value = false
-    // Refetch to show updated content
+    // Refetch to update metadata (timestamps, etc.)
     documentQuery.refetch()
     versionsQuery.refetch()
   } catch (error) {
     console.error('Failed to save document:', error)
-    alert('Failed to save document. Please try again.')
+    // Don't show alert for auto-save failures, just log
   } finally {
     isSaving.value = false
   }
