@@ -40,7 +40,6 @@ from back.utils import (
     get_tables_metadata_from_catalog,
     update_catalog_privacy,
 )
-from config import DATABASE_URL
 from chat.proxy_provider import ProxyProvider
 from config import DATABASE_URL
 from middleware import admin_required, user_middleware
