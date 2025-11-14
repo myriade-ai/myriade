@@ -1,11 +1,8 @@
-import axios from '@/plugins/axios'
-import { useContextsStore } from '@/stores/contexts'
-import { useQuery, type UseQueryReturnType } from '@tanstack/vue-query'
-import type { AxiosResponse } from 'axios'
-import { computed, type Ref } from 'vue'
+import type { CatalogAsset } from '@/stores/catalog'
+import { computed, type ComputedRef } from 'vue'
 
 export interface OverallStats {
-  total_assets: number
+  total_assets: number // Total catalogable assets (tables, views, etc.) - excludes columns
   completion_percentage: number
   assets_validated: number
   assets_ai_generated: number
@@ -36,53 +33,148 @@ export interface DashboardStatsResponse {
 }
 
 /**
- * TanStack Query hook for fetching dashboard statistics
- * Fetches aggregated catalog statistics for a database
+ * Compute dashboard statistics from catalog assets
+ * Aggregates stats by database, schema, and overall completion
+ *
+ * @param assets - Array of catalog assets to compute stats from
+ * @returns Computed dashboard statistics
  */
-export function useDashboardStatsQuery(
-  databaseId?: Ref<string | null | undefined>
-): UseQueryReturnType<DashboardStatsResponse, Error> {
-  const contextsStore = useContextsStore()
-
-  const selectedDatabaseId = computed<string | null>(() => {
-    if (databaseId?.value) {
-      return databaseId.value
+export function computeDashboardStats(
+  assets: ComputedRef<CatalogAsset[] | undefined>
+): ComputedRef<DashboardStatsResponse | undefined> {
+  return computed(() => {
+    const catalogAssets = assets.value
+    if (!catalogAssets) {
+      return undefined
     }
-    try {
-      return contextsStore.getSelectedContextDatabaseId()
-    } catch {
-      return null
-    }
-  })
 
-  const query = useQuery({
-    queryKey: computed(() => ['dashboard-stats', selectedDatabaseId.value]),
-    queryFn: async (): Promise<DashboardStatsResponse> => {
-      const currentDatabaseId = selectedDatabaseId.value
-      if (!currentDatabaseId) {
-        throw new Error('No database selected')
+    // Filter out columns - they are NOT counted as "assets to catalog"
+    const nonColumnAssets = catalogAssets.filter((asset) => asset.type !== 'COLUMN')
+
+    // Overall stats
+    let total_assets = 0
+    let assets_validated = 0
+    let assets_ai_generated = 0
+    let assets_to_review = 0
+    let assets_with_description = 0
+
+    for (const asset of nonColumnAssets) {
+      total_assets++
+
+      if (asset.description) {
+        assets_with_description++
       }
 
-      const response: AxiosResponse<DashboardStatsResponse> = await axios.get(
-        `/api/databases/${currentDatabaseId}/catalog/dashboard-stats`
+      if (asset.status === 'validated') {
+        assets_validated++
+      } else if (asset.status === 'published_by_ai') {
+        assets_ai_generated++
+      } else if (asset.status === 'needs_review' || asset.status === 'requires_validation') {
+        assets_to_review++
+      }
+    }
+
+    const completion_percentage =
+      total_assets > 0 ? Math.round((assets_with_description / total_assets) * 1000) / 10 : 0
+
+    // Group assets by database
+    const databaseAssetsMap = new Map<string, CatalogAsset>()
+    const schemaAssetsMap = new Map<string, CatalogAsset>()
+    const tableAssetsMap = new Map<string, CatalogAsset[]>()
+    const columnAssetsMap = new Map<string, number>()
+
+    for (const asset of catalogAssets) {
+      if (asset.type === 'DATABASE' && asset.database_facet) {
+        databaseAssetsMap.set(asset.id, asset)
+      } else if (asset.type === 'SCHEMA' && asset.schema_facet) {
+        schemaAssetsMap.set(asset.id, asset)
+      } else if (asset.type === 'TABLE' && asset.table_facet) {
+        const parentSchemaId = asset.table_facet.parent_schema_asset_id
+        if (parentSchemaId) {
+          if (!tableAssetsMap.has(parentSchemaId)) {
+            tableAssetsMap.set(parentSchemaId, [])
+          }
+          tableAssetsMap.get(parentSchemaId)!.push(asset)
+        }
+      } else if (asset.type === 'COLUMN' && asset.column_facet) {
+        const parentTableId = asset.column_facet.parent_table_asset_id
+        columnAssetsMap.set(parentTableId, (columnAssetsMap.get(parentTableId) || 0) + 1)
+      }
+    }
+
+    // Build database stats
+    const databases: DatabaseStats[] = []
+
+    for (const [dbAssetId, dbAsset] of databaseAssetsMap.entries()) {
+      const dbFacet = dbAsset.database_facet
+      if (!dbFacet) continue
+
+      // Find schemas for this database
+      const schemasForDb = Array.from(schemaAssetsMap.values()).filter(
+        (schema) => schema.schema_facet?.parent_database_asset_id === dbAssetId
       )
 
-      return response.data
-    },
-    // Only run query when we have a database selected
-    enabled: computed(() => !!selectedDatabaseId.value),
+      const schemas: SchemaStats[] = []
+      let total_tables = 0
+      let total_tables_with_desc = 0
+      let total_columns = 0
 
-    // Cache for 2 minutes - stats don't change frequently
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+      for (const schemaAsset of schemasForDb) {
+        const schemaFacet = schemaAsset.schema_facet
+        if (!schemaFacet) continue
 
-    // Don't refetch on window focus
-    refetchOnWindowFocus: false,
+        const tablesForSchema = tableAssetsMap.get(schemaAsset.id) || []
+        const table_count = tablesForSchema.length
+        const tables_with_desc = tablesForSchema.filter((t) => t.description).length
 
-    // Retry failed requests with exponential backoff
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
+        total_tables += table_count
+        total_tables_with_desc += tables_with_desc
+
+        // Count columns for this schema's tables
+        const schema_columns = tablesForSchema.reduce(
+          (sum, table) => sum + (columnAssetsMap.get(table.id) || 0),
+          0
+        )
+        total_columns += schema_columns
+
+        const schema_completion =
+          table_count > 0 ? Math.round((tables_with_desc / table_count) * 1000) / 10 : 0
+
+        schemas.push({
+          schema_name: schemaFacet.schema_name,
+          schema_asset_id: schemaAsset.id,
+          table_count,
+          completion_percentage: schema_completion
+        })
+      }
+
+      // Sort schemas by name
+      schemas.sort((a, b) => a.schema_name.localeCompare(b.schema_name))
+
+      const db_completion =
+        total_tables > 0 ? Math.round((total_tables_with_desc / total_tables) * 1000) / 10 : 0
+
+      databases.push({
+        database_id: dbAssetId,
+        database_name: dbFacet.database_name,
+        total_schemas: schemasForDb.length,
+        total_tables,
+        total_columns,
+        completion_percentage: db_completion,
+        last_updated: null,
+        schemas
+      })
+    }
+
+    return {
+      overall: {
+        total_assets,
+        completion_percentage,
+        assets_validated,
+        assets_ai_generated,
+        assets_to_review
+      },
+      databases
+    }
   })
-
-  return query
 }
