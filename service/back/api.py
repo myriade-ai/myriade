@@ -717,7 +717,21 @@ def delete_database(database_id: UUID):
         BusinessEntity.database_id == database_id
     ).delete(synchronize_session=False)
 
-    # Delete projects
+    # Get project IDs before deletion to handle dependent records
+    project_ids = [
+        proj.id
+        for proj in g.session.query(Project.id)
+        .filter(Project.databaseId == database_id)
+        .all()
+    ]
+
+    # Set conversation.projectId to NULL for conversations in these projects
+    if project_ids:
+        g.session.query(Conversation).filter(
+            Conversation.projectId.in_(project_ids)
+        ).update({"projectId": None}, synchronize_session=False)
+
+    # Delete projects (project_tables and notes have cascade configured)
     g.session.query(Project).filter(Project.databaseId == database_id).delete(
         synchronize_session=False
     )
