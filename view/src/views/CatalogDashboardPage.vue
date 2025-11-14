@@ -1,6 +1,6 @@
 <template>
   <div class="h-full w-full flex flex-col bg-white">
-    <PageHeader title="Catalog Dashboard" sticky>
+    <PageHeader title="Overview" sticky>
       <template #actions>
         <Button variant="outline" size="sm" @click="refetch" :disabled="isFetching">
           <RotateCw class="h-4 w-4 mr-2" :class="{ 'animate-spin': isFetching }" />
