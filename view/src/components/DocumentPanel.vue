@@ -3,7 +3,7 @@
   <Transition name="fade">
     <div
       v-if="documentsStore.isDocumentPanelOpen"
-      class="fixed inset-0 bg-black bg-opacity-30 z-40"
+      class="fixed inset-0 bg-black opacity-30 z-40"
       @click="documentsStore.closeDocument()"
     ></div>
   </Transition>
@@ -30,20 +30,33 @@
         </h2>
 
         <div class="flex items-center gap-2">
+          <!-- Save button -->
+          <button
+            v-if="!viewingVersion && !showVersionHistory"
+            @click="saveDocument"
+            :disabled="!hasUnsavedChanges || isSaving"
+            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
+            :class="
+              hasUnsavedChanges && !isSaving
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            "
+            title="Save changes"
+          >
+            <span v-if="isSaving" class="flex items-center gap-2">
+              <Loader2 class="animate-spin h-4 w-4" />
+              Saving...
+            </span>
+            <span v-else>{{ hasUnsavedChanges ? 'Save' : 'Saved' }}</span>
+          </button>
+
           <!-- Version history button -->
           <button
             @click="toggleVersionHistory"
             class="px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
             title="Version History"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <Clock class="w-5 h-5" />
           </button>
 
           <!-- Close button -->
@@ -51,14 +64,7 @@
             @click="documentsStore.closeDocument()"
             class="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
           >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <X class="w-6 h-6" />
           </button>
         </div>
       </div>
@@ -72,19 +78,7 @@
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <svg
-                class="w-5 h-5 text-amber-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
+              <AlertTriangle class="w-5 h-5 text-amber-600" />
               <span class="text-sm font-medium text-amber-800">
                 Viewing version {{ viewingVersion.versionNumber }} ({{
                   formatDate(viewingVersion.createdAt)
@@ -126,7 +120,7 @@
 
         <!-- Unified Editor/Viewer (Notion-like) -->
         <div v-else-if="!viewingVersion">
-          <UnifiedMarkdownEditor
+          <MarkdownEditor
             :model-value="document.content"
             @update:model-value="handleContentChange"
             :disabled="false"
@@ -166,23 +160,8 @@
           <span v-else-if="viewingVersion">
             Version {{ viewingVersion.versionNumber }} - {{ formatDate(viewingVersion.createdAt) }}
           </span>
-          <span v-else-if="isSaving" class="flex items-center gap-2">
-            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            Saving...
+          <span v-else-if="hasUnsavedChanges" class="text-amber-600 font-medium">
+            Unsaved changes
           </span>
           <span v-else> Updated {{ formatDate(document.updatedAt) }} </span>
         </div>
@@ -212,11 +191,12 @@
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import Chart from '@/components/Chart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
-import UnifiedMarkdownEditor from '@/components/UnifiedMarkdownEditor.vue'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDocumentQuery, useDocumentVersionsQuery } from '@/composables/useDocumentsQuery'
 import type { DocumentVersion } from '@/stores/conversations'
 import { useDocumentsStore } from '@/stores/documents'
+import { AlertTriangle, Clock, Loader2, X } from 'lucide-vue-next'
 import { computed, ref, toRef, watch } from 'vue'
 
 const documentsStore = useDocumentsStore()
@@ -227,7 +207,6 @@ const isEditingTitle = ref(false)
 const showVersionHistory = ref(false)
 const editedTitle = ref('')
 const viewingVersion = ref<DocumentVersion | null>(null)
-const saveTimeout = ref<number | null>(null)
 const currentContent = ref('')
 
 // Use TanStack Query to fetch document and versions
@@ -237,6 +216,11 @@ const versionsQuery = useDocumentVersionsQuery(toRef(documentsStore, 'currentDoc
 // Computed
 const document = computed(() => documentQuery.data.value || null)
 const versions = computed(() => versionsQuery.data.value || [])
+
+const hasUnsavedChanges = computed(() => {
+  if (!document.value || !currentContent.value) return false
+  return currentContent.value !== document.value.content
+})
 
 // Initialize current content from document
 watch(
@@ -332,23 +316,13 @@ watch(
   }
 )
 
-// Handle content changes with debounced auto-save
+// Handle content changes (no auto-save, just update local state)
 const handleContentChange = (newContent: string) => {
   currentContent.value = newContent
-
-  // Clear existing timeout
-  if (saveTimeout.value !== null) {
-    clearTimeout(saveTimeout.value)
-  }
-
-  // Set new timeout for auto-save (2 seconds after last change)
-  saveTimeout.value = window.setTimeout(() => {
-    saveDocument()
-  }, 2000)
 }
 
 const saveDocument = async () => {
-  if (!document.value || !documentsStore.currentDocumentId || !currentContent.value) return
+  if (!document.value || !documentsStore.currentDocumentId || currentContent.value == null) return
 
   // Don't save if content hasn't changed
   if (currentContent.value === document.value.content) return
@@ -357,14 +331,14 @@ const saveDocument = async () => {
     isSaving.value = true
     await documentsStore.updateDocument(documentsStore.currentDocumentId, {
       content: currentContent.value,
-      changeDescription: 'Auto-saved'
+      changeDescription: 'Manual save'
     })
     // Refetch to update metadata (timestamps, etc.)
     documentQuery.refetch()
     versionsQuery.refetch()
   } catch (error) {
     console.error('Failed to save document:', error)
-    // Don't show alert for auto-save failures, just log
+    alert('Failed to save document. Please try again.')
   } finally {
     isSaving.value = false
   }

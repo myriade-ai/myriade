@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 import { EditorContent, useEditor } from '@tiptap/vue-3'
-import { onUnmounted, ref, watch } from 'vue'
+import { onUnmounted, watch } from 'vue'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Mention from '@tiptap/extension-mention'
@@ -29,9 +29,6 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
-
-const isActivelyEditing = ref(false)
-const editingTimeout = ref<number | null>(null)
 
 // Parse markdown content to HTML for initial load
 function markdownToHTML(markdown: string): string {
@@ -160,21 +157,7 @@ const editor = useEditor({
     }
   },
   onUpdate: ({ editor }) => {
-    // Mark as actively editing and emit immediately
-    isActivelyEditing.value = true
-
-    // Clear any existing editing timeout
-    if (editingTimeout.value !== null) {
-      clearTimeout(editingTimeout.value)
-    }
-
-    // Set timeout to mark as no longer actively editing after 3 seconds of inactivity
-    // This gives enough time for saves to complete and caches to update
-    editingTimeout.value = window.setTimeout(() => {
-      isActivelyEditing.value = false
-    }, 3000)
-
-    // Emit change immediately for parent to handle debouncing
+    // Emit change immediately for parent to handle
     const markdown = serializeToMarkdown(editor.state.doc)
     if (markdown !== props.modelValue) {
       emit('update:modelValue', markdown)
@@ -183,24 +166,14 @@ const editor = useEditor({
   editable: !props.disabled
 })
 
-// Update editor content when prop changes (but not while actively editing)
+// Update editor content when prop changes
 watch(
   () => props.modelValue,
   (newValue) => {
     if (!editor.value) return
 
-    // Don't sync content during active editing to prevent content reversion
-    if (isActivelyEditing.value) {
-      console.log('Skipping editor sync - user is actively editing')
-      return
-    }
-
     const currentMarkdown = serializeToMarkdown(editor.value.state.doc)
     if (newValue !== currentMarkdown) {
-      console.log('Syncing editor content with props:', {
-        from: currentMarkdown.substring(0, 50),
-        to: newValue.substring(0, 50)
-      })
       const html = markdownToHTML(newValue)
       editor.value.commands.setContent(html)
     }
@@ -218,11 +191,8 @@ watch(
   }
 )
 
-// Clean up timeout and editor on unmount
+// Clean up editor on unmount
 onUnmounted(() => {
-  if (editingTimeout.value !== null) {
-    clearTimeout(editingTimeout.value)
-  }
   if (editor.value) {
     editor.value.destroy()
   }

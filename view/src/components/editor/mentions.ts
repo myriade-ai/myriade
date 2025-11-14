@@ -3,8 +3,7 @@ import type { Editor } from '@tiptap/core'
 import { posToDOMRect, VueRenderer } from '@tiptap/vue-3'
 import type { SuggestionKeyDownProps, SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
 import MentionSuggestion from '../MentionSuggestion.vue'
-import { addRecentMention, type MentionItem } from '@/composables/useDocumentMentions'
-import { useContextsStore } from '@/stores/contexts'
+import type { MentionItem } from '@/composables/useDocumentMentions'
 
 // Helper function to update popup position using Floating UI
 const updatePosition = (editor: Editor, element: HTMLElement) => {
@@ -34,11 +33,6 @@ export const mentionSuggestion: Omit<SuggestionOptions, 'editor'> = {
 
     return {
       onStart: (props: SuggestionProps) => {
-        // Get context for recent mentions tracking
-        const contextsStore = useContextsStore()
-        const context = contextsStore.contextSelected
-        const contextId = context?.id || ''
-
         // Define the command handler that inserts the custom node
         const selectItem = (item: MentionItem) => {
           // Insert our custom node instead of a simple mention
@@ -63,11 +57,6 @@ export const mentionSuggestion: Omit<SuggestionOptions, 'editor'> = {
             })
             tr.insert(from, node)
             dispatch(tr)
-          }
-
-          // Add to recent mentions
-          if (contextId) {
-            addRecentMention(contextId, item)
           }
         }
 

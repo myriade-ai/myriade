@@ -23,34 +23,19 @@
             {{ document.archived ? 'Unarchive' : 'Archive' }}
           </Button>
           <Button variant="outline" size="sm" @click="toggleVersionHistory">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <Clock class="w-4 h-4 mr-2" />
             Version History
           </Button>
-          <div v-if="isSaving" class="text-sm text-gray-500 flex items-center gap-2">
-            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            Saving...
-          </div>
+          <Button
+            v-if="document && !viewingVersion && !document.archived"
+            variant="default"
+            size="sm"
+            @click="saveDocument"
+            :disabled="!hasUnsavedChanges || isSaving"
+          >
+            <Loader2 v-if="isSaving" class="animate-spin h-4 w-4 mr-2" />
+            {{ isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save' : 'Saved' }}
+          </Button>
         </div>
       </template>
     </PageHeader>
@@ -102,19 +87,7 @@
             class="mb-4 p-3 bg-gray-100 border border-gray-300 rounded-lg"
           >
             <div class="flex items-center gap-2">
-              <svg
-                class="w-5 h-5 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                />
-              </svg>
+              <Archive class="w-5 h-5 text-gray-600" />
               <span class="text-sm font-medium text-gray-700">This report is archived</span>
             </div>
           </div>
@@ -126,19 +99,7 @@
           >
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <svg
-                  class="w-5 h-5 text-amber-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
+                <AlertTriangle class="w-5 h-5 text-amber-600" />
                 <span class="text-sm font-medium text-amber-800">
                   Viewing version {{ viewingVersion.versionNumber }} ({{
                     formatDate(viewingVersion.createdAt)
@@ -156,7 +117,7 @@
 
           <!-- Unified Editor/Viewer (Notion-like) -->
           <div v-if="!viewingVersion">
-            <UnifiedMarkdownEditor
+            <MarkdownEditor
               :model-value="document.content"
               @update:model-value="handleContentChange"
               :disabled="document.archived"
@@ -197,7 +158,7 @@
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import Chart from '@/components/Chart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
-import UnifiedMarkdownEditor from '@/components/UnifiedMarkdownEditor.vue'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Card from '@/components/ui/card/Card.vue'
@@ -206,7 +167,8 @@ import { useDocumentQuery, useDocumentVersionsQuery } from '@/composables/useDoc
 import type { DocumentVersion } from '@/stores/conversations'
 import { useDocumentsStore } from '@/stores/documents'
 import { useQueryClient } from '@tanstack/vue-query'
-import { computed, onBeforeUnmount, ref, toRef, watch } from 'vue'
+import { AlertTriangle, Archive, Clock, Loader2 } from 'lucide-vue-next'
+import { computed, ref, toRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
@@ -219,13 +181,7 @@ const isArchiving = ref(false)
 const isDeleting = ref(false)
 const showVersionHistory = ref(false)
 const viewingVersion = ref<DocumentVersion | null>(null)
-const saveTimeout = ref<number | null>(null)
 const currentContent = ref('')
-
-// Enhanced save management
-const saveVersion = ref(0) // Track save versions to detect stale responses
-const currentSaveRequest = ref<AbortController | null>(null) // For canceling in-flight requests
-const pendingSaveContent = ref<string>('') // Content that's being saved
 
 const documentId = computed(() => {
   return Array.isArray(route.params.id) ? route.params.id[0] : route.params.id
@@ -241,6 +197,11 @@ const versions = computed(() => versionsQuery.data.value || [])
 const subtitle = computed(() => {
   if (!document.value) return ''
   return `Updated ${formatDate(document.value.updatedAt)}`
+})
+
+const hasUnsavedChanges = computed(() => {
+  if (!document.value || !currentContent.value) return false
+  return currentContent.value !== document.value.content
 })
 
 // Initialize current content from document
@@ -316,19 +277,9 @@ const parsedContent = computed<
   return chunks
 })
 
-// Handle content changes with debounced auto-save
+// Handle content changes (no auto-save, just update local state)
 const handleContentChange = (newContent: string) => {
   currentContent.value = newContent
-
-  // Clear existing timeout
-  if (saveTimeout.value !== null) {
-    clearTimeout(saveTimeout.value)
-  }
-
-  // Set new timeout for auto-save (2 seconds after last change)
-  saveTimeout.value = window.setTimeout(() => {
-    saveDocument()
-  }, 2000)
 }
 
 const saveDocument = async () => {
@@ -337,72 +288,27 @@ const saveDocument = async () => {
   // Don't save if content hasn't changed
   if (currentContent.value === document.value.content) return
 
-  // Cancel any existing save request
-  if (currentSaveRequest.value) {
-    currentSaveRequest.value.abort()
-  }
-
-  // Create new abort controller for this save
-  currentSaveRequest.value = new AbortController()
-  const thisRequestController = currentSaveRequest.value
-
-  // Increment save version and capture content being saved
-  saveVersion.value += 1
-  const thisSaveVersion = saveVersion.value
-  const contentToSave = currentContent.value
-  pendingSaveContent.value = contentToSave
-
   try {
     isSaving.value = true
 
     // Update document and get the response with updated metadata
     const updatedDocument = await documentsStore.updateDocument(documentId.value, {
-      content: contentToSave,
-      changeDescription: 'Auto-saved'
+      content: currentContent.value,
+      changeDescription: 'Manual save'
     })
 
-    // Only update cache if this is still the current save version
-    // and the request wasn't aborted
-    if (thisSaveVersion === saveVersion.value &&
-        !thisRequestController.signal.aborted &&
-        currentSaveRequest.value === thisRequestController) {
+    // Update cache with the saved document
+    queryClient.setQueryData(['document', documentId.value], updatedDocument)
 
-      // Only apply update if current content hasn't changed beyond what we saved
-      // This prevents stale responses from overwriting newer user edits
-      if (currentContent.value === contentToSave) {
-        queryClient.setQueryData(['document', documentId.value], updatedDocument)
-
-        // Only refetch versions if version history is currently visible
-        if (showVersionHistory.value) {
-          versionsQuery.refetch()
-        }
-      } else {
-        // Content has changed since save started - don't update cache with stale data
-        console.log('Skipping cache update - user has newer edits:', {
-          saved: contentToSave.substring(0, 50),
-          current: currentContent.value.substring(0, 50)
-        })
-
-        // Trigger a new save for the current content after a short delay
-        if (!saveTimeout.value) {
-          saveTimeout.value = window.setTimeout(() => {
-            saveDocument()
-          }, 1000) // Short delay to save the newer content
-        }
-      }
+    // Refetch versions if version history is currently visible
+    if (showVersionHistory.value) {
+      versionsQuery.refetch()
     }
-  } catch (err: any) {
-    // Don't log abort errors, they're expected
-    if (err?.name !== 'AbortError') {
-      console.error('Failed to save document:', err)
-    }
+  } catch (err: unknown) {
+    console.error('Failed to save document:', err)
+    alert('Failed to save document. Please try again.')
   } finally {
-    // Only clear saving state if this is still the current request
-    if (currentSaveRequest.value === thisRequestController) {
-      isSaving.value = false
-      currentSaveRequest.value = null
-      pendingSaveContent.value = ''
-    }
+    isSaving.value = false
   }
 }
 
@@ -468,19 +374,6 @@ const formatDate = (dateString: string): string => {
   if (days < 7) return `${days} days ago`
   return date.toLocaleDateString()
 }
-
-// Cleanup on component unmount
-onBeforeUnmount(() => {
-  // Clear any pending save timeout
-  if (saveTimeout.value !== null) {
-    clearTimeout(saveTimeout.value)
-  }
-
-  // Cancel any in-flight save request
-  if (currentSaveRequest.value) {
-    currentSaveRequest.value.abort()
-  }
-})
 </script>
 
 <style scoped>
