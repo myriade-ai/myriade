@@ -74,7 +74,7 @@ class Issue(SerializerMixin, Base, DefaultBase):
         passive_deletes=True,
     )
     business_entity_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(), ForeignKey("business_entity.id"), nullable=True
+        UUID(), ForeignKey("business_entity.id", ondelete="SET NULL"), nullable=True
     )
     business_entity = relationship("BusinessEntity", back_populates="issues")
 
