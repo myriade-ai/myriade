@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import socket
 from typing import Any
 from uuid import UUID
 
@@ -84,8 +85,44 @@ def _normalize_host(value: Any) -> str | None:
     return str(value).strip().lower()
 
 
+def _resolve_host_to_ips(host: str | None) -> set[str]:
+    """
+    Resolve a hostname to its IP addresses.
+    Returns a set of IP addresses that the hostname resolves to.
+    Returns empty set if host is None or resolution fails.
+    """
+    if not host:
+        return set()
+
+    normalized_host = _normalize_host(host)
+    if not normalized_host:
+        return set()
+
+    resolved_ips = set()
+
+    try:
+        # Get all IP addresses for the hostname
+        addr_info = socket.getaddrinfo(normalized_host, None)
+        for info in addr_info:
+            ip_address = info[4][0]
+            # Normalize IPv6 addresses by removing zone identifiers and converting to lowercase
+            if "%" in ip_address:
+                ip_address = ip_address.split("%")[0]
+            resolved_ips.add(ip_address.lower())
+    except (socket.gaierror, socket.error, OSError):
+        # If resolution fails, fall back to comparing the normalized string
+        # This ensures we don't accidentally allow connections due to DNS errors
+        resolved_ips.add(normalized_host)
+
+    return resolved_ips
+
+
 def _is_internal_database(engine: str, details: dict[str, Any]) -> bool:
-    """Prevent users from connecting to the application's own database."""
+    """
+    Prevent users from connecting to the application's own database.
+    Resolves hostnames to IPs to prevent bypasses via alternative addresses
+    (e.g., localhost vs 127.0.0.1, Docker service names vs IPs).
+    """
 
     if not _INTERNAL_DATABASE_URL:
         return False
@@ -93,19 +130,21 @@ def _is_internal_database(engine: str, details: dict[str, Any]) -> bool:
     driver_name = _INTERNAL_DATABASE_URL.get_backend_name()
 
     if engine == "postgres" and driver_name.startswith("postgres"):
-        host = _normalize_host(details.get("host"))
-        internal_host = _normalize_host(_INTERNAL_DATABASE_URL.host)
+        # Resolve both hosts to IPs for comparison
+        request_host_ips = _resolve_host_to_ips(details.get("host"))
+        internal_host_ips = _resolve_host_to_ips(_INTERNAL_DATABASE_URL.host)
 
-        if host != internal_host:
-            return False
+        # If any IP addresses match, the hosts refer to the same machine
+        if not request_host_ips.isdisjoint(internal_host_ips):
+            port = str(details.get("port", "5432"))
+            internal_port = str(_INTERNAL_DATABASE_URL.port or "5432")
 
-        port = str(details.get("port", "5432"))
-        internal_port = str(_INTERNAL_DATABASE_URL.port or "5432")
+            database = details.get("database", "postgres")
+            internal_database = _INTERNAL_DATABASE_URL.database or "postgres"
 
-        database = details.get("database", "postgres")
-        internal_database = _INTERNAL_DATABASE_URL.database or "postgres"
+            return port == internal_port and database == internal_database
 
-        return port == internal_port and database == internal_database
+        return False
 
     if engine == "sqlite" and driver_name.startswith("sqlite"):
         filename = details.get("filename")
