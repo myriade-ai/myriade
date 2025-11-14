@@ -126,7 +126,7 @@
 
         <!-- Unified Editor/Viewer (Notion-like) -->
         <div v-else-if="!viewingVersion">
-          <UnifiedMarkdownEditor
+          <MarkdownEditor
             :model-value="document.content"
             @update:model-value="handleContentChange"
             :disabled="false"
@@ -212,7 +212,7 @@
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import Chart from '@/components/Chart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
-import UnifiedMarkdownEditor from '@/components/UnifiedMarkdownEditor.vue'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDocumentQuery, useDocumentVersionsQuery } from '@/composables/useDocumentsQuery'
 import type { DocumentVersion } from '@/stores/conversations'

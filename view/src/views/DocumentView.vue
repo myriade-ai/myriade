@@ -156,7 +156,7 @@
 
           <!-- Unified Editor/Viewer (Notion-like) -->
           <div v-if="!viewingVersion">
-            <UnifiedMarkdownEditor
+            <MarkdownEditor
               :model-value="document.content"
               @update:model-value="handleContentChange"
               :disabled="document.archived"
@@ -197,7 +197,7 @@
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import Chart from '@/components/Chart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
-import UnifiedMarkdownEditor from '@/components/UnifiedMarkdownEditor.vue'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Card from '@/components/ui/card/Card.vue'
@@ -363,10 +363,11 @@ const saveDocument = async () => {
 
     // Only update cache if this is still the current save version
     // and the request wasn't aborted
-    if (thisSaveVersion === saveVersion.value &&
-        !thisRequestController.signal.aborted &&
-        currentSaveRequest.value === thisRequestController) {
-
+    if (
+      thisSaveVersion === saveVersion.value &&
+      !thisRequestController.signal.aborted &&
+      currentSaveRequest.value === thisRequestController
+    ) {
       // Only apply update if current content hasn't changed beyond what we saved
       // This prevents stale responses from overwriting newer user edits
       if (currentContent.value === contentToSave) {
