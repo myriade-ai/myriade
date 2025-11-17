@@ -106,8 +106,9 @@ export function useCatalogAssetsQuery(): UseQueryReturnType<CatalogAsset[], Erro
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
 
-    // KEY: Initialize from cache immediately - this makes page display instant
-    placeholderData: (previousData) => previousData
+    // Don't use placeholder data - when context switches, we want to show loading
+    // instead of stale data from previous context
+    placeholderData: undefined
   })
 
   return query
