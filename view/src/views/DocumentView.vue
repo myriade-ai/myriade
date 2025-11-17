@@ -22,6 +22,12 @@
           >
             {{ document.archived ? 'Unarchive' : 'Archive' }}
           </Button>
+          <!-- Export dropdown -->
+          <PdfExportDropdown
+            v-if="document"
+            :document-id="documentId"
+            :document-title="document.title || undefined"
+          />
           <Button variant="outline" size="sm" @click="toggleVersionHistory">
             <Clock class="w-4 h-4 mr-2" />
             Version History
@@ -160,6 +166,7 @@ import Chart from '@/components/Chart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import PdfExportDropdown from '@/components/PdfExportDropdown.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
