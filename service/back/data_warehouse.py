@@ -656,8 +656,180 @@ class PostgresDatabase(SQLDatabase):
 
 
 class OracleDatabase(SQLDatabase):
+    # Oracle-specific system schemas to skip during catalog sync
+    ORACLE_SKIP_SCHEMAS = {
+        "SYS",
+        "SYSTEM",
+        "CTXSYS",
+        "MDSYS",
+        "OLAPSYS",
+        "WMSYS",
+        "XDB",
+        "ANONYMOUS",
+        "APEX_PUBLIC_USER",
+        "FLOWS_FILES",
+        "ORDDATA",
+        "ORDSYS",
+        "ORDPLUGINS",
+        "OUTLN",
+        "DBSNMP",
+        "APPQOSSYS",
+        "OJVMSYS",
+        "DVSYS",
+        "LBACSYS",
+        "AUDSYS",
+        "GSMADMIN_INTERNAL",
+        "SYSBACKUP",
+        "SYSDG",
+        "SYSKM",
+        "SYSRAC",
+        "SI_INFORMTN_SCHEMA",
+        "DIP",
+        "ORACLE_OCM",
+        "SPATIAL_CSW_ADMIN_USR",
+        "SPATIAL_WFS_ADMIN_USR",
+        "MDDATA",
+        "REMOTE_SCHEDULER_AGENT",
+        "EXFSYS",
+        "XS$NULL",
+    }
+
     def __init__(self, uri):
         super().__init__(uri)
+
+    def load_metadata(self, progress_callback=None):
+        """Load metadata from Oracle database with proper schema filtering."""
+        # Get the database name - for Oracle, use service_name or SID from URL
+        # If using service_name, it's in query params; if using SID, it's in database field  # noqa: E501
+        if self.engine.url.database:
+            current_database = self.engine.url.database
+        elif (
+            hasattr(self.engine.url, "query")
+            and "service_name" in self.engine.url.query
+        ):  # noqa: E501
+            current_database = self.engine.url.query["service_name"]
+        else:
+            # Fallback to host if no database/service_name
+            current_database = f"oracle@{self.engine.url.host}"
+
+        schemas = self.inspector.get_schema_names()
+        logger.info(f"Found {len(schemas)} total schemas in Oracle database")
+        logger.debug(f"All schemas: {schemas}")
+
+        # Filter out Oracle system schemas (case-insensitive)
+        user_schemas = [
+            schema
+            for schema in schemas
+            if schema.upper() not in self.ORACLE_SKIP_SCHEMAS
+            and not schema.upper().startswith("APEX_")
+            and not schema.upper().startswith("FLOWS_")
+        ]
+
+        logger.info(
+            f"After filtering system schemas, {len(user_schemas)} user schemas remain"
+        )
+        logger.debug(f"User schemas: {user_schemas}")
+
+        # Count total tables in user schemas only
+        total_tables = 0
+        for schema in user_schemas:
+            try:
+                table_count = len(self.inspector.get_table_names(schema=schema))
+                view_count = len(self.inspector.get_view_names(schema=schema))
+                total_count = table_count + view_count
+                if total_count > 0:
+                    logger.info(
+                        f"Schema {schema}: {table_count} tables, {view_count} views"
+                    )
+                total_tables += total_count
+            except Exception as e:
+                logger.warning(f"Failed to get table count for schema {schema}: {e}")
+                continue
+
+        if total_tables == 0:
+            logger.warning(
+                f"No tables found in {len(user_schemas)} accessible Oracle schemas. "
+                f"Check user permissions or schema filtering."
+            )
+            return self.metadata
+
+        logger.info(f"Found {total_tables} total tables/views to process")
+
+        # Load metadata from user schemas only
+        current_count = 0
+
+        for schema in user_schemas:
+            try:
+                tables = self.inspector.get_table_names(schema=schema)
+                views = self.inspector.get_view_names(schema=schema)
+
+                # Oracle supports materialized views
+                get_mviews = getattr(
+                    self.inspector, "get_materialized_view_names", None
+                )  # noqa: E501
+                try:
+                    mviews = get_mviews(schema=schema) if get_mviews else []
+                except NotImplementedError:
+                    mviews = []
+
+                def table_comment(name, schema=schema):
+                    try:
+                        c = self.inspector.get_table_comment(name, schema)
+                        return (c or {}).get("text")
+                    except Exception:
+                        return None
+
+                for table_type, names in (
+                    ("table", tables),
+                    ("view", views),
+                    ("materialized_view", mviews),
+                ):
+                    for name in names:
+                        try:
+                            cols = []
+                            for col in self.inspector.get_columns(name, schema=schema):
+                                cols.append(
+                                    {
+                                        "name": col["name"],
+                                        "type": str(col["type"]),
+                                        "nullable": col["nullable"],
+                                        "description": col.get("comment"),
+                                    }
+                                )
+
+                            self.metadata.append(
+                                {
+                                    "name": name,
+                                    "database": current_database,
+                                    "description": table_comment(name),
+                                    "schema": schema,
+                                    "table_type": table_type,
+                                    "columns": cols,
+                                }
+                            )
+
+                            # Call progress callback if provided
+                            current_count += 1
+                            if progress_callback:
+                                progress_callback(
+                                    current_count,
+                                    total_tables,
+                                    f"{current_database}.{schema}.{name}",
+                                )
+                        except Exception as e:
+                            logger.warning(
+                                f"Failed to load metadata for {schema}.{name}: {e}"
+                            )
+                            continue
+            except Exception as e:
+                logger.error(f"Failed to process schema {schema}: {e}")
+                continue
+
+        logger.info(
+            f"Successfully loaded metadata for {len(self.metadata)} tables "
+            f"from Oracle database '{current_database}'"
+        )
+        return self.metadata
 
     def get_sample_data(
         self,
