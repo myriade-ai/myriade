@@ -4,7 +4,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-ada}
+      POSTGRES_DB: ${POSTGRES_DB:-myriade}
       POSTGRES_USER: ${POSTGRES_USER:-myriade}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your environment}
     ports: # For debugging purpose, we expose the Postgres port
@@ -23,7 +23,7 @@ services:
       - logs:/var/log/gunicorn
     environment:
       # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-myriade}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-ada}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-myriade}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myriade}
 
       # Optional - defaults provided in .env.docker
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}

@@ -181,6 +181,27 @@ fi
 print_message "Installing Nginx..."
 sudo apt install -y nginx
 
+# Configure environment variables
+print_message "Configuring environment variables..."
+
+# Generate a secure random password if not provided
+if [ -z "$POSTGRES_PASSWORD" ]; then
+    POSTGRES_PASSWORD=$(openssl rand -base64 32)
+    print_message "Generated secure database password"
+else
+    print_message "Using provided database password"
+fi
+
+# Create .env file for Docker Compose
+cat > .env << EOF
+POSTGRES_DB=${POSTGRES_DB:-myriade}
+POSTGRES_USER=${POSTGRES_USER:-myriade}
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+EOF
+
+chmod 600 .env
+print_message "Environment configuration saved to .env file"
+
 # Start Docker Compose
 print_message "Starting Myriade BI with Docker Compose..."
 if sudo docker compose up -d; then
