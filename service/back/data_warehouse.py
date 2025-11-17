@@ -889,6 +889,13 @@ class OracleDatabase(SQLDatabase):
                 ),
             }
 
+    def test_connection(self):
+        """Test the connection to the database."""
+        try:
+            self._query_unprotected("SELECT 1 FROM dual")
+        except Exception as e:
+            raise ConnectionError(e, message=str(e)) from e
+
 
 class SnowflakeDatabase(AbstractDatabase):
     # Parallelization settings
