@@ -393,7 +393,7 @@ const requiredFieldsByEngine: Record<Engine, string[]> = {
   sqlite: ['filename'],
   bigquery: ['project_id'],
   motherduck: ['token'],
-  oracle: ['host', 'user', 'database']
+  oracle: ['host', 'user']
 }
 
 const isRequiredField = (field: string): boolean => {

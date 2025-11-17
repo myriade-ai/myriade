@@ -657,12 +657,7 @@ class PostgresDatabase(SQLDatabase):
 
 class OracleDatabase(SQLDatabase):
     def __init__(self, uri):
-        # Oracle-specific connection arguments
-        self.connect_args = {
-            "encoding": "UTF-8",
-            "nencoding": "UTF-8",
-        }
-        super().__init__(uri, connect_args=self.connect_args)
+        super().__init__(uri)
 
     def get_sample_data(
         self,

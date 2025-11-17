@@ -125,7 +125,7 @@ const canTestConnection = computed(() => {
     case 'motherduck':
       return details.token
     case 'oracle':
-      return details.host && details.user && details.database
+      return details.host && details.user && (details.service_name || details.sid)
     default:
       database.engine satisfies never
       return false
