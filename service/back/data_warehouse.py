@@ -1232,10 +1232,12 @@ class SnowflakeDatabase(AbstractDatabase):
         error_msg = str(error).lower()
 
         return (
-            error_code == 390114
+            error_code in (390114, 390111)  # Token expiration + Session expiration
             or "390114" in str(error)
+            or "390111" in str(error)
             or "token has expired" in error_msg
             or "authentication token has expired" in error_msg
+            or "session no longer exists" in error_msg
         )
 
     def get_table_metadata(self, schema: str, table_name: str) -> dict:
