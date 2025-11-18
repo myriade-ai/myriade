@@ -1,12 +1,132 @@
 <template>
   <div class="unified-markdown-editor">
     <EditorContent :editor="editor" class="tiptap-editor-content" />
+
+    <!-- BubbleMenu for text selection -->
+    <BubbleMenu
+      v-if="editor"
+      :editor="editor"
+      :should-show="shouldShowMenu"
+      class="bubble-menu-container"
+    >
+      <div
+        class="flex items-center gap-1 bg-white border border-gray-300 rounded-lg shadow-lg px-2 py-1.5"
+      >
+        <Button @click="handleImproveWriting" variant="ghost" size="sm" class="gap-2 text-sm h-8">
+          <SparklesIcon class="h-4 w-4" />
+          Improve writing
+        </Button>
+        <DropdownMenu v-model:open="showAskInput">
+          <DropdownMenuTrigger as-child>
+            <Button variant="ghost" size="sm" class="text-sm h-8"> Ask AI </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" class="w-[320px]">
+            <!-- Input section -->
+            <div class="py-2">
+              <input
+                ref="bubbleInputRef"
+                v-model="bubbleQuestion"
+                type="text"
+                placeholder="Ask AI anything..."
+                class="w-full border-0 focus:ring-0 text-sm outline-none"
+                @keydown.enter="handleAskQuestion"
+                @keydown.escape="handleCloseBubble"
+                @click.stop
+              />
+            </div>
+
+            <DropdownMenuSeparator />
+
+            <!-- Suggested actions -->
+            <DropdownMenuLabel class="text-xs">Suggested</DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuItem @click="handleSuggestedAction('improve')">
+                <SparklesIcon class="h-4 w-4 text-purple-500" />
+                <span>Improve writing</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem @click="handleSuggestedAction('fix-grammar')">
+                <svg
+                  class="h-4 w-4 text-green-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                <span>Fix spelling & grammar</span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+
+            <DropdownMenuSeparator />
+
+            <!-- Edit section -->
+            <DropdownMenuLabel class="text-xs">Edit</DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuItem @click="handleSuggestedAction('make-shorter')">
+                <svg
+                  class="h-4 w-4 text-blue-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 6h16M4 12h8m-8 6h16"
+                  />
+                </svg>
+                <span>Make shorter</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem @click="handleSuggestedAction('simplify')">
+                <svg
+                  class="h-4 w-4 text-purple-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+                <span>Simplify language</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem @click="handleSuggestedAction('make-longer')">
+                <svg
+                  class="h-4 w-4 text-orange-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 6h16M4 12h16m-7 6h7"
+                  />
+                </svg>
+                <span>Make longer</span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </BubbleMenu>
   </div>
 </template>
 
 <script setup lang="ts">
 import { EditorContent, useEditor } from '@tiptap/vue-3'
-import { onUnmounted, watch } from 'vue'
+import { BubbleMenu } from '@tiptap/vue-3/menus'
+import { onUnmounted, ref, watch, nextTick } from 'vue'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Mention from '@tiptap/extension-mention'
@@ -14,21 +134,204 @@ import { QueryNode } from './editor/QueryNode'
 import { ChartNode } from './editor/ChartNode'
 import { serializeToMarkdown } from './editor/markdownSerializer'
 import { mentionSuggestion } from './editor/mentions'
+import { useConversationsStore } from '@/stores/conversations'
+import { useContextsStore } from '@/stores/contexts'
+import { useRouter } from 'vue-router'
+import { Button } from './ui/button'
+import { SparklesIcon } from 'lucide-vue-next'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from './ui/dropdown-menu'
 
 interface Props {
   modelValue: string
   placeholder?: string
   disabled?: boolean
+  documentId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   placeholder: 'Start writing... Use @ to mention queries or charts',
-  disabled: false
+  disabled: false,
+  documentId: undefined
 })
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
+
+// Get stores and router for conversation creation
+const conversationsStore = useConversationsStore()
+const contextsStore = useContextsStore()
+const router = useRouter()
+
+// BubbleMenu state
+const bubbleQuestion = ref('')
+const bubbleInputRef = ref<HTMLInputElement | null>(null)
+const showAskInput = ref(false)
+
+// Watch for dropdown open state to focus input
+watch(showAskInput, async (isOpen) => {
+  if (isOpen) {
+    await nextTick()
+    setTimeout(() => {
+      bubbleInputRef.value?.focus()
+    }, 100)
+  }
+})
+
+// Control when to show the bubble menu
+const shouldShowMenu = () => {
+  if (!editor.value) return false
+
+  const { state } = editor.value
+  const { selection } = state
+  const { from, to } = selection
+
+  // Only show if there's a text selection (not just cursor position)
+  if (from === to) return false
+
+  // Only show if there's selected text
+  const { doc } = state
+  const selectedText = doc.textBetween(from, to, ' ')
+  return selectedText.trim().length > 0
+}
+
+// Handle improve writing action
+const handleImproveWriting = async () => {
+  if (!editor.value) return
+
+  const { state } = editor.value
+  const { from, to } = state.selection
+  const selectedText = state.doc.textBetween(from, to, '\n')
+
+  // Create the question for improving writing
+  let question = `Please improve the following text from the document:\n\n"${selectedText}"\n\nMake it clearer, more concise, and better written while preserving the original meaning.`
+
+  // Add document ID if available
+  if (props.documentId) {
+    question = `[Document ID: ${props.documentId}]\n\n${question}`
+  }
+
+  try {
+    // Get the current context
+    const contextSelected = contextsStore.contextSelected
+    if (!contextSelected) {
+      alert('Please select a database context first')
+      return
+    }
+
+    // Create a new conversation
+    const newConversation = await conversationsStore.createConversation(contextSelected.id)
+
+    await conversationsStore.sendMessage(newConversation.id, question, 'text')
+
+    router.push({ name: 'ChatPage', params: { id: newConversation.id } })
+
+    // Reset bubble menu state
+    showAskInput.value = false
+    bubbleQuestion.value = ''
+  } catch (error) {
+    console.error('Failed to create conversation:', error)
+    alert('Failed to start conversation. Please try again.')
+  }
+}
+
+// Handle suggested actions from dropdown
+const handleSuggestedAction = async (action: string) => {
+  if (!editor.value) return
+
+  const { state } = editor.value
+  const { from, to } = state.selection
+  const selectedText = state.doc.textBetween(from, to, '\n')
+
+  const actionPrompts: Record<string, string> = {
+    improve: `Please improve the following text:\n\n"${selectedText}"\n\nMake it clearer, more concise, and better written while preserving the original meaning.`,
+    'fix-grammar': `Please fix the spelling and grammar in the following text:\n\n"${selectedText}"\n\nCorrect any errors while keeping the original style and meaning.`,
+    'make-shorter': `Please make the following text shorter and more concise:\n\n"${selectedText}"\n\nRemove unnecessary words while keeping the key message.`,
+    simplify: `Please simplify the language in the following text:\n\n"${selectedText}"\n\nMake it easier to understand while keeping the same meaning.`,
+    'make-longer': `Please expand the following text with more details and context:\n\n"${selectedText}"\n\nAdd relevant information while maintaining clarity.`
+  }
+
+  let question = actionPrompts[action] || bubbleQuestion.value
+
+  // Add document ID if available
+  if (props.documentId) {
+    question = `[Document ID: ${props.documentId}]\n\n${question}`
+  }
+
+  try {
+    const contextSelected = contextsStore.contextSelected
+    if (!contextSelected) {
+      alert('Please select a database context first')
+      return
+    }
+
+    const newConversation = await conversationsStore.createConversation(contextSelected.id)
+    await conversationsStore.sendMessage(newConversation.id, question, 'text')
+    router.push({ name: 'ChatPage', params: { id: newConversation.id } })
+
+    // Reset state
+    showAskInput.value = false
+    bubbleQuestion.value = ''
+  } catch (error) {
+    console.error('Failed to create conversation:', error)
+    alert('Failed to start conversation. Please try again.')
+  }
+}
+
+// Handle ask question action
+const handleAskQuestion = async () => {
+  if (!bubbleQuestion.value.trim() || !editor.value) return
+
+  const { state } = editor.value
+  const { from, to } = state.selection
+  const selectedText = state.doc.textBetween(from, to, '\n')
+
+  // Create the question with context
+  let fullQuestion = `Regarding this text from the document:\n\n"${selectedText}"\n\n${bubbleQuestion.value}`
+
+  // Add document ID if available
+  if (props.documentId) {
+    fullQuestion = `[Document ID: ${props.documentId}]\n\n${fullQuestion}`
+  }
+
+  try {
+    // Get the current context
+    const contextSelected = contextsStore.contextSelected
+    if (!contextSelected) {
+      alert('Please select a database context first')
+      return
+    }
+
+    // Create a new conversation
+    const newConversation = await conversationsStore.createConversation(contextSelected.id)
+
+    await conversationsStore.sendMessage(newConversation.id, fullQuestion, 'text')
+
+    router.push({ name: 'ChatPage', params: { id: newConversation.id } })
+
+    // Clear the input and reset state
+    bubbleQuestion.value = ''
+    showAskInput.value = false
+  } catch (error) {
+    console.error('Failed to create conversation:', error)
+    alert('Failed to start conversation. Please try again.')
+  }
+}
+
+// Handle escape key
+const handleCloseBubble = () => {
+  bubbleQuestion.value = ''
+  showAskInput.value = false
+  editor.value?.commands.focus()
+}
 
 // Parse markdown content to HTML for initial load
 function markdownToHTML(markdown: string): string {
@@ -319,4 +622,9 @@ onUnmounted(() => {
 }
 
 /* Custom mention dropdown positioning */
+
+/* Bubble menu styles */
+.bubble-menu-container {
+  z-index: 50;
+}
 </style>

@@ -123,6 +123,7 @@
             :model-value="document.content"
             @update:model-value="handleContentChange"
             :disabled="document.archived"
+            :document-id="documentId"
             placeholder="Click to start writing... Use @ to mention queries or charts"
           />
         </div>
