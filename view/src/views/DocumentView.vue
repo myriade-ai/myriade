@@ -1,159 +1,154 @@
 <template>
-  <div>
-    <PageHeader :title="document?.title || 'Report'" :subtitle="subtitle" sticky>
-      <template #actions>
-        <div class="flex items-center gap-2">
-          <Button
-            v-if="document"
-            variant="outline"
-            size="sm"
-            @click="handleDelete"
-            :disabled="isDeleting"
-            class="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
-          >
-            Delete
-          </Button>
-          <Button
-            v-if="document"
-            variant="outline"
-            size="sm"
-            @click="toggleArchive"
-            :disabled="isArchiving"
-          >
-            {{ document.archived ? 'Unarchive' : 'Archive' }}
-          </Button>
-          <!-- Export dropdown -->
-          <PdfExportDropdown
-            v-if="document"
-            :document-id="documentId"
-            :document-title="document.title || undefined"
-          />
-          <Button variant="outline" size="sm" @click="toggleVersionHistory">
-            <Clock class="w-4 h-4 mr-2" />
-            Version History
-          </Button>
-          <Button
-            v-if="document && !viewingVersion && !document.archived"
-            variant="default"
-            size="sm"
-            @click="saveDocument"
-            :disabled="!hasUnsavedChanges || isSaving"
-          >
-            <Loader2 v-if="isSaving" class="animate-spin h-4 w-4 mr-2" />
-            {{ isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save' : 'Saved' }}
-          </Button>
-        </div>
-      </template>
-    </PageHeader>
+  <PageHeader :title="document?.title || 'Report'" :subtitle="subtitle" sticky>
+    <template #actions>
+      <div class="flex items-center gap-2">
+        <Button
+          v-if="document"
+          variant="outline"
+          size="sm"
+          @click="handleDelete"
+          :disabled="isDeleting"
+          class="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+        >
+          Delete
+        </Button>
+        <Button
+          v-if="document"
+          variant="outline"
+          size="sm"
+          @click="toggleArchive"
+          :disabled="isArchiving"
+        >
+          {{ document.archived ? 'Unarchive' : 'Archive' }}
+        </Button>
+        <!-- Export dropdown -->
+        <PdfExportDropdown
+          v-if="document"
+          :document-id="documentId"
+          :document-title="document.title || undefined"
+        />
+        <Button variant="outline" size="sm" @click="toggleVersionHistory">
+          <Clock class="w-4 h-4 mr-2" />
+          Version History
+        </Button>
+        <Button
+          v-if="document && !viewingVersion && !document.archived"
+          variant="default"
+          size="sm"
+          @click="saveDocument"
+          :disabled="!hasUnsavedChanges || isSaving"
+        >
+          <Loader2 v-if="isSaving" class="animate-spin h-4 w-4 mr-2" />
+          {{ isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save' : 'Saved' }}
+        </Button>
+      </div>
+    </template>
+  </PageHeader>
 
-    <div class="overflow-y-auto h-screen">
-      <div class="px-8 py-6 max-w-4xl mx-auto">
-        <!-- Loading state -->
-        <div v-if="documentQuery.isPending.value" class="text-center py-12">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p class="mt-4 text-gray-500">Loading report...</p>
-        </div>
+  <div class="flex-1 overflow-auto">
+    <div class="px-8 py-6 max-w-4xl mx-auto">
+      <!-- Loading state -->
+      <div v-if="documentQuery.isPending.value" class="text-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <p class="mt-4 text-gray-500">Loading report...</p>
+      </div>
 
-        <!-- Error state -->
-        <div v-else-if="documentQuery.isError.value" class="text-center py-12">
-          <div class="text-error-500">
-            <p>{{ documentQuery.error.value?.message || 'Failed to load report' }}</p>
+      <!-- Error state -->
+      <div v-else-if="documentQuery.isError.value" class="text-center py-12">
+        <div class="text-error-500">
+          <p>{{ documentQuery.error.value?.message || 'Failed to load report' }}</p>
+        </div>
+      </div>
+
+      <!-- Version History Sidebar -->
+      <div v-else-if="showVersionHistory && document" class="space-y-4">
+        <h3 class="text-lg font-semibold mb-4">Version History</h3>
+        <div v-if="versionsQuery.isPending.value" class="text-center text-gray-500 py-8">
+          Loading versions...
+        </div>
+        <div v-else class="space-y-3">
+          <Card
+            v-for="version in versions"
+            :key="version.id"
+            class="p-4 hover:bg-gray-50 cursor-pointer"
+            @click="viewVersion(version)"
+          >
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-medium text-gray-900">Version {{ version.versionNumber }}</span>
+              <span class="text-xs text-gray-500">{{ formatDate(version.createdAt) }}</span>
+            </div>
+            <p v-if="version.changeDescription" class="text-sm text-gray-600">
+              {{ version.changeDescription }}
+            </p>
+          </Card>
+        </div>
+      </div>
+
+      <!-- Document content -->
+      <div v-else-if="document">
+        <!-- Archived banner -->
+        <div
+          v-if="document.archived"
+          class="mb-4 p-3 bg-gray-100 border border-gray-300 rounded-lg"
+        >
+          <div class="flex items-center gap-2">
+            <Archive class="w-5 h-5 text-gray-600" />
+            <span class="text-sm font-medium text-gray-700">This report is archived</span>
           </div>
         </div>
 
-        <!-- Version History Sidebar -->
-        <div v-else-if="showVersionHistory && document" class="space-y-4">
-          <h3 class="text-lg font-semibold mb-4">Version History</h3>
-          <div v-if="versionsQuery.isPending.value" class="text-center text-gray-500 py-8">
-            Loading versions...
-          </div>
-          <div v-else class="space-y-3">
-            <Card
-              v-for="version in versions"
-              :key="version.id"
-              class="p-4 hover:bg-gray-50 cursor-pointer"
-              @click="viewVersion(version)"
-            >
-              <div class="flex items-center justify-between mb-2">
-                <span class="font-medium text-gray-900">Version {{ version.versionNumber }}</span>
-                <span class="text-xs text-gray-500">{{ formatDate(version.createdAt) }}</span>
-              </div>
-              <p v-if="version.changeDescription" class="text-sm text-gray-600">
-                {{ version.changeDescription }}
-              </p>
-            </Card>
-          </div>
-        </div>
-
-        <!-- Document content -->
-        <div v-else-if="document">
-          <!-- Archived banner -->
-          <div
-            v-if="document.archived"
-            class="mb-4 p-3 bg-gray-100 border border-gray-300 rounded-lg"
-          >
+        <!-- Warning banner when viewing a historical version -->
+        <div v-if="viewingVersion" class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <Archive class="w-5 h-5 text-gray-600" />
-              <span class="text-sm font-medium text-gray-700">This report is archived</span>
+              <AlertTriangle class="w-5 h-5 text-amber-600" />
+              <span class="text-sm font-medium text-amber-800">
+                Viewing version {{ viewingVersion.versionNumber }} ({{
+                  formatDate(viewingVersion.createdAt)
+                }})
+              </span>
             </div>
+            <button
+              @click="viewCurrentVersion"
+              class="text-sm text-amber-700 hover:text-amber-900 underline"
+            >
+              Back to current version
+            </button>
           </div>
+        </div>
 
-          <!-- Warning banner when viewing a historical version -->
-          <div
-            v-if="viewingVersion"
-            class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg"
-          >
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <AlertTriangle class="w-5 h-5 text-amber-600" />
-                <span class="text-sm font-medium text-amber-800">
-                  Viewing version {{ viewingVersion.versionNumber }} ({{
-                    formatDate(viewingVersion.createdAt)
-                  }})
-                </span>
-              </div>
-              <button
-                @click="viewCurrentVersion"
-                class="text-sm text-amber-700 hover:text-amber-900 underline"
-              >
-                Back to current version
-              </button>
-            </div>
-          </div>
+        <!-- Unified Editor/Viewer (Notion-like) -->
+        <div v-if="!viewingVersion">
+          <MarkdownEditor
+            :model-value="document.content"
+            @update:model-value="handleContentChange"
+            :disabled="document.archived"
+            placeholder="Click to start writing... Use @ to mention queries or charts"
+          />
+        </div>
 
-          <!-- Unified Editor/Viewer (Notion-like) -->
-          <div v-if="!viewingVersion">
-            <MarkdownEditor
-              :model-value="document.content"
-              @update:model-value="handleContentChange"
-              :disabled="document.archived"
-              placeholder="Click to start writing... Use @ to mention queries or charts"
+        <!-- Historical Version View (read-only) -->
+        <div v-else class="prose max-w-none">
+          <template v-for="(part, index) in parsedContent" :key="index">
+            <MarkdownDisplay
+              v-if="part.type === 'markdown' && part.content"
+              :content="part.content"
             />
-          </div>
-
-          <!-- Historical Version View (read-only) -->
-          <div v-else class="prose max-w-none">
-            <template v-for="(part, index) in parsedContent" :key="index">
-              <MarkdownDisplay
-                v-if="part.type === 'markdown' && part.content"
-                :content="part.content"
-              />
-              <div v-if="part.type === 'query' && part.query_id" class="my-4">
-                <Card class="p-0 pb-3.5 pt-1">
-                  <CardContent>
-                    <BaseEditorPreview :queryId="part.query_id" />
-                  </CardContent>
-                </Card>
-              </div>
-              <div v-if="part.type === 'chart' && part.chart_id" class="my-4">
-                <Card class="p-0 pb-3.5 pt-1">
-                  <CardContent>
-                    <Chart :chartId="part.chart_id" />
-                  </CardContent>
-                </Card>
-              </div>
-            </template>
-          </div>
+            <div v-if="part.type === 'query' && part.query_id" class="my-4">
+              <Card class="p-0 pb-3.5 pt-1">
+                <CardContent>
+                  <BaseEditorPreview :queryId="part.query_id" />
+                </CardContent>
+              </Card>
+            </div>
+            <div v-if="part.type === 'chart' && part.chart_id" class="my-4">
+              <Card class="p-0 pb-3.5 pt-1">
+                <CardContent>
+                  <Chart :chartId="part.chart_id" />
+                </CardContent>
+              </Card>
+            </div>
+          </template>
         </div>
       </div>
     </div>

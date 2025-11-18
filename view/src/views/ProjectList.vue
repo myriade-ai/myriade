@@ -1,10 +1,11 @@
 <template>
-  <div>
-    <PageHeader
-      title="Projects"
-      subtitle="Manage your projects, so you can work on specific problems/topics."
-    />
-    <div class="px-6 py-4 w-full min-h-screen">
+  <PageHeader
+    title="Projects"
+    subtitle="Manage your projects, so you can work on specific problems/topics."
+    sticky
+  />
+  <div class="flex-1 overflow-auto">
+    <div class="px-6 py-4 w-full">
       <div class="max-w-4xl mx-auto">
         <div class="flex items-center gap-4 mb-6">
           <div class="flex-1">

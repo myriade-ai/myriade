@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <PageHeader title="Database" subtitle="Manage your database connections and options." />
+  <PageHeader title="Database" subtitle="Manage your database connections and options." sticky />
+  <div class="flex-1 overflow-auto">
     <div class="mx-auto px-4">
       <nav class="flex items-center justify-between px-4 sm:px-0">
         <div class="-mt-px flex w-0 flex-1">
