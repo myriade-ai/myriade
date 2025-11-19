@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from sqlalchemy import func, or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Query, Session, joinedload
 
 from back.utils import get_dialect_name
 from models.catalog import Asset, AssetTag, Term
@@ -23,17 +23,56 @@ from models.catalog import Asset, AssetTag, Term
 logger = logging.getLogger(__name__)
 
 
+def _apply_tag_filter(query: Query, tag_ids: Optional[List[str]]) -> Query:
+    """Apply tag filter to query if tag_ids are provided."""
+    if tag_ids:
+        tag_uuids = [UUID(tag_id) for tag_id in tag_ids]
+        return query.filter(AssetTag.id.in_(tag_uuids))
+    return query
+
+
+def _apply_status_filter(query: Query, statuses: Optional[List[str]]) -> Query:
+    """Apply status filter to query if statuses are provided."""
+    if statuses:
+        status_filters = [
+            Asset.status.is_(None) if status == "unverified" else Asset.status == status
+            for status in statuses
+        ]
+        return query.filter(or_(*status_filters))
+    return query
+
+
+def _apply_asset_type_filter(query: Query, asset_type: Optional[str]) -> Query:
+    """Apply asset type filter to query if asset_type is provided."""
+    if asset_type:
+        return query.filter(Asset.type == asset_type.upper())
+    return query
+
+
+def _apply_common_filters(
+    query: Query,
+    asset_type: Optional[str],
+    tag_ids: Optional[List[str]],
+    statuses: Optional[List[str]],
+) -> Query:
+    """Apply all common filters (asset_type, tags, statuses) to a query."""
+    query = _apply_asset_type_filter(query, asset_type)
+    query = _apply_tag_filter(query, tag_ids)
+    query = _apply_status_filter(query, statuses)
+    return query
+
+
 def search_assets(
     session: Session,
     database_id: UUID,
-    text: str,
+    text: Optional[str] = None,
     asset_type: Optional[str] = None,
     limit: int = 50,
     tag_ids: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Search catalog assets by text query. Returns ONLY assets (no terms).
+    Search catalog assets by text query and/or filters. Returns ONLY assets (no terms).
 
     Uses PostgreSQL trigram similarity for fuzzy matching when available,
     falls back to ILIKE pattern matching for SQLite.
@@ -41,7 +80,7 @@ def search_assets(
     Args:
         session: SQLAlchemy session
         database_id: UUID of the database to search within
-        text: Search query string
+        text: Search query string (optional when filters are provided)
         asset_type: Optional filter by asset type ("TABLE", "COLUMN", "SCHEMA", "DATABASE")
         limit: Maximum number of results (default 50)
         tag_ids: Optional list of tag UUIDs to filter by
@@ -104,10 +143,82 @@ def search_assets_and_terms(
     }
 
 
+def _execute_postgresql_search(
+    session: Session,
+    database_id: UUID,
+    text: Optional[str],
+    asset_type: Optional[str],
+    limit: Optional[int],
+    tag_ids: Optional[List[str]],
+    statuses: Optional[List[str]],
+) -> List[Asset]:
+    """Execute PostgreSQL asset search with optional text matching."""
+    similarity_threshold = 0.3
+
+    # Build base query
+    base_query = (
+        session.query(Asset)
+        .options(joinedload(Asset.asset_tags))  # Eager load to prevent N+1
+        .outerjoin(Asset.asset_tags)  # Join for searching tag names or filtering
+        .filter(Asset.database_id == database_id)
+        .distinct()
+    )
+
+    # If no text search, use simple query without similarity scoring
+    if not text:
+        query = _apply_common_filters(base_query, asset_type, tag_ids, statuses)
+        query = query.order_by(Asset.name.asc())
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        return query.all()
+
+    # Text search with similarity scoring
+    tsquery = func.plainto_tsquery("english", text)
+
+    # Calculate weighted similarity scores
+    name_score = func.coalesce(func.similarity(Asset.name, text), 0) * 5
+    tag_score = func.coalesce(func.similarity(AssetTag.name, text), 0)
+    description_score = func.coalesce(func.similarity(Asset.description, text), 0)
+    ai_suggestion_score = func.coalesce(func.similarity(Asset.ai_suggestion, text), 0)
+    fts_score = func.coalesce(func.ts_rank(Asset.search_vector, tsquery), 0) * 2
+
+    similarity_score = (
+        name_score + tag_score + description_score + ai_suggestion_score + fts_score
+    ).label("similarity_score")
+
+    # Query with similarity scoring
+    query = (
+        session.query(Asset, similarity_score)
+        .options(joinedload(Asset.asset_tags))
+        .outerjoin(Asset.asset_tags)
+        .filter(Asset.database_id == database_id)
+        .filter(
+            (func.similarity(Asset.name, text) > similarity_threshold)
+            | (func.similarity(AssetTag.name, text) > similarity_threshold)
+            | (func.similarity(Asset.description, text) > similarity_threshold)
+            | (func.similarity(Asset.ai_suggestion, text) > similarity_threshold)
+            | (Asset.search_vector.op("@@")(tsquery))
+            | Asset.urn.ilike(f"%{text}%")
+        )
+        .distinct()
+    )
+
+    query = _apply_common_filters(query, asset_type, tag_ids, statuses)
+    query = query.order_by(similarity_score.desc(), Asset.name.asc())
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    results = query.all()
+    return [asset for asset, _ in results]
+
+
 def _execute_asset_search(
     session: Session,
     database_id: UUID,
-    text: str,
+    text: Optional[str],
     asset_type: Optional[str],
     limit: Optional[int],
     is_postgresql: bool,
@@ -123,7 +234,7 @@ def _execute_asset_search(
     Args:
         session: SQLAlchemy session
         database_id: UUID of the database
-        text: Search query string
+        text: Search query string (optional when filters are provided)
         asset_type: Optional asset type filter
         limit: Maximum number of results
         is_postgresql: Whether using PostgreSQL
@@ -135,119 +246,34 @@ def _execute_asset_search(
     """
 
     if is_postgresql:
-        similarity_threshold = 0.3
-
-        # Create tsquery for full-text search
-        # Use plainto_tsquery to handle user input without special syntax
-        tsquery = func.plainto_tsquery("english", text)
-
-        # Calculate weighted trigram similarity scores
-        # Use COALESCE to handle NULL values (treat as 0 similarity)
-        name_score = func.coalesce(func.similarity(Asset.name, text), 0) * 5
-        tag_score = func.coalesce(func.similarity(AssetTag.name, text), 0)
-        description_score = func.coalesce(func.similarity(Asset.description, text), 0)
-        ai_suggestion_score = func.coalesce(
-            func.similarity(Asset.ai_suggestion, text), 0
+        return _execute_postgresql_search(
+            session, database_id, text, asset_type, limit, tag_ids, statuses
         )
-
-        # Calculate full-text search score using ts_rank
-        # Multiply by 2 to give FTS good weight relative to trigrams
-        fts_score = func.coalesce(func.ts_rank(Asset.search_vector, tsquery), 0) * 2
-
-        # Combined weighted score: trigram similarity + full-text search
-        similarity_score = (
-            name_score + tag_score + description_score + ai_suggestion_score + fts_score
-        ).label("similarity_score")
-
-        # Always join tags because we search by tag names AND need to eager load them
-        query = (
-            session.query(Asset, similarity_score)
-            .options(joinedload(Asset.asset_tags))  # Eager load to prevent N+1
-            .outerjoin(Asset.asset_tags)  # Join for searching tag names
-            .filter(Asset.database_id == database_id)
-            .filter(
-                # Fuzzy matching on name, tags, description, and ai_suggestion
-                (func.similarity(Asset.name, text) > similarity_threshold)
-                | (func.similarity(AssetTag.name, text) > similarity_threshold)
-                | (func.similarity(Asset.description, text) > similarity_threshold)
-                | (func.similarity(Asset.ai_suggestion, text) > similarity_threshold)
-                # Full-text search matching using @@ operator
-                | (Asset.search_vector.op("@@")(tsquery))
-                # Exact substring matching on URN (structured field)
-                | Asset.urn.ilike(f"%{text}%")
-            )
-            .distinct()
-        )
-
-        if asset_type:
-            query = query.filter(Asset.type == asset_type.upper())
-
-        # Apply tag filter if specified
-        if tag_ids:
-            tag_uuids = [UUID(tag_id) for tag_id in tag_ids]
-            query = query.filter(AssetTag.id.in_(tag_uuids))
-
-        # Apply status filter if specified
-        if statuses:
-            status_filters = []
-            for status in statuses:
-                if status == "unverified":
-                    # "unverified" means status IS NULL
-                    status_filters.append(Asset.status.is_(None))
-                else:
-                    status_filters.append(Asset.status == status)
-            query = query.filter(or_(*status_filters))
-
-        # Order by similarity BEFORE applying limit
-        query = query.order_by(similarity_score.desc(), Asset.name.asc())
-
-        if limit is not None:
-            query = query.limit(limit)
-
-        results = query.all()
-
-        # Extract just the Asset objects (tags already eager loaded)
-        return [asset for asset, _ in results]
 
     # SQLite: Simple ILIKE query without fuzzy matching
-    else:
-        query = (
-            session.query(Asset)
-            .options(joinedload(Asset.asset_tags))  # Eager load to prevent N+1
-            .outerjoin(Asset.asset_tags)  # Join for searching tag names
-            .filter(Asset.database_id == database_id)
-            .filter(
-                Asset.name.ilike(f"%{text}%")
-                | Asset.description.ilike(f"%{text}%")
-                | Asset.ai_suggestion.ilike(f"%{text}%")
-                | Asset.urn.ilike(f"%{text}%")
-                | AssetTag.name.ilike(f"%{text}%")  # Search tag names
-            )
-            .distinct()
+    query = (
+        session.query(Asset)
+        .options(joinedload(Asset.asset_tags))  # Eager load to prevent N+1
+        .outerjoin(Asset.asset_tags)  # Join for searching tag names
+        .filter(Asset.database_id == database_id)
+        .distinct()
+    )
+
+    # Add text search filters if text is provided
+    if text:
+        query = query.filter(
+            Asset.name.ilike(f"%{text}%")
+            | Asset.description.ilike(f"%{text}%")
+            | Asset.ai_suggestion.ilike(f"%{text}%")
+            | Asset.urn.ilike(f"%{text}%")
+            | AssetTag.name.ilike(f"%{text}%")  # Search tag names
         )
 
-        if asset_type:
-            query = query.filter(Asset.type == asset_type.upper())
+    query = _apply_common_filters(query, asset_type, tag_ids, statuses)
 
-        # Apply tag filter if specified
-        if tag_ids:
-            tag_uuids = [UUID(tag_id) for tag_id in tag_ids]
-            query = query.filter(AssetTag.id.in_(tag_uuids))
-
-        # Apply status filter if specified
-        if statuses:
-            status_filters = []
-            for status in statuses:
-                if status == "unverified":
-                    # "unverified" means status IS NULL
-                    status_filters.append(Asset.status.is_(None))
-                else:
-                    status_filters.append(Asset.status == status)
-            query = query.filter(or_(*status_filters))
-
-        if limit is not None:
-            return query.limit(limit).all()
-        return query.all()
+    if limit is not None:
+        return query.limit(limit).all()
+    return query.all()
 
 
 def _execute_term_search(

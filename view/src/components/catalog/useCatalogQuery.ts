@@ -179,17 +179,20 @@ export function useCatalogSearchQuery(
       const currentTag = selectedTag.value
       const currentStatus = selectedStatus.value
 
-      if (!currentDatabaseId || !currentSearchText) {
+      if (!currentDatabaseId) {
         return []
       }
 
       // Build query params, excluding "__all__" values
       const params: {
-        q: string
+        q?: string
         tag_ids?: string[]
         statuses?: string[]
-      } = {
-        q: currentSearchText
+      } = {}
+
+      // Only include search query if it has meaningful length
+      if (currentSearchText && currentSearchText.trim().length > 0) {
+        params.q = currentSearchText
       }
 
       if (currentTag && currentTag !== '__all__') {
@@ -207,8 +210,7 @@ export function useCatalogSearchQuery(
 
       return response.data
     },
-    // Only run query when enabled, we have a database ID, and search text is >= 3 characters
-    enabled: computed(() => enabled.value && !!databaseId.value && searchText.value.length >= 3),
+    enabled: computed(() => enabled.value && !!databaseId.value),
 
     // Keep previous data while fetching new results (prevents blink effect)
     placeholderData: keepPreviousData,
