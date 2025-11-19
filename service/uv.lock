@@ -825,7 +825,7 @@ wheels = [
 
 [[package]]
 name = "myriade-service"
-version = "1.20.0"
+version = "1.21.0"
 source = { virtual = "." }
 dependencies = [
     { name = "agentlys", extra = ["all"] },
@@ -1397,6 +1397,7 @@ dependencies = [
     { name = "charset-normalizer" },
     { name = "pillow" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/48/80/dfa85941e3c3800aa5cd2f940c1903358c1fb61149f5f91b62efa61e7d03/reportlab-4.4.5.tar.gz", hash = "sha256:0457d642aa76df7b36b0235349904c58d8f9c606a872456ed04436aafadc1510", size = 3910836, upload-time = "2025-11-18T11:43:10.242Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c7/16/0c26a7bdfd20cba49a011b1095461be120c53df3926e9843fccfb9530e72/reportlab-4.4.5-py3-none-any.whl", hash = "sha256:849773d7cd5dde2072fedbac18c8bc909506c8befba8f088ba7b09243c6684cc", size = 1954256, upload-time = "2025-11-17T12:03:05.214Z" },
 ]
