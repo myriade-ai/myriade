@@ -25,6 +25,7 @@
     "@tanstack/vue-table": "^8.21.3",
     "@tanstack/vue-virtual": "^3.13.12",
     "@tiptap/core": "3.10.7",
+    "@tiptap/extension-bubble-menu": "^3.10.7",
     "@tiptap/extension-mention": "^3.10.7",
     "@tiptap/extension-placeholder": "^3.10.7",
     "@tiptap/pm": "^3.10.7",
