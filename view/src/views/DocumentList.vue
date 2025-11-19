@@ -1,129 +1,115 @@
 <template>
-  <div>
-    <PageHeader title="Reports" subtitle="Reports and documents created by the AI assistant" />
-    <div class="overflow-y-auto h-screen">
-      <div class="px-8">
-        <!-- Search bar and filters -->
-        <div v-if="!documentsQuery.isPending.value" class="flex items-center gap-4 my-6">
-          <div class="flex-1">
-            <Input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search reports..."
-              class="w-full"
-            />
+  <PageHeader title="Reports" subtitle="Reports and documents created by the AI assistant" sticky />
+  <div class="flex-1 overflow-auto">
+    <div class="px-8">
+      <!-- Search bar and filters -->
+      <div v-if="!documentsQuery.isPending.value" class="flex items-center gap-4 my-6">
+        <div class="flex-1">
+          <Input v-model="searchQuery" type="text" placeholder="Search reports..." class="w-full" />
+        </div>
+        <Button variant="outline" size="sm" @click="toggleShowArchived">
+          {{ showArchived ? 'Hide Archived' : 'Show Archived' }}
+        </Button>
+      </div>
+
+      <div v-if="documentsQuery.isPending.value" class="mt-4 text-center">
+        <p>Loading reports...</p>
+      </div>
+
+      <div v-else-if="documentsQuery.isError.value" class="mt-4 text-center text-error-500">
+        <p>{{ documentsQuery.error.value?.message || 'Failed to load reports' }}</p>
+      </div>
+
+      <div v-else class="space-y-6 my-4">
+        <!-- Empty state -->
+        <div v-if="documents.length === 0" class="text-center py-12">
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+            <FileTextIcon class="h-6 w-6 text-blue-600" />
           </div>
-          <Button variant="outline" size="sm" @click="toggleShowArchived">
-            {{ showArchived ? 'Hide Archived' : 'Show Archived' }}
-          </Button>
-        </div>
-
-        <div v-if="documentsQuery.isPending.value" class="mt-4 text-center">
-          <p>Loading reports...</p>
-        </div>
-
-        <div v-else-if="documentsQuery.isError.value" class="mt-4 text-center text-error-500">
-          <p>{{ documentsQuery.error.value?.message || 'Failed to load reports' }}</p>
-        </div>
-
-        <div v-else class="space-y-6 my-4">
-          <!-- Empty state -->
-          <div v-if="documents.length === 0" class="text-center py-12">
-            <div
-              class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100"
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No reports yet</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            Start a chat and ask the AI to create a report for you!
+          </p>
+          <div class="mt-6">
+            <RouterLink
+              to="/chat/new"
+              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              <FileTextIcon class="h-6 w-6 text-blue-600" />
-            </div>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">No reports yet</h3>
-            <p class="mt-1 text-sm text-gray-500">
-              Start a chat and ask the AI to create a report for you!
-            </p>
-            <div class="mt-6">
-              <RouterLink
-                to="/chat/new"
-                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <svg
-                  class="-ml-1 mr-2 h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                Create your first report
-              </RouterLink>
-            </div>
+              <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              Create your first report
+            </RouterLink>
           </div>
+        </div>
 
-          <!-- Documents table -->
-          <div v-else class="mt-4 border rounded-lg bg-white">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead class="w-[50%]">Title</TableHead>
-                  <TableHead class="w-[30%]">Preview</TableHead>
-                  <TableHead class="w-[10%]">Updated</TableHead>
-                  <TableHead class="w-[10%] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow
-                  v-for="doc in documents"
-                  :key="doc.id"
-                  class="cursor-pointer"
-                  :class="{ 'opacity-60': doc.archived }"
-                  @click="navigateToDocument(doc.id)"
-                >
-                  <TableCell>
-                    <div class="flex items-center gap-3">
-                      <div
-                        class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center"
-                      >
-                        <FileTextIcon class="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                          <p class="font-medium text-gray-900 truncate max-w-md">
-                            {{ doc.title || 'Untitled Report' }}
-                          </p>
-                          <span
-                            v-if="doc.archived"
-                            class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded flex-shrink-0"
-                          >
-                            Archived
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div class="text-sm text-gray-600 truncate max-w-md">
-                      {{ getContentExcerpt(doc.content) }}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span class="text-sm text-gray-500">{{ formatDate(doc.updatedAt) }}</span>
-                  </TableCell>
-                  <TableCell class="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      @click.stop="toggleArchive(doc)"
-                      class="text-gray-600 hover:text-gray-800"
+        <!-- Documents table -->
+        <div v-else class="mt-4 border rounded-lg bg-white">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead class="w-[50%]">Title</TableHead>
+                <TableHead class="w-[30%]">Preview</TableHead>
+                <TableHead class="w-[10%]">Updated</TableHead>
+                <TableHead class="w-[10%] text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow
+                v-for="doc in documents"
+                :key="doc.id"
+                class="cursor-pointer"
+                :class="{ 'opacity-60': doc.archived }"
+                @click="navigateToDocument(doc.id)"
+              >
+                <TableCell>
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center"
                     >
-                      {{ doc.archived ? 'Unarchive' : 'Archive' }}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
+                      <FileTextIcon class="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <p class="font-medium text-gray-900 truncate max-w-md">
+                          {{ doc.title || 'Untitled Report' }}
+                        </p>
+                        <span
+                          v-if="doc.archived"
+                          class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded flex-shrink-0"
+                        >
+                          Archived
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div class="text-sm text-gray-600 truncate max-w-md">
+                    {{ getContentExcerpt(doc.content) }}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span class="text-sm text-gray-500">{{ formatDate(doc.updatedAt) }}</span>
+                </TableCell>
+                <TableCell class="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    @click.stop="toggleArchive(doc)"
+                    class="text-gray-600 hover:text-gray-800"
+                  >
+                    {{ doc.archived ? 'Unarchive' : 'Archive' }}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </div>
       </div>
     </div>

@@ -166,15 +166,15 @@ onMounted(async () => {
 })
 </script>
 <template>
-  <div>
-    <PageHeader title="Catalog Terms" :subtitle="`${catalogStore.termsArray.length} terms`">
-      <template #actions>
-        <Button @click="showCreateTerm = true">
-          <PlusIcon class="h-4 w-4" />
-          Term
-        </Button>
-      </template>
-    </PageHeader>
+  <PageHeader title="Catalog Terms" :subtitle="`${catalogStore.termsArray.length} terms`" sticky>
+    <template #actions>
+      <Button @click="showCreateTerm = true">
+        <PlusIcon class="h-4 w-4" />
+        Term
+      </Button>
+    </template>
+  </PageHeader>
+  <div class="flex-1 overflow-auto">
     <div class="px-4 py-4">
       <div v-if="catalogStore.termsArray.length > 0" class="space-y-4">
         <div
