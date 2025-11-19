@@ -1,13 +1,13 @@
 <template>
-  <div>
-    <PageHeader title="Connections" subtitle="Manage your database connections and options.">
-      <template #actions>
-        <Button @click="router.push('/setup')">
-          <PlusIcon class="h-4 w-4" />
-          Add Connection
-        </Button>
-      </template>
-    </PageHeader>
+  <PageHeader title="Connections" subtitle="Manage your database connections and options." sticky>
+    <template #actions>
+      <Button @click="router.push('/setup')">
+        <PlusIcon class="h-4 w-4" />
+        Add Connection
+      </Button>
+    </template>
+  </PageHeader>
+  <div class="flex-1 overflow-auto">
     <div class="mx-auto px-4">
       <div class="mt-6 flow-root">
         <ul role="list" class="-my-5 divide-y divide-gray-200">

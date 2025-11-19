@@ -1,11 +1,11 @@
 <template>
   <SidebarProvider :default-open="true">
     <AppSidebar />
-    <SidebarInset class="min-w-0 w-full">
-      <div class="flex-1 flex flex-col bg-page-background">
+    <SidebarInset class="min-w-0 w-full h-screen">
+      <div class="flex flex-col h-full bg-page-background">
         <AnonymousUserBar />
         <Suspense>
-          <router-view />
+          <router-view class="flex-1 flex flex-col min-h-0" />
         </Suspense>
       </div>
     </SidebarInset>

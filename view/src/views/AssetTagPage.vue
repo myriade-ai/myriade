@@ -137,15 +137,15 @@ onMounted(async () => {
 })
 </script>
 <template>
-  <div>
-    <PageHeader title="Asset Tags" :subtitle="`${catalogStore.tagsArray.length} tags`">
-      <template #actions>
-        <Button @click="showCreateModal = true">
-          <PlusIcon class="h-4 w-4" />
-          Tag
-        </Button>
-      </template>
-    </PageHeader>
+  <PageHeader title="Asset Tags" :subtitle="`${catalogStore.tagsArray.length} tags`" sticky>
+    <template #actions>
+      <Button @click="showCreateModal = true">
+        <PlusIcon class="h-4 w-4" />
+        Tag
+      </Button>
+    </template>
+  </PageHeader>
+  <div class="flex-1 overflow-auto">
     <div class="px-4 py-4">
       <div v-if="catalogStore.tagsArray.length > 0" class="space-y-4">
         <div

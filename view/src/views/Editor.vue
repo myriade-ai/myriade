@@ -1,10 +1,11 @@
 <template>
-  <div>
-    <PageHeader
-      title="Editor"
-      subtitle="Write and run SQL queries — save them and visualize the results."
-    />
-    <div class="grid grid-cols-12 gap-4 px-4 mx-auto py-4 h-screen overflow-y-scroll">
+  <PageHeader
+    title="Editor"
+    subtitle="Write and run SQL queries — save them and visualize the results."
+    sticky
+  />
+  <div class="flex-1 overflow-auto">
+    <div class="grid grid-cols-12 gap-4 px-4 mx-auto py-4">
       <div class="col-span-3 hidden md:block h-full overflow-y-auto">
         <DatabaseExplorer />
       </div>

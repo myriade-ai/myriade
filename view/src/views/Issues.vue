@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <PageHeader title="Issues" />
+  <PageHeader title="Issues" sticky />
+  <div class="flex-1 overflow-auto">
     <div class="px-4 pt-4">
       <!-- Search and Filters -->
       <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
