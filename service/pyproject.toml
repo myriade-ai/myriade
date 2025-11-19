@@ -26,6 +26,7 @@ dependencies = [
     "duckdb>=1.3.2",
     "agentlys[all]>=1.0.0",
     "agentlys-tools[code-editor]>=0.2.0",
+    "reportlab>=4.1.0",
 ]
 
 [project.optional-dependencies]

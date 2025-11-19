@@ -50,6 +50,21 @@
             <span v-else>{{ hasUnsavedChanges ? 'Save' : 'Saved' }}</span>
           </button>
 
+          <!-- Export dropdown -->
+          <PdfExportDropdown
+            v-if="document && documentsStore.currentDocumentId"
+            :document-id="documentsStore.currentDocumentId"
+            :document-title="document.title || undefined"
+          >
+            <template #trigger>
+              <button
+                class="px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-2"
+              >
+                <span>Export</span>
+              </button>
+            </template>
+          </PdfExportDropdown>
+
           <!-- Version history button -->
           <button
             @click="toggleVersionHistory"
@@ -192,6 +207,7 @@ import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import Chart from '@/components/Chart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
+import PdfExportDropdown from '@/components/PdfExportDropdown.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDocumentQuery, useDocumentVersionsQuery } from '@/composables/useDocumentsQuery'
 import type { DocumentVersion } from '@/stores/conversations'

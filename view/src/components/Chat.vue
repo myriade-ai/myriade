@@ -303,6 +303,7 @@ import {
 } from './ui/sheet'
 import { useSidebar } from './ui/sidebar'
 import { Textarea } from './ui/textarea'
+import { FileTextIcon } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
