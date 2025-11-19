@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import tempfile
 import uuid
 from typing import Any
 
@@ -520,20 +521,32 @@ class EchartsTool:
             "source": rows,  # Already serialized at the data layer
         }
         json_str = json.dumps(chart_options)  # Convert to string
+
+        # Use a unique temporary file to avoid race conditions between concurrent renders
+        # Create temp file with .png suffix and delete=False so we can read it after subprocess
+        with tempfile.NamedTemporaryFile(
+            suffix=".png", delete=False, dir=tempfile.gettempdir()
+        ) as tmp_file:
+            output_path = tmp_file.name
+
         try:
             current_dir = os.path.dirname(os.path.abspath(__file__))
             render_script_path = os.path.join(
                 current_dir, "echarts-render", "render.js"
             )
             result = subprocess.run(
-                ["node", render_script_path, json_str],
+                ["node", render_script_path, json_str, "500", "400", output_path],
                 capture_output=True,
                 text=True,
                 check=True,
             )
-            output_path = os.path.join(current_dir, "echarts-render", "output.png")
             try:
-                return Image.open(output_path)
+                img = Image.open(output_path)
+                # Create a copy since we're going to delete the file
+                img_copy = img.copy()
+                img_copy.format = img.format
+                img.close()
+                return img_copy
             except FileNotFoundError:
                 return f"Error: Could not find output PNG file. \
                     Node.js output: {result.stdout}\nErrors: {result.stderr}"
@@ -543,3 +556,9 @@ class EchartsTool:
             return f"Error executing Node.js script: {e.stderr}"
         except Exception as e:
             return f"Unexpected error running chart renderer: {str(e)}"
+        finally:
+            # Clean up the temporary file
+            try:
+                os.unlink(output_path)
+            except OSError:
+                pass  # Ignore errors during cleanup

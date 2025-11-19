@@ -1,3 +1,4 @@
+import io
 import json
 import logging
 import os
@@ -7,7 +8,7 @@ from uuid import UUID
 
 import anthropic
 from agentlys import Agentlys
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, g, jsonify, request, send_file
 from sqlalchemy import and_, or_
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import Session, contains_eager, joinedload, selectinload
@@ -33,6 +34,7 @@ from back.github_manager import (
     list_repositories,
     start_oauth_flow,
 )
+from back.pdf_export import generate_document_pdf
 from back.session import get_db_session
 from back.sync_state import get_sync_state
 from back.utils import (
@@ -2364,6 +2366,49 @@ def get_document(document_id: UUID):
     return jsonify(document.to_dict())
 
 
+@api.route("/documents/<uuid:document_id>/export", methods=["POST"])
+@user_middleware
+def export_document(document_id: UUID):
+    """Generate a PDF export for the given document."""
+    document = g.session.query(Document).filter_by(id=document_id).first()
+    if not document:
+        return jsonify({"error": "Document not found"}), 404
+
+    if document.deleted:
+        return jsonify({"error": "Document has been deleted"}), 404
+
+    database = g.session.query(Database).filter_by(id=document.database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    body = request.get_json(silent=True) or {}
+    include_sql = _coerce_bool(body.get("includeSql", True))
+
+    try:
+        pdf_bytes = generate_document_pdf(document, g.session, include_sql=include_sql)
+    except Exception as e:
+        logger.exception("Failed to export document %s", document_id, exc_info=e)
+        return jsonify({"error": "Failed to generate PDF"}), 500
+
+    filename = _document_filename(document.title)
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename,
+    )
+
+
 @api.route("/documents/<uuid:document_id>", methods=["PUT"])
 @user_middleware
 def update_document(document_id: UUID):
@@ -2524,3 +2569,20 @@ def archive_document(document_id: UUID):
     g.session.flush()
 
     return jsonify(document.to_dict())
+
+
+def _coerce_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(value)
+
+
+def _document_filename(title: str | None) -> str:
+    base = (title or "report").strip()
+    sanitized = "".join(
+        char if char.isalnum() or char in {"-", "_"} else "_" for char in base
+    )
+    sanitized = sanitized.strip("_") or "report"
+    return f"{sanitized}.pdf"
