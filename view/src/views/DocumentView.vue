@@ -23,33 +23,19 @@
             {{ document.archived ? 'Unarchive' : 'Archive' }}
           </Button>
           <Button variant="outline" size="sm" @click="toggleVersionHistory">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <Clock class="w-4 h-4 mr-2" />
             Version History
           </Button>
-          <Button v-if="!isEditing" size="sm" @click="startEdit">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              />
-            </svg>
-            Edit
+          <Button
+            v-if="document && !viewingVersion && !document.archived"
+            variant="default"
+            size="sm"
+            @click="saveDocument"
+            :disabled="!hasUnsavedChanges || isSaving"
+          >
+            <Loader2 v-if="isSaving" class="animate-spin h-4 w-4 mr-2" />
+            {{ isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save' : 'Saved' }}
           </Button>
-          <template v-else>
-            <Button variant="outline" size="sm" @click="cancelEdit"> Cancel </Button>
-            <Button size="sm" @click="saveDocument" :disabled="isSaving">
-              {{ isSaving ? 'Saving...' : 'Save' }}
-            </Button>
-          </template>
         </div>
       </template>
     </PageHeader>
@@ -101,19 +87,7 @@
             class="mb-4 p-3 bg-gray-100 border border-gray-300 rounded-lg"
           >
             <div class="flex items-center gap-2">
-              <svg
-                class="w-5 h-5 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                />
-              </svg>
+              <Archive class="w-5 h-5 text-gray-600" />
               <span class="text-sm font-medium text-gray-700">This report is archived</span>
             </div>
           </div>
@@ -125,19 +99,7 @@
           >
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <svg
-                  class="w-5 h-5 text-amber-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
+                <AlertTriangle class="w-5 h-5 text-amber-600" />
                 <span class="text-sm font-medium text-amber-800">
                   Viewing version {{ viewingVersion.versionNumber }} ({{
                     formatDate(viewingVersion.createdAt)
@@ -153,16 +115,17 @@
             </div>
           </div>
 
-          <!-- Edit Mode -->
-          <div v-if="isEditing" class="space-y-4">
-            <textarea
-              v-model="editedContent"
-              class="w-full min-h-[500px] p-4 border rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Write your document content in Markdown..."
-            ></textarea>
+          <!-- Unified Editor/Viewer (Notion-like) -->
+          <div v-if="!viewingVersion">
+            <MarkdownEditor
+              :model-value="document.content"
+              @update:model-value="handleContentChange"
+              :disabled="document.archived"
+              placeholder="Click to start writing... Use @ to mention queries or charts"
+            />
           </div>
 
-          <!-- View Mode -->
+          <!-- Historical Version View (read-only) -->
           <div v-else class="prose max-w-none">
             <template v-for="(part, index) in parsedContent" :key="index">
               <MarkdownDisplay
@@ -195,6 +158,7 @@
 import BaseEditorPreview from '@/components/base/BaseEditorPreview.vue'
 import Chart from '@/components/Chart.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Card from '@/components/ui/card/Card.vue'
@@ -202,20 +166,22 @@ import CardContent from '@/components/ui/card/CardContent.vue'
 import { useDocumentQuery, useDocumentVersionsQuery } from '@/composables/useDocumentsQuery'
 import type { DocumentVersion } from '@/stores/conversations'
 import { useDocumentsStore } from '@/stores/documents'
-import { computed, ref, toRef } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
+import { AlertTriangle, Archive, Clock, Loader2 } from 'lucide-vue-next'
+import { computed, ref, toRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
 const documentsStore = useDocumentsStore()
+const queryClient = useQueryClient()
 
-const isEditing = ref(false)
 const isSaving = ref(false)
 const isArchiving = ref(false)
 const isDeleting = ref(false)
-const editedContent = ref('')
 const showVersionHistory = ref(false)
 const viewingVersion = ref<DocumentVersion | null>(null)
+const currentContent = ref('')
 
 const documentId = computed(() => {
   return Array.isArray(route.params.id) ? route.params.id[0] : route.params.id
@@ -233,12 +199,31 @@ const subtitle = computed(() => {
   return `Updated ${formatDate(document.value.updatedAt)}`
 })
 
+const hasUnsavedChanges = computed(() => {
+  if (!document.value || !currentContent.value) return false
+  return currentContent.value !== document.value.content
+})
+
+// Initialize current content from document
+watch(
+  document,
+  (newDoc) => {
+    if (newDoc && !currentContent.value) {
+      currentContent.value = newDoc.content
+    }
+  },
+  { immediate: true }
+)
+
 const parsedContent = computed<
   Array<{ type: string; content?: string; query_id?: string; chart_id?: string }>
 >(() => {
   if (!document.value) return []
 
-  const content = viewingVersion.value ? viewingVersion.value.content : document.value.content
+  // Use viewing version content, or current edited content
+  const content = viewingVersion.value
+    ? viewingVersion.value.content
+    : currentContent.value || document.value.content
 
   const chunks: Array<{
     type: string
@@ -292,33 +277,36 @@ const parsedContent = computed<
   return chunks
 })
 
-const startEdit = () => {
-  if (!document.value) return
-  editedContent.value = document.value.content
-  isEditing.value = true
-}
-
-const cancelEdit = () => {
-  isEditing.value = false
-  editedContent.value = ''
+// Handle content changes (no auto-save, just update local state)
+const handleContentChange = (newContent: string) => {
+  currentContent.value = newContent
 }
 
 const saveDocument = async () => {
-  if (!document.value || !documentId.value) return
+  if (!document.value || !documentId.value || !currentContent.value) return
+
+  // Don't save if content hasn't changed
+  if (currentContent.value === document.value.content) return
 
   try {
     isSaving.value = true
-    await documentsStore.updateDocument(documentId.value, {
-      content: editedContent.value,
-      changeDescription: 'Edited from report page'
+
+    // Update document and get the response with updated metadata
+    const updatedDocument = await documentsStore.updateDocument(documentId.value, {
+      content: currentContent.value,
+      changeDescription: 'Manual save'
     })
-    isEditing.value = false
-    // Refetch to show updated content
-    documentQuery.refetch()
-    versionsQuery.refetch()
-  } catch (err) {
+
+    // Update cache with the saved document
+    queryClient.setQueryData(['document', documentId.value], updatedDocument)
+
+    // Refetch versions if version history is currently visible
+    if (showVersionHistory.value) {
+      versionsQuery.refetch()
+    }
+  } catch (err: unknown) {
     console.error('Failed to save document:', err)
-    alert('Failed to save report. Please try again.')
+    alert('Failed to save document. Please try again.')
   } finally {
     isSaving.value = false
   }

@@ -530,6 +530,7 @@ class Chart(SerializerMixin, DefaultBase, Base):
         primary_key=True,
         default=uuid.uuid4,
     )
+    title: Mapped[Optional[str]] = mapped_column(String)
     config: Mapped[Optional[Dict[Any, Any]]] = mapped_column(JSONB)
     queryId: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(), ForeignKey("query.id", ondelete="CASCADE")

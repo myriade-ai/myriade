@@ -2,12 +2,57 @@ import json
 import os
 import subprocess
 import uuid
+from typing import Any
 
 from PIL import Image
 
 from back.data_warehouse import AbstractDatabase
 from chat.tools.chart_types import ChartOptions
 from models import Chart, ConversationMessage, Database, Query
+
+
+def extract_chart_title(config: dict[str, Any] | ChartOptions) -> str | None:
+    """
+    Extract the title from a chart config object.
+    ECharts config can have title in various places:
+    - config.title (string)
+    - config.title.text (string)
+    - config.option.title.text (for some chart types)
+
+    Returns:
+        The chart title or None if not found
+    """
+    if not config:
+        return None
+
+    # Handle Pydantic ChartOptions model
+    if isinstance(config, ChartOptions):
+        if config.title and hasattr(config.title, "text"):
+            return config.title.text
+        return None
+
+    # Handle dict config
+    # Try direct title field (string)
+    if isinstance(config.get("title"), str):
+        return config["title"]
+
+    # Try title.text (ECharts format)
+    title_obj = config.get("title", {})
+    if isinstance(title_obj, dict):
+        text = title_obj.get("text")
+        if text:
+            return text
+
+    # Try option.title.text (nested format)
+    option = config.get("option", {})
+    if isinstance(option, dict):
+        title_obj = option.get("title", {})
+        if isinstance(title_obj, dict):
+            text = title_obj.get("text")
+            if text:
+                return text
+
+    return None
 
 
 class EchartsTool:
@@ -453,7 +498,11 @@ class EchartsTool:
             except json.JSONDecodeError:
                 raise ValueError("chart_options shouldn't be a json dump") from None
 
+        # Extract title from chart_options
+        title = extract_chart_title(chart_options)
+
         chart = Chart(
+            title=title,
             config=chart_options,
             queryId=query_id,
         )
