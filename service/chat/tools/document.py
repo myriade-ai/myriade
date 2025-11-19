@@ -137,7 +137,9 @@ class DocumentsTool:
 
         return "\n".join(display)
 
-    def edit_document(self, document_id: str, old_string: str, new_string: str) -> str:
+    def edit_document(
+        self, document_id: str, old_string: str, new_string: str, reason: str
+    ) -> str:
         """
         Replace all occurrences of 'old_string' with 'new_string' in the document.
 
@@ -145,6 +147,7 @@ class DocumentsTool:
             document_id: The UUID of the document to edit
             old_string: The text to replace (must match exactly, including whitespace)
             new_string: The new text to insert in place of the old text
+            reason: Reason for the edit (for versioning purposes)
 
         Returns:
             Confirmation message
@@ -157,7 +160,7 @@ class DocumentsTool:
         occurrences = document.content.count(old_string)
         document.content = document.content.replace(old_string, new_string)
         document.updated_by = getattr(self.conversation, "userId", None)
-        self._create_version(document, "Replaced text in document")
+        self._create_version(document, reason)
 
         return f"Document '{document.title or 'Untitled'}' updated successfully. Replaced {occurrences} occurrence(s)."
 
