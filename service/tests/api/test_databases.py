@@ -1,7 +1,21 @@
+import uuid
 from unittest.mock import patch
 
 import requests
+from sqlalchemy import text
+from sqlalchemy.orm import sessionmaker
 
+from models import (
+    DBT,
+    Chart,
+    Conversation,
+    ConversationMessage,
+    Note,
+    Project,
+    ProjectTables,
+    Query,
+)
+from models.quality import Issue
 from tests.utils import normalise_json
 
 
@@ -24,6 +38,299 @@ def test_list_databases(app_server, test_db_id, snapshot):
 #     )
 #     assert r.status_code == 200
 #     assert normalise_json(r.json()) == snapshot()
+
+
+def test_delete_database_with_conversations(app_server, session):
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    session.commit()
+
+    payload = {
+        "name": "cascade-test-db",
+        "description": "Database with conversations",
+        "engine": "sqlite",
+        "details": {"filename": ":memory:"},
+        "safe_mode": True,
+        "write_mode": "confirmation",
+    }
+
+    create_resp = requests.post(
+        f"{app_server}/databases", json=payload, cookies={"session": "MOCK"}
+    )
+    assert create_resp.status_code == 200
+    database_id = create_resp.json()["id"]
+    database_uuid = uuid.UUID(database_id)
+
+    conversation_resp = requests.post(
+        f"{app_server}/conversations",
+        json={"contextId": f"database-{database_id}"},
+        cookies={"session": "MOCK"},
+    )
+    assert conversation_resp.status_code == 200
+    conversation_id = uuid.UUID(conversation_resp.json()["id"])
+
+    dbt_entry = DBT(database_id=database_uuid)
+    session.add(dbt_entry)
+    session.flush()
+
+    message = ConversationMessage(
+        conversationId=conversation_id,
+        role="user",
+        content="hello",
+    )
+    session.add(message)
+    session.flush()
+
+    issue = Issue(title="orphaned issue", message_id=message.id)
+    session.add(issue)
+    session.flush()
+    message_id = message.id
+    issue_id = issue.id
+    session.commit()
+
+    delete_resp = requests.delete(
+        f"{app_server}/databases/{database_id}", cookies={"session": "MOCK"}
+    )
+    assert delete_resp.status_code == 200
+    assert delete_resp.json() == {"success": True}
+
+    session.expire_all()
+
+    SessionFactory = sessionmaker(bind=session.get_bind())
+    verify_session = SessionFactory()
+    try:
+        assert (
+            verify_session.query(Conversation)
+            .filter(Conversation.id == conversation_id)
+            .first()
+            is None
+        )
+        assert (
+            verify_session.query(ConversationMessage)
+            .filter(ConversationMessage.id == message_id)
+            .first()
+            is None
+        )
+        assert (
+            verify_session.query(DBT).filter(DBT.database_id == database_uuid).first()
+            is None
+        )
+
+        refreshed_issue = verify_session.query(Issue).filter(Issue.id == issue_id).one()
+        assert refreshed_issue.message_id is None
+    finally:
+        verify_session.close()
+
+
+def test_delete_database_with_queries(app_server, session):
+    """Test deleting a database with queries and charts (the main foreign key issue)."""
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    session.commit()
+
+    payload = {
+        "name": "query-test-db",
+        "description": "Database with queries",
+        "engine": "sqlite",
+        "details": {"filename": ":memory:"},
+        "safe_mode": True,
+        "write_mode": "confirmation",
+    }
+
+    create_resp = requests.post(
+        f"{app_server}/databases", json=payload, cookies={"session": "MOCK"}
+    )
+    assert create_resp.status_code == 200
+    database_id = create_resp.json()["id"]
+    database_uuid = uuid.UUID(database_id)
+
+    # Create a query - this is the main foreign key issue being fixed
+    query = Query(
+        databaseId=database_uuid,
+        title="Test Query",
+        sql="SELECT 1",
+        status="completed",
+    )
+    session.add(query)
+    session.flush()
+    query_id = query.id
+
+    # Create a chart linked to the query
+    chart = Chart(queryId=query_id, config={"type": "bar"})
+    session.add(chart)
+    session.flush()
+    chart_id = chart.id
+
+    session.commit()
+
+    # Delete the database - this should work now without foreign key violations
+    delete_resp = requests.delete(
+        f"{app_server}/databases/{database_id}", cookies={"session": "MOCK"}
+    )
+    assert delete_resp.status_code == 200
+    assert delete_resp.json() == {"success": True}
+
+    # Verify all related records were deleted
+    session.expire_all()
+
+    SessionFactory = sessionmaker(bind=session.get_bind())
+    verify_session = SessionFactory()
+    try:
+        assert verify_session.query(Query).filter(Query.id == query_id).first() is None
+        assert verify_session.query(Chart).filter(Chart.id == chart_id).first() is None
+    finally:
+        verify_session.close()
+
+
+def test_delete_database_with_projects(app_server, session):
+    """Test deleting a database with projects that have conversations (P1 foreign key issue)."""
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    session.commit()
+
+    payload = {
+        "name": "project-test-db",
+        "description": "Database with projects",
+        "engine": "sqlite",
+        "details": {"filename": ":memory:"},
+        "safe_mode": True,
+        "write_mode": "confirmation",
+    }
+
+    create_resp = requests.post(
+        f"{app_server}/databases", json=payload, cookies={"session": "MOCK"}
+    )
+    assert create_resp.status_code == 200
+    database_id = create_resp.json()["id"]
+    database_uuid = uuid.UUID(database_id)
+
+    # Create a project
+    project = Project(
+        databaseId=database_uuid,
+        name="Test Project",
+        description="Test project description",
+        creatorId="admin",
+    )
+    session.add(project)
+    session.flush()
+    project_id = project.id
+    session.commit()  # Commit so the API can see the project
+
+    # Create a conversation linked to the project
+    conversation_resp = requests.post(
+        f"{app_server}/conversations",
+        json={"contextId": f"project-{project_id}"},
+        cookies={"session": "MOCK"},
+    )
+    assert conversation_resp.status_code == 200
+    conversation_id = uuid.UUID(conversation_resp.json()["id"])
+
+    # Delete the database - should handle project/conversation foreign key correctly
+    delete_resp = requests.delete(
+        f"{app_server}/databases/{database_id}", cookies={"session": "MOCK"}
+    )
+    assert delete_resp.status_code == 200
+    assert delete_resp.json() == {"success": True}
+
+    # Verify all related records were deleted or updated
+    session.expire_all()
+
+    SessionFactory = sessionmaker(bind=session.get_bind())
+    verify_session = SessionFactory()
+    try:
+        # Project should be deleted
+        assert (
+            verify_session.query(Project).filter(Project.id == project_id).first()
+            is None
+        )
+        # Conversation should still exist but with projectId set to NULL
+        conversation = (
+            verify_session.query(Conversation)
+            .filter(Conversation.id == conversation_id)
+            .first()
+        )
+        # Conversation is deleted with the database since it references databaseId
+        assert conversation is None
+    finally:
+        verify_session.close()
+
+
+def test_delete_database_with_project_tables_and_notes(app_server, session):
+    """Test deleting a database with projects that have saved tables and notes."""
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    session.commit()
+
+    payload = {
+        "name": "project-tables-test-db",
+        "description": "Database with project tables",
+        "engine": "sqlite",
+        "details": {"filename": ":memory:"},
+        "safe_mode": True,
+        "write_mode": "confirmation",
+    }
+
+    create_resp = requests.post(
+        f"{app_server}/databases", json=payload, cookies={"session": "MOCK"}
+    )
+    assert create_resp.status_code == 200
+    database_id = create_resp.json()["id"]
+    database_uuid = uuid.UUID(database_id)
+
+    # Create a project
+    project = Project(
+        databaseId=database_uuid,
+        name="Test Project with Tables",
+        description="Test project with saved tables",
+        creatorId="admin",
+    )
+    session.add(project)
+    session.flush()
+    project_id = project.id
+
+    # Create project tables
+    project_table = ProjectTables(
+        projectId=project_id,
+        databaseName="test_db",
+        schemaName="public",
+        tableName="test_table",
+    )
+    session.add(project_table)
+    session.flush()
+    project_table_id = project_table.id
+
+    # Create a note for the project
+    note = Note(projectId=project_id, title="Test Note", content="This is a test note")
+    session.add(note)
+    session.flush()
+    note_id = note.id
+    session.commit()
+
+    # Delete the database - should handle project_tables/notes foreign keys correctly
+    delete_resp = requests.delete(
+        f"{app_server}/databases/{database_id}", cookies={"session": "MOCK"}
+    )
+    assert delete_resp.status_code == 200
+    assert delete_resp.json() == {"success": True}
+
+    # Verify all related records were deleted
+    session.expire_all()
+
+    SessionFactory = sessionmaker(bind=session.get_bind())
+    verify_session = SessionFactory()
+    try:
+        # Project should be deleted
+        assert (
+            verify_session.query(Project).filter(Project.id == project_id).first()
+            is None
+        )
+        # Project table should be deleted
+        assert (
+            verify_session.query(ProjectTables)
+            .filter(ProjectTables.id == project_table_id)
+            .first()
+            is None
+        )
+        # Note should be deleted
+        assert verify_session.query(Note).filter(Note.id == note_id).first() is None
+    finally:
+        verify_session.close()
 
 
 def test_authorization_null_organization_vulnerability(app_server, session):
