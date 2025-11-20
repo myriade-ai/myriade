@@ -247,6 +247,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    height: 100%;
+    overflow: hidden; /* Prevent global bounce  */
+  }
   body {
     @apply bg-background text-foreground;
   }
@@ -256,5 +261,9 @@
   .combobox-content-width-full {
     width: var(--reka-popper-anchor-width);
     max-width: var(--reka-popper-anchor-width);
+  }
+  /* Prevent bounce in scrollable containers while keeping pull-to-refresh */
+  .overscroll-contain {
+    overscroll-behavior: contain;
   }
 }

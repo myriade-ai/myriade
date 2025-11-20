@@ -1,67 +1,68 @@
 <template>
-  <PageHeader title="Chat" subtitle="Ask questions about your data and get instant answers." sticky>
-    <template #actions>
-      <div v-if="conversationHasGithub" class="flex items-center gap-2">
-        <Sheet v-model:open="showChangesPanel">
-          <SheetTrigger as-child>
-            <Button v-if="hasChanges && !githubPrUrl" variant="outline" size="sm">
-              <FileTextIcon class="h-4 w-4 mr-2" />
-              {{ changedFiles.length }} {{ changedFiles.length === 1 ? 'file' : 'files' }} changed
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" class="w-full sm:max-w-2xl overflow-y-auto p-6">
-            <SheetHeader>
-              <SheetTitle>Changed Files</SheetTitle>
-              <SheetDescription>
-                Review the changes before creating a pull request
-              </SheetDescription>
-            </SheetHeader>
-            <div class="mt-6 space-y-4">
-              <CodeDiffDisplay
-                v-for="file in changedFiles"
-                :key="file.path"
-                :old-string="file.old_content"
-                :new-string="file.new_content"
-                :file-name="file.path"
-                :default-expanded="true"
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
-        <Button
-          v-if="githubPrUrl"
-          as="a"
-          variant="outline"
-          size="sm"
-          :href="githubPrUrl"
-          target="_blank"
-          rel="noopener"
-        >
-          View PR
-        </Button>
-        <Button
-          v-else-if="hasChanges"
-          variant="default"
-          size="sm"
-          @click="handleCreatePullRequest"
-          :disabled="creatingPr || isAiRunning"
-        >
-          {{ creatingPr ? 'Creating…' : 'Create PR' }}
-        </Button>
-      </div>
-    </template>
-  </PageHeader>
-  <div
-    ref="scrollContainer"
-    class="flex-1 overflow-auto flex justify-center px-2 sm:px-4 lg:px-0"
-    v-touch:swipe.right="
-      () => {
-        if (isMobile) toggleSidebar()
-      }
-    "
-  >
-    <div class="flex flex-col w-full">
-      <div class="flex flex-col flex-1 w-full max-w-3xl m-auto">
+  <div>
+    <PageHeader title="Chat" subtitle="Ask questions about your data and get instant answers." sticky>
+      <template #actions>
+        <div v-if="conversationHasGithub" class="flex items-center gap-2">
+          <Sheet v-model:open="showChangesPanel">
+            <SheetTrigger as-child>
+              <Button v-if="hasChanges && !githubPrUrl" variant="outline" size="sm">
+                <FileTextIcon class="h-4 w-4 mr-2" />
+                {{ changedFiles.length }} {{ changedFiles.length === 1 ? 'file' : 'files' }} changed
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" class="w-full sm:max-w-2xl overflow-y-auto p-6">
+              <SheetHeader>
+                <SheetTitle>Changed Files</SheetTitle>
+                <SheetDescription>
+                  Review the changes before creating a pull request
+                </SheetDescription>
+              </SheetHeader>
+              <div class="mt-6 space-y-4">
+                <CodeDiffDisplay
+                  v-for="file in changedFiles"
+                  :key="file.path"
+                  :old-string="file.old_content"
+                  :new-string="file.new_content"
+                  :file-name="file.path"
+                  :default-expanded="true"
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+          <Button
+            v-if="githubPrUrl"
+            as="a"
+            variant="outline"
+            size="sm"
+            :href="githubPrUrl"
+            target="_blank"
+            rel="noopener"
+          >
+            View PR
+          </Button>
+          <Button
+            v-else-if="hasChanges"
+            variant="default"
+            size="sm"
+            @click="handleCreatePullRequest"
+            :disabled="creatingPr || isAiRunning"
+          >
+            {{ creatingPr ? 'Creating…' : 'Create PR' }}
+          </Button>
+        </div>
+      </template>
+    </PageHeader>
+    <div
+      ref="scrollContainer"
+      class="flex justify-center px-2 sm:px-4 lg:px-0"
+      v-touch:swipe.right="
+        () => {
+          if (isMobile) toggleSidebar()
+        }
+      "
+    >
+      <div class="flex flex-col w-full min-h-[calc(100vh-4rem)]">
+        <div class="flex flex-col flex-1 w-full max-w-3xl m-auto">
         <div class="w-full lg:pt-4">
           <ul class="list-none space-y-4">
             <template v-for="(group, index) in messageGroups" :key="index">
@@ -256,10 +257,11 @@
     >
       Socket disconnected
     </div>
-  </div>
+    </div>
 
-  <!-- Document Panel -->
-  <DocumentPanel />
+    <!-- Document Panel -->
+    <DocumentPanel />
+  </div>
 </template>
 
 <script setup lang="ts">
