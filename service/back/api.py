@@ -1306,10 +1306,10 @@ def get_catalog_assets(database_id: UUID):
 @user_middleware
 def search_catalog_assets(database_id: UUID):
     """
-    Search catalog assets by text query. Returns only asset IDs.
+    Search catalog assets by text query and/or filters. Returns only asset IDs.
 
     Query parameters:
-    - q: Search query string (required)
+    - q: Search query string (optional when filters are provided)
     - asset_type: Filter by type (optional: "TABLE", "COLUMN", "SCHEMA", "DATABASE")
     - tag_ids: Filter by tag IDs (optional, array: ?tag_ids=uuid1&tag_ids=uuid2)
     - statuses: Filter by status values (optional, array: ?statuses=validated&statuses=needs_review)
@@ -1324,14 +1324,24 @@ def search_catalog_assets(database_id: UUID):
         return jsonify({"error": "Database not found"}), 404
 
     # Get search query from parameters
-    search_query = request.args.get("q", "").strip()
-    if not search_query:
-        return jsonify({"error": "Search query (q parameter) is required"}), 400
+    search_query = request.args.get("q", "").strip() or None
 
     # Get optional parameters
     asset_type = request.args.get("asset_type", "").strip() or None
-    tag_ids = request.args.getlist("tag_ids") or None
-    statuses = request.args.getlist("statuses") or None
+    tag_ids_list = request.args.getlist("tag_ids[]") or request.args.getlist("tag_ids")
+    tag_ids = tag_ids_list if tag_ids_list else None
+    statuses_list = request.args.getlist("statuses[]") or request.args.getlist(
+        "statuses"
+    )
+    statuses = statuses_list if statuses_list else None
+
+    # Require at least one filter
+    if not search_query and not tag_ids and not statuses:
+        return jsonify(
+            {
+                "error": "At least one of 'q' (search query), 'tag_ids', or 'statuses' must be provided"
+            }
+        ), 400
 
     try:
         results = search_assets(
