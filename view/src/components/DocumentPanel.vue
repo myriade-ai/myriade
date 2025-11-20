@@ -140,7 +140,7 @@
             @update:model-value="handleContentChange"
             :disabled="false"
             :document-id="documentsStore.currentDocumentId || undefined"
-            placeholder="Click to start writing... Use @ to mention queries or charts"
+            placeholder="Start writing... Use @ to mention queries or charts"
           />
         </div>
 

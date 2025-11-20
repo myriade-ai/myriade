@@ -508,7 +508,7 @@ onUnmounted(() => {
   outline: none;
 }
 
-.tiptap-editor-content .ProseMirror p.is-editor-empty:first-child::before {
+.tiptap-editor-content .ProseMirror p.is-empty::before {
   color: #adb5bd;
   content: attr(data-placeholder);
   float: left;

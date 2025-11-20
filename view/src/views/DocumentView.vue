@@ -124,7 +124,7 @@
             @update:model-value="handleContentChange"
             :disabled="document.archived"
             :document-id="documentId"
-            placeholder="Click to start writing... Use @ to mention queries or charts"
+            placeholder="Start writing... Use @ to mention queries or charts"
           />
         </div>
 
