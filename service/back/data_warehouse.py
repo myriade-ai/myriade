@@ -706,15 +706,31 @@ class OracleDatabase(SQLDatabase):
 
             @event.listens_for(self.engine, "connect")
             def _set_call_timeout(dbapi_connection, _):
-                try:
-                    dbapi_connection.call_timeout = timeout_ms
-                except Exception as exc:  # pragma: no cover - driver specific
+                applied = False
+                for attr_name in ("call_timeout", "callTimeout"):
+                    if hasattr(dbapi_connection, attr_name):
+                        try:
+                            setattr(dbapi_connection, attr_name, timeout_ms)
+                            applied = True
+                            break
+                        except Exception as exc:  # pragma: no cover - driver specific
+                            logger.warning(
+                                "Failed to set Oracle call timeout",  # pragma: no cover
+                                extra={
+                                    "event": "oracle_timeout_config_error",
+                                    "timeout_ms": timeout_ms,
+                                    "attribute": attr_name,
+                                    "error": str(exc),
+                                },
+                            )
+
+                if not applied:
                     logger.warning(
-                        "Failed to set Oracle call timeout",  # pragma: no cover
+                        "Oracle driver did not expose a call timeout attribute",  # pragma: no cover
                         extra={
                             "event": "oracle_timeout_config_error",
                             "timeout_ms": timeout_ms,
-                            "error": str(exc),
+                            "attribute": None,
                         },
                     )
 
@@ -854,7 +870,13 @@ class OracleDatabase(SQLDatabase):
 
     def _is_timeout_error(self, error: Exception) -> bool:
         error_msg = str(error).lower()
-        return "timeout" in error_msg
+        timeout_signatures = (
+            "timeout",
+            "ora-01013",  # user-requested cancel, used for call timeouts
+            "dpy-4011",  # non-extendable call timeout exceeded
+            "dpi-1067",  # operation was canceled
+        )
+        return any(signature in error_msg for signature in timeout_signatures)
 
     def _query_unprotected(self, query) -> tuple[list[dict], list[dict]]:
         try:
