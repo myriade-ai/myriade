@@ -211,9 +211,19 @@ def with_auth(f):
         # Execute wrapped function
         res = f(*args, **kwargs)
 
-        # Return response with refreshed session cookie if needed
-        if is_refreshed:
-            return _create_response_with_cookie(res, auth_response.sealed_session)
+        # Determine if the session was refreshed either during the initial
+        # authentication step or later in the request lifecycle (e.g. when the
+        # proxy provider refreshed the sealed session).
+        refreshed_session = None
+
+        if getattr(g, "session_refreshed", False):
+            refreshed_session = getattr(g, "sealed_session", None)
+        elif is_refreshed:
+            refreshed_session = auth_response.sealed_session
+
+        if refreshed_session:
+            return _create_response_with_cookie(res, refreshed_session)
+
         return res
 
     return decorated_function

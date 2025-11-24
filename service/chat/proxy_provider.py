@@ -76,10 +76,13 @@ class ProxyProvider(AnthropicProvider):
         try:
             auth_response, is_refreshed = _authenticate_session(session_cookie)
 
-            # Update session in current context if refreshed
+            # Update session in current context if refreshed. When running in an
+            # HTTP request context we also flag the refresh so the response can
+            # update the cookie through the auth middleware.
             if is_refreshed:
                 if has_request_context():
                     g.sealed_session = auth_response.sealed_session
+                    g.session_refreshed = True
                 else:
                     flask_session["sealed_session"] = auth_response.sealed_session
 
