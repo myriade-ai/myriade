@@ -29,6 +29,13 @@ jobs:
       - name: Get code
         uses: actions/checkout@v4
 
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
       - name: Deploy PR app to Fly.io
         id: deploy
         uses: superfly/fly-pr-review-apps@1.2.1
+        with:
+          region: ${{ env.FLY_REGION }}
+          org: ${{ env.FLY_ORG }}
+          secrets: ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }} OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}

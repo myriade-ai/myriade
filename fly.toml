@@ -27,33 +27,13 @@ primary_region = "cdg"
   STATIC_FOLDER = "./static"
   HOST = ""  # This will fallback to request.url_root.rstrip("/")
 
-# Database configuration - will be set by review app workflow
-[[services]]
-  protocol = "tcp"
-  internal_port = 8080
-
-  [[services.ports]]
-    port = 80
-    handlers = ["http"]
-    force_https = true
-
-  [[services.ports]]
-    port = 443
-    handlers = ["tls", "http"]
-
-  [services.concurrency]
-    type = "connections"
-    hard_limit = 25
-    soft_limit = 20
-
 # Machine configuration
-[[vm]]
+[vm]
   cpu_kind = "shared"
   cpus = 2
   memory_mb = 2048
 
-# Volume for persistent data (optional)
-[[mounts]]
+# Volume for persistent data
+[mounts]
   source = "data_volume"
   destination = "/app/data"
-  initial_size = "1gb"
