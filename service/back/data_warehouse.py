@@ -11,7 +11,7 @@ import sqlalchemy
 import sqlglot
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from sqlalchemy import text
+from sqlalchemy import event, text
 
 from back.privacy import encrypt_rows
 from back.rewrite_sql import rewrite_sql
@@ -694,8 +694,29 @@ class OracleDatabase(SQLDatabase):
         "XS$NULL",
     }
 
-    def __init__(self, uri):
+    def __init__(self, uri, *, timeout_seconds: int | float | None = None):
+        self.call_timeout_seconds = (
+            int(timeout_seconds) if timeout_seconds is not None else None
+        )
+
         super().__init__(uri)
+
+        if self.call_timeout_seconds is not None:
+            timeout_ms = max(0, int(self.call_timeout_seconds * 1000))
+
+            @event.listens_for(self.engine, "connect")
+            def _set_call_timeout(dbapi_connection, _):
+                try:
+                    dbapi_connection.call_timeout = timeout_ms
+                except Exception as exc:  # pragma: no cover - driver specific
+                    logger.warning(
+                        "Failed to set Oracle call timeout",  # pragma: no cover
+                        extra={
+                            "event": "oracle_timeout_config_error",
+                            "timeout_ms": timeout_ms,
+                            "error": str(exc),
+                        },
+                    )
 
     def load_metadata(self, progress_callback=None):
         """Load metadata from Oracle database with proper schema filtering."""
@@ -830,6 +851,24 @@ class OracleDatabase(SQLDatabase):
             f"from Oracle database '{current_database}'"
         )
         return self.metadata
+
+    def _is_timeout_error(self, error: Exception) -> bool:
+        error_msg = str(error).lower()
+        return "timeout" in error_msg
+
+    def _query_unprotected(self, query) -> tuple[list[dict], list[dict]]:
+        try:
+            return super()._query_unprotected(query)
+        except Exception as exc:
+            if self.call_timeout_seconds is not None and self._is_timeout_error(exc):
+                logger.warning(
+                    "Oracle query timed out",  # pragma: no cover
+                    extra={
+                        "event": "oracle_query_timeout",
+                        "timeout_seconds": self.call_timeout_seconds,
+                    },
+                )
+            raise
 
     def get_sample_data(
         self,
@@ -1865,6 +1904,17 @@ class DataWarehouseFactory:
             port = kwargs.get("port", "1521")
             service_name = kwargs.get("service_name")
             sid = kwargs.get("sid")
+            timeout_seconds = kwargs.get("client_timeout_seconds")
+
+            parsed_timeout = None
+            if timeout_seconds not in (None, ""):
+                try:
+                    parsed_timeout = float(timeout_seconds)
+                except (TypeError, ValueError):
+                    logger.warning(
+                        "Invalid Oracle client timeout provided; ignoring",  # pragma: no cover
+                        extra={"event": "oracle_timeout_invalid_value"},
+                    )
 
             # URL-encode username and password to handle special characters
             encoded_user = quote_plus(user) if user else ""
@@ -1882,6 +1932,6 @@ class DataWarehouseFactory:
                     "Either 'service_name' or 'sid' is required for Oracle connection"
                 )
 
-            return OracleDatabase(uri)
+            return OracleDatabase(uri, timeout_seconds=parsed_timeout)
         else:
             raise ValueError(f"Unknown database type: {dtype}")

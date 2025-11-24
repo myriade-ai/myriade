@@ -264,6 +264,12 @@
           placeholder="Alternative to service name"
           :rules="isRequiredField('sid') ? 'required' : ''"
         />
+        <Field
+          name="Query timeout (seconds)"
+          v-model="details.client_timeout_seconds"
+          type="number"
+          placeholder="Optional client-side limit"
+        />
       </div>
     </div>
 
