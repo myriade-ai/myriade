@@ -640,11 +640,7 @@ const databaseAssetsById = computed(() => {
 
 function isAssetDocumented(asset: CatalogAsset): boolean {
   const hasMeaningfulDescription = Boolean(asset.description?.trim())
-  const statusDocumented =
-    asset.status === 'validated' ||
-    asset.status === 'human_authored' ||
-    asset.status === 'published_by_ai' ||
-    asset.status === 'needs_review'
+  const statusDocumented = asset.status === 'published' || asset.status === 'draft'
   return hasMeaningfulDescription || statusDocumented
 }
 

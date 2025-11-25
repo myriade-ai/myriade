@@ -29,7 +29,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { AssetStatus } from '@/types/catalog'
-import { AlertCircle, Clock } from 'lucide-vue-next'
+import { AlertCircle, FileEdit } from 'lucide-vue-next'
 import { computed } from 'vue'
 
 interface Props {
@@ -45,17 +45,17 @@ defineEmits<{
 
 const quickFilters = computed(() => [
   {
-    status: 'requires_validation',
-    label: 'Requires Validation',
-    icon: AlertCircle,
-    count: props.assetsByStatus.requires_validation?.length || 0,
+    status: 'draft',
+    label: 'Draft',
+    icon: FileEdit,
+    count: props.assetsByStatus.draft?.length || 0,
     priority: 1
   },
   {
-    status: 'needs_review',
-    label: 'Needs Review',
-    icon: Clock,
-    count: props.assetsByStatus.needs_review?.length || 0,
+    status: 'unverified',
+    label: 'Unverified',
+    icon: AlertCircle,
+    count: props.assetsByStatus.unverified?.length || 0,
     priority: 2
   }
 ])

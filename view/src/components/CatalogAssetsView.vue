@@ -76,9 +76,12 @@
               @start-edit="startAssetEdit"
               @cancel-edit="cancelAssetEdit"
               @save="saveAssetDetails"
+              @publish="publishAssetFromDetails"
               @update:draft="updateAssetDraft"
-              @dismiss-flag="dismissAssetFlag"
-              @approve-suggestion="approveAssetSuggestion"
+              @approve-description="approveDescriptionSuggestion"
+              @approve-tags="approveTagsSuggestion"
+              @reject-description="rejectDescriptionSuggestion"
+              @reject-tags="rejectTagsSuggestion"
             />
 
             <!-- List View (no asset selected) -->
@@ -636,12 +639,10 @@ async function saveAssetDetails() {
       tag_ids: assetDraft.tags.map((tag) => tag.id)
     }
 
-    // If there's AI metadata (suggestion or flag reason), clear it when saving (approving)
-    const needsReview = ['needs_review', 'requires_validation'].includes(asset.status || '')
-    const hasAiMetadata = asset.ai_suggestion || asset.ai_flag_reason
-    if (needsReview || hasAiMetadata) {
+    // Clear AI suggestion when saving (it's been applied to description)
+    // Keep note for context - don't clear it
+    if (asset.ai_suggestion) {
       updatePayload.ai_suggestion = null
-      updatePayload.ai_flag_reason = null
     }
 
     const updated = await catalogStore.updateAsset(asset.id, updatePayload)
@@ -665,30 +666,7 @@ async function saveAssetDetails() {
   }
 }
 
-async function dismissAssetFlag() {
-  const asset = selectedAsset.value
-  if (!asset || assetSaving.value) return
-
-  try {
-    assetSaving.value = true
-    assetEditError.value = null
-    const updated = await catalogStore.dismissFlag(asset.id)
-
-    // Update the query cache directly instead of refetching
-    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
-    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
-      if (!oldData) return oldData
-      return oldData.map((a) => (a.id === updated.id ? updated : a))
-    })
-  } catch (error) {
-    console.error('Failed to dismiss flag:', error)
-    assetEditError.value = 'Failed to dismiss flag. Please try again.'
-  } finally {
-    assetSaving.value = false
-  }
-}
-
-async function approveAssetSuggestion(payload: { description: string; tagIds: string[] }) {
+async function approveDescriptionSuggestion(description: string) {
   const asset = selectedAsset.value
   if (!asset || assetSaving.value) return
 
@@ -697,11 +675,10 @@ async function approveAssetSuggestion(payload: { description: string; tagIds: st
     assetEditError.value = null
 
     const updated = await catalogStore.updateAsset(asset.id, {
-      description: payload.description,
-      tag_ids: payload.tagIds,
-      ai_suggestion: null,
-      ai_flag_reason: null,
-      ai_suggested_tags: null
+      description: description,
+      ai_suggestion: null
+      // Keep note for context - don't clear it
+      // Keep ai_suggested_tags if they exist
     })
 
     // Update the query cache directly instead of refetching
@@ -712,11 +689,122 @@ async function approveAssetSuggestion(payload: { description: string; tagIds: st
     })
 
     // Update draft with the saved description
-    assetDraft.description = updated.description ?? payload.description
+    assetDraft.description = updated.description ?? description
+  } catch (error) {
+    console.error('Failed to approve description:', error)
+    assetEditError.value = 'Failed to approve description. Please try again.'
+  } finally {
+    assetSaving.value = false
+  }
+}
+
+async function approveTagsSuggestion(tagIds: string[]) {
+  const asset = selectedAsset.value
+  if (!asset || assetSaving.value) return
+
+  try {
+    assetSaving.value = true
+    assetEditError.value = null
+
+    const updated = await catalogStore.updateAsset(asset.id, {
+      tag_ids: tagIds,
+      ai_suggested_tags: null
+      // Keep ai_suggestion if it exists
+    })
+
+    // Update the query cache directly instead of refetching
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => (a.id === updated.id ? updated : a))
+    })
+
+    // Update draft with the saved tags
     assetDraft.tags = [...(updated.tags || [])]
   } catch (error) {
-    console.error('Failed to approve suggestion:', error)
-    assetEditError.value = 'Failed to approve suggestion. Please try again.'
+    console.error('Failed to approve tags:', error)
+    assetEditError.value = 'Failed to approve tags. Please try again.'
+  } finally {
+    assetSaving.value = false
+  }
+}
+
+async function rejectDescriptionSuggestion() {
+  const asset = selectedAsset.value
+  if (!asset || assetSaving.value) return
+
+  try {
+    assetSaving.value = true
+    assetEditError.value = null
+
+    const updated = await catalogStore.updateAsset(asset.id, {
+      ai_suggestion: null
+      // Keep description and ai_suggested_tags unchanged
+    })
+
+    // Update the query cache directly
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => (a.id === updated.id ? updated : a))
+    })
+  } catch (error) {
+    console.error('Failed to reject description:', error)
+    assetEditError.value = 'Failed to reject suggestion. Please try again.'
+  } finally {
+    assetSaving.value = false
+  }
+}
+
+async function rejectTagsSuggestion() {
+  const asset = selectedAsset.value
+  if (!asset || assetSaving.value) return
+
+  try {
+    assetSaving.value = true
+    assetEditError.value = null
+
+    const updated = await catalogStore.updateAsset(asset.id, {
+      ai_suggested_tags: null
+      // Keep tags and ai_suggestion unchanged
+    })
+
+    // Update the query cache directly
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => (a.id === updated.id ? updated : a))
+    })
+  } catch (error) {
+    console.error('Failed to reject tags:', error)
+    assetEditError.value = 'Failed to reject suggestion. Please try again.'
+  } finally {
+    assetSaving.value = false
+  }
+}
+
+async function publishAssetFromDetails() {
+  const asset = selectedAsset.value
+  if (!asset || assetSaving.value) return
+
+  try {
+    assetSaving.value = true
+    assetEditError.value = null
+
+    const updated = await catalogStore.publishAsset(asset.id)
+
+    // Update the query cache directly instead of refetching
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => (a.id === updated.id ? updated : a))
+    })
+
+    // End editing mode
+    assetEditing.value = false
+  } catch (error) {
+    console.error('Failed to publish asset', error)
+    assetEditError.value = 'Failed to publish asset. Please try again.'
   } finally {
     assetSaving.value = false
   }
