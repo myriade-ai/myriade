@@ -11,7 +11,7 @@ import sqlalchemy
 import sqlglot
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from sqlalchemy import text
+from sqlalchemy import event, text
 
 from back.privacy import encrypt_rows
 from back.rewrite_sql import rewrite_sql
@@ -694,8 +694,38 @@ class OracleDatabase(SQLDatabase):
         "XS$NULL",
     }
 
-    def __init__(self, uri):
-        super().__init__(uri)
+    def __init__(self, uri, *, client_timeout_seconds: int | None = None):
+        self._timeout_ms = (
+            int(client_timeout_seconds) * 1000
+            if client_timeout_seconds and client_timeout_seconds > 0
+            else None
+        )
+
+        # Create engine directly to attach event listener before any connections
+        try:
+            self.engine = sqlalchemy.create_engine(uri)
+
+            # Register event listener for this specific engine
+            if self._timeout_ms:
+
+                @event.listens_for(self.engine, "connect")
+                def set_call_timeout(dbapi_connection, _connection_record):
+                    try:
+                        dbapi_connection.call_timeout = self._timeout_ms
+                        logger.debug(
+                            "Set Oracle client call timeout to %sms", self._timeout_ms
+                        )
+                    except Exception:
+                        logger.warning(
+                            "Failed to set Oracle client call timeout to %sms",
+                            self._timeout_ms,
+                            exc_info=True,
+                        )
+
+            self.inspector = sqlalchemy.inspect(self.engine)
+            self.metadata = []
+        except sqlalchemy.exc.OperationalError as e:
+            raise ConnectionError(e, message=str(e.orig)) from e
 
     def load_metadata(self, progress_callback=None):
         """Load metadata from Oracle database with proper schema filtering."""
@@ -1866,6 +1896,20 @@ class DataWarehouseFactory:
             port = kwargs.get("port", "1521")
             service_name = kwargs.get("service_name")
             sid = kwargs.get("sid")
+            client_timeout_seconds = kwargs.get("client_timeout_seconds")
+
+            if client_timeout_seconds not in (None, ""):
+                try:
+                    client_timeout_seconds = int(client_timeout_seconds)
+                except (TypeError, ValueError) as err:
+                    raise ValueError(
+                        "client_timeout_seconds must be a valid number of seconds"
+                    ) from err
+
+                if client_timeout_seconds <= 0:
+                    raise ValueError("client_timeout_seconds must be greater than zero")
+            else:
+                client_timeout_seconds = None
 
             # URL-encode username and password to handle special characters
             encoded_user = quote_plus(user) if user else ""
@@ -1883,6 +1927,6 @@ class DataWarehouseFactory:
                     "Either 'service_name' or 'sid' is required for Oracle connection"
                 )
 
-            return OracleDatabase(uri)
+            return OracleDatabase(uri, client_timeout_seconds=client_timeout_seconds)
         else:
             raise ValueError(f"Unknown database type: {dtype}")
