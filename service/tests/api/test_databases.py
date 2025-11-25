@@ -32,8 +32,10 @@ def test_list_databases(app_server, test_db_id, snapshot):
 
 
 def test_delete_database_with_conversations(app_server, session):
-    session.execute(text("PRAGMA foreign_keys=ON"))
-    session.commit()
+    # Enable foreign key constraints for SQLite (PostgreSQL has them enabled by default)
+    if session.bind.dialect.name == "sqlite":
+        session.execute(text("PRAGMA foreign_keys=ON"))
+        session.commit()
 
     payload = {
         "name": "cascade-test-db",
@@ -114,8 +116,10 @@ def test_delete_database_with_conversations(app_server, session):
 
 def test_delete_database_with_queries(app_server, session):
     """Test deleting a database with queries and charts (the main foreign key issue)."""
-    session.execute(text("PRAGMA foreign_keys=ON"))
-    session.commit()
+    # Enable foreign key constraints for SQLite (PostgreSQL has them enabled by default)
+    if session.bind.dialect.name == "sqlite":
+        session.execute(text("PRAGMA foreign_keys=ON"))
+        session.commit()
 
     payload = {
         "name": "query-test-db",
@@ -173,8 +177,10 @@ def test_delete_database_with_queries(app_server, session):
 
 def test_delete_database_with_projects(app_server, session):
     """Test deleting a database with projects that have conversations (P1 foreign key issue)."""
-    session.execute(text("PRAGMA foreign_keys=ON"))
-    session.commit()
+    # Enable foreign key constraints for SQLite (PostgreSQL has them enabled by default)
+    if session.bind.dialect.name == "sqlite":
+        session.execute(text("PRAGMA foreign_keys=ON"))
+        session.commit()
 
     payload = {
         "name": "project-test-db",
@@ -245,8 +251,10 @@ def test_delete_database_with_projects(app_server, session):
 
 def test_delete_database_with_project_tables(app_server, session):
     """Test deleting a database with projects that have saved tables."""
-    session.execute(text("PRAGMA foreign_keys=ON"))
-    session.commit()
+    # Enable foreign key constraints for SQLite (PostgreSQL has them enabled by default)
+    if session.bind.dialect.name == "sqlite":
+        session.execute(text("PRAGMA foreign_keys=ON"))
+        session.commit()
 
     payload = {
         "name": "project-tables-test-db",
