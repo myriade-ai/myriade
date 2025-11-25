@@ -32,6 +32,9 @@ HOST = os.environ.get("HOST")
 INFRA_URL = os.environ.get("INFRA_URL", "https://infra.myriade.ai")
 SENTRY_DSN = os.environ.get("SENTRY_DSN")
 
+# Organisation access control
+ALLOWED_ORGANIZATION_ID = os.environ.get("ORGANIZATION_ID")
+
 # Logging Configuration
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 

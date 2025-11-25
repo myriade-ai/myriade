@@ -7,6 +7,7 @@ import requests
 from flask import g, jsonify, make_response, request
 
 from config import (
+    ALLOWED_ORGANIZATION_ID,
     ENV,
     INFRA_URL,
 )
@@ -205,6 +206,19 @@ def with_auth(f):
             logger.error(f"Authentication failed: {str(e)}")
             return jsonify({"error": str(e)}), 401
 
+        # Enforce organisation scoping when configured
+        if ALLOWED_ORGANIZATION_ID and (
+            auth_response.organization_id != ALLOWED_ORGANIZATION_ID
+        ):
+            logger.warning(
+                "Access denied: user organisation %s not allowed",
+                auth_response.organization_id,
+            )
+            return (
+                jsonify({"error": "Access restricted to this organisation"}),
+                403,
+            )
+
         # Set user context
         _set_user_context(auth_response)
 
@@ -377,6 +391,10 @@ def socket_auth(*args, **kwargs):
 
     # Use the same authentication logic as the main auth decorator
     auth_response, _ = _authenticate_session(request.cookies["session"])
+    if ALLOWED_ORGANIZATION_ID and (
+        auth_response.organization_id != ALLOWED_ORGANIZATION_ID
+    ):
+        raise UnauthorizedError("Access restricted to this organisation")
     if auth_response.authenticated:
         return auth_response
 
