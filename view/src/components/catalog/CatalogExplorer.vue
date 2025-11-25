@@ -268,12 +268,9 @@ function isAssetSelected(assetId: string | undefined): boolean {
 function getAssetStatus(asset: CatalogAsset | undefined): string | undefined {
   if (!asset) return undefined
   const status = asset.status
-  if (status === 'needs_review') return 'Needs Review'
-  if (status === 'published_by_ai') return 'Published by AI'
-  if (status === 'validated') return 'Validated'
-  if (status === 'human_authored') return 'Human Authored'
-  if (status === 'requires_validation') return 'Requires Validation'
-  return undefined
+  if (status === 'draft') return 'Draft'
+  if (status === 'published') return 'Published'
+  return undefined // null = unverified
 }
 
 type TreeNode = ExplorerDatabaseNode | ExplorerSchemaNode | ExplorerTableNode

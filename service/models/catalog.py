@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING, List, Optional
 
@@ -14,7 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db import JSONB, UUID, Base, DefaultBase, SerializerMixin, TSVector
+from db import JSONB, UUID, Base, DefaultBase, SerializerMixin, TSVector, UtcDateTime
 
 if TYPE_CHECKING:
     from models import Database, User
@@ -23,11 +24,8 @@ if TYPE_CHECKING:
 class AssetStatus(str, PyEnum):
     """Status of an asset in the catalog workflow"""
 
-    VALIDATED = "validated"  # Verified by human
-    HUMAN_AUTHORED = "human_authored"  # Imported/written by human, quality OK
-    PUBLISHED_BY_AI = "published_by_ai"  # AI generated with high confidence
-    NEEDS_REVIEW = "needs_review"  # AI with medium confidence or flagged
-    REQUIRES_VALIDATION = "requires_validation"  # AI with low confidence or critical
+    DRAFT = "draft"  # Human or agent doesn't have enough confidence
+    PUBLISHED = "published"  # Ready to use for everyone
 
 
 asset_tag_association = Table(
@@ -57,8 +55,12 @@ class Asset(SerializerMixin, DefaultBase, Base):
 
     status: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     ai_suggestion: Mapped[Optional[str]] = mapped_column(Text)
-    ai_flag_reason: Mapped[Optional[str]] = mapped_column(Text)
+    note: Mapped[Optional[str]] = mapped_column(Text)
     ai_suggested_tags: Mapped[Optional[List[str]]] = mapped_column(JSONB)
+    published_by: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )  # UserId if user published, myriade-agent if AI published
+    published_at: Mapped[Optional[datetime]] = mapped_column(UtcDateTime, nullable=True)
 
     # Full-text search vector (computed column in PostgreSQL, nullable string in SQLite)
     # Deferred to avoid loading in non-search queries
