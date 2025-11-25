@@ -163,6 +163,12 @@ class UnauthorizedError(Exception):
     pass
 
 
+class OrganizationRestrictedError(Exception):
+    """Raised when a user tries to access a deployment restricted to a specific organization."""
+
+    pass
+
+
 class SealedSessionAuthResponse:
     def __init__(self, session_cookie, validation_data):
         self.authenticated = True
@@ -215,8 +221,8 @@ def with_auth(f):
                 auth_response.organization_id,
             )
             return (
-                jsonify({"error": "Access restricted to this organisation"}),
-                403,
+                jsonify({"error": "Organization restricted"}),
+                451,
             )
 
         # Set user context
@@ -394,7 +400,7 @@ def socket_auth(*args, **kwargs):
     if ALLOWED_ORGANIZATION_ID and (
         auth_response.organization_id != ALLOWED_ORGANIZATION_ID
     ):
-        raise UnauthorizedError("Access restricted to this organisation")
+        raise OrganizationRestrictedError("Organization restricted")
     if auth_response.authenticated:
         return auth_response
 

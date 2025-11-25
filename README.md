@@ -83,12 +83,6 @@ docker run -p 8080:8080 \
   myriadeai/myriade:latest
 ```
 
-To lock a self-hosted instance to a single organisation, set the allowed ID:
-
-```bash
--e ORGANIZATION_ID=<your_org_id>
-```
-
 > ⚠️ Always use dedicated, non-default credentials. Myriade blocks attempts to
 > connect to its own metadata database from within the app.
 

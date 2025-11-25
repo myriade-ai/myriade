@@ -8,6 +8,9 @@ import {
 import { useContextsStore } from '@/stores/contexts'
 import { useDatabasesStore } from '@/stores/databases'
 
+// HTTP 451: Unavailable For Legal Reasons - used for organization restriction
+const ORGANIZATION_RESTRICTED_STATUS = 451
+
 export const authGuard = async (to: any, _from: any, next: any) => {
   if (to.path === '/logged') {
     next('/')
@@ -16,14 +19,18 @@ export const authGuard = async (to: any, _from: any, next: any) => {
   } else if (!isAuthenticated.value) {
     try {
       await fetchUser()
+      const databasesStore = useDatabasesStore()
+      await databasesStore.fetchDatabases({ refresh: true })
+      next()
     } catch (error) {
       console.error('Auth check failed:', error)
+      if ((error as any)?.response?.status === ORGANIZATION_RESTRICTED_STATUS) {
+        next('/organization-restricted')
+        return
+      }
       const loginUrl = await getLoginUrl()
       window.location.href = loginUrl
     }
-    const databasesStore = useDatabasesStore()
-    await databasesStore.fetchDatabases({ refresh: true })
-    next()
   } else {
     // User is already authenticated, allow navigation
     next()

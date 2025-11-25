@@ -18,8 +18,8 @@ def test_denies_user_outside_allowed_org(monkeypatch, session):
 
     response = client.get("/api/user")
 
-    assert response.status_code == 403
-    assert response.json["error"] == "Access restricted to this organisation"
+    assert response.status_code == 451
+    assert response.json["error"] == "Organization restricted"
 
 
 def test_allows_user_in_allowed_org(monkeypatch, session):
