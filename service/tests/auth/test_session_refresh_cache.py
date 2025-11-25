@@ -1,6 +1,9 @@
+import hashlib
 import os
+import time
 from unittest.mock import Mock
 
+import jwt
 import pytest
 
 # Set test environment BEFORE importing app modules
@@ -76,8 +79,6 @@ def test_invalidate_session_clears_specific_session_and_reverse_mappings():
     3. Any reverse mappings (old_session → this_session)
     4. Does NOT clear other unrelated sessions
     """
-    import hashlib
-
     # Reset caches
     auth_module._session_validation_cache.clear()
     auth_module._session_refresh_cache.clear()
@@ -134,3 +135,65 @@ def test_invalidate_session_clears_specific_session_and_reverse_mappings():
     # Final cache sizes
     assert len(auth_module._session_validation_cache) == 1
     assert len(auth_module._session_refresh_cache) == 1
+
+
+def test_cached_validation_bypassed_when_jwt_near_expiration():
+    """
+    Ensure cached validations are bypassed when the JWT is close to expiring.
+
+    This prevents 'Invalid JWT' errors that occur when the validation cache TTL
+    (5 minutes) outlives the actual JWT expiration time.
+    """
+    # Reset caches
+    auth_module._session_validation_cache.clear()
+    auth_module._session_refresh_cache.clear()
+
+    # Create a JWT that expires in 10 seconds (within the 30-second threshold)
+    near_expiry_payload = {"sub": "user-123", "exp": int(time.time()) + 10}
+    near_expiry_jwt = jwt.encode(near_expiry_payload, "secret", algorithm="HS256")
+
+    # Create a JWT that expires in 5 minutes (outside the 30-second threshold)
+    far_expiry_payload = {"sub": "user-456", "exp": int(time.time()) + 300}
+    far_expiry_jwt = jwt.encode(far_expiry_payload, "secret", algorithm="HS256")
+
+    # Cache both sessions
+    validation_data = {"user": {"id": "test"}, "organization_id": "org_123"}
+    auth_module._cache_session_validation(near_expiry_jwt, validation_data)
+    auth_module._cache_session_validation(far_expiry_jwt, validation_data)
+
+    # Verify both are cached
+    assert len(auth_module._session_validation_cache) == 2
+
+    # The near-expiry JWT should NOT be returned from cache (triggers revalidation)
+    cached_near = auth_module._get_cached_validation(near_expiry_jwt)
+    assert cached_near is None, "Near-expiry JWT should bypass cache"
+
+    # The far-expiry JWT SHOULD be returned from cache
+    cached_far = auth_module._get_cached_validation(far_expiry_jwt)
+    assert cached_far == validation_data, "Far-expiry JWT should use cache"
+
+    # The near-expiry entry should have been removed from the cache
+    near_cache_key = hashlib.sha256(near_expiry_jwt.encode()).hexdigest()[:32]
+    assert near_cache_key not in auth_module._session_validation_cache
+
+
+def test_cached_validation_works_for_non_jwt_tokens():
+    """
+    Ensure cached validations still work for tokens that can't be decoded as JWTs.
+
+    Some sealed sessions might be encrypted or use a different format.
+    """
+    # Reset caches
+    auth_module._session_validation_cache.clear()
+    auth_module._session_refresh_cache.clear()
+
+    # Create a non-JWT token
+    non_jwt_token = "not-a-valid-jwt-token"
+
+    # Cache the session
+    validation_data = {"user": {"id": "test"}, "organization_id": "org_123"}
+    auth_module._cache_session_validation(non_jwt_token, validation_data)
+
+    # The token should still be returned from cache (decoding fails, falls back to cache)
+    cached = auth_module._get_cached_validation(non_jwt_token)
+    assert cached == validation_data, "Non-JWT tokens should still use cache"

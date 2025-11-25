@@ -3,6 +3,7 @@ import logging
 import time
 from functools import wraps
 
+import jwt
 import requests
 from flask import g, jsonify, make_response, request
 
@@ -54,10 +55,26 @@ def _get_cached_validation(session_cookie):
     if not cached:
         return None
 
-    # Check if expired
+    # Check if cache entry expired
     if time.time() > cached["expires"]:
         del _session_validation_cache[cache_key]
         return None
+
+    # Check if the JWT itself is close to expiring (within 30 seconds).
+    # This prevents using a cached validation for a JWT that has expired
+    # server-side, which would cause "Invalid JWT" errors on AI proxy calls.
+    try:
+        payload = jwt.decode(
+            session_cookie, options={"verify_signature": False, "verify_exp": False}
+        )
+        exp = payload.get("exp")
+        if exp and exp - time.time() < 30:
+            logger.info("Cached session JWT is near expiration, forcing revalidation")
+            del _session_validation_cache[cache_key]
+            return None
+    except Exception:
+        # If decoding fails (e.g., encrypted token), trust the cache entry
+        pass
 
     return cached["validation_data"]
 
