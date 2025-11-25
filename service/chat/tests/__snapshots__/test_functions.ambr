@@ -988,10 +988,23 @@
       }),
     }),
     dict({
-      'description': 'Update properties of a catalog asset with AI validation workflow',
+      'description': 'Update catalog asset documentation.',
       'name': 'CatalogTool-catalog__update_asset',
       'parameters': dict({
         'properties': dict({
+          'ai_suggestion': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': "Propose description for user review (doesn't replace existing).",
+            'title': 'Ai Suggestion',
+          }),
           'asset_id': dict({
             'description': 'UUID of the asset to update',
             'title': 'Asset Id',
@@ -1007,10 +1020,10 @@
               }),
             ]),
             'default': None,
-            'description': 'New description for the asset',
+            'description': 'Set asset description (replaces existing). Auto-sets status="draft" if null.',
             'title': 'Description',
           }),
-          'flag_reason': dict({
+          'note': dict({
             'anyOf': list([
               dict({
                 'type': 'string',
@@ -1020,8 +1033,8 @@
               }),
             ]),
             'default': None,
-            'description': 'User-facing explanation of what needs confirmation or',
-            'title': 'Flag Reason',
+            'description': 'Questions/clarifications (user-facing). REPLACES existing note completely.',
+            'title': 'Note',
           }),
           'status': dict({
             'anyOf': list([
@@ -1033,13 +1046,14 @@
               }),
             ]),
             'default': None,
-            'description': 'Asset status to set. Valid values:',
+            'description': '"draft" or "published". Auto-sets "draft" if providing description/tags without status.',
             'title': 'Status',
           }),
           'suggested_tags': dict({
             'anyOf': list([
               dict({
                 'items': dict({
+                  'type': 'string',
                 }),
                 'type': 'array',
               }),
@@ -1048,7 +1062,7 @@
               }),
             ]),
             'default': None,
-            'description': 'List of EXISTING tag names for AI review (strings only).',
+            'description': 'Propose tags for review (must exist in catalog). Replaces all when approved.',
             'title': 'Suggested Tags',
           }),
           'tag_ids': dict({
@@ -1063,7 +1077,7 @@
               }),
             ]),
             'default': None,
-            'description': 'List of tag IDs to associate with the asset. Can be:',
+            'description': 'Apply tags immediately (UUIDs or names). Auto-creates if needed. Replaces all existing tags.',
             'title': 'Tag Ids',
           }),
         }),
@@ -2414,10 +2428,23 @@
       }),
     }),
     dict({
-      'description': 'Update properties of a catalog asset with AI validation workflow',
+      'description': 'Update catalog asset documentation.',
       'name': 'CatalogTool-catalog__update_asset',
       'parameters': dict({
         'properties': dict({
+          'ai_suggestion': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': "Propose description for user review (doesn't replace existing).",
+            'title': 'Ai Suggestion',
+          }),
           'asset_id': dict({
             'description': 'UUID of the asset to update',
             'title': 'Asset Id',
@@ -2433,10 +2460,10 @@
               }),
             ]),
             'default': None,
-            'description': 'New description for the asset',
+            'description': 'Set asset description (replaces existing). Auto-sets status="draft" if null.',
             'title': 'Description',
           }),
-          'flag_reason': dict({
+          'note': dict({
             'anyOf': list([
               dict({
                 'type': 'string',
@@ -2446,8 +2473,8 @@
               }),
             ]),
             'default': None,
-            'description': 'User-facing explanation of what needs confirmation or',
-            'title': 'Flag Reason',
+            'description': 'Questions/clarifications (user-facing). REPLACES existing note completely.',
+            'title': 'Note',
           }),
           'status': dict({
             'anyOf': list([
@@ -2459,13 +2486,14 @@
               }),
             ]),
             'default': None,
-            'description': 'Asset status to set. Valid values:',
+            'description': '"draft" or "published". Auto-sets "draft" if providing description/tags without status.',
             'title': 'Status',
           }),
           'suggested_tags': dict({
             'anyOf': list([
               dict({
                 'items': dict({
+                  'type': 'string',
                 }),
                 'type': 'array',
               }),
@@ -2474,7 +2502,7 @@
               }),
             ]),
             'default': None,
-            'description': 'List of EXISTING tag names for AI review (strings only).',
+            'description': 'Propose tags for review (must exist in catalog). Replaces all when approved.',
             'title': 'Suggested Tags',
           }),
           'tag_ids': dict({
@@ -2489,7 +2517,7 @@
               }),
             ]),
             'default': None,
-            'description': 'List of tag IDs to associate with the asset. Can be:',
+            'description': 'Apply tags immediately (UUIDs or names). Auto-creates if needed. Replaces all existing tags.',
             'title': 'Tag Ids',
           }),
         }),

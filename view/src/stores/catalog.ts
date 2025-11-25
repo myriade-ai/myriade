@@ -2,6 +2,12 @@ import axios from '@/plugins/axios'
 import { socket } from '@/plugins/socket'
 import { useContextsStore } from '@/stores/contexts'
 import type { CatalogAssetUpdatePayload, CatalogTermUpdatePayload } from '@/types/catalog'
+import {
+  useCatalogTags,
+  useCreateCatalogTag,
+  useUpdateCatalogTag,
+  useDeleteCatalogTag
+} from '@/composables/useCatalogTags'
 import { useQueryClient } from '@tanstack/vue-query'
 import type { AxiosResponse } from 'axios'
 import { defineStore } from 'pinia'
@@ -10,13 +16,7 @@ import { useDatabasesStore } from './databases'
 
 export type AssetType = 'DATABASE' | 'SCHEMA' | 'TABLE' | 'COLUMN'
 
-export type AssetStatus =
-  | 'validated'
-  | 'human_authored'
-  | 'published_by_ai'
-  | 'needs_review'
-  | 'requires_validation'
-  | null
+export type AssetStatus = 'draft' | 'published' | null
 
 export type Privacy = {
   llm: 'Encrypted' | 'Default'
@@ -47,8 +47,10 @@ export interface CatalogAsset {
   column_facet?: ColumnFacet
   status: AssetStatus
   ai_suggestion?: string | null
-  ai_flag_reason?: string | null
+  note?: string | null
   ai_suggested_tags?: string[] | null
+  published_by?: string | null
+  published_at?: string | null
 }
 
 export interface DatabaseFacet {
@@ -100,9 +102,9 @@ export const useCatalogStore = defineStore('catalog', () => {
   // ——————————————————————————————————————————————————
   // STATE
   // ——————————————————————————————————————————————————
-  // This store only manages terms, tags, and non-asset metadata
+  // This store only manages terms and non-asset metadata
+  // Tags are managed via TanStack Query (see useCatalogTags composable)
   const terms = ref<Record<string, CatalogTerm>>({})
-  const tags = ref<Record<string, AssetTag>>({})
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -117,6 +119,12 @@ export const useCatalogStore = defineStore('catalog', () => {
   // Real-time synchronization state
   const currentRoom = ref<string | null>(null)
   const queryClient = useQueryClient()
+
+  // Use TanStack Query for tags
+  const tagsQuery = useCatalogTags()
+  const createTagMutation = useCreateCatalogTag()
+  const updateTagMutation = useUpdateCatalogTag()
+  const deleteTagMutation = useDeleteCatalogTag()
 
   // Watch for context changes
   const contextsStore = useContextsStore()
@@ -141,21 +149,18 @@ export const useCatalogStore = defineStore('catalog', () => {
       }
       // Clear the catalog store
       terms.value = {}
-      tags.value = {}
       error.value = null
       selectedAssetIds.value = []
       resetSyncState()
 
       // Clear the catalog store whenever the underlying database changes
       terms.value = {}
-      tags.value = {}
       error.value = null
       selectedAssetIds.value = []
 
       if (newDatabaseId) {
         socket.emit('catalog:join', newDatabaseId)
         currentRoom.value = newDatabaseId
-        fetchTags(newDatabaseId)
       } else {
         currentRoom.value = null
       }
@@ -168,7 +173,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   // ——————————————————————————————————————————————————
 
   const termsArray = computed(() => Object.values(terms.value))
-  const tagsArray = computed(() => Object.values(tags.value))
+  const tagsArray = computed(() => tagsQuery.data.value || [])
   // ——————————————————————————————————————————————————
   // ACTIONS
   // ——————————————————————————————————————————————————
@@ -301,35 +306,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  async function fetchTags(databaseId: string) {
-    try {
-      loading.value = true
-      error.value = null
-
-      const response: AxiosResponse<AssetTag[]> = await axios.get(
-        `/api/databases/${databaseId}/catalog/tags`
-      )
-
-      if (selectedDatabaseId.value !== databaseId) {
-        return []
-      }
-
-      // Update tags in store
-      response.data.forEach((tag) => {
-        tags.value[tag.id] = tag
-      })
-
-      return response.data
-    } catch (err: unknown) {
-      const errorResponse = err as any
-      error.value = errorResponse?.response?.data?.message || 'Failed to fetch tags'
-      console.error('Error fetching tags:', err)
-      return []
-    } finally {
-      loading.value = false
-    }
-  }
-
   async function createTag(
     databaseId: string,
     tagData: {
@@ -339,21 +315,17 @@ export const useCatalogStore = defineStore('catalog', () => {
   ) {
     try {
       error.value = null
-
-      const response: AxiosResponse<AssetTag> = await axios.post(
-        `/api/databases/${databaseId}/catalog/tags`,
-        tagData
-      )
-
-      tags.value[response.data.id] = response.data
-      return response.data
+      const result = await createTagMutation.mutateAsync({
+        databaseId,
+        name: tagData.name,
+        description: tagData.description
+      })
+      return result
     } catch (err: unknown) {
       const errorResponse = err as any
       error.value = errorResponse?.response?.data?.message || 'Failed to create tag'
       console.error('Error creating tag:', err)
       throw err
-    } finally {
-      loading.value = false
     }
   }
 
@@ -366,14 +338,12 @@ export const useCatalogStore = defineStore('catalog', () => {
   ) {
     try {
       error.value = null
-
-      const response: AxiosResponse<AssetTag> = await axios.patch(
-        `/api/catalogs/tags/${tagId}`,
-        updates
-      )
-
-      tags.value[response.data.id] = response.data
-      return response.data
+      const result = await updateTagMutation.mutateAsync({
+        tagId,
+        name: updates.name,
+        description: updates.description
+      })
+      return result
     } catch (err: unknown) {
       const errorResponse = err as any
       const message =
@@ -389,10 +359,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   async function deleteTag(tagId: string) {
     try {
       error.value = null
-
-      await axios.delete(`/api/catalogs/tags/${tagId}`)
-
-      delete tags.value[tagId]
+      await deleteTagMutation.mutateAsync(tagId)
       return true
     } catch (err: unknown) {
       const errorResponse = err as any
@@ -402,14 +369,14 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  async function dismissFlag(assetId: string) {
+  async function publishAsset(assetId: string) {
     try {
       error.value = null
 
       const response: AxiosResponse<CatalogAsset> = await axios.patch(
         `/api/catalogs/assets/${assetId}`,
         {
-          dismiss_flag: true
+          status: 'published'
         }
       )
 
@@ -418,8 +385,8 @@ export const useCatalogStore = defineStore('catalog', () => {
       return response.data
     } catch (err: unknown) {
       const errorResponse = err as any
-      error.value = errorResponse?.response?.data?.message || 'Failed to dismiss flag'
-      console.error('Error dismissing flag:', err)
+      error.value = errorResponse?.response?.data?.message || 'Failed to publish asset'
+      console.error('Error publishing asset:', err)
       throw err
     }
   }
@@ -521,11 +488,22 @@ export const useCatalogStore = defineStore('catalog', () => {
     )
 
     socket.on('catalog:tag:updated', (data: { tag: AssetTag; updated_by: string }) => {
-      tags.value[data.tag.id] = data.tag
-
       const databaseId = selectedDatabaseId.value
       if (!databaseId) return
 
+      // Update tags query cache
+      queryClient.setQueryData<AssetTag[]>(['catalog', 'tags', databaseId], (oldData) => {
+        if (!oldData) return oldData
+        const index = oldData.findIndex((tag) => tag.id === data.tag.id)
+        if (index === -1) {
+          return [...oldData, data.tag]
+        }
+        const newData = [...oldData]
+        newData[index] = data.tag
+        return newData
+      })
+
+      // Update assets query cache to reflect tag changes
       queryClient.setQueryData<CatalogAsset[]>(['catalog', 'assets', databaseId], (oldData) => {
         if (!oldData) return oldData
 
@@ -538,13 +516,16 @@ export const useCatalogStore = defineStore('catalog', () => {
 
     // Tag deleted - remove from local state and assets
     socket.on('catalog:tag:deleted', (data: { tag_id: string; updated_by: string }) => {
-      // Remove from local state
-      delete tags.value[data.tag_id]
-
-      // Update assets cache: remove this tag from all assets
       const databaseId = selectedDatabaseId.value
       if (!databaseId) return
 
+      // Update tags query cache
+      queryClient.setQueryData<AssetTag[]>(['catalog', 'tags', databaseId], (oldData) => {
+        if (!oldData) return oldData
+        return oldData.filter((tag) => tag.id !== data.tag_id)
+      })
+
+      // Update assets cache: remove this tag from all assets
       queryClient.setQueryData<CatalogAsset[]>(['catalog', 'assets', databaseId], (oldData) => {
         if (!oldData) return oldData
 
@@ -648,7 +629,6 @@ export const useCatalogStore = defineStore('catalog', () => {
 
     // actions
     fetchTerms,
-    fetchTags,
     createTag,
     createTerm,
     updateAsset, // NOTE: Caller must invalidate TanStack Query cache
@@ -656,7 +636,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     deleteTerm,
     updateTag,
     deleteTag,
-    dismissFlag, // NOTE: Caller must invalidate TanStack Query cache
+    publishAsset, // NOTE: Caller must invalidate TanStack Query cache
 
     // selection actions
     toggleAssetSelection,

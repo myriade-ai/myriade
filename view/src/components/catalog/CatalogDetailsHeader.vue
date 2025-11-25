@@ -28,18 +28,35 @@
         </Badge>
       </div>
     </div>
-    <div class="flex items-start gap-2 flex-shrink-0 lg:flex-nowrap flex-wrap">
-      <AssetBadgeStatus :status="asset.status" badge-class="text-sm" />
-      <Button
-        v-if="showReviewButton"
-        variant="ghost"
-        size="sm"
-        class="-mt-1 whitespace-nowrap"
-        @click="reviewWithAI"
-      >
-        <SparklesIcon class="h-4 w-4" />
-        Review with AI
-      </Button>
+    <div class="flex flex-col gap-2 items-end">
+      <div class="flex items-center gap-2">
+        <Button
+          v-if="showReviewButton"
+          variant="outline"
+          size="sm"
+          class="whitespace-nowrap gap-1.5"
+          @click="reviewWithAI"
+        >
+          <SparklesIcon class="h-3.5 w-3.5" />
+          Review with AI
+        </Button>
+        <Tooltip v-if="asset.status === 'draft'" :disabled="!hasAiSuggestions">
+          <TooltipTrigger as-child>
+            <Button
+              size="sm"
+              class="whitespace-nowrap disabled:pointer-events-auto"
+              :disabled="hasAiSuggestions"
+              @click="$emit('publish')"
+            >
+              Publish
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Accept or reject suggested changes before publishing</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+      <AssetBadgeStatus :status="asset.status" badge-class="text-xs" />
     </div>
   </div>
 </template>
@@ -47,6 +64,7 @@
 <script setup lang="ts">
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import AssetBadgeStatus from '@/components/AssetBadgeStatus.vue'
 import type { CatalogAsset } from '@/stores/catalog'
 import { useConversationsStore } from '@/stores/conversations'
@@ -65,13 +83,25 @@ interface Props {
 
 const props = defineProps<Props>()
 
+defineEmits<{
+  publish: []
+}>()
+
 const conversationsStore = useConversationsStore()
 const contextsStore = useContextsStore()
 const router = useRouter()
 
 const showReviewButton = computed(() => {
   const status = props.asset.status
-  return !status || status === 'human_authored' || status === 'validated'
+  // Show review button for unverified (null) or draft assets
+  return !status || status === 'draft'
+})
+
+const hasAiSuggestions = computed(() => {
+  return (
+    !!props.asset.ai_suggestion ||
+    (props.asset.ai_suggested_tags && props.asset.ai_suggested_tags.length > 0)
+  )
 })
 
 async function reviewWithAI() {

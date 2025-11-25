@@ -362,6 +362,8 @@ def _format_asset_result(asset: Asset) -> Dict[str, Any]:
         "name": asset.name,
         "type": asset.type,
         "status": asset.status or None,
+        "published_by": asset.published_by,
+        "published_at": asset.published_at.isoformat() if asset.published_at else None,
         "description": (
             asset.description[:200] + "..."
             if asset.description and len(asset.description) > 200

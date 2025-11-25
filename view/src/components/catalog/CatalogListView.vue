@@ -46,7 +46,12 @@
             </div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0 ml-4">
-            <AssetBadgeStatus :status="assets[virtualRow.index].status" badge-class="text-xs" />
+            <AssetBadgeStatus
+              :status="assets[virtualRow.index].status"
+              :published-by="assets[virtualRow.index].published_by"
+              :published-at="assets[virtualRow.index].published_at"
+              badge-class="text-xs"
+            />
           </div>
         </div>
         <div

@@ -9,6 +9,7 @@
       :asset-label="assetLabel"
       :table-summary="tableSummary"
       :columns-count="columns.length"
+      @publish="$emit('publish')"
     />
 
     <Tabs v-model="activeTabModel" class="flex flex-1 flex-col min-h-0">
@@ -41,7 +42,7 @@
         </TabsTrigger>
       </TabsList>
       <div class="flex-1 overflow-y-auto">
-        <TabsContent value="overview" class="space-y-4 px-2 py-2">
+        <TabsContent value="overview" class="space-y-4 p-2">
           <!-- Asset Overview (works for both tables and columns) -->
           <AssetDescriptionEditor
             v-if="asset"
@@ -56,7 +57,10 @@
             @save="$emit('save')"
             @update:draft="$emit('update:draft', $event)"
             @dismiss-flag="$emit('dismiss-flag')"
-            @approve-suggestion="$emit('approve-suggestion', $event)"
+            @approve-description="$emit('approve-description', $event)"
+            @approve-tags="$emit('approve-tags', $event)"
+            @reject-description="$emit('reject-description')"
+            @reject-tags="$emit('reject-tags')"
           />
         </TabsContent>
 
@@ -148,9 +152,13 @@ const emit = defineEmits<{
   'start-edit': []
   'cancel-edit': []
   save: []
+  publish: []
   'update:draft': [draft: EditableDraft]
   'dismiss-flag': []
-  'approve-suggestion': [payload: { description: string; tagIds: string[] }]
+  'approve-description': [description: string]
+  'approve-tags': [tagIds: string[]]
+  'reject-description': []
+  'reject-tags': []
 }>()
 
 // Computed properties that were previously passed as props

@@ -2,6 +2,38 @@
 # name: test_list_databases
   list([
     dict({
+      'description': "Trading/export company's operations",
+      'details': dict({
+        'database': 'northwind',
+        'host': '34.65.255.212',
+        'port': 5432,
+        'user': 'readonly_user',
+      }),
+      'engine': 'postgres',
+      'memory': None,
+      'name': 'Northwind - Traders',
+      'organisationId': None,
+      'ownerId': None,
+      'public': True,
+      'write_mode': 'confirmation',
+    }),
+    dict({
+      'description': 'Demo from PopSQL',
+      'details': dict({
+        'database': 'marker',
+        'host': 'sample-data.popsql.io',
+        'port': 5432,
+        'user': 'demo',
+      }),
+      'engine': 'postgres',
+      'memory': None,
+      'name': 'Marker - SaaS',
+      'organisationId': None,
+      'ownerId': None,
+      'public': True,
+      'write_mode': 'confirmation',
+    }),
+    dict({
       'description': 'ephemeral test db',
       'details': dict({
         'filename': ':memory:',
