@@ -850,9 +850,10 @@ class OracleDatabase(SQLDatabase):
             # Oracle uses DBMS_RANDOM.VALUE() for random sampling
             # Note: schema_name in Oracle is typically the user/owner name
             # Oracle doesn't support database prefix in the same way, ignore database_name  # noqa: E501
+            # Don't use quotes - Oracle is case-insensitive by default and will uppercase unquoted identifiers
             sample_query = f"""
             SELECT *
-            FROM "{schema_name}"."{table_name}"
+            FROM {schema_name}.{table_name}
             ORDER BY DBMS_RANDOM.VALUE()
             FETCH FIRST {safe_limit} ROWS ONLY
             """
