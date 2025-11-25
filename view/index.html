@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/favicon.ico?v=1" />
     <meta charset="UTF-8" />
     <meta name="google" content="notranslate" />
@@ -37,6 +38,24 @@
     <meta property="twitter:image" content="/social-share.png" />
   </head>
   <body>
+    <script>
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
+      const applyColorScheme = (isDark) => {
+        document.documentElement.classList.toggle('dark', isDark)
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light'
+      }
+
+      applyColorScheme(mediaQuery.matches)
+
+      const listener = (event) => applyColorScheme(event.matches)
+
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener('change', listener)
+      } else if (mediaQuery.addListener) {
+        mediaQuery.addListener(listener)
+      }
+    </script>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

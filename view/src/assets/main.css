@@ -240,7 +240,7 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(0.279 0.041 260.031);
   --sidebar-ring: oklch(0.446 0.043 257.281);
-  --page-background: white;
+  --page-background: oklch(0.129 0.042 264.695);
 }
 
 @layer base {
