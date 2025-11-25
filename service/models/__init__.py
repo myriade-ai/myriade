@@ -624,24 +624,6 @@ class Project(SerializerMixin, DefaultBase, Base):
         # order_by="ProjectTable.id",
     )
     conversations: Mapped[List["Conversation"]] = relationship(back_populates="project")
-    notes: Mapped[List["Note"]] = relationship(back_populates="project")
-
-
-@dataclass
-class Note(SerializerMixin, DefaultBase, Base):
-    __tablename__ = "note"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(),
-        primary_key=True,
-        default=uuid.uuid4,
-    )
-    title: Mapped[Optional[str]] = mapped_column(String)
-    content: Mapped[Optional[str]] = mapped_column(String)
-    projectId: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(), ForeignKey("project.id", ondelete="CASCADE")
-    )
-    project: Mapped[Optional["Project"]] = relationship(back_populates="notes")
 
 
 @dataclass

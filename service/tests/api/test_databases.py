@@ -10,7 +10,6 @@ from models import (
     Chart,
     Conversation,
     ConversationMessage,
-    Note,
     Project,
     ProjectTables,
     Query,
@@ -30,14 +29,6 @@ def test_list_databases(app_server, test_db_id, snapshot):
     r = requests.get(f"{app_server}/databases", cookies={"session": "MOCK"})
     assert r.status_code == 200
     assert [normalise_json(db) for db in r.json()] == snapshot
-
-
-# def test_delete_database(app_server, test_db_id, snapshot):
-#     r = requests.delete(
-#         f"{app_server}/databases/{test_db_id}", cookies={"session": "MOCK"}
-#     )
-#     assert r.status_code == 200
-#     assert normalise_json(r.json()) == snapshot()
 
 
 def test_delete_database_with_conversations(app_server, session):
@@ -252,8 +243,8 @@ def test_delete_database_with_projects(app_server, session):
         verify_session.close()
 
 
-def test_delete_database_with_project_tables_and_notes(app_server, session):
-    """Test deleting a database with projects that have saved tables and notes."""
+def test_delete_database_with_project_tables(app_server, session):
+    """Test deleting a database with projects that have saved tables."""
     session.execute(text("PRAGMA foreign_keys=ON"))
     session.commit()
 
@@ -294,15 +285,9 @@ def test_delete_database_with_project_tables_and_notes(app_server, session):
     session.add(project_table)
     session.flush()
     project_table_id = project_table.id
-
-    # Create a note for the project
-    note = Note(projectId=project_id, title="Test Note", content="This is a test note")
-    session.add(note)
-    session.flush()
-    note_id = note.id
     session.commit()
 
-    # Delete the database - should handle project_tables/notes foreign keys correctly
+    # Delete the database - should handle project_tables foreign keys correctly
     delete_resp = requests.delete(
         f"{app_server}/databases/{database_id}", cookies={"session": "MOCK"}
     )
@@ -327,8 +312,6 @@ def test_delete_database_with_project_tables_and_notes(app_server, session):
             .first()
             is None
         )
-        # Note should be deleted
-        assert verify_session.query(Note).filter(Note.id == note_id).first() is None
     finally:
         verify_session.close()
 
