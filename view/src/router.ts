@@ -115,12 +115,6 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresContext: true }
   },
   {
-    path: '/user',
-    name: 'User',
-    component: loadView('User'),
-    meta: { requiresContext: true }
-  },
-  {
     path: '/control',
     name: 'Control',
     component: Control,
