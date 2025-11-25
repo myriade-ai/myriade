@@ -49,22 +49,18 @@ export const updateCredits = (newCredits: number) => {
 }
 
 export const fetchUser = async () => {
-  try {
-    const response = await axios.get('/api/user')
-    user.value.id = response.data.id
-    user.value.email = response.data.email
-    user.value.firstName = response.data.first_name
-    user.value.lastName = response.data.last_name
-    user.value.profilePictureUrl = response.data.profile_picture_url
-    user.value.isAdmin = response.data.role === 'admin'
-    user.value.inOrganization = response.data.organization_id !== null
-    user.value.role = response.data.role
+  const response = await axios.get('/api/user')
+  user.value.id = response.data.id
+  user.value.email = response.data.email
+  user.value.firstName = response.data.first_name
+  user.value.lastName = response.data.last_name
+  user.value.profilePictureUrl = response.data.profile_picture_url
+  user.value.isAdmin = response.data.role === 'admin'
+  user.value.inOrganization = response.data.organization_id !== null
+  user.value.role = response.data.role
 
-    // Fetch credits from proxy
-    await fetchCredits()
-  } catch (error) {
-    console.error('Failed to fetch user:', error)
-  }
+  // Fetch credits from proxy
+  await fetchCredits()
 }
 
 export const logout = async () => {

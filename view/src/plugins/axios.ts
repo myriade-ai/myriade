@@ -4,9 +4,23 @@ import axios from 'axios'
 // Flag to prevent logout loop
 let isLoggingOut = false
 
+// HTTP 451: Unavailable For Legal Reasons - used for organization restriction
+const ORGANIZATION_RESTRICTED_STATUS = 451
+
+export const redirectToOrganizationRestrictionPage = () => {
+  if (window.location.pathname !== '/organization-restricted') {
+    window.location.href = '/organization-restricted'
+  }
+}
+
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === ORGANIZATION_RESTRICTED_STATUS) {
+      redirectToOrganizationRestrictionPage()
+      return Promise.reject(error)
+    }
+
     if (error.response?.status === 401 && !isLoggingOut) {
       console.log('ERROR: Unauthorized', error.response)
       isLoggingOut = true

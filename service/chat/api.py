@@ -8,7 +8,7 @@ from flask_socketio import emit
 from pydantic import validate_call
 
 from app import socketio
-from auth.auth import UnauthorizedError, socket_auth
+from auth.auth import OrganizationRestrictedError, UnauthorizedError, socket_auth
 from back.session import with_session
 from chat.analyst_agent import DataAnalystAgent
 from chat.lock import (
@@ -493,6 +493,9 @@ def on_connect():
     # or any other per-connection resources.
     try:
         auth_response = socket_auth()
+    except OrganizationRestrictedError:
+        emit("error", {"type": "ORGANIZATION_RESTRICTED"})
+        return False  # Reject the connection
     except UnauthorizedError as e:
         emit("error", str(e))
         return False  # Reject the connection

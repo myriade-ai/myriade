@@ -27,6 +27,12 @@ const routes: RouteRecordRaw[] = [
     meta: { layout: 'empty', requiresGuest: true }
   },
   {
+    path: '/organization-restricted',
+    name: 'OrganizationRestricted',
+    component: loadView('OrganizationRestricted'),
+    meta: { layout: 'empty', requiresGuest: true }
+  },
+  {
     path: '/setup',
     name: 'SetupFunnel',
     component: loadView('SetupFunnel'),
