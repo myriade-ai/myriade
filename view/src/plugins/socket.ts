@@ -1,5 +1,6 @@
 import { io } from 'socket.io-client'
 import { ref } from 'vue'
+import { redirectToOrganizationRestrictionPage } from './axios'
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL
 
@@ -56,4 +57,9 @@ socket.on('reconnect_failed', () => {
 
 socket.on('error', (error) => {
   console.error('Socket error:', error)
+
+  // Handle organization restriction error from socket connection
+  if (typeof error === 'object' && error?.type === 'ORGANIZATION_RESTRICTED') {
+    redirectToOrganizationRestrictionPage()
+  }
 })
