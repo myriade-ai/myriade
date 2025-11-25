@@ -8,7 +8,7 @@ import {
 import { useContextsStore } from '@/stores/contexts'
 import { useDatabasesStore } from '@/stores/databases'
 
-export const authGuard = async (to: any, from: any, next: any) => {
+export const authGuard = async (to: any, _from: any, next: any) => {
   if (to.path === '/logged') {
     next('/')
   } else if (to.meta.requiresGuest) {
@@ -30,7 +30,7 @@ export const authGuard = async (to: any, from: any, next: any) => {
   }
 }
 
-export const redirectToWelcome = async (to: any, from: any, next: any) => {
+export const redirectToWelcome = async (to: any, _from: any, next: any) => {
   const contextsStore = useContextsStore()
   if (!isAnonymous.value) {
     next()

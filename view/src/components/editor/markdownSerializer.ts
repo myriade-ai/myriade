@@ -129,8 +129,7 @@ function serializeInlineContent(node: ProseMirrorNode): string {
               content = `~~${content}~~`
               break
             case 'link':
-              const href = mark.attrs.href
-              content = `[${content}](${href})`
+              content = `[${content}](${mark.attrs.href})`
               break
           }
         })
@@ -161,7 +160,7 @@ export function parseMarkdownToJSON(markdown: string): string {
   // Replace <QUERY:id> and <CHART:id> with placeholders
   let processedMarkdown = markdown.replace(
     /(<QUERY:([^>]+)>)|(<CHART:([^>]+)>)/g,
-    (match, queryMatch, queryId, chartMatch, chartId) => {
+    (_match, queryMatch, queryId, chartMatch, chartId) => {
       const placeholder = `__CUSTOM_NODE_${counter}__`
       counter++
 
