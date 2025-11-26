@@ -103,7 +103,7 @@
           </div>
 
           <FunctionCallRenderer
-            v-else-if="props.message.functionCall"
+            v-else-if="props.message.functionCall && !postedMessage"
             :functionCall="props.message.functionCall"
             :queryId="props.message.queryId"
           />
@@ -119,6 +119,13 @@
             :function-call="props.message.functionCall"
             :asset="props.message.asset"
             :term="props.message.term"
+          />
+          <PostMessageDisplay
+            v-if="postedMessage && props.message.role === 'assistant'"
+            :asset-id="postedMessage.asset.id"
+            :asset-name="postedMessage.asset.name || postedMessage.asset.urn"
+            :asset-type="postedMessage.asset.type"
+            :message="postedMessage.message"
           />
         </div>
       </div>
@@ -217,6 +224,7 @@ import Chart from '@/components/Chart.vue'
 import DataTable from '@/components/DataTable.vue'
 import DocumentPreview from '@/components/DocumentPreview.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
+import PostMessageDisplay from '@/components/PostMessageDisplay.vue'
 // Store
 import { cn } from '@/lib/utils'
 import type { Message } from '@/stores/conversations'
@@ -267,6 +275,11 @@ const catalogOperation = computed(() => {
   const hasAssetOrTermData = !!(props.message.asset || props.message.term)
 
   return isCatalogFunction || hasAssetOrTermData
+})
+
+// Detect post_message actions
+const postedMessage = computed(() => {
+  return props.message.postedMessage
 })
 
 const toggleActionsVisibility = () => {
