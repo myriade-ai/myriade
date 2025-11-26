@@ -16,6 +16,13 @@ from sqlalchemy.orm import Session, contains_eager, joinedload, selectinload
 from sqlalchemy.sql.expression import true
 
 import telemetry
+from app import socketio
+from back.activity import (
+    create_activity,
+    create_agent_working_activity,
+    create_audit_trail,
+    run_agent_for_activity_background,
+)
 from back.background_sync import run_metadata_sync_background
 from back.catalog_events import (
     emit_asset_updated,
@@ -62,6 +69,7 @@ from models import (
     UserFavorite,
 )
 from models.catalog import (
+    ActivityType,
     Asset,
     AssetActivity,
     AssetTag,
@@ -1369,7 +1377,6 @@ def search_catalog_assets(database_id: UUID):
 @user_middleware
 def update_catalog_asset(asset_id: str):
     """Update mutable fields of a catalog asset with validation workflow support."""
-    from back.activity import create_audit_trail
 
     try:
         asset_uuid = UUID(asset_id)
@@ -1658,7 +1665,6 @@ def create_asset_activity(asset_id: str):
     Create a new activity (comment) for a catalog asset.
     If the content contains @myriade-agent, triggers an agent conversation.
     """
-    from back.activity import create_activity, create_agent_working_activity
 
     try:
         asset_uuid = UUID(asset_id)
@@ -1699,10 +1705,6 @@ def create_asset_activity(asset_id: str):
         re.search(r"@myriade-agent|<AGENT:myriade-agent>", content, re.IGNORECASE)
     )
     if has_agent_mention:
-        from app import socketio
-        from back.activity import run_agent_for_activity_background
-        from back.session import get_db_session
-
         # Create conversation with asset context
         context_id = f"database-{database.id}"
         database_id, project_id = extract_context(g.session, context_id)
@@ -1721,9 +1723,6 @@ def create_asset_activity(asset_id: str):
         g.session.add(new_conversation)
         g.session.flush()
 
-        # First, create the user's comment activity so it appears in the feed
-        from models.catalog import ActivityType
-
         user_comment_activity = create_activity(
             session=g.session,
             asset_id=asset_uuid,
@@ -1740,9 +1739,6 @@ def create_asset_activity(asset_id: str):
             conversation_id=new_conversation.id,
             user_message=content,
         )
-
-        # Create initial user message (without asset context - handled by CatalogTool)
-        from models import ConversationMessage
 
         context_message = ConversationMessage(
             conversationId=new_conversation.id,
@@ -1785,8 +1781,6 @@ def create_asset_activity(asset_id: str):
         )
 
     # Regular comment (no agent trigger)
-    from models.catalog import ActivityType
-
     activity = create_activity(
         session=g.session,
         asset_id=asset_uuid,
