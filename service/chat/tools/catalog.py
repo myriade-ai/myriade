@@ -11,7 +11,7 @@ from back.catalog_search import search_assets_and_terms
 from back.data_warehouse import AbstractDatabase
 from back.utils import get_provider_metadata_for_asset
 from models import Database
-from models.catalog import Asset, AssetTag, Term
+from models.catalog import Asset, AssetActivity, AssetTag, Term
 
 logger = logging.getLogger(__name__)
 
@@ -284,6 +284,28 @@ class CatalogTool:
         )
         if provider_metadata:
             result["sources"] = {self.data_warehouse.dialect: provider_metadata}
+
+        # Add all activity feed entries
+        activities = (
+            self.session.query(AssetActivity)
+            .filter(AssetActivity.asset_id == asset.id)
+            .order_by(AssetActivity.created_at.desc())
+            .all()
+        )
+        result["activities"] = [
+            {
+                "id": str(activity.id),
+                "actor_id": activity.actor_id,
+                "activity_type": activity.activity_type,
+                "content": activity.content,
+                "changes": activity.changes,
+                "status": activity.status,
+                "created_at": activity.created_at.isoformat()
+                if activity.created_at
+                else None,
+            }
+            for activity in activities
+        ]
 
         return yaml.dump(result)
 
