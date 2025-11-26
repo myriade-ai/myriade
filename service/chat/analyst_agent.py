@@ -148,6 +148,7 @@ class DataAnalystAgent:
             self.session,
             self.conversation.database,
             data_warehouse=data_warehouse,
+            conversation=self.conversation,
         )
         self.agent.add_tool(catalog_tool, "catalog")
 

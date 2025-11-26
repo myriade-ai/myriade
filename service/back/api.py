@@ -1712,6 +1712,7 @@ def create_asset_activity(asset_id: str):
             ownerId=g.user.id,
             projectId=project_id,
             name=conversation_name,
+            asset_id=asset_uuid,
         )
         g.session.add(new_conversation)
         g.session.flush()
@@ -1736,17 +1737,13 @@ def create_asset_activity(asset_id: str):
             user_message=content,
         )
 
-        # Store asset_id in conversation for context injection
-        # We'll pass this via the first message
-        asset_context = _build_asset_context_for_agent(asset, g.session)
-
-        # Create initial user message with asset context
+        # Create initial user message (without asset context - handled by CatalogTool)
         from models import ConversationMessage
 
         context_message = ConversationMessage(
             conversationId=new_conversation.id,
             role="user",
-            content=f"[Asset Context]\n{asset_context}\n\n[User Message]\n{content}",
+            content=content,
         )
         g.session.add(context_message)
         g.session.flush()
@@ -1800,47 +1797,6 @@ def create_asset_activity(asset_id: str):
             "agentTriggered": False,
         }
     )
-
-
-def _build_asset_context_for_agent(asset: Asset, session) -> str:
-    """Build asset context string for agent conversation."""
-    context_parts = [
-        f"Asset ID: {asset.id}",
-        f"URN: {asset.urn}",
-        f"Name: {asset.name or 'N/A'}",
-        f"Type: {asset.type}",
-        f"Description: {asset.description or 'No description'}",
-    ]
-
-    # Add tags
-    if asset.asset_tags:
-        tag_names = [tag.name for tag in asset.asset_tags]
-        context_parts.append(f"Tags: {', '.join(tag_names)}")
-
-    # Add type-specific info
-    if asset.type == "TABLE" and asset.table_facet:
-        tf = asset.table_facet
-        context_parts.extend(
-            [
-                f"Schema: {tf.schema}",
-                f"Table Name: {tf.table_name}",
-                f"Database Name: {tf.database_name}",
-            ]
-        )
-    elif asset.type == "COLUMN" and asset.column_facet:
-        cf = asset.column_facet
-        context_parts.extend(
-            [
-                f"Column Name: {cf.column_name}",
-                f"Data Type: {cf.data_type}",
-            ]
-        )
-        # Get parent table info
-        if cf.parent_table_asset and cf.parent_table_asset.table_facet:
-            ptf = cf.parent_table_asset.table_facet
-            context_parts.append(f"Parent Table: {ptf.schema}.{ptf.table_name}")
-
-    return "\n".join(context_parts)
 
 
 @api.route("/databases/<uuid:database_id>/catalog/terms", methods=["GET"])
