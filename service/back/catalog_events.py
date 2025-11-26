@@ -7,7 +7,7 @@ from datetime import datetime
 from uuid import UUID
 
 from app import socketio
-from models.catalog import Asset, AssetTag
+from models.catalog import Asset, AssetActivity, AssetTag
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +165,56 @@ def emit_sync_failed(database_id: UUID, *, error: str | None = None) -> None:
         {
             "database_id": str(database_id),
             "error": error,
+            "timestamp": datetime.utcnow().isoformat(),
+        },
+        to=room,
+    )
+
+
+def emit_activity_created(activity: AssetActivity, database_id: UUID) -> None:
+    """
+    Broadcast new activity to all users viewing this database.
+
+    Args:
+        activity: The created/updated activity
+        database_id: Database ID for room targeting
+    """
+    room = get_database_room(database_id)
+
+    logger.info(f"Broadcasting activity created: {activity.id} to room {room}")
+
+    socketio.emit(
+        "catalog:activity:created",
+        {
+            "activity": activity.to_dict(),
+            "timestamp": datetime.utcnow().isoformat(),
+        },
+        to=room,
+    )
+
+
+def emit_activity_status_updated(
+    activity_id: UUID, database_id: UUID, status: str
+) -> None:
+    """
+    Broadcast activity status update (running, finished, error) to all users.
+
+    Args:
+        activity_id: UUID of the activity being updated
+        database_id: Database ID for room targeting
+        status: New status value (running, finished, error)
+    """
+    room = get_database_room(database_id)
+
+    logger.info(
+        f"Broadcasting activity status update: {activity_id} -> {status} to room {room}"
+    )
+
+    socketio.emit(
+        "catalog:activity:status",
+        {
+            "activity_id": str(activity_id),
+            "status": status,
             "timestamp": datetime.utcnow().isoformat(),
         },
         to=room,

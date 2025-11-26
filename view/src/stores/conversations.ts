@@ -435,6 +435,26 @@ export const useConversationsStore = defineStore('conversations', () => {
     }
   })
 
+  // Handle new conversation created (e.g., from asset feed @myriade-agent mention)
+  socket.on('conversation:created', (payload: { conversation: any; databaseId: string }) => {
+    const { conversation } = payload
+    // Only add if this conversation belongs to the current context
+    const currentContext = contextsStore.contextSelected
+    if (!currentContext || currentContext.id !== `database-${payload.databaseId}`) {
+      return
+    }
+
+    // Add the new conversation to the store if it doesn't exist
+    if (!conversations.value[conversation.id]) {
+      conversations.value[conversation.id] = {
+        ...conversation,
+        createdAt: new Date(conversation.createdAt),
+        updatedAt: new Date(conversation.updatedAt),
+        messages: []
+      }
+    }
+  })
+
   // 8) Return references to everything
   return {
     // state

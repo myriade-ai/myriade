@@ -18,7 +18,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from db import JSONB, UUID, Base, DefaultBase, SerializerMixin, TSVector, UtcDateTime
 
 if TYPE_CHECKING:
-    from models import Database, User
+    from models import Conversation, Database, User
 
 
 class AssetStatus(str, PyEnum):
@@ -26,6 +26,19 @@ class AssetStatus(str, PyEnum):
 
     DRAFT = "draft"  # Human or agent doesn't have enough confidence
     PUBLISHED = "published"  # Ready to use for everyone
+
+
+class ActivityType(str, PyEnum):
+    """Type of activity in the asset feed"""
+
+    COMMENT = "comment"  # Human comment on asset
+    DESCRIPTION_UPDATED = "description_updated"  # Description field changed
+    TAGS_UPDATED = "tags_updated"  # Tags modified (added/removed)
+    STATUS_UPDATED = "status_updated"  # Status changed (draft/published)
+    SUGGESTION_ACCEPTED = "suggestion_accepted"  # AI suggestion accepted
+    SUGGESTION_REJECTED = "suggestion_rejected"  # AI suggestion rejected
+    AGENT_WORKING = "agent_working"  # Agent is processing a request
+    AGENT_MESSAGE = "agent_message"  # Agent posted a response
 
 
 asset_tag_association = Table(
@@ -296,3 +309,78 @@ class AssetTag(SerializerMixin, DefaultBase, Base):
     assets: Mapped[List[Asset]] = relationship(
         Asset, secondary=asset_tag_association, back_populates="asset_tags"
     )
+
+
+class ActivityStatus(str, PyEnum):
+    """Status of an agent activity task"""
+
+    RUNNING = "running"
+    FINISHED = "finished"
+    ERROR = "error"
+
+
+@dataclass
+class AssetActivity(SerializerMixin, Base):
+    """Activity feed entry for catalog assets - tracks comments, changes, and agent interactions"""
+
+    __tablename__ = "asset_activity"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(), primary_key=True, default=uuid.uuid4)
+    asset_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(), ForeignKey("asset.id", ondelete="CASCADE"), nullable=False
+    )
+    actor_id: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # User ID or "myriade-agent"
+    activity_type: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # One of ActivityType enum values
+    content: Mapped[Optional[str]] = mapped_column(
+        Text
+    )  # Text content for comments/agent messages
+    changes: Mapped[Optional[dict]] = mapped_column(
+        JSONB
+    )  # Structured data: { field, old, new } for all audits (description, tags, status, etc.)
+    conversation_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(), ForeignKey("conversation.id", ondelete="SET NULL"), nullable=True
+    )  # Link to conversation for agent interactions
+    status: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )  # For agent_working: running, finished, error
+    created_at: Mapped[datetime] = mapped_column(
+        UtcDateTime, nullable=False, default=datetime.utcnow
+    )
+
+    # Relationships
+    asset: Mapped[Asset] = relationship("Asset")
+    conversation: Mapped[Optional["Conversation"]] = relationship("Conversation")
+
+    def to_dict(self) -> dict:
+        """Serialize activity for API response"""
+        # Get actor email from User if possible
+        actor_email = None
+        if self.actor_id and self.actor_id != "myriade-agent":
+            from sqlalchemy.orm import object_session
+
+            from models import User
+
+            session = object_session(self)
+            if session:
+                user = session.query(User).filter(User.id == self.actor_id).first()
+                if user:
+                    actor_email = user.email
+
+        return {
+            "id": str(self.id),
+            "asset_id": str(self.asset_id),
+            "actor_id": self.actor_id,
+            "actor_email": actor_email,
+            "activity_type": self.activity_type,
+            "content": self.content,
+            "changes": self.changes,
+            "conversation_id": str(self.conversation_id)
+            if self.conversation_id
+            else None,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
