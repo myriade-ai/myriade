@@ -410,6 +410,9 @@ class Conversation(SerializerMixin, DefaultBase, Base):
     databaseId: Mapped[uuid.UUID] = mapped_column(
         UUID(), ForeignKey("database.id", ondelete="CASCADE"), nullable=False
     )
+    asset_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(), ForeignKey("asset.id", ondelete="SET NULL"), nullable=True
+    )
     github_pr_url: Mapped[Optional[str]] = mapped_column(String)
     workspace_path: Mapped[Optional[str]] = mapped_column(String)
 
@@ -424,6 +427,7 @@ class Conversation(SerializerMixin, DefaultBase, Base):
         order_by="ConversationMessage.createdAt",
     )
     project: Mapped[Optional["Project"]] = relationship()
+    asset: Mapped[Optional["Asset"]] = relationship("Asset")
 
 
 @dataclass
