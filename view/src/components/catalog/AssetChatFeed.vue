@@ -73,6 +73,7 @@
               <li
                 v-for="message in group.internalMessages"
                 :key="message.id"
+                class="overflow-hidden"
                 :class="message.role === 'user' ? 'flex justify-end' : ''"
               >
                 <MessageDisplay
@@ -80,6 +81,7 @@
                   @editInlineClick="editInline"
                   @regenerateFromMessage="handleRegenerateFromMessage"
                   @rejected="focusInput"
+                  class="border-l-4 border-gray-500 pl-3 bg-gray-50"
                 />
               </li>
             </transition-group>

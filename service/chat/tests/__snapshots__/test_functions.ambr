@@ -897,6 +897,30 @@
       }),
     }),
     dict({
+      'description': "Post a message to the asset's activity feed. Use this to respond to user questions about the asset or provide insights.",
+      'name': 'CatalogTool-catalog__post_message',
+      'parameters': dict({
+        'properties': dict({
+          'asset_id': dict({
+            'description': 'UUID of the asset to post message to',
+            'title': 'Asset Id',
+            'type': 'string',
+          }),
+          'message': dict({
+            'description': 'The message content to post',
+            'title': 'Message',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'asset_id',
+          'message',
+        ]),
+        'title': 'Input for `post_message`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': 'Get detailed information about a specific asset',
       'name': 'CatalogTool-catalog__read_asset',
       'parameters': dict({
@@ -1022,19 +1046,6 @@
             'default': None,
             'description': 'Set asset description (replaces existing). Auto-sets status="draft" if null.',
             'title': 'Description',
-          }),
-          'note': dict({
-            'anyOf': list([
-              dict({
-                'type': 'string',
-              }),
-              dict({
-                'type': 'null',
-              }),
-            ]),
-            'default': None,
-            'description': 'Questions/clarifications (user-facing). REPLACES existing note completely.',
-            'title': 'Note',
           }),
           'status': dict({
             'anyOf': list([
@@ -1422,6 +1433,7 @@
     'SemanticModel-semantic_model__update_issue',
     'CatalogTool-catalog__list_assets',
     'CatalogTool-catalog__list_tags',
+    'CatalogTool-catalog__post_message',
     'CatalogTool-catalog__read_asset',
     'CatalogTool-catalog__read_term',
     'CatalogTool-catalog__search_assets',
@@ -2337,6 +2349,30 @@
       }),
     }),
     dict({
+      'description': "Post a message to the asset's activity feed. Use this to respond to user questions about the asset or provide insights.",
+      'name': 'CatalogTool-catalog__post_message',
+      'parameters': dict({
+        'properties': dict({
+          'asset_id': dict({
+            'description': 'UUID of the asset to post message to',
+            'title': 'Asset Id',
+            'type': 'string',
+          }),
+          'message': dict({
+            'description': 'The message content to post',
+            'title': 'Message',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'asset_id',
+          'message',
+        ]),
+        'title': 'Input for `post_message`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': 'Get detailed information about a specific asset',
       'name': 'CatalogTool-catalog__read_asset',
       'parameters': dict({
@@ -2462,19 +2498,6 @@
             'default': None,
             'description': 'Set asset description (replaces existing). Auto-sets status="draft" if null.',
             'title': 'Description',
-          }),
-          'note': dict({
-            'anyOf': list([
-              dict({
-                'type': 'string',
-              }),
-              dict({
-                'type': 'null',
-              }),
-            ]),
-            'default': None,
-            'description': 'Questions/clarifications (user-facing). REPLACES existing note completely.',
-            'title': 'Note',
           }),
           'status': dict({
             'anyOf': list([
