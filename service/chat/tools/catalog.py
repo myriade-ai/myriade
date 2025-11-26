@@ -777,3 +777,41 @@ class CatalogTool:
             .filter(Asset.database_id == self.database.id)
             .all()
         )
+
+    def post_message(self, asset_id: str, message: str) -> str:
+        """
+        Post a message to the asset's activity feed.
+        Use this to respond to user questions about the asset or provide insights.
+
+        Args:
+            asset_id: UUID of the asset to post message to
+            message: The message content to post
+
+        Returns:
+            Confirmation message
+        """
+        from back.activity import create_activity
+        from models.catalog import ActivityType
+
+        asset = (
+            self.session.query(Asset)
+            .filter(
+                Asset.id == uuid.UUID(asset_id),
+                Asset.database_id == self.database.id,
+            )
+            .first()
+        )
+
+        if not asset:
+            raise ValueError(f"Asset with id {asset_id} not found")
+
+        create_activity(
+            session=self.session,
+            asset_id=asset.id,
+            actor_id="myriade-agent",
+            activity_type=ActivityType.AGENT_MESSAGE,
+            content=message,
+        )
+
+        asset_label = asset.name or asset.urn or asset_id
+        return f"Posted message to asset '{asset_label}' activity feed"

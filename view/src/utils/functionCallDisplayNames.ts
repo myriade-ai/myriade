@@ -5,7 +5,8 @@
 export interface FunctionCallDisplayInfo {
   displayName: string
   description?: string
-  icon?: string
+  icon?: string // emoji for backward compatibility
+  lucideIcon?: string // lucide icon name
   category?: string
 }
 
@@ -16,12 +17,14 @@ const functionCallDisplayMap: Record<string, FunctionCallDisplayInfo> = {
     displayName: 'SQL Query',
     description: 'Execute SQL query on database',
     icon: '🗄️',
+    lucideIcon: 'Database',
     category: 'database'
   },
   sql_query: {
     displayName: 'SQL Query',
     description: 'Execute SQL query',
     icon: '🗄️',
+    lucideIcon: 'Database',
     category: 'database'
   },
 
@@ -30,12 +33,14 @@ const functionCallDisplayMap: Record<string, FunctionCallDisplayInfo> = {
     displayName: 'Memory Search',
     description: 'Search through saved information',
     icon: '🔍',
+    lucideIcon: 'Search',
     category: 'memory'
   },
   save_to_memory: {
     displayName: 'Save to Memory',
     description: 'Store information for later use',
     icon: '💾',
+    lucideIcon: 'Save',
     category: 'memory'
   },
 
@@ -44,6 +49,7 @@ const functionCallDisplayMap: Record<string, FunctionCallDisplayInfo> = {
     displayName: 'Thinking',
     description: 'AI reasoning process',
     icon: '🤔',
+    lucideIcon: 'Brain',
     category: 'reasoning'
   },
 
@@ -52,6 +58,7 @@ const functionCallDisplayMap: Record<string, FunctionCallDisplayInfo> = {
     displayName: 'Question',
     description: 'Ask user for clarification',
     icon: '❓',
+    lucideIcon: 'HelpCircle',
     category: 'interaction'
   },
 
@@ -60,12 +67,14 @@ const functionCallDisplayMap: Record<string, FunctionCallDisplayInfo> = {
     displayName: 'Create Visualization',
     description: 'Generate chart from data',
     icon: '📊',
+    lucideIcon: 'BarChart3',
     category: 'visualization'
   },
   preview_render: {
     displayName: 'Create Chart',
     description: 'Generate data visualization',
     icon: '📊',
+    lucideIcon: 'BarChart3',
     category: 'visualization'
   },
 
@@ -74,32 +83,93 @@ const functionCallDisplayMap: Record<string, FunctionCallDisplayInfo> = {
     displayName: 'Create Entity',
     description: 'Define new data entity',
     icon: '🏷️',
+    lucideIcon: 'Tag',
     category: 'catalog'
   },
   'SemanticCatalog-quality__update_entity': {
     displayName: 'Update Entity',
     description: 'Modify data entity definition',
     icon: '✏️',
+    lucideIcon: 'Pencil',
     category: 'catalog'
   },
   'SemanticCatalog-quality__create_issue': {
     displayName: 'Report Issue',
     description: 'Create data quality issue',
     icon: '⚠️',
+    lucideIcon: 'AlertTriangle',
     category: 'quality'
   },
 
   // Catalog operations
+  'CatalogTool-catalog__list_assets': {
+    displayName: 'List Assets',
+    description: 'List catalog assets and terms',
+    icon: '📋',
+    lucideIcon: 'List',
+    category: 'catalog'
+  },
   'CatalogTool-catalog__search_assets': {
     displayName: 'Search Assets',
     description: 'Find data assets in catalog',
     icon: '🔍',
+    lucideIcon: 'Search',
     category: 'catalog'
   },
-  'CatalogTool-catalog__get_asset_details': {
-    displayName: 'Asset Details',
+  'CatalogTool-catalog__read_asset': {
+    displayName: 'Read Asset',
     description: 'Get detailed asset information',
-    icon: '📋',
+    icon: '📄',
+    lucideIcon: 'FileText',
+    category: 'catalog'
+  },
+  'CatalogTool-catalog__read_term': {
+    displayName: 'Read Term',
+    description: 'Get term definition',
+    icon: '📖',
+    lucideIcon: 'BookOpen',
+    category: 'catalog'
+  },
+  'CatalogTool-catalog__update_asset': {
+    displayName: 'Update Asset',
+    description: 'Update asset documentation',
+    icon: '✏️',
+    lucideIcon: 'Pencil',
+    category: 'catalog'
+  },
+  'CatalogTool-catalog__upsert_term': {
+    displayName: 'Upsert Term',
+    description: 'Create or update glossary term',
+    icon: '📝',
+    lucideIcon: 'FilePlus',
+    category: 'catalog'
+  },
+  'CatalogTool-catalog__list_tags': {
+    displayName: 'List Tags',
+    description: 'List available tags',
+    icon: '🏷️',
+    lucideIcon: 'Tags',
+    category: 'catalog'
+  },
+  'CatalogTool-catalog__search_tags': {
+    displayName: 'Search Tags',
+    description: 'Search tags by name',
+    icon: '🔎',
+    lucideIcon: 'Search',
+    category: 'catalog'
+  },
+  'CatalogTool-catalog__upsert_tag': {
+    displayName: 'Upsert Tag',
+    description: 'Create or update tag',
+    icon: '🏷️',
+    lucideIcon: 'Tag',
+    category: 'catalog'
+  },
+  'CatalogTool-catalog__post_message': {
+    displayName: 'Post Message',
+    description: 'Post message to asset feed',
+    icon: '💬',
+    lucideIcon: 'MessageSquare',
     category: 'catalog'
   }
 }
@@ -116,6 +186,7 @@ const patternMappings: Array<{
       displayName: 'SQL Query',
       description: 'Execute database query',
       icon: '🗄️',
+      lucideIcon: 'Database',
       category: 'database'
     })
   },
@@ -127,6 +198,7 @@ const patternMappings: Array<{
       displayName: formatFunctionName(match[1]),
       description: 'Database operation',
       icon: '🗄️',
+      lucideIcon: 'Database',
       category: 'database'
     })
   },
@@ -138,6 +210,7 @@ const patternMappings: Array<{
       displayName: formatFunctionName(match[1]),
       description: 'Chart operation',
       icon: '📊',
+      lucideIcon: 'BarChart3',
       category: 'visualization'
     })
   },
@@ -149,6 +222,7 @@ const patternMappings: Array<{
       displayName: formatFunctionName(match[1]),
       description: 'Data quality operation',
       icon: '🏷️',
+      lucideIcon: 'Tag',
       category: 'quality'
     })
   },
@@ -160,6 +234,7 @@ const patternMappings: Array<{
       displayName: formatFunctionName(match[1]),
       description: 'Catalog operation',
       icon: '📚',
+      lucideIcon: 'Library',
       category: 'catalog'
     })
   },
@@ -171,6 +246,7 @@ const patternMappings: Array<{
       displayName: formatFunctionName(match[1]),
       description: 'Workspace operation',
       icon: '🏗️',
+      lucideIcon: 'FolderOpen',
       category: 'workspace'
     })
   },
@@ -182,6 +258,7 @@ const patternMappings: Array<{
       displayName: 'Read File',
       description: 'View file contents',
       icon: '📄',
+      lucideIcon: 'FileText',
       category: 'code'
     })
   },
@@ -191,6 +268,7 @@ const patternMappings: Array<{
       displayName: 'Edit Code',
       description: 'Modify file content',
       icon: '✏️',
+      lucideIcon: 'Pencil',
       category: 'code'
     })
   },
@@ -200,6 +278,7 @@ const patternMappings: Array<{
       displayName: 'Create File',
       description: 'Create new file',
       icon: '📝',
+      lucideIcon: 'FilePlus',
       category: 'code'
     })
   }
@@ -240,6 +319,7 @@ export function getFunctionCallDisplayInfo(functionName: string): FunctionCallDi
     displayName: formatFunctionName(functionName),
     description: 'Function call',
     icon: '⚙️',
+    lucideIcon: 'Cog',
     category: 'general'
   }
 }
