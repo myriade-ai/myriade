@@ -38,6 +38,7 @@ import {
   SidebarTrigger,
   useSidebar
 } from '@/components/ui/sidebar'
+import ModeToggle from '@/components/ModeToggle.vue'
 import { logout, user } from '@/stores/auth'
 import { useContextsStore } from '@/stores/contexts'
 import { useConversationsStore } from '@/stores/conversations'
@@ -457,6 +458,10 @@ async function handleDeleteConversation(conversationId: string) {
                   <RouterLink to="/privacy"> <HatGlasses /><span>Zk Protection</span></RouterLink>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <ModeToggle />
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <button @click="logout" class="w-full flex items-center">
