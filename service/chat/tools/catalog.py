@@ -2,7 +2,7 @@ import logging
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import yaml
 from agentlys.chat import StopLoopException
@@ -28,14 +28,20 @@ class AssetType(Enum):
 
 class CatalogTool:
     def __init__(
-        self, session: Session, database: Database, data_warehouse: AbstractDatabase
+        self,
+        session: Session,
+        database: Database,
+        data_warehouse: AbstractDatabase,
+        conversation=None,
     ):
         self.session = session
         self.database = database
         self.data_warehouse = data_warehouse
+        self.conversation = conversation
 
     def __llm__(self):
         """Summary of catalog contents for agent context"""
+        # Always include general catalog info
         assets = self._get_assets_summary()
         terms = self._get_terms_summary()
 
@@ -47,7 +53,7 @@ class CatalogTool:
                 asset_counts[asset_type] = 0
             asset_counts[asset_type] += 1
 
-        context = {
+        context: dict[str, Any] = {
             "CATALOG": {
                 "database_name": self.database.name,
                 "total_assets": len(assets),
@@ -55,6 +61,27 @@ class CatalogTool:
                 "total_terms": len(terms),
             }
         }
+
+        # If asset_id is present, add focused asset details
+        if (
+            self.conversation
+            and hasattr(self.conversation, "asset_id")
+            and self.conversation.asset_id
+        ):
+            try:
+                asset_context_yaml = self.read_asset(str(self.conversation.asset_id))
+                # Parse the YAML to get the dict, then add to context
+                asset_data = yaml.safe_load(asset_context_yaml)
+                context["FOCUSED_ASSET"] = asset_data
+                context["NOTE"] = (
+                    "This conversation is about the FOCUSED_ASSET above. Focus your responses on this asset, but you can also reference other assets in the CATALOG if needed."
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to load asset {self.conversation.asset_id}: {e}"
+                )
+                # Asset not found or error, continue with general context only
+
         return yaml.dump(context)
 
     # TODO: Add Delete Asset function
@@ -844,7 +871,7 @@ class CatalogTool:
             # Attach asset data to the message for frontend display
             from_response.posted_asset_id = uuid.UUID(asset_id)  # type: ignore
             from_response.posted_message = message  # type: ignore
-            from_response.isAnswer = True  # Mark as final answer
+            from_response.isAnswer = True  # type: ignore # Mark as final answer
             # Raise StopLoopException to stop agent loop
             raise StopLoopException("Message posted to asset feed")
 
