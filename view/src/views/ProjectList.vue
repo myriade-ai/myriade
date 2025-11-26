@@ -26,10 +26,10 @@
 
         <div v-if="filteredProjects.length === 0 && searchQuery === ''" class="text-center py-12">
           <div
-            class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center"
+            class="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center"
           >
             <svg
-              class="w-8 h-8 text-gray-400"
+              class="w-8 h-8 text-muted-foreground"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -42,8 +42,8 @@
               />
             </svg>
           </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">No projects yet</h3>
-          <p class="text-gray-500 mb-6">Get started by creating your first project.</p>
+          <h3 class="text-lg font-medium text-foreground mb-2">No projects yet</h3>
+          <p class="text-muted-foreground mb-6">Get started by creating your first project.</p>
           <Button as-child variant="outline">
             <router-link to="/projects/new" class="flex items-center gap-2">
               <PlusIcon class="h-4 w-4" />
@@ -57,10 +57,10 @@
           class="text-center py-12"
         >
           <div
-            class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center"
+            class="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center"
           >
             <svg
-              class="w-8 h-8 text-gray-400"
+              class="w-8 h-8 text-muted-foreground"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -73,8 +73,10 @@
               />
             </svg>
           </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
-          <p class="text-gray-500 mb-6">No projects match your search for "{{ searchQuery }}"</p>
+          <h3 class="text-lg font-medium text-foreground mb-2">No projects found</h3>
+          <p class="text-muted-foreground mb-6">
+            No projects match your search for "{{ searchQuery }}"
+          </p>
         </div>
 
         <div v-else class="grid gap-4">
@@ -100,7 +102,7 @@
               </span>
               <span
                 v-else
-                class="px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800"
+                class="px-2 py-1 rounded-md text-xs font-medium bg-muted text-foreground"
               >
                 No database
               </span>
@@ -157,15 +159,15 @@ const getProjectDatabase = (project: Project): Database | undefined => {
 
 const getEngineColor = (engine: Engine) => {
   const engineColors: Record<Engine, string> = {
-    postgres: 'bg-blue-100 text-blue-800',
-    mysql: 'bg-orange-100 text-orange-800',
-    snowflake: 'bg-cyan-100 text-cyan-800',
-    sqlite: 'bg-gray-100 text-gray-800',
-    bigquery: 'bg-yellow-100 text-yellow-800',
-    motherduck: 'bg-purple-100 text-purple-800',
-    oracle: 'bg-red-100 text-red-800'
+    postgres: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+    mysql: 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300',
+    snowflake: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300',
+    sqlite: 'bg-muted text-foreground',
+    bigquery: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
+    motherduck: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
+    oracle: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
   }
-  return engineColors[engine] || 'bg-gray-100 text-gray-800'
+  return engineColors[engine] || 'bg-muted text-foreground'
 }
 
 const filteredProjects = computed(() => {

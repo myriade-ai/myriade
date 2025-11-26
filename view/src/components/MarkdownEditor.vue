@@ -10,7 +10,7 @@
       class="bubble-menu-container"
     >
       <div
-        class="flex items-center gap-1 bg-white border border-gray-300 rounded-lg shadow-lg px-2 py-1.5"
+        class="flex items-center gap-1 bg-popover border border-border rounded-lg shadow-lg px-2 py-1.5"
       >
         <Button @click="handleImproveWriting" variant="ghost" size="sm" class="gap-2 text-sm h-8">
           <SparklesIcon class="h-4 w-4" />
@@ -509,7 +509,7 @@ onUnmounted(() => {
 }
 
 .tiptap-editor-content .ProseMirror p.is-empty::before {
-  color: #adb5bd;
+  color: var(--muted-foreground);
   content: attr(data-placeholder);
   float: left;
   height: 0;
@@ -518,7 +518,7 @@ onUnmounted(() => {
 
 /* Prose styles for markdown rendering */
 .tiptap-editor-content .ProseMirror {
-  color: #374151;
+  color: var(--foreground);
 }
 
 .tiptap-editor-content .ProseMirror h1 {
@@ -561,7 +561,7 @@ onUnmounted(() => {
 }
 
 .tiptap-editor-content .ProseMirror code {
-  background-color: #f3f4f6;
+  background-color: var(--muted);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   font-size: 0.875rem;
@@ -569,8 +569,8 @@ onUnmounted(() => {
 }
 
 .tiptap-editor-content .ProseMirror pre {
-  background-color: #1f2937;
-  color: #f9fafb;
+  background-color: var(--card);
+  color: var(--card-foreground);
   padding: 1rem;
   border-radius: 0.5rem;
   overflow-x: auto;
@@ -584,16 +584,16 @@ onUnmounted(() => {
 }
 
 .tiptap-editor-content .ProseMirror blockquote {
-  border-left: 4px solid #e5e7eb;
+  border-left: 4px solid var(--border);
   padding-left: 1rem;
   margin-left: 0;
   margin-bottom: 1rem;
-  color: #6b7280;
+  color: var(--muted-foreground);
 }
 
 .tiptap-editor-content .ProseMirror hr {
   border: none;
-  border-top: 2px solid #e5e7eb;
+  border-top: 2px solid var(--border);
   margin: 2rem 0;
 }
 
@@ -606,17 +606,17 @@ onUnmounted(() => {
 }
 
 .tiptap-editor-content .ProseMirror a {
-  color: #3b82f6;
+  color: var(--primary);
   text-decoration: underline;
 }
 
 .tiptap-editor-content .ProseMirror a:hover {
-  color: #2563eb;
+  color: var(--primary);
 }
 
 /* Node selection styles */
 .tiptap-editor-content .ProseMirror .ProseMirror-selectednode {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
   border-radius: 0.5rem;
 }

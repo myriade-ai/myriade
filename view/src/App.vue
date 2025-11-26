@@ -21,7 +21,7 @@
           move-delay="delay-300"
         >
           <div
-            class="flex w-full max-w-sm mx-auto mt-4 overflow-hidden bg-white rounded-lg shadow-md"
+            class="flex w-full max-w-sm mx-auto mt-4 overflow-hidden bg-popover border border-border rounded-lg shadow-md"
             v-for="notification in notifications"
             :key="notification.id"
           >

@@ -5,7 +5,7 @@
       <span class="text-sm font-medium">{{ label }}</span>
       <span class="text-sm font-medium">{{ percentage }}%</span>
     </div>
-    <div class="w-full h-2 bg-slate-200 rounded-sm overflow-hidden">
+    <div class="w-full h-2 bg-muted rounded-sm overflow-hidden">
       <div
         class="h-full transition-all duration-300 rounded-sm"
         :class="barColorClass"
@@ -16,14 +16,14 @@
 
   <!-- Inline mode (compact) -->
   <div v-else class="flex items-center gap-2">
-    <div class="h-1.5 w-24 bg-slate-200 rounded-sm overflow-hidden flex-shrink-0">
+    <div class="h-1.5 w-24 bg-muted rounded-sm overflow-hidden flex-shrink-0">
       <div
         class="h-full transition-all duration-300 rounded-sm"
         :class="barColorClass"
         :style="{ width: `${Math.min(percentage, 100)}%` }"
       />
     </div>
-    <span class="text-xs font-medium text-slate-700 whitespace-nowrap">{{ percentage }}%</span>
+    <span class="text-xs font-medium text-foreground whitespace-nowrap">{{ percentage }}%</span>
   </div>
 </template>
 

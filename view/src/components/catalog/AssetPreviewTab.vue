@@ -3,7 +3,7 @@
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-8">
       <LoaderIcon class="mr-2" />
-      <span class="text-sm text-slate-600">Loading preview...</span>
+      <span class="text-sm text-muted-foreground">Loading preview...</span>
     </div>
 
     <!-- Error State -->
@@ -17,14 +17,14 @@
       v-else-if="previewData && previewData.rows.length > 0"
       class="flex flex-col gap-3 flex-1 min-h-0"
     >
-      <div class="overflow-auto flex-1 rounded-md border border-slate-200">
+      <div class="overflow-auto flex-1 rounded-md border border-border">
         <table class="w-full text-sm">
-          <thead class="bg-slate-50 sticky top-0">
+          <thead class="bg-muted sticky top-0">
             <tr>
               <th
                 v-for="column in columns"
                 :key="column"
-                class="px-4 py-2 text-left font-medium text-slate-700 border-b border-slate-200"
+                class="px-4 py-2 text-left font-medium text-foreground border-b border-border"
               >
                 {{ column }}
               </th>
@@ -34,12 +34,12 @@
             <tr
               v-for="(row, rowIndex) in previewData.rows"
               :key="rowIndex"
-              class="border-b border-slate-100 hover:bg-slate-50"
+              class="border-b border-border hover:bg-muted"
             >
               <td
                 v-for="column in columns"
                 :key="column"
-                class="px-4 py-2 text-slate-600 max-w-xs truncate"
+                class="px-4 py-2 text-muted-foreground max-w-xs truncate"
                 :title="formatCellValue(row[column])"
               >
                 {{ formatCellValue(row[column]) }}
@@ -51,7 +51,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else class="text-center py-8 text-slate-600">
+    <div v-else class="text-center py-8 text-muted-foreground">
       <p>No data available for preview</p>
     </div>
   </div>

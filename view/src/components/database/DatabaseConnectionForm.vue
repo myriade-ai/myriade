@@ -10,7 +10,7 @@
 
     <!-- PostgreSQL/MySQL Fields -->
     <div v-if="engine === 'postgres' || engine === 'mysql'" class="space-y-4">
-      <div class="text-sm text-gray-500" v-if="showEngineTitle">
+      <div class="text-sm text-muted-foreground" v-if="showEngineTitle">
         <p>{{ getDatabaseTypeName(engine) }} connection details</p>
       </div>
       <div :class="layout === 'grid' ? 'grid grid-cols-1' : 'space-y-4'">
@@ -54,7 +54,7 @@
 
     <!-- SQLite Fields -->
     <div v-if="engine === 'sqlite'" class="space-y-4">
-      <div class="text-sm text-gray-500" v-if="showEngineTitle">
+      <div class="text-sm text-muted-foreground" v-if="showEngineTitle">
         <p>SQLite connection details</p>
       </div>
       <Field
@@ -67,7 +67,7 @@
 
     <!-- Snowflake Fields -->
     <div v-if="engine === 'snowflake'" class="space-y-4">
-      <div class="text-sm text-gray-500" v-if="showEngineTitle">
+      <div class="text-sm text-muted-foreground" v-if="showEngineTitle">
         <p>Snowflake connection details</p>
       </div>
       <Field
@@ -85,23 +85,23 @@
       <!-- RSA Key Authentication -->
       <div class="space-y-4">
         <div class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700"
+          <label class="block text-sm font-medium text-muted-foreground"
             >Private Key File <span class="text-red-500">*</span></label
           >
           <div class="flex items-center justify-center w-full">
             <label
-              class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+              class="flex flex-col items-center justify-center w-full h-32 border-2 border-input border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted"
               :class="{
                 'border-primary-400 bg-primary-50': details.private_key_pem,
-                'border-red-400 bg-red-50': privateKeyError
+                'border-red-400 bg-red-50 dark:bg-red-900/20': privateKeyError
               }"
             >
               <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                <CloudArrowUpIcon class="w-8 h-8 mb-4 text-gray-500" />
-                <p class="mb-2 text-sm text-gray-500">
+                <CloudArrowUpIcon class="w-8 h-8 mb-4 text-muted-foreground" />
+                <p class="mb-2 text-sm text-muted-foreground">
                   <span class="font-semibold">Click to upload</span> your private key
                 </p>
-                <p class="text-xs text-gray-500">.pem, .key, or .p8 files (max 1MB)</p>
+                <p class="text-xs text-muted-foreground">.pem, .key, or .p8 files (max 1MB)</p>
                 <p v-if="details.private_key_pem" class="mt-2 text-sm text-primary-600 font-medium">
                   ✓ Private key file uploaded
                 </p>
@@ -148,7 +148,7 @@
 
     <!-- BigQuery Fields -->
     <div v-if="engine === 'bigquery'" class="space-y-4">
-      <div class="text-sm text-gray-500" v-if="showEngineTitle">
+      <div class="text-sm text-muted-foreground" v-if="showEngineTitle">
         <p>BigQuery connection details</p>
       </div>
       <Field
@@ -158,25 +158,25 @@
         placeholder="your-gcp-project-id"
       />
       <div class="space-y-2">
-        <label class="block text-sm font-medium text-gray-700">
+        <label class="block text-sm font-medium text-muted-foreground">
           Service Account JSON Key
-          <span class="text-xs font-normal text-gray-500"
+          <span class="text-xs font-normal text-muted-foreground"
             >(optional - will use Application Default Credentials if not provided)</span
           >
         </label>
         <div class="flex items-center justify-center w-full">
           <label
-            class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+            class="flex flex-col items-center justify-center w-full h-64 border-2 border-input border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted"
             :class="{
               'border-primary-400 bg-primary-50': details.service_account_json
             }"
           >
             <div class="flex flex-col items-center justify-center pt-5 pb-6">
-              <CloudArrowUpIcon class="w-8 h-8 mb-4 text-gray-500" />
-              <p class="mb-2 text-sm text-gray-500">
+              <CloudArrowUpIcon class="w-8 h-8 mb-4 text-muted-foreground" />
+              <p class="mb-2 text-sm text-muted-foreground">
                 <span class="font-semibold">Click to upload</span> your service account JSON
               </p>
-              <p class="text-xs text-gray-500">JSON files only</p>
+              <p class="text-xs text-muted-foreground">JSON files only</p>
               <p
                 v-if="details.service_account_json"
                 class="mt-2 text-sm text-primary-600 font-medium"
@@ -197,7 +197,7 @@
 
     <!-- MotherDuck Fields -->
     <div v-if="engine === 'motherduck'" class="space-y-4">
-      <div class="text-sm text-gray-500" v-if="showEngineTitle">
+      <div class="text-sm text-muted-foreground" v-if="showEngineTitle">
         <p>MotherDuck connection details</p>
       </div>
       <Field
@@ -215,7 +215,7 @@
 
     <!-- Oracle Fields -->
     <div v-if="engine === 'oracle'" class="space-y-4">
-      <div class="text-sm text-gray-500" v-if="showEngineTitle">
+      <div class="text-sm text-muted-foreground" v-if="showEngineTitle">
         <p>Oracle connection details</p>
       </div>
       <div :class="layout === 'grid' ? 'grid grid-cols-1' : 'space-y-4'">
@@ -251,7 +251,9 @@
         <InputPassword name="Password" v-model="details.password" placeholder="Enter password" />
       </div>
       <div class="space-y-2">
-        <p class="text-sm text-gray-600">Provide either Service Name (recommended) or SID:</p>
+        <p class="text-sm text-muted-foreground">
+          Provide either Service Name (recommended) or SID:
+        </p>
         <Field
           name="Service Name"
           v-model="details.service_name"
@@ -268,9 +270,9 @@
     </div>
 
     <!-- Write Mode Selection -->
-    <div class="p-4 bg-gray-50 rounded-lg max-w-lg" v-if="!enginesWithoutSafeMode.includes(engine)">
-      <h3 class="text-sm font-medium text-gray-900">Write Operation Handling</h3>
-      <p class="text-sm text-gray-500 mb-4">
+    <div class="p-4 bg-muted rounded-lg max-w-lg" v-if="!enginesWithoutSafeMode.includes(engine)">
+      <h3 class="text-sm font-medium text-foreground">Write Operation Handling</h3>
+      <p class="text-sm text-muted-foreground mb-4">
         Choose how to handle write operations like CREATE, DROP, INSERT, UPDATE, DELETE
       </p>
 
@@ -282,16 +284,16 @@
         <div class="flex items-start space-x-3">
           <RadioGroupItem value="read-only" id="read-only" class="mt-1" />
           <label for="read-only" class="cursor-pointer flex-1">
-            <div class="text-sm font-medium text-gray-900">Read-only</div>
-            <div class="text-xs text-gray-500">Block all write operations entirely</div>
+            <div class="text-sm font-medium text-foreground">Read-only</div>
+            <div class="text-xs text-muted-foreground">Block all write operations entirely</div>
           </label>
         </div>
 
         <div class="flex items-start space-x-3">
           <RadioGroupItem value="confirmation" id="confirmation" class="mt-1" />
           <label for="confirmation" class="cursor-pointer flex-1">
-            <div class="text-sm font-medium text-gray-900">Ask for confirmation</div>
-            <div class="text-xs text-gray-500">
+            <div class="text-sm font-medium text-foreground">Ask for confirmation</div>
+            <div class="text-xs text-muted-foreground">
               Prompt user to confirm write operations (recommended)
             </div>
           </label>
@@ -300,8 +302,10 @@
         <div class="flex items-start space-x-3">
           <RadioGroupItem value="skip-confirmation" id="skip-confirmation" class="mt-1" />
           <label for="skip-confirmation" class="cursor-pointer flex-1">
-            <div class="text-sm font-medium text-gray-900">Allow all operations</div>
-            <div class="text-xs text-gray-500">Execute all queries without confirmation</div>
+            <div class="text-sm font-medium text-foreground">Allow all operations</div>
+            <div class="text-xs text-muted-foreground">
+              Execute all queries without confirmation
+            </div>
           </label>
         </div>
       </RadioGroup>

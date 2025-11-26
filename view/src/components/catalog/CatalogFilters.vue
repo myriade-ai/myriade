@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex flex-col gap-3 lg:gap-4 lg:grid lg:grid-cols-[1fr_auto_auto_auto_auto] lg:items-center flex-shrink-0 p-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-stone-50 to-slate-50"
+    class="flex flex-col gap-3 lg:gap-4 lg:grid lg:grid-cols-[1fr_auto_auto_auto_auto] lg:items-center flex-shrink-0 p-4 border-b border-border bg-gradient-to-r from-muted/50 via-muted/30 to-muted/50 dark:from-muted/20 dark:via-muted/10 dark:to-muted/20"
   >
     <!-- Search Row -->
     <div class="flex w-full flex-wrap items-center gap-2 lg:col-span-1">

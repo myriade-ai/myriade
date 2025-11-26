@@ -1,7 +1,7 @@
 <template>
-  <div class="flex min-h-full flex-col bg-slate-50">
+  <div class="flex min-h-full flex-col bg-background">
     <header
-      class="relative flex flex-col gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:px-6 sm:py-5 sm:flex-row sm:items-start sm:justify-between"
+      class="relative flex flex-col gap-4 border-b border-border bg-card px-4 py-4 sm:px-6 sm:py-5 sm:flex-row sm:items-start sm:justify-between"
     >
       <div class="flex items-start gap-3 pr-10 sm:pr-0">
         <div
@@ -11,7 +11,7 @@
         </div>
         <div class="space-y-1">
           <p class="text-xs font-semibold uppercase tracking-wide text-primary-600">Smart Scan</p>
-          <h2 class="text-lg sm:text-xl font-semibold text-slate-900">
+          <h2 class="text-lg sm:text-xl font-semibold text-foreground">
             AI-assisted documentation run
           </h2>
           <p class="text-xs sm:text-sm text-muted-foreground">
@@ -33,7 +33,7 @@
     </header>
 
     <!-- Step Indicator (Mobile Only) -->
-    <div class="border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
+    <div class="border-b border-border bg-card px-4 py-3 lg:hidden">
       <div class="flex items-center justify-center gap-2">
         <div v-for="step in 3" :key="step" class="flex items-center">
           <div
@@ -43,7 +43,7 @@
                 ? 'bg-primary-600 text-white'
                 : currentStep > step
                   ? 'bg-primary-100 text-primary-700'
-                  : 'bg-slate-100 text-slate-400'
+                  : 'bg-muted text-muted-foreground'
             "
           >
             {{ step }}
@@ -51,7 +51,7 @@
           <div
             v-if="step < 3"
             class="mx-2 h-0.5 w-8 transition-colors"
-            :class="currentStep > step ? 'bg-primary-200' : 'bg-slate-200'"
+            :class="currentStep > step ? 'bg-primary-200' : 'bg-border'"
           />
         </div>
       </div>
@@ -63,7 +63,7 @@
         <!-- Step 1: Select Scan Mode -->
         <section v-if="currentStep === 1" class="space-y-6">
           <div>
-            <h3 class="text-lg font-semibold text-slate-900 mb-2">Choose your scan mode</h3>
+            <h3 class="text-lg font-semibold text-foreground mb-2">Choose your scan mode</h3>
             <p class="text-sm text-muted-foreground mb-6">
               Select how you want to document your assets
             </p>
@@ -74,11 +74,11 @@
               class="grid gap-4 sm:grid-cols-3"
             >
               <label
-                class="flex cursor-not-allowed items-start gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-4 text-left opacity-60"
+                class="flex cursor-not-allowed items-start gap-3 rounded-lg border border-dashed border-border bg-muted/60 p-4 text-left opacity-60"
               >
                 <RadioGroupItem value="quick" id="scan-quick" disabled class="mt-1" />
                 <div class="space-y-1">
-                  <div class="font-medium text-sm text-slate-900">Quick</div>
+                  <div class="font-medium text-sm text-foreground">Quick</div>
                   <p class="text-xs text-muted-foreground">Priority assets only (~100 items)</p>
                   <p class="text-xs text-primary-600">Coming soon</p>
                 </div>
@@ -89,12 +89,12 @@
                 :class="
                   scanMode === 'custom'
                     ? 'border-primary-300 bg-primary-50/70'
-                    : 'border-slate-200 hover:border-primary-200'
+                    : 'border-border hover:border-primary-200'
                 "
               >
                 <RadioGroupItem value="custom" id="scan-custom" class="mt-1" />
                 <div class="space-y-1">
-                  <div class="font-medium text-sm text-slate-900">Custom</div>
+                  <div class="font-medium text-sm text-foreground">Custom</div>
                   <p class="text-xs text-muted-foreground">
                     Choose the exact tables and columns to document
                   </p>
@@ -102,11 +102,11 @@
               </label>
 
               <label
-                class="flex cursor-not-allowed items-start gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-4 text-left opacity-60"
+                class="flex cursor-not-allowed items-start gap-3 rounded-lg border border-dashed border-border bg-muted/60 p-4 text-left opacity-60"
               >
                 <RadioGroupItem value="full" id="scan-full" disabled class="mt-1" />
                 <div class="space-y-1">
-                  <div class="font-medium text-sm text-slate-900">Full</div>
+                  <div class="font-medium text-sm text-foreground">Full</div>
                   <p class="text-xs text-muted-foreground">Entire catalog (runs in batches)</p>
                   <p class="text-xs text-primary-600">Coming soon</p>
                 </div>
@@ -127,7 +127,7 @@
         <!-- Step 2: Select Assets -->
         <section v-if="currentStep === 2" class="space-y-6">
           <div>
-            <h3 class="text-lg font-semibold text-slate-900 mb-2">Select assets to document</h3>
+            <h3 class="text-lg font-semibold text-foreground mb-2">Select assets to document</h3>
             <p class="text-sm text-muted-foreground mb-4">
               Choose up to {{ MAX_SELECTION_LIMIT }} assets ({{
                 catalogStore.selectedAssetIds.length
@@ -138,7 +138,7 @@
 
           <div
             v-if="isAtSelectionLimit"
-            class="rounded-md border border-orange-200 bg-orange-50 p-3 text-sm text-orange-700"
+            class="rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 p-3 text-sm text-orange-700 dark:text-orange-300"
           >
             <div class="flex items-start gap-2">
               <AlertCircleIcon class="mt-0.5 h-4 w-4 flex-shrink-0" />
@@ -146,10 +146,10 @@
             </div>
           </div>
 
-          <div class="space-y-3 rounded-lg border border-slate-200 bg-white p-3 sm:p-4">
+          <div class="space-y-3 rounded-lg border border-border bg-card p-3 sm:p-4">
             <div class="relative">
               <SearchIcon
-                class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               />
               <Input
                 v-model="filterText"
@@ -164,13 +164,13 @@
               </label>
             </div>
 
-            <div class="rounded-md border border-slate-200 bg-slate-50/70">
+            <div class="rounded-md border border-border bg-muted/70">
               <div
                 v-if="explorerTree.length === 0"
                 class="flex flex-col items-center gap-3 py-12 text-center"
               >
-                <SparklesIcon class="h-6 w-6 text-slate-300" />
-                <p class="text-sm font-medium text-slate-900">No assets to display</p>
+                <SparklesIcon class="h-6 w-6 text-muted-foreground" />
+                <p class="text-sm font-medium text-foreground">No assets to display</p>
                 <p class="text-xs text-muted-foreground">
                   Adjust your filters or select a different catalog to get started.
                 </p>
@@ -215,21 +215,21 @@
         <!-- Step 3: Review & Run -->
         <section v-if="currentStep === 3" class="space-y-6">
           <div>
-            <h3 class="text-lg font-semibold text-slate-900 mb-2">Review your selection</h3>
+            <h3 class="text-lg font-semibold text-foreground mb-2">Review your selection</h3>
             <p class="text-sm text-muted-foreground mb-6">
               Verify your Smart Scan settings before starting
             </p>
           </div>
 
-          <div class="space-y-4 rounded-lg border border-slate-200 bg-white p-4 sm:p-6">
+          <div class="space-y-4 rounded-lg border border-border bg-card p-4 sm:p-6">
             <div class="space-y-2">
-              <h4 class="text-sm font-semibold text-slate-900">Scan Mode</h4>
-              <p class="text-sm text-slate-600 capitalize">{{ scanMode }} scan</p>
+              <h4 class="text-sm font-semibold text-foreground">Scan Mode</h4>
+              <p class="text-sm text-muted-foreground capitalize">{{ scanMode }} scan</p>
             </div>
 
-            <div class="border-t border-slate-200 pt-4">
-              <h4 class="text-sm font-semibold text-slate-900 mb-3">Selected Assets</h4>
-              <ul class="space-y-2 text-sm text-slate-700">
+            <div class="border-t border-border pt-4">
+              <h4 class="text-sm font-semibold text-foreground mb-3">Selected Assets</h4>
+              <ul class="space-y-2 text-sm text-foreground">
                 <li class="flex items-center gap-2">
                   <Database class="h-4 w-4 text-primary-500" />
                   <span
@@ -255,7 +255,7 @@
                   >
                 </li>
                 <li class="flex items-center gap-2">
-                  <Columns3Icon class="h-4 w-4 text-slate-500" />
+                  <Columns3Icon class="h-4 w-4 text-muted-foreground" />
                   <span
                     >{{ selectedColumns.length }} column{{
                       selectedColumns.length === 1 ? '' : 's'
@@ -265,9 +265,9 @@
               </ul>
             </div>
 
-            <div class="border-t border-slate-200 pt-4">
-              <div class="rounded-md bg-slate-50 p-4 text-sm text-slate-600">
-                <div class="flex items-center gap-2 font-medium text-slate-900">
+            <div class="border-t border-border pt-4">
+              <div class="rounded-md bg-muted p-4 text-sm text-muted-foreground">
+                <div class="flex items-center gap-2 font-medium text-foreground">
                   <ClockIcon class="h-4 w-4 text-primary-500" />
                   Estimated time: {{ estimatedTimeLabel }}
                 </div>
@@ -278,7 +278,7 @@
               </div>
             </div>
 
-            <div class="border-t border-slate-200 pt-4">
+            <div class="border-t border-border pt-4">
               <div class="rounded-md bg-primary-50/70 p-4 text-sm text-primary-700">
                 <div class="flex items-start gap-2">
                   <SparklesIcon class="mt-0.5 h-4 w-4" />
@@ -317,18 +317,18 @@
       <div class="mx-auto hidden max-w-[1800px] gap-6 p-4 sm:p-6 lg:grid lg:grid-cols-[2fr_1fr]">
         <section class="space-y-4 sm:space-y-6">
           <div class="space-y-3">
-            <h3 class="text-sm font-semibold text-slate-900">Scan mode</h3>
+            <h3 class="text-sm font-semibold text-foreground">Scan mode</h3>
             <RadioGroup
               :model-value="scanMode"
               @update:model-value="(value: string) => setScanMode(value as ScanMode)"
               class="grid gap-3 md:grid-cols-3"
             >
               <label
-                class="flex cursor-not-allowed items-start gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3 text-left opacity-60"
+                class="flex cursor-not-allowed items-start gap-3 rounded-lg border border-dashed border-border bg-muted/60 p-3 text-left opacity-60"
               >
                 <RadioGroupItem value="quick" id="scan-quick" disabled class="mt-1" />
                 <div class="space-y-1">
-                  <div class="font-medium text-sm text-slate-900">Quick</div>
+                  <div class="font-medium text-sm text-foreground">Quick</div>
                   <p class="text-xs text-muted-foreground">Priority assets only (~100 items)</p>
                   <p class="text-xs text-primary-600">Coming soon</p>
                 </div>
@@ -339,12 +339,12 @@
                 :class="
                   scanMode === 'custom'
                     ? 'border-primary-300 bg-primary-50/70'
-                    : 'border-slate-200 hover:border-primary-200'
+                    : 'border-border hover:border-primary-200'
                 "
               >
                 <RadioGroupItem value="custom" id="scan-custom" class="mt-1" />
                 <div class="space-y-1">
-                  <div class="font-medium text-sm text-slate-900">Custom</div>
+                  <div class="font-medium text-sm text-foreground">Custom</div>
                   <p class="text-xs text-muted-foreground">
                     Choose the exact tables and columns to document
                   </p>
@@ -352,11 +352,11 @@
               </label>
 
               <label
-                class="flex cursor-not-allowed items-start gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3 text-left opacity-60"
+                class="flex cursor-not-allowed items-start gap-3 rounded-lg border border-dashed border-border bg-muted/60 p-3 text-left opacity-60"
               >
                 <RadioGroupItem value="full" id="scan-full" disabled class="mt-1" />
                 <div class="space-y-1">
-                  <div class="font-medium text-sm text-slate-900">Full</div>
+                  <div class="font-medium text-sm text-foreground">Full</div>
                   <p class="text-xs text-muted-foreground">Entire catalog (runs in batches)</p>
                   <p class="text-xs text-primary-600">Coming soon</p>
                 </div>
@@ -364,10 +364,10 @@
             </RadioGroup>
           </div>
 
-          <div class="space-y-3 rounded-lg border border-slate-200 bg-white p-3 sm:p-4">
+          <div class="space-y-3 rounded-lg border border-border bg-card p-3 sm:p-4">
             <div class="relative">
               <SearchIcon
-                class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               />
               <Input
                 v-model="filterText"
@@ -382,13 +382,13 @@
               </label>
             </div>
 
-            <div class="rounded-md border border-slate-200 bg-slate-50/70">
+            <div class="rounded-md border border-border bg-muted/70">
               <div
                 v-if="explorerTree.length === 0"
                 class="flex flex-col items-center gap-3 py-12 text-center"
               >
-                <SparklesIcon class="h-6 w-6 text-slate-300" />
-                <p class="text-sm font-medium text-slate-900">No assets to display</p>
+                <SparklesIcon class="h-6 w-6 text-muted-foreground" />
+                <p class="text-sm font-medium text-foreground">No assets to display</p>
                 <p class="text-xs text-muted-foreground">
                   Adjust your filters or select a different catalog to get started.
                 </p>
@@ -411,10 +411,10 @@
         </section>
 
         <aside
-          class="space-y-4 rounded-lg border border-slate-200 bg-white p-4 sm:p-5 lg:sticky lg:top-6 lg:self-start"
+          class="space-y-4 rounded-lg border border-border bg-card p-4 sm:p-5 lg:sticky lg:top-6 lg:self-start"
         >
           <div class="space-y-2">
-            <h3 class="text-sm font-semibold text-slate-900">Summary</h3>
+            <h3 class="text-sm font-semibold text-foreground">Summary</h3>
             <p class="text-xs text-muted-foreground">
               Review your Smart Scan selection before starting.
             </p>
@@ -422,7 +422,7 @@
 
           <div
             v-if="isAtSelectionLimit"
-            class="rounded-md border border-orange-200 bg-orange-50 p-3 text-sm text-orange-700"
+            class="rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 p-3 text-sm text-orange-700 dark:text-orange-300"
           >
             <div class="flex items-start gap-2">
               <AlertCircleIcon class="mt-0.5 h-4 w-4 flex-shrink-0" />
@@ -430,7 +430,7 @@
             </div>
           </div>
 
-          <ul class="space-y-2 text-sm text-slate-700">
+          <ul class="space-y-2 text-sm text-foreground">
             <li class="flex items-center gap-2">
               <Database class="h-4 w-4 text-primary-500" />
               <span
@@ -452,7 +452,7 @@
               >
             </li>
             <li class="flex items-center gap-2">
-              <Columns3Icon class="h-4 w-4 text-slate-500" />
+              <Columns3Icon class="h-4 w-4 text-muted-foreground" />
               <span
                 >{{ selectedColumns.length }} column{{
                   selectedColumns.length === 1 ? '' : 's'
@@ -461,8 +461,8 @@
             </li>
           </ul>
 
-          <div class="rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-            <div class="flex items-center gap-2 font-medium text-slate-900">
+          <div class="rounded-md border border-border bg-muted p-4 text-sm text-muted-foreground">
+            <div class="flex items-center gap-2 font-medium text-foreground">
               <ClockIcon class="h-4 w-4 text-primary-500" />
               Estimated time: {{ estimatedTimeLabel }}
             </div>

@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm w-full">
+  <div class="bg-card border border-border rounded-lg p-6 shadow-sm w-full">
     <div class="flex items-start space-x-4">
       <!-- Icon -->
       <div class="flex-shrink-0">
@@ -10,8 +10,8 @@
 
       <!-- Content -->
       <div class="flex-1 min-w-0">
-        <h3 class="text-sm font-medium text-gray-900 mb-1">AI Connection Required</h3>
-        <p class="text-sm text-gray-600 mb-4">
+        <h3 class="text-sm font-medium text-foreground mb-1">AI Connection Required</h3>
+        <p class="text-sm text-muted-foreground mb-4">
           You need an active subscription to ask AI questions.
         </p>
 

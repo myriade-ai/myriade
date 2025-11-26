@@ -4,8 +4,8 @@
       class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm font-medium transition-all duration-200"
       :class="[
         isSelected
-          ? 'bg-gradient-to-r from-blue-50 to-slate-100 text-primary-900 ring-1 ring-primary-400 shadow-sm'
-          : 'text-foreground hover:bg-gradient-to-r hover:from-slate-100 hover:to-stone-100'
+          ? 'bg-gradient-to-r from-primary-50 to-muted dark:from-primary-900/30 dark:to-muted/30 text-primary-900 dark:text-primary-100 ring-1 ring-primary-400 shadow-sm'
+          : 'text-foreground hover:bg-gradient-to-r hover:from-muted hover:to-muted/80 dark:hover:from-muted/30 dark:hover:to-muted/20'
       ]"
       @click="handleLineClick"
     >

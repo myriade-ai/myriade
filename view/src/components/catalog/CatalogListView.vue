@@ -1,7 +1,7 @@
 <template>
   <div
     ref="scrollElement"
-    class="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50/30 to-stone-50/30"
+    class="flex-1 overflow-y-auto bg-background"
   >
     <div v-if="!assets.length" class="p-12 text-center">
       <p class="text-muted-foreground">No assets found matching the current filters.</p>
@@ -20,7 +20,7 @@
         :key="String(virtualRow.key)"
         :data-index="virtualRow.index"
         :ref="(el) => measureElement(el)"
-        class="px-4 py-3 cursor-pointer bg-white/50 backdrop-blur-sm border-b border-slate-200 hover:bg-gradient-to-r hover:from-slate-50 hover:via-white hover:to-stone-50 transition-all duration-200 hover:shadow-sm"
+        class="px-4 py-3 cursor-pointer bg-card/50 backdrop-blur-sm border-b border-border hover:bg-muted/70 transition-all duration-200 hover:shadow-sm"
         :style="{
           position: 'absolute',
           top: 0,

@@ -1,11 +1,11 @@
 <template>
-  <Card class="bg-white rounded-lg gap-0 py-2 flex flex-col h-full">
+  <Card class="bg-card rounded-lg gap-0 py-2 flex flex-col h-full">
     <CardHeader class="border-b-1">
       <CardTitle class="text-xl"> Database </CardTitle>
     </CardHeader>
     <CardContent class="px-0 flex-1 overflow-hidden flex flex-col">
       <!-- Search input -->
-      <div class="px-4 py-2 bg-gray-50 flex-shrink-0">
+      <div class="px-4 py-2 bg-muted flex-shrink-0">
         <Input
           type="text"
           placeholder="Search table"
@@ -17,13 +17,13 @@
 
       <div v-if="isLoading && tables.length === 0" class="flex-1 overflow-y-auto p-4 space-y-3">
         <div v-for="i in 5" :key="i" class="space-y-2">
-          <div class="h-4 bg-gray-200 rounded animate-pulse w-full"></div>
-          <div class="h-3 bg-gray-100 rounded animate-pulse w-3/4"></div>
+          <div class="h-4 bg-muted/50 rounded animate-pulse w-full"></div>
+          <div class="h-3 bg-muted/30 rounded animate-pulse w-3/4"></div>
         </div>
       </div>
 
       <div v-else ref="scrollElement" class="flex-1 overflow-y-auto">
-        <div v-if="visibleTables.length === 0" class="px-4 py-4 text-center text-sm text-gray-500">
+        <div v-if="visibleTables.length === 0" class="px-4 py-4 text-center text-sm text-muted-foreground">
           <div v-if="tables.length === 0">No table available. <br />Please contact support.</div>
           <div v-else>No tables matching search.</div>
         </div>

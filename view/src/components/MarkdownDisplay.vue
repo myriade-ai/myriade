@@ -86,7 +86,7 @@ const sanitizedHtml = computed(() => {
     padding-left: 0rem;
   }
   a {
-    color: #007bff;
+    color: var(--primary);
   }
   table {
     width: 100%;
@@ -95,19 +95,19 @@ const sanitizedHtml = computed(() => {
   }
   th,
   td {
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border);
     padding: 0.2rem;
   }
   pre {
-    background-color: #f5f5f5;
-    border: 1px solid #e5e7eb;
+    background-color: var(--muted);
+    border: 1px solid var(--border);
     border-radius: 0.375rem;
     padding: 1rem;
     overflow-x: auto;
     margin-bottom: 1rem;
   }
   code {
-    background-color: #f5f5f5;
+    background-color: var(--muted);
     padding: 0.2rem 0.4rem;
     border-radius: 0.25rem;
     font-family: monospace;

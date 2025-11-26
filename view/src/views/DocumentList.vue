@@ -23,17 +23,19 @@
       <div v-else class="space-y-6 my-4">
         <!-- Empty state -->
         <div v-if="documents.length === 0" class="text-center py-12">
-          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
-            <FileTextIcon class="h-6 w-6 text-blue-600" />
+          <div
+            class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30"
+          >
+            <FileTextIcon class="h-6 w-6 text-blue-600 dark:text-blue-400" />
           </div>
-          <h3 class="mt-2 text-sm font-medium text-gray-900">No reports yet</h3>
-          <p class="mt-1 text-sm text-gray-500">
+          <h3 class="mt-2 text-sm font-medium text-foreground">No reports yet</h3>
+          <p class="mt-1 text-sm text-muted-foreground">
             Start a chat and ask the AI to create a report for you!
           </p>
           <div class="mt-6">
             <RouterLink
               to="/chat/new"
-              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-primary-foreground bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -49,7 +51,7 @@
         </div>
 
         <!-- Documents table -->
-        <div v-else class="mt-4 border rounded-lg bg-white">
+        <div v-else class="mt-4 border rounded-lg bg-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -70,18 +72,18 @@
                 <TableCell>
                   <div class="flex items-center gap-3">
                     <div
-                      class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center"
+                      class="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
                     >
-                      <FileTextIcon class="h-4 w-4 text-blue-600" />
+                      <FileTextIcon class="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-2">
-                        <p class="font-medium text-gray-900 truncate max-w-md">
+                        <p class="font-medium text-foreground truncate max-w-md">
                           {{ doc.title || 'Untitled Report' }}
                         </p>
                         <span
                           v-if="doc.archived"
-                          class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded flex-shrink-0"
+                          class="px-2 py-0.5 text-xs bg-muted text-muted-foreground rounded flex-shrink-0"
                         >
                           Archived
                         </span>
@@ -90,19 +92,19 @@
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div class="text-sm text-gray-600 truncate max-w-md">
+                  <div class="text-sm text-muted-foreground truncate max-w-md">
                     {{ getContentExcerpt(doc.content) }}
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span class="text-sm text-gray-500">{{ formatDate(doc.updatedAt) }}</span>
+                  <span class="text-sm text-muted-foreground">{{ formatDate(doc.updatedAt) }}</span>
                 </TableCell>
                 <TableCell class="text-right">
                   <Button
                     variant="ghost"
                     size="sm"
                     @click.stop="toggleArchive(doc)"
-                    class="text-gray-600 hover:text-gray-800"
+                    class="text-muted-foreground hover:text-foreground"
                   >
                     {{ doc.archived ? 'Unarchive' : 'Archive' }}
                   </Button>

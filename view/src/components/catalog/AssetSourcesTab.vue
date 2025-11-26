@@ -3,7 +3,7 @@
     <!-- Loading State -->
     <div v-if="isLoading" class="flex items-center justify-center py-8">
       <LoaderIcon />
-      <span class="text-sm text-slate-600">Loading sources...</span>
+      <span class="text-sm text-muted-foreground">Loading sources...</span>
     </div>
 
     <!-- Error State -->
@@ -12,9 +12,9 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="!hasSources" class="text-center py-8 text-slate-600">
+    <div v-else-if="!hasSources" class="text-center py-8 text-muted-foreground">
       <p>No data provider metadata available for this asset.</p>
-      <p class="text-sm text-slate-500 mt-2">
+      <p class="text-sm text-muted-foreground mt-2">
         Metadata is displayed when the data provider supports it (e.g., Snowflake tags and
         comments).
       </p>
@@ -25,7 +25,7 @@
       <div
         v-for="(metadata, providerName) in sources"
         :key="providerName"
-        class="border-b border-slate-200 p-4 bg-white"
+        class="border-b border-border p-4 bg-card"
       >
         <div class="flex items-center gap-2 mb-3">
           <div class="w-8 h-8 flex items-center justify-center">
@@ -47,13 +47,13 @@
               />
             </svg>
           </div>
-          <h3 class="font-semibold text-lg capitalize text-slate-800">{{ providerName }}</h3>
+          <h3 class="font-semibold text-lg capitalize text-foreground">{{ providerName }}</h3>
         </div>
 
         <div class="space-y-3">
           <div v-if="metadata.description">
             <h4 class="text-sm font-medium text-muted-foreground mb-1">Description</h4>
-            <div class="text-sm leading-relaxed text-slate-700">
+            <div class="text-sm leading-relaxed text-foreground">
               <MarkdownDisplay :content="metadata.description" />
             </div>
           </div>
@@ -64,7 +64,7 @@
               <span
                 v-for="tag in metadata.tags"
                 :key="tag"
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
               >
                 {{ tag }}
               </span>

@@ -1,7 +1,7 @@
 <template>
   <div class="relative">
     <div class="rounded-md border overflow-x-auto">
-      <Table :style="{ minWidth: `${table.getCenterTotalSize()}px` }" class="bg-white">
+      <Table :style="{ minWidth: `${table.getCenterTotalSize()}px` }" class="bg-background">
         <TableHeader>
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
             <TableHead

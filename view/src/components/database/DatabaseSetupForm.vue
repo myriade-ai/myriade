@@ -12,8 +12,8 @@
     <!-- Step 2: Connection Details -->
     <div v-if="currentStep === 1 && selectedEngine" class="space-y-6">
       <div class="text-center">
-        <h2 class="text-2xl font-bold text-gray-900 mb-2">Database Connection Details</h2>
-        <p class="text-gray-600">
+        <h2 class="text-2xl font-bold text-foreground mb-2">Database Connection Details</h2>
+        <p class="text-muted-foreground">
           Enter your {{ getDatabaseTypeName(selectedEngine) }} connection details to establish a
           secure connection.
         </p>
@@ -30,7 +30,7 @@
     </div>
 
     <!-- Navigation Buttons -->
-    <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+    <div class="flex justify-between items-center mt-8 pt-6 border-t border-border">
       <Button v-if="currentStep > 0" @click="previousStep" variant="secondary">
         <ArrowLeftIcon class="w-4 h-4 mr-2" />
         Previous

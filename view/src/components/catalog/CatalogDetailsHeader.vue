@@ -1,6 +1,6 @@
 <template>
   <div
-    class="px-6 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-sm flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-start"
+    class="px-6 py-4 border-b border-border bg-card/80 backdrop-blur-sm flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-start"
   >
     <div class="flex-1 min-w-0">
       <div class="flex flex-col gap-2">
