@@ -65,6 +65,15 @@ export interface Message {
     business_domains?: string[] | null
     reviewed: boolean
   }
+  postedMessage?: {
+    asset: {
+      id: string
+      name: string
+      urn: string
+      type: 'TABLE' | 'COLUMN' | 'DATABASE' | 'SCHEMA'
+    }
+    message: string
+  }
 }
 
 // A small type for tracking conversation status & errors

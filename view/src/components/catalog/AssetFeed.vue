@@ -350,10 +350,12 @@ const { mutate: submitActivityMutation, isPending: isSubmitting } = useMutation(
   onSuccess: (data) => {
     commentText.value = ''
     // Add the new activity to the cache
-    queryClient.setQueryData<Activity[]>(['asset-activities', props.assetId], (old) => [
-      data.activity,
-      ...(old || [])
-    ])
+    queryClient.setQueryData<Activity[]>(['asset-activities', props.assetId], (old) => {
+      if (!old) return [data.activity]
+      // Avoid duplicates
+      if (old.some((a) => a.id === data.activity.id)) return old
+      return [data.activity, ...old]
+    })
 
     // If agent was triggered, also add the agent_working activity
     if (data.agentTriggered && data.conversation) {

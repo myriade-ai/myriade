@@ -5,6 +5,8 @@ from enum import Enum
 from typing import List, Optional
 
 import yaml
+from agentlys.chat import StopLoopException
+from agentlys.model import Message
 from sqlalchemy.orm import Session
 
 from back.catalog_search import search_assets_and_terms
@@ -800,7 +802,9 @@ class CatalogTool:
             .all()
         )
 
-    def post_message(self, asset_id: str, message: str) -> str:
+    def post_message(
+        self, asset_id: str, message: str, from_response: Message | None = None
+    ) -> str:
         """
         Post a message to the asset's activity feed.
         Use this to respond to user questions about the asset or provide insights.
@@ -808,6 +812,7 @@ class CatalogTool:
         Args:
             asset_id: UUID of the asset to post message to
             message: The message content to post
+            from_response: Optional Message object to attach metadata to
 
         Returns:
             Confirmation message
@@ -834,6 +839,14 @@ class CatalogTool:
             activity_type=ActivityType.AGENT_MESSAGE,
             content=message,
         )
+
+        if from_response:
+            # Attach asset data to the message for frontend display
+            from_response.posted_asset_id = uuid.UUID(asset_id)  # type: ignore
+            from_response.posted_message = message  # type: ignore
+            from_response.isAnswer = True  # Mark as final answer
+            # Raise StopLoopException to stop agent loop
+            raise StopLoopException("Message posted to asset feed")
 
         asset_label = asset.name or asset.urn or asset_id
         return f"Posted message to asset '{asset_label}' activity feed"
