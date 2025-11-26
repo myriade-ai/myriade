@@ -135,26 +135,9 @@
                 @keydown.enter="handleEnter"
                 @input="resizeTextarea"
                 rows="1"
-                v-if="editMode === 'text'"
-              />
-              <BaseEditor
-                v-model="inputSQL"
-                :read-only="false"
-                class="flex-1 min-h-[100px]"
-                v-if="editMode === 'SQL'"
               />
 
               <div class="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  @click="toggleEditMode"
-                  :title="editMode === 'text' ? 'Switch to SQL' : 'Switch to text'"
-                  class="p-2"
-                >
-                  <CodeIcon v-if="editMode === 'text'" class="h-4 w-4" />
-                  <TypeIcon v-else class="h-4 w-4" />
-                </Button>
                 <SendButtonWithStatus
                   :status="sendStatus"
                   :disabled="isSendDisabled"
@@ -186,8 +169,7 @@ import { Textarea } from '@/components/ui/textarea'
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import SendButtonWithStatus from '@/components/icons/SendButtonWithStatus.vue'
 import MessageDisplay from '@/components/MessageDisplay.vue'
-import BaseEditor from '@/components/base/BaseEditor.vue'
-import { SparklesIcon, ExternalLinkIcon, CodeIcon, TypeIcon, RotateCcw } from 'lucide-vue-next'
+import { SparklesIcon, ExternalLinkIcon, RotateCcw } from 'lucide-vue-next'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { STATUS, useConversationsStore, type Message } from '@/stores/conversations'
 import { useQueriesStore } from '@/stores/queries'
@@ -205,23 +187,26 @@ const conversationsStore = useConversationsStore()
 const queriesStore = useQueriesStore()
 
 // State
-const messages = ref<Message[]>([])
 const isLoading = ref(false)
 const inputText = ref('')
-const inputSQL = ref('')
-const editMode = ref<'text' | 'SQL'>('text')
 const scrollContainer = ref<HTMLDivElement | null>(null)
 const internalMessageGroups = ref<{ [key: number]: boolean }>({})
 
 // Refs for input
 type TextareaComponentInstance = ComponentPublicInstance & { $el: HTMLElement }
 const inputTextarea = ref<TextareaComponentInstance | HTMLTextAreaElement | null>(null)
-const inputEditor = ref<any>(null)
 
 // Computed
 const conversation = computed(() => {
   if (!props.conversationId) return null
   return conversationsStore.getConversationById(props.conversationId)
+})
+
+// Messages are computed directly from the store's conversations for better reactivity
+// The store's getConversationById returns a new object which can break reactivity
+const messages = computed(() => {
+  if (!props.conversationId) return []
+  return conversationsStore.conversations[props.conversationId]?.messages ?? []
 })
 
 const queryStatus = computed(() => conversation.value?.status ?? 'clear')
@@ -235,8 +220,7 @@ const sendStatus = computed(() => {
 })
 
 const isSendDisabled = computed(() => {
-  const currentInput = editMode.value === 'text' ? inputText.value : inputSQL.value
-  return currentInput.trim().length === 0
+  return inputText.value.trim().length === 0
 })
 
 const displayedMessages = computed(() => {
@@ -311,10 +295,6 @@ function toggleInternalMessages(index: number) {
   internalMessageGroups.value[index] = !internalMessageGroups.value[index]
 }
 
-function toggleEditMode() {
-  editMode.value = editMode.value === 'text' ? 'SQL' : 'text'
-}
-
 const resolveTextareaElement = (): HTMLTextAreaElement | null => {
   const refValue = inputTextarea.value
   if (!refValue) return null
@@ -340,11 +320,7 @@ const handleSendMessage = async () => {
   if (!props.conversationId) return
 
   try {
-    await conversationsStore.sendMessage(
-      props.conversationId,
-      editMode.value === 'text' ? inputText.value : inputSQL.value,
-      editMode.value
-    )
+    await conversationsStore.sendMessage(props.conversationId, inputText.value, 'text')
     setTimeout(() => {
       clearInput()
       scrollToBottom()
@@ -356,7 +332,6 @@ const handleSendMessage = async () => {
 
 const clearInput = () => {
   inputText.value = ''
-  inputSQL.value = ''
   resizeTextarea()
 }
 
@@ -379,24 +354,12 @@ const resizeTextarea = () => {
 }
 
 const editInline = (query: string) => {
-  inputSQL.value = query
-  editMode.value = 'SQL'
+  inputText.value = query
 }
 
 const focusInput = () => {
   nextTick(() => {
-    if (editMode.value === 'text') {
-      resolveTextareaElement()?.focus()
-    } else if (editMode.value === 'SQL' && inputEditor.value) {
-      try {
-        const aceEditor = inputEditor.value.$refs?.aceEditor?.editor || inputEditor.value.editor
-        if (aceEditor && aceEditor.focus) {
-          aceEditor.focus()
-        }
-      } catch (error) {
-        console.warn('Could not focus SQL editor:', error)
-      }
-    }
+    resolveTextareaElement()?.focus()
   })
 }
 
@@ -424,14 +387,10 @@ async function fetchConversation() {
   if (!props.conversationId) return
 
   isLoading.value = true
-  messages.value = []
 
   try {
     // Use the store's fetchMessages to ensure conversation is in the store
     await conversationsStore.fetchMessages(props.conversationId)
-    // Get messages from the store
-    const conv = conversationsStore.getConversationById(props.conversationId)
-    messages.value = conv?.messages || []
     scrollToBottom()
   } catch (err) {
     console.error('Failed to load conversation:', err)
@@ -447,27 +406,32 @@ function openInChat() {
   }
 }
 
-// Real-time updates
-function handleConversationResponse(data: Message) {
+// Real-time updates - scroll to bottom when new messages arrive
+// The store's global socket handler already updates the messages,
+// so we just need to scroll to bottom
+function handleConversationResponse(data: Message & { conversationId?: string }) {
   if (!props.conversationId) return
-
-  // Avoid duplicates in local messages
-  if (!messages.value.some((m) => m.id === data.id)) {
-    messages.value = [...messages.value, data]
+  if (data.conversationId === props.conversationId) {
     scrollToBottom()
-  }
-
-  // Also sync from store in case it was updated there
-  const conv = conversationsStore.getConversationById(props.conversationId)
-  if (conv?.messages) {
-    messages.value = conv.messages
   }
 }
 
+// Watch for messages changes to scroll to bottom
+watch(
+  () => messages.value.length,
+  () => {
+    if (isOpen.value) {
+      scrollToBottom()
+    }
+  }
+)
+
 // Watch for sheet open to fetch data and join socket room
-watch(isOpen, (open) => {
+watch(isOpen, async (open) => {
   if (open && props.conversationId) {
-    fetchConversation()
+    // First fetch the conversation to ensure it's in the store
+    // before joining the socket room (so incoming messages have a place to go)
+    await fetchConversation()
     socket.emit('join', props.conversationId)
     socket.on('response', handleConversationResponse)
     nextTick(() => focusInput())
@@ -482,7 +446,7 @@ watch(isOpen, (open) => {
 // Watch for conversationId changes when sheet is open
 watch(
   () => props.conversationId,
-  (newId, oldId) => {
+  async (newId, oldId) => {
     if (isOpen.value) {
       // Leave old room
       if (oldId) {
@@ -490,7 +454,8 @@ watch(
       }
       // Join new room and fetch
       if (newId) {
-        fetchConversation()
+        // First fetch the conversation to ensure it's in the store
+        await fetchConversation()
         socket.emit('join', newId)
       }
     }

@@ -398,11 +398,18 @@ class CatalogTool:
 
         Args:
             asset_id: UUID of the asset to update
-            description: Set asset description (replaces existing). Auto-sets status="draft" if null.
+            description: Set asset description (replaces existing). Keep it short and factual.
+                Auto-sets status="draft" if status is null.
             ai_suggestion: Propose description for user review (doesn't replace existing).
-            tag_ids: Apply tags immediately (UUIDs or names). Auto-creates if needed. Replaces all existing tags.
-            suggested_tags: Propose tags for review (must exist in catalog). Replaces all when approved.
-            status: "draft" or "published". Auto-sets "draft" if providing description/tags without status.
+                Use when: asset already has a description you want to enhance, or you're
+                unsure about your improvements. User reviews and approves via UI.
+            tag_ids: Apply tags immediately using tag names or UUIDs (e.g. ["Sales", "PII"]).
+                Auto-creates tags if they don't exist. Replaces all existing tags.
+            suggested_tags: Propose tags for user review (must already exist in catalog).
+                Use when uncertain if tags are appropriate. User approves via UI.
+            status: "draft" (needs review) or "published" (production-ready).
+                Only use "published" with high confidence. Auto-sets "draft" when
+                providing description/tags without explicit status.
 
         Returns:
             Confirmation message with asset name and status
