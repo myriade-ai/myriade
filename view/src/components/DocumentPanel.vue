@@ -143,6 +143,8 @@
             :disabled="false"
             :document-id="documentsStore.currentDocumentId || undefined"
             placeholder="Start writing... Use @ to mention queries or charts"
+            :enable-query-mentions="true"
+            :enable-chart-mentions="true"
           />
         </div>
 

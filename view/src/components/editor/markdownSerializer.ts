@@ -1,8 +1,8 @@
 import { Node as ProseMirrorNode } from '@tiptap/pm/model'
 
 /**
- * Custom markdown serializer that handles Query and Chart nodes
- * Converts Tiptap/ProseMirror document to markdown with <QUERY:uuid> and <CHART:uuid> tags
+ * Custom markdown serializer that handles Query, Chart, and Agent Mention nodes
+ * Converts Tiptap/ProseMirror document to markdown with <QUERY:uuid>, <CHART:uuid>, and <AGENT:id> tags
  */
 export function serializeToMarkdown(doc: ProseMirrorNode): string {
   let markdown = ''
@@ -28,7 +28,7 @@ export function serializeToMarkdown(doc: ProseMirrorNode): string {
 
     // Handle paragraph
     if (node.type.name === 'paragraph') {
-      if (node.textContent) {
+      if (node.textContent || hasInlineNodes(node)) {
         markdown += serializeInlineContent(node) + '\n\n'
       }
       return false
@@ -103,12 +103,36 @@ export function serializeToMarkdown(doc: ProseMirrorNode): string {
 }
 
 /**
+ * Check if a node has inline nodes (like agent mentions)
+ */
+function hasInlineNodes(node: ProseMirrorNode): boolean {
+  let hasInline = false
+  node.descendants((child) => {
+    if (child.type.name === 'agentMentionNode') {
+      hasInline = true
+      return false
+    }
+    return true
+  })
+  return hasInline
+}
+
+/**
  * Serialize inline content (text with marks like bold, italic, etc.)
  */
 function serializeInlineContent(node: ProseMirrorNode): string {
   let text = ''
 
   node.descendants((child) => {
+    // Handle agent mention nodes (inline)
+    if (child.type.name === 'agentMentionNode') {
+      const agentId = child.attrs.agentId
+      if (agentId) {
+        text += `<AGENT:${agentId}>`
+      }
+      return false
+    }
+
     if (child.isText) {
       let content = child.text || ''
 

@@ -10,15 +10,17 @@
         </AvatarFallback>
       </Avatar>
       <div class="flex-1 space-y-2">
-        <Textarea
-          v-model="commentText"
-          placeholder="Leave a comment... Type @myriade-agent to ask AI"
-          rows="2"
-          class="resize-none text-sm"
-          :disabled="isSubmitting"
-          @keydown.meta.enter="submitComment"
-          @keydown.ctrl.enter="submitComment"
-        />
+        <div class="border rounded-lg overflow-hidden">
+          <MarkdownEditor
+            v-model="commentText"
+            placeholder="Leave a comment... Type @ to mention AI"
+            :disabled="isSubmitting"
+            :show-bubble-menu="false"
+            :enable-agent-mention="true"
+            min-height="60px"
+            @submit="submitComment"
+          />
+        </div>
         <div class="flex justify-between items-center">
           <p class="text-xs text-muted-foreground">
             <span v-if="hasMentionAgent" class="text-primary-600">
@@ -268,7 +270,7 @@ import { socket } from '@/plugins/socket'
 import { user } from '@/stores/auth'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import AssetChatFeed from '@/components/catalog/AssetChatFeed.vue'
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import {
@@ -322,7 +324,10 @@ const userInitials = computed(() => {
 })
 
 const hasMentionAgent = computed(() => {
-  return /@myriade-agent/i.test(commentText.value)
+  // Check for both old format (@myriade-agent) and new format (<AGENT:myriade-agent>)
+  return (
+    /@myriade-agent/i.test(commentText.value) || /<AGENT:myriade-agent>/i.test(commentText.value)
+  )
 })
 
 // Query for fetching activities
