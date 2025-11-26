@@ -72,7 +72,15 @@ export const getDefaultDetailsForEngine = (engine: Engine) => {
       return { token: '', database: '' }
     case 'oracle':
       // No database field - connection-level only, will auto-discover databases
-      return { host: '', port: 1521, user: '', password: '', service_name: '', sid: '' }
+      return {
+        host: '',
+        port: 1521,
+        user: '',
+        password: '',
+        service_name: '',
+        sid: '',
+        client_timeout_seconds: null
+      }
     default:
       engine satisfies never
       throw new Error('Unsupported engine')
