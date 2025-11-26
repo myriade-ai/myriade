@@ -1,14 +1,5 @@
 <template>
   <div class="space-y-4">
-    <!-- Note Alert (always show if present) - Moved to top -->
-    <div
-      v-if="asset.note"
-      class="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 text-blue-900 rounded-lg"
-    >
-      <Info class="size-4 mt-0.5 flex-shrink-0 text-blue-600" />
-      <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ asset.note }}</p>
-    </div>
-
     <div class="space-y-2">
       <div class="flex items-center justify-between gap-2">
         <h3 class="text-sm font-medium text-muted-foreground">Description</h3>

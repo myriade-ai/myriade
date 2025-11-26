@@ -304,7 +304,6 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
                     # Include validation workflow fields
                     asset_dict["status"] = asset.status
                     asset_dict["ai_suggestion"] = asset.ai_suggestion
-                    asset_dict["note"] = asset.note
                     asset_dict["ai_suggested_tags"] = asset.ai_suggested_tags
                     asset_dict["published_by"] = asset.published_by
                     asset_dict["published_at"] = (

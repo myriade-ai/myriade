@@ -62,6 +62,10 @@ class CatalogTool:
             }
         }
 
+        print(
+            f"#### Owner : {getattr(self.conversation, 'owner', None)} OwnerId: {getattr(self.conversation, 'ownerId', None)}"
+        )
+
         # If asset_id is present, add focused asset details
         if (
             self.conversation
@@ -73,9 +77,23 @@ class CatalogTool:
                 # Parse the YAML to get the dict, then add to context
                 asset_data = yaml.safe_load(asset_context_yaml)
                 context["FOCUSED_ASSET"] = asset_data
-                context["NOTE"] = (
-                    "This conversation is about the FOCUSED_ASSET above. Focus your responses on this asset, but you can also reference other assets in the CATALOG if needed."
-                )
+
+                # Add conversation owner information
+                if self.conversation.owner:
+                    context["CONVERSATION_OWNER"] = {
+                        "id": self.conversation.owner.id,
+                        "email": self.conversation.owner.email,
+                    }
+                    context["NOTE"] = (
+                        "This conversation is about the FOCUSED_ASSET above. "
+                        "Focus your responses on this asset, but you can also reference other assets in the CATALOG if needed. "
+                        f"You can mention the conversation owner using <USER:{self.conversation.owner.email}>. "
+                        f"Owner: {self.conversation.owner.email} (ID: {self.conversation.owner.id})"
+                    )
+                else:
+                    context["NOTE"] = (
+                        "This conversation is about the FOCUSED_ASSET above. Focus your responses on this asset, but you can also reference other assets in the CATALOG if needed."
+                    )
             except Exception as e:
                 logger.warning(
                     f"Failed to load asset {self.conversation.asset_id}: {e}"
@@ -252,8 +270,6 @@ class CatalogTool:
         # Add AI metadata if present
         if asset.ai_suggestion:
             result["ai_suggestion"] = asset.ai_suggestion
-        if asset.note:
-            result["note"] = asset.note
 
         # Add type-specific details
         if asset.type == "TABLE" and asset.table_facet:
@@ -376,7 +392,6 @@ class CatalogTool:
         tag_ids: Optional[list] = None,
         suggested_tags: Optional[list[str]] = None,
         status: Optional[str] = None,
-        note: Optional[str] = None,
     ) -> str:
         """
         Update catalog asset documentation.
@@ -388,7 +403,6 @@ class CatalogTool:
             tag_ids: Apply tags immediately (UUIDs or names). Auto-creates if needed. Replaces all existing tags.
             suggested_tags: Propose tags for review (must exist in catalog). Replaces all when approved.
             status: "draft" or "published". Auto-sets "draft" if providing description/tags without status.
-            note: Questions/clarifications (user-facing). REPLACES existing note completely.
 
         Returns:
             Confirmation message with asset name and status
@@ -412,9 +426,7 @@ class CatalogTool:
                 f"Invalid status '{status}'. Must be one of: {valid_statuses}"
             )
 
-        # Update note if provided
-        if note is not None:
-            asset.note = note
+        # Note: note field has been removed. Use post_message() to add clarifying questions to the feed
 
         # Handle ai_suggestion update
         if ai_suggestion is not None:
