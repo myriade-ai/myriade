@@ -1,185 +1,168 @@
 <template>
   <div class="space-y-4">
-    <h3 class="text-sm font-medium text-muted-foreground">Activity</h3>
+    <h3 class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Activity</h3>
 
-    <!-- Comment Input -->
-    <div class="flex gap-3">
-      <Avatar class="size-8 flex-shrink-0">
-        <AvatarFallback class="bg-primary-100 text-primary-700 text-xs">
-          {{ userInitials }}
-        </AvatarFallback>
-      </Avatar>
-      <div class="flex-1 space-y-2">
-        <div class="border rounded-lg overflow-hidden">
-          <MarkdownEditor
-            v-model="commentText"
-            placeholder="Leave a comment... Type @ to mention AI"
-            :disabled="isSubmitting"
-            :show-bubble-menu="false"
-            :enable-agent-mention="true"
-            min-height="60px"
-            @submit="submitComment"
-          />
+    <!-- Comment Input Card -->
+    <div class="rounded-lg border border-border bg-card">
+      <div class="p-1">
+        <div class="flex gap-3">
+          <div class="flex-1 min-w-0">
+            <MarkdownEditor
+              v-model="commentText"
+              placeholder="Leave a comment... Type @ to mention AI"
+              :disabled="isSubmitting"
+              :show-bubble-menu="false"
+              :enable-agent-mention="true"
+              min-height="40px"
+              @submit="submitComment"
+            />
+          </div>
         </div>
-        <div class="flex justify-between items-center">
-          <p class="text-xs text-muted-foreground">
-            <span v-if="hasMentionAgent" class="text-primary-600">
-              ✨ @myriade-agent will respond to your message
-            </span>
-            <span v-else> Press ⌘+Enter to send </span>
-          </p>
-          <Button
-            size="sm"
-            :disabled="!commentText.trim() || isSubmitting"
-            :is-loading="isSubmitting"
-            @click="submitComment"
-          >
-            <template #loading>Sending...</template>
-            {{ hasMentionAgent ? 'Send to AI' : 'Comment' }}
-          </Button>
-        </div>
+      </div>
+      <div class="flex justify-between items-center px-3 py-2 border-t border-border bg-muted/20">
+        <p class="text-[11px] text-muted-foreground">
+          <span class="opacity-60">⌘+Enter to send</span>
+        </p>
+        <Button
+          size="sm"
+          variant="default"
+          class="h-7 text-xs px-3"
+          :disabled="!commentText.trim() || isSubmitting"
+          :is-loading="isSubmitting"
+          @click="submitComment"
+        >
+          <template #loading>Sending...</template>
+          Comment
+        </Button>
       </div>
     </div>
 
     <!-- Agent Conversation Sheet -->
     <AssetChatFeed v-model:open="showConversationSheet" :conversation-id="selectedConversationId" />
 
-    <!-- Activity Timeline -->
-    <div class="relative">
-      <!-- Timeline line -->
-      <div
-        v-if="activities.length > 0"
-        class="absolute left-4 top-0 bottom-0 w-px bg-border"
-        aria-hidden="true"
-      />
-
-      <!-- Activities -->
-      <div class="space-y-4">
-        <div v-for="activity in activities" :key="activity.id" class="relative flex gap-3 pl-0">
-          <!-- Avatar/Icon -->
-          <div class="relative z-10 flex-shrink-0">
-            <Avatar
-              v-if="
-                activity.activity_type === 'comment' || activity.activity_type === 'agent_message'
-              "
-              class="size-8 ring-4 ring-background"
-            >
-              <AvatarFallback
-                :class="[
-                  'text-xs',
-                  activity.activity_type === 'agent_message'
-                    ? 'bg-purple-100 text-purple-700'
-                    : 'bg-primary-100 text-primary-700'
-                ]"
-              >
-                {{
-                  activity.activity_type === 'agent_message'
-                    ? 'AI'
-                    : getInitials(activity.actor_email)
-                }}
-              </AvatarFallback>
-            </Avatar>
-            <div
-              v-else
-              class="size-8 rounded-full bg-muted ring-4 ring-background flex items-center justify-center"
-            >
-              <component
-                :is="getActivityIcon(activity.activity_type)"
-                class="size-4 text-muted-foreground"
-              />
+    <!-- Activity Feed -->
+    <div class="space-y-2">
+      <template v-for="activity in activities" :key="activity.id">
+        <!-- Comment Card -->
+        <div
+          v-if="activity.activity_type === 'comment'"
+          class="group rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors"
+        >
+          <div class="p-3">
+            <div class="flex gap-3">
+              <Avatar class="size-7 flex-shrink-0">
+                <AvatarFallback class="bg-muted text-muted-foreground text-[10px] font-medium">
+                  {{ getInitials(activity.actor_email) }}
+                </AvatarFallback>
+              </Avatar>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline gap-2 mb-1">
+                  <span class="text-sm font-medium text-foreground">
+                    {{ getDisplayName(activity.actor_email) }}
+                  </span>
+                  <span class="text-[11px] text-muted-foreground">
+                    {{ formatRelativeTime(activity.created_at) }}
+                  </span>
+                </div>
+                <div class="text-sm text-foreground/80">
+                  <MarkdownDisplay :content="activity.content ?? ''" />
+                </div>
+              </div>
             </div>
           </div>
+        </div>
 
-          <!-- Content -->
-          <div class="flex-1 min-w-0 pt-1">
-            <!-- Comment or Agent Message -->
-            <div
-              v-if="
-                activity.activity_type === 'comment' || activity.activity_type === 'agent_message'
-              "
-              class="space-y-1"
-            >
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-medium">
+        <!-- Agent Message Card -->
+        <div
+          v-else-if="activity.activity_type === 'agent_message'"
+          class="group rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors"
+        >
+          <div class="p-3">
+            <div class="flex gap-3">
+              <div
+                class="size-7 flex-shrink-0 rounded-full bg-foreground flex items-center justify-center"
+              >
+                <SparklesIcon class="size-3.5 text-background" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline gap-2 mb-1">
+                  <span class="text-sm font-medium text-foreground"> Myriade Agent </span>
+                  <span class="text-[11px] text-muted-foreground">
+                    {{ formatRelativeTime(activity.created_at) }}
+                  </span>
+                </div>
+                <div class="text-sm text-foreground/80">
+                  <MarkdownDisplay :content="activity.content ?? ''" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Agent Working Card -->
+        <div
+          v-else-if="activity.activity_type === 'agent_working'"
+          class="rounded-lg border border-border bg-muted/20"
+        >
+          <div class="px-3 py-2.5 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="size-5 rounded-full bg-muted flex items-center justify-center">
+                <AlertCircleIcon
+                  v-if="activity.status === 'error'"
+                  class="size-3 text-muted-foreground"
+                />
+                <CheckCircleIcon
+                  v-else-if="activity.status === 'finished'"
+                  class="size-3 text-muted-foreground"
+                />
+                <LoaderIcon v-else class="size-3 text-muted-foreground" />
+              </div>
+              <div class="flex items-baseline gap-1.5">
+                <span class="text-sm text-muted-foreground">
+                  <span class="font-medium text-foreground">AI</span>
                   {{
-                    activity.activity_type === 'agent_message'
-                      ? 'Myriade Agent'
-                      : activity.actor_email
+                    activity.status === 'error'
+                      ? 'encountered an error'
+                      : activity.status === 'finished'
+                        ? 'finished working'
+                        : 'is working...'
                   }}
                 </span>
-                <span class="text-xs text-muted-foreground">
+                <span class="text-[11px] text-muted-foreground/60">
                   {{ formatRelativeTime(activity.created_at) }}
                 </span>
               </div>
-              <MarkdownDisplay :content="activity.content ?? ''" />
-
-              <!-- Link to conversation if agent was triggered -->
-              <button
-                v-if="activity.conversation_id"
-                class="text-xs text-primary-600 hover:text-primary-700 hover:underline mt-1"
-                @click="openConversation(activity.conversation_id)"
-              >
-                View conversation →
-              </button>
             </div>
-
-            <!-- Agent Working -->
             <button
-              v-else-if="activity.activity_type === 'agent_working'"
-              class="flex items-center gap-2 hover:bg-muted/50 rounded px-1 -mx-1 transition-colors cursor-pointer"
-              @click="activity.conversation_id && openConversation(activity.conversation_id)"
+              v-if="activity.conversation_id"
+              class="text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
+              @click="openConversation(activity.conversation_id)"
             >
-              <!-- Running status -->
-              <template v-if="activity.status === 'running'">
-                <span class="text-sm text-muted-foreground">
-                  <span class="font-medium text-purple-600">Myriade Agent</span>
-                  is analyzing...
-                </span>
-                <LoaderIcon class="size-3 text-purple-600" />
-              </template>
-
-              <!-- Finished status -->
-              <template v-else-if="activity.status === 'finished'">
-                <span class="text-sm text-muted-foreground">
-                  <span class="font-medium text-purple-600">Myriade Agent</span>
-                  completed analysis
-                </span>
-                <CheckCircleIcon class="size-3 text-green-600" />
-              </template>
-
-              <!-- Error status -->
-              <template v-else-if="activity.status === 'error'">
-                <span class="text-sm text-muted-foreground">
-                  <span class="font-medium text-purple-600">Myriade Agent</span>
-                  encountered an error
-                </span>
-                <AlertCircleIcon class="size-3 text-red-600" />
-              </template>
-
-              <!-- Fallback for unknown/null status (legacy) -->
-              <template v-else>
-                <span class="text-sm text-muted-foreground">
-                  <span class="font-medium text-purple-600">Myriade Agent</span>
-                  is analyzing...
-                </span>
-                <LoaderIcon class="size-3 text-purple-600" />
-              </template>
-
-              <span class="text-xs text-muted-foreground">
-                {{ formatRelativeTime(activity.created_at) }}
-              </span>
+              View in conversation →
             </button>
+          </div>
+        </div>
 
-            <!-- Audit Trail (description, tags, status updates) -->
-            <div v-else class="space-y-1">
-              <div class="flex items-center gap-2 text-sm">
+        <!-- Audit Trail (Compact) -->
+        <div v-else class="px-1">
+          <div class="flex items-start gap-2.5 py-1.5">
+            <div
+              class="size-5 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-0.5"
+            >
+              <component
+                :is="getActivityIcon(activity.activity_type)"
+                class="size-3 text-muted-foreground"
+              />
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-baseline gap-1.5 text-[13px]">
+                <span class="font-medium text-foreground/80">
+                  {{ getDisplayName(activity.actor_email) || 'System' }}
+                </span>
                 <span class="text-muted-foreground">
-                  <span class="font-medium text-foreground">{{
-                    activity.actor_email || 'System'
-                  }}</span>
                   {{ getActivityVerb(activity.activity_type) }}
                 </span>
-                <span class="text-xs text-muted-foreground">
+                <span class="text-[11px] text-muted-foreground/50">
                   {{ formatRelativeTime(activity.created_at) }}
                 </span>
               </div>
@@ -190,13 +173,15 @@
                   activity.changes &&
                   (activity.changes.old !== undefined || activity.changes.new !== undefined)
                 "
-                class="text-xs mt-1 group/changes"
+                class="mt-1.5 group/changes"
               >
-                <div class="bg-muted/50 rounded px-2 py-1 space-y-0.5 relative">
+                <div
+                  class="text-xs bg-muted/40 rounded-md px-2.5 py-1.5 space-y-0.5 border border-border/50 relative"
+                >
                   <div
                     v-if="activity.changes.old"
                     :class="[
-                      'text-red-600 line-through',
+                      'text-muted-foreground line-through',
                       expandedActivities.has(activity.id) ? 'whitespace-pre-wrap' : 'truncate'
                     ]"
                   >
@@ -207,7 +192,7 @@
                   <div
                     v-if="activity.changes.new"
                     :class="[
-                      'text-green-600',
+                      'text-foreground',
                       expandedActivities.has(activity.id) ? 'whitespace-pre-wrap' : 'truncate'
                     ]"
                   >
@@ -215,14 +200,14 @@
                       formatChangeValue(activity.changes.new, expandedActivities.has(activity.id))
                     }}
                   </div>
-                  <!-- Expand/Collapse button (visible on hover or when expanded) -->
+                  <!-- Expand/Collapse button -->
                   <button
                     v-if="hasLongContent(activity.changes)"
                     :class="[
-                      'absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full',
-                      'bg-muted border border-border text-muted-foreground',
-                      'hover:bg-accent hover:text-accent-foreground transition-all',
-                      'flex items-center gap-1 text-xs',
+                      'absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full',
+                      'bg-background border border-border text-muted-foreground',
+                      'hover:bg-muted hover:text-foreground transition-all',
+                      'flex items-center gap-0.5 text-[10px] font-medium',
                       expandedActivities.has(activity.id)
                         ? 'opacity-100'
                         : 'opacity-0 group-hover/changes:opacity-100'
@@ -231,58 +216,59 @@
                   >
                     <ChevronDownIcon
                       :class="[
-                        'size-3 transition-transform',
+                        'size-2.5 transition-transform',
                         expandedActivities.has(activity.id) ? 'rotate-180' : ''
                       ]"
                     />
-                    {{ expandedActivities.has(activity.id) ? 'Collapse' : 'Expand' }}
+                    {{ expandedActivities.has(activity.id) ? 'Less' : 'More' }}
                   </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </template>
 
       <!-- Empty State -->
       <div
         v-if="activities.length === 0 && !isLoading"
-        class="text-center py-8 text-muted-foreground"
+        class="text-center py-12 text-muted-foreground"
       >
-        <MessageSquareIcon class="size-8 mx-auto mb-2 opacity-50" />
-        <p class="text-sm">No activity yet</p>
-        <p class="text-xs">Comments and changes will appear here</p>
+        <div class="size-10 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
+          <MessageSquareIcon class="size-4" />
+        </div>
+        <p class="text-sm font-medium">No activity yet</p>
+        <p class="text-xs opacity-60 mt-0.5">Comments and changes will appear here</p>
       </div>
 
       <!-- Loading State -->
-      <div v-if="isLoading" class="text-center py-8">
-        <LoaderIcon class="size-6 mx-auto text-muted-foreground" />
+      <div v-if="isLoading" class="text-center py-12">
+        <LoaderIcon class="size-5 mx-auto text-muted-foreground" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useQuery, useQueryClient, useMutation } from '@tanstack/vue-query'
-import axios from '@/plugins/axios'
-import { socket } from '@/plugins/socket'
-import { user } from '@/stores/auth'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import AssetChatFeed from '@/components/catalog/AssetChatFeed.vue'
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import axios from '@/plugins/axios'
+import { socket } from '@/plugins/socket'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import {
-  PencilIcon,
-  TagIcon,
-  CheckCircleIcon,
-  SparklesIcon,
-  XCircleIcon,
-  MessageSquareIcon,
   AlertCircleIcon,
-  ChevronDownIcon
+  CheckCircleIcon,
+  ChevronDownIcon,
+  MessageSquareIcon,
+  PencilIcon,
+  SparklesIcon,
+  TagIcon,
+  XCircleIcon
 } from 'lucide-vue-next'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import MarkdownDisplay from '../MarkdownDisplay.vue'
 
 interface Props {
@@ -316,19 +302,6 @@ const queryClient = useQueryClient()
 const showConversationSheet = ref(false)
 const selectedConversationId = ref<string | null>(null)
 const expandedActivities = ref<Set<string>>(new Set())
-
-// Computed
-const userInitials = computed(() => {
-  if (!user.value?.email) return '?'
-  return getInitials(user.value.email)
-})
-
-const hasMentionAgent = computed(() => {
-  // Check for both old format (@myriade-agent) and new format (<AGENT:myriade-agent>)
-  return (
-    /@myriade-agent/i.test(commentText.value) || /<AGENT:myriade-agent>/i.test(commentText.value)
-  )
-})
 
 // Query for fetching activities
 const { data: activitiesData, isLoading } = useQuery({
@@ -377,6 +350,16 @@ function getInitials(email: string | null | undefined): string {
     return (parts[0][0] + parts[1][0]).toUpperCase()
   }
   return email.substring(0, 2).toUpperCase()
+}
+
+function getDisplayName(email: string | null | undefined): string {
+  if (!email) return ''
+  const username = email.split('@')[0]
+  // Convert snake_case or kebab-case to Title Case
+  return username
+    .split(/[._-]/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
 }
 
 function formatRelativeTime(dateString: string): string {

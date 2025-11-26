@@ -395,10 +395,7 @@ function markdownToHTML(markdown: string): string {
         /<AGENT:([^>]+)>/g,
         '<span data-type="agent-mention" data-agent-id="$1" data-agent-label="Myriade Agent"></span>'
       )
-      .replace(
-        /<USER:([^>]+)>/g,
-        '<span data-type="user-mention" data-user-label="$1"></span>'
-      )
+      .replace(/<USER:([^>]+)>/g, '<span data-type="user-mention" data-user-label="$1"></span>')
   }
 
   const flushParagraph = () => {
