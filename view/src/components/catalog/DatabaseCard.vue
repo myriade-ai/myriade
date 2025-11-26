@@ -1,18 +1,18 @@
 <template>
   <div class="overflow-hidden">
     <!-- Database Header -->
-    <div class="px-6 py-4 bg-white">
+    <div class="px-6 py-4 bg-card">
       <!-- First row: Database name, progress bar, percentage -->
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-3">
-          <Database class="h-5 w-5 text-slate-600" />
-          <h3 class="font-semibold text-sm text-slate-900">{{ database.database_name }}</h3>
+          <Database class="h-5 w-5 text-muted-foreground" />
+          <h3 class="font-semibold text-sm text-foreground">{{ database.database_name }}</h3>
         </div>
         <ProgressBar :percentage="database.completion_percentage" size="sm" />
       </div>
 
       <!-- Second row: Metadata -->
-      <div class="flex items-center justify-between text-xs text-slate-500">
+      <div class="flex items-center justify-between text-xs text-muted-foreground">
         <span
           >{{ database.total_schemas }} schemas • {{ database.total_tables }} tables •
           {{ database.total_columns.toLocaleString() }} columns</span
@@ -24,38 +24,38 @@
     <div v-if="database.schemas.length > 0">
       <!-- Schemas Toggle Button -->
       <button
-        class="w-full px-6 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors border-t border-slate-200 text-left bg-slate-100"
+        class="w-full px-6 py-3 flex items-center justify-between hover:bg-muted transition-colors border-t border-border text-left bg-muted/50 dark:bg-muted/30"
         @click="isExpanded = !isExpanded"
       >
         <span
-          class="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2"
+          class="text-xs font-semibold text-foreground uppercase tracking-wide flex items-center gap-2"
         >
-          <ChevronRight v-if="!isExpanded" class="h-4 w-4 text-slate-500" />
-          <ChevronDown v-else class="h-4 w-4 text-slate-500" />
+          <ChevronRight v-if="!isExpanded" class="h-4 w-4 text-muted-foreground" />
+          <ChevronDown v-else class="h-4 w-4 text-muted-foreground" />
           Schemas:
         </span>
       </button>
 
       <!-- Schemas List -->
-      <div v-show="isExpanded" class="divide-y divide-slate-200 bg-slate-50/50">
+      <div v-show="isExpanded" class="divide-y divide-border bg-muted/30 dark:bg-muted/10">
         <div
           v-for="schema in sortedSchemas"
           :key="schema.schema_name"
-          class="px-6 py-3 hover:bg-slate-100 transition-colors flex items-center justify-between gap-4"
+          class="px-6 py-3 hover:bg-muted transition-colors flex items-center justify-between gap-4"
         >
           <div class="flex items-center gap-3 flex-1 min-w-0">
-            <FolderTree class="h-4 w-4 text-slate-500 flex-shrink-0" />
-            <span class="text-sm font-medium text-slate-900 truncate">{{
+            <FolderTree class="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span class="text-sm font-medium text-foreground truncate">{{
               schema.schema_name
             }}</span>
             <ProgressBar :percentage="schema.completion_percentage" size="sm" />
-            <span class="text-sm text-slate-500 flex-shrink-0"
+            <span class="text-sm text-muted-foreground flex-shrink-0"
               >{{ schema.table_count }} tables</span
             >
           </div>
           <button
             @click.stop="navigateToSchema(schema.schema_asset_id)"
-            class="text-xs text-blue-600 hover:text-blue-700 font-medium flex-shrink-0 whitespace-nowrap"
+            class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium flex-shrink-0 whitespace-nowrap"
           >
             View →
           </button>
@@ -66,16 +66,16 @@
       <button
         v-show="isExpanded"
         @click="isExpanded = false"
-        class="w-full px-6 py-2 text-xs font-semibold text-slate-700 uppercase tracking-wide hover:bg-slate-50 transition-colors border-t border-slate-200"
+        class="w-full px-6 py-2 text-xs font-semibold text-foreground uppercase tracking-wide hover:bg-muted transition-colors border-t border-border"
       >
-        <ChevronUp class="h-4 w-4 text-slate-500 inline mr-2" />
+        <ChevronUp class="h-4 w-4 text-muted-foreground inline mr-2" />
         Collapse schemas
       </button>
     </div>
 
     <!-- Empty State -->
-    <div v-else class="px-6 py-3 text-center bg-slate-50">
-      <p class="text-xs text-slate-500">No schemas found</p>
+    <div v-else class="px-6 py-3 text-center bg-muted/30">
+      <p class="text-xs text-muted-foreground">No schemas found</p>
     </div>
   </div>
 </template>

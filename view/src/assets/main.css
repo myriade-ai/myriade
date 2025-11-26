@@ -8,6 +8,8 @@
 @theme {
   --animate-reverse-spin: reverse-spin 1s linear infinite;
 
+  --font-outfit: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+
   --font-sans:
     Inter var, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
@@ -118,6 +120,7 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentcolor);
   }
+
   /* Custom scrollbar styles */
   * {
     scrollbar-width: thin;
@@ -181,8 +184,8 @@
   --primary-foreground: oklch(0.984 0.003 247.858);
   --secondary: oklch(0.968 0.007 247.896);
   --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
+  --muted: oklch(98.4% 0.003 247.858);
+  --muted-foreground: oklch(55.1% 0.027 264.364);
   --accent: oklch(0.968 0.007 247.896);
   --accent-foreground: oklch(0.208 0.042 265.755);
   --destructive: oklch(0.577 0.245 27.325);
@@ -240,13 +243,14 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(0.279 0.041 260.031);
   --sidebar-ring: oklch(0.446 0.043 257.281);
-  --page-background: white;
+  --page-background: var(--background);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

@@ -1,20 +1,20 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-background">
     <!-- Header -->
     <div class="max-w-4xl mx-auto px-4 py-8 relative">
       <!-- Close button - only shown when there are existing databases -->
       <button
         v-if="hasExistingDatabases"
         @click="closeFunnel"
-        class="absolute top-8 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors duration-200"
+        class="absolute top-8 right-4 p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors duration-200"
         aria-label="Close setup"
       >
         <X class="w-6 h-6" />
       </button>
 
       <div class="text-center">
-        <h1 class="text-3xl font-bold text-gray-900 mb-4">Database Setup</h1>
-        <p class="text-lg text-gray-600">
+        <h1 class="text-3xl font-bold text-foreground mb-4">Database Setup</h1>
+        <p class="text-lg text-muted-foreground">
           Connect your database to start using Myriade's AI-powered analytics.
         </p>
       </div>
@@ -44,14 +44,14 @@
                   <span
                     v-else
                     class="text-sm font-medium"
-                    :class="index === currentStep ? 'text-white' : 'text-gray-500'"
+                    :class="index === currentStep ? 'text-white' : 'text-muted-foreground'"
                   >
                     {{ index + 1 }}
                   </span>
                 </div>
                 <span
                   class="ml-3 text-sm font-medium"
-                  :class="index <= currentStep ? 'text-gray-900' : 'text-gray-500'"
+                  :class="index <= currentStep ? 'text-foreground' : 'text-muted-foreground'"
                 >
                   {{ step.title }}
                 </span>
@@ -59,7 +59,7 @@
               <div
                 v-if="index < steps.length - 1"
                 class="ml-8 w-16 h-0.5"
-                :class="index < currentStep ? 'bg-primary-600' : 'bg-gray-300'"
+                :class="index < currentStep ? 'bg-primary-600' : 'bg-muted'"
               ></div>
             </li>
           </ol>
@@ -69,7 +69,7 @@
 
     <!-- Setup Form -->
     <div class="max-w-4xl mx-auto px-4 pb-8">
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+      <div class="bg-card rounded-lg shadow-sm border border-border p-8">
         <DatabaseSetupForm @database-saved="onDatabaseSaved" @step-changed="onStepChanged" />
       </div>
     </div>
@@ -111,13 +111,13 @@ const onStepChanged = (step: number) => {
 const getStepClasses = (index: number) => {
   if (index < currentStep.value) return 'text-primary-600'
   if (index === currentStep.value) return 'text-primary-600'
-  return 'text-gray-500'
+  return 'text-muted-foreground'
 }
 
 const getStepIconClasses = (index: number) => {
   if (index < currentStep.value) return 'bg-primary-600 border-primary-600'
   if (index === currentStep.value) return 'bg-primary-600 border-primary-600'
-  return 'bg-white border-gray-300'
+  return 'bg-card border-border'
 }
 
 const closeFunnel = async () => {

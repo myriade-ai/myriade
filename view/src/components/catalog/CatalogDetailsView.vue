@@ -1,5 +1,7 @@
 <template>
-  <div class="flex-1 overflow-y-auto bg-gradient-to-b from-white to-slate-50/30">
+  <div
+    class="flex-1 overflow-y-auto bg-gradient-to-b from-card to-muted/20 dark:from-background dark:to-muted/10"
+  >
     <CatalogDetailsHeader
       v-if="asset"
       :asset="asset"
@@ -11,7 +13,7 @@
 
     <Tabs v-model="activeTabModel" class="flex flex-1 flex-col min-h-0">
       <TabsList
-        class="flex w-full flex-wrap gap-2 border-b border-slate-200 bg-gradient-to-r from-slate-100/80 via-stone-100/80 to-slate-100/80 flex-shrink-0 rounded-none px-2"
+        class="flex w-full flex-wrap gap-2 border-b border-border bg-gradient-to-r from-muted/60 via-muted/40 to-muted/60 dark:from-muted/30 dark:via-muted/20 dark:to-muted/30 flex-shrink-0 rounded-none px-2"
       >
         <TabsTrigger value="overview">
           <FileText class="h-4 w-4 md:hidden" />

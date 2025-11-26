@@ -11,7 +11,7 @@
     <DropdownMenuContent class="w-64 p-0">
       <DropdownMenuLabel class="px-3 py-2 space-y-1">
         <div class="font-medium">Export Options</div>
-        <div class="text-xs text-gray-500 font-normal">Customize your export</div>
+        <div class="text-xs text-muted-foreground font-normal">Customize your export</div>
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
       <div class="px-3 py-2 flex items-center justify-between gap-3">

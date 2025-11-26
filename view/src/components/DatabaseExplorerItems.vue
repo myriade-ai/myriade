@@ -1,5 +1,5 @@
 <template>
-  <div class="block hover:bg-gray-50 group" @click="$emit('click')">
+  <div class="block hover:bg-muted group" @click="$emit('click')">
     <div class="px-4 py-4 space-y-2">
       <div class="flex items-center justify-between relative">
         <div
@@ -19,7 +19,7 @@
           class="absolute right-0 opacity-0 group-hover:opacity-100"
           size="sm"
         >
-          <Search class="text-gray-600" />
+          <Search class="text-muted-foreground" />
         </Button>
       </div>
       <div v-if="props.showColumns" class="flex justify-between">

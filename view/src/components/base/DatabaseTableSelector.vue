@@ -6,17 +6,17 @@
       <div
         v-for="group in filteredGroups"
         :key="group.id"
-        class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"
+        class="bg-card border border-border rounded-lg shadow-sm overflow-hidden"
       >
         <div
-          class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors"
+          class="px-4 py-3 bg-muted border-b border-border flex items-center justify-between cursor-pointer hover:bg-muted transition-colors"
           @click="toggleCollapse(group.id)"
         >
           <div class="flex items-center space-x-3">
             <!-- Collapse/Expand Icon -->
             <ChevronRightIcon
               :class="[
-                'h-4 w-4 text-gray-500 transition-transform',
+                'h-4 w-4 text-muted-foreground transition-transform',
                 collapsedGroups.has(group.id) ? '' : 'rotate-90'
               ]"
             />
@@ -28,11 +28,11 @@
                 :indeterminate.prop="isGroupIndeterminate(group)"
                 @change="toggleGroup(group)"
                 @click.stop
-                class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                class="h-4 w-4 rounded border-input text-primary-600 focus:ring-primary-500"
               />
               <Label
                 :for="`schema-${group.id}`"
-                class="text-sm font-medium text-gray-900 cursor-pointer"
+                class="text-sm font-medium text-foreground cursor-pointer"
                 @click.stop
               >
                 {{ group.label }}
@@ -53,7 +53,7 @@
           <div
             v-for="item in group.items"
             :key="item.id"
-            class="px-4 py-3 hover:bg-gray-50 transition-colors"
+            class="px-4 py-3 hover:bg-muted transition-colors"
           >
             <div class="flex items-center space-x-3">
               <input
@@ -61,31 +61,31 @@
                 type="checkbox"
                 :checked="isSelected(item)"
                 @change="toggleItem(item)"
-                class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                class="h-4 w-4 rounded border-input text-primary-600 focus:ring-primary-500"
               />
 
               <div class="flex-1 min-w-0">
                 <Label
                   :for="`table-${item.id}`"
-                  class="block text-sm font-medium text-gray-900 cursor-pointer"
+                  class="block text-sm font-medium text-foreground cursor-pointer"
                 >
                   {{ item.label }}
                 </Label>
-                <p v-if="item.description" class="text-xs text-gray-500 mt-1 line-clamp-2">
+                <p v-if="item.description" class="text-xs text-muted-foreground mt-1 line-clamp-2">
                   {{ item.description }}
                 </p>
               </div>
 
-              <TableCellsIcon class="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <TableCellsIcon class="h-4 w-4 text-muted-foreground flex-shrink-0" />
             </div>
           </div>
         </div>
       </div>
       <div
         v-if="filteredGroups.length === 0"
-        class="text-center py-4 border border-gray-200 bg-gray-200 rounded-lg shadow-sm overflow-hidden"
+        class="text-center py-4 border border-border bg-muted rounded-lg shadow-sm overflow-hidden"
       >
-        <div class="text-sm text-gray-500">No tables found</div>
+        <div class="text-sm text-muted-foreground">No tables found</div>
       </div>
     </div>
 

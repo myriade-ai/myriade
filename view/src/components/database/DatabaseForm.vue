@@ -2,13 +2,13 @@
   <Form @submit="handleSave" class="space-y-4">
     <!-- Database Type Display (read-only when editing) -->
     <div class="max-w-lg" v-if="mode === 'edit'">
-      <label class="block text-sm font-medium text-gray-700">Database Type</label>
+      <label class="block text-sm font-medium text-foreground">Database Type</label>
       <div
         v-if="database.engine"
-        class="mt-1 text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-300"
+        class="mt-1 text-sm text-foreground bg-muted px-3 py-2 rounded-md border border-border"
       >
         {{ getDatabaseTypeName(database.engine) }}<br />
-        <i class="text-xs text-gray-500">Database type cannot be changed after creation</i>
+        <i class="text-xs text-muted-foreground">Database type cannot be changed after creation</i>
       </div>
     </div>
 

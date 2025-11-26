@@ -1,17 +1,17 @@
 <template>
-  <div class="p-4 bg-gray-50 rounded-lg space-y-4">
+  <div class="p-4 bg-muted rounded-lg space-y-4">
     <div>
-      <h3 class="text-sm font-medium text-gray-900">GitHub Repository</h3>
-      <p class="text-xs text-gray-500">
+      <h3 class="text-sm font-medium text-foreground">GitHub Repository</h3>
+      <p class="text-xs text-muted-foreground">
         Connect this datasource to a GitHub repository so conversations can edit files on a
         dedicated branch and open pull requests.
       </p>
     </div>
 
-    <div v-if="loading" class="text-sm text-gray-600">Loading GitHub settings…</div>
+    <div v-if="loading" class="text-sm text-muted-foreground">Loading GitHub settings…</div>
     <div v-else-if="error" class="text-sm text-error-600">{{ error }}</div>
     <div v-else class="space-y-4">
-      <div class="text-sm text-gray-700">
+      <div class="text-sm">
         <p v-if="githubSettings.repoFullName">
           Connected to
           <span class="font-medium">{{ githubSettings.repoFullName }}</span>
@@ -20,7 +20,7 @@
           </span>
         </p>
         <p v-else>No repository selected.</p>
-        <p v-if="githubSettings.tokenExpiresAt" class="text-xs text-gray-500">
+        <p v-if="githubSettings.tokenExpiresAt" class="text-xs text-muted-foreground">
           Access token renews automatically and expires on {{ formattedExpiry }}.
         </p>
       </div>
@@ -29,7 +29,7 @@
       <p v-if="oauthError" class="text-sm text-error-600">{{ oauthError }}</p>
 
       <div v-if="!githubSettings.hasToken" class="space-y-2">
-        <p class="text-xs text-gray-500">
+        <p class="text-xs text-muted-foreground">
           Authorise Myriade with GitHub to list repositories and push branches for this datasource.
           You will be redirected to GitHub and then returned to this page.
         </p>
@@ -41,11 +41,11 @@
 
       <div v-else class="space-y-3">
         <div class="space-y-2">
-          <label class="text-xs font-medium text-gray-600">Repository</label>
+          <label class="text-xs font-medium">Repository</label>
           <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
             <select
               v-model="selectedRepoFullName"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              class="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Select a repository</option>
               <option v-for="repo in repositories" :key="repo.full_name" :value="repo.full_name">
@@ -63,13 +63,13 @@
               Refresh list
             </Button>
           </div>
-          <p class="text-xs text-gray-500">
+          <p class="text-xs text-muted-foreground">
             Only repositories that the authorised GitHub account can access will appear here.
           </p>
         </div>
 
         <div v-if="selectedRepoFullName" class="space-y-2">
-          <label class="text-xs font-medium text-gray-600">Default branch</label>
+          <label class="text-xs font-medium">Default branch</label>
           <Input v-model="selectedDefaultBranch" placeholder="main" />
         </div>
 
@@ -102,34 +102,34 @@
       </div>
 
       <!-- DBT Documentation Sync Section -->
-      <div v-if="githubSettings.repoFullName" class="mt-6 pt-6 border-t border-gray-200">
-        <h4 class="text-sm font-medium text-gray-900 mb-2">DBT Documentation</h4>
-        <p class="text-xs text-gray-500 mb-3">
+      <div v-if="githubSettings.repoFullName" class="mt-6 pt-6 border-t border-border">
+        <h4 class="text-sm font-medium text-foreground mb-2">DBT Documentation</h4>
+        <p class="text-xs text-muted-foreground mb-3">
           DBT documentation is automatically synced every hour. You can also manually trigger a
           sync.
         </p>
 
         <div class="space-y-2">
-          <div v-if="dbtSyncStatus" class="text-xs text-gray-600">
+          <div v-if="dbtSyncStatus" class="text-xs text-muted-foreground">
             <span class="font-medium">Status:</span>
             <span
               :class="{
                 'text-blue-600': dbtSyncStatus.status === 'generating',
                 'text-green-600': dbtSyncStatus.status === 'completed',
                 'text-error-600': dbtSyncStatus.status === 'failed',
-                'text-gray-600': dbtSyncStatus.status === 'idle'
+                'text-muted-foreground': dbtSyncStatus.status === 'idle'
               }"
             >
               {{ dbtSyncStatus.status === 'generating' ? 'Syncing...' : dbtSyncStatus.status }}
             </span>
           </div>
 
-          <div v-if="dbtSyncStatus?.last_synced_at" class="text-xs text-gray-600">
+          <div v-if="dbtSyncStatus?.last_synced_at" class="text-xs text-muted-foreground">
             <span class="font-medium">Last synced:</span>
             {{ formatDate(dbtSyncStatus.last_synced_at) }}
           </div>
 
-          <div v-if="dbtSyncStatus?.commit_hash" class="text-xs text-gray-600 font-mono">
+          <div v-if="dbtSyncStatus?.commit_hash" class="text-xs text-muted-foreground font-mono">
             <span class="font-medium font-sans">Commit:</span>
             {{ dbtSyncStatus.commit_hash.substring(0, 8) }}
           </div>

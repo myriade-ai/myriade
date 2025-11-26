@@ -2,6 +2,12 @@
 <html lang="en">
   <head>
     <link rel="icon" href="/favicon.ico?v=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
     <meta charset="UTF-8" />
     <meta name="google" content="notranslate" />
     <meta http-equiv="Content-Language" content="en" />
@@ -35,6 +41,18 @@
       content="Myriade revolutionizes data analysis with AI-driven simplicity. Easily find, transform, and utilize your data to accelerate business growth."
     />
     <meta property="twitter:image" content="/social-share.png" />
+    <script>
+      // Apply theme immediately to prevent flash
+      ;(function () {
+        const stored = localStorage.getItem('myriade-color-mode')
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        const isDark =
+          stored === 'dark' || (stored === 'auto' && prefersDark) || (!stored && prefersDark)
+        if (isDark) {
+          document.documentElement.classList.add('dark')
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="app"></div>

@@ -1,14 +1,16 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div
+    class="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8"
+  >
     <div class="max-w-md w-full space-y-8">
       <div>
         <div class="mx-auto h-12 w-auto flex justify-center">
-          <img src="/logo.svg?v=3" class="h-12 w-auto" alt="Myriade" />
+          <img src="/icon.svg?v=4" class="h-12 w-auto" alt="Myriade" />
         </div>
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-foreground">
           Authentication Required
         </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
+        <p class="mt-2 text-center text-sm text-muted-foreground">
           Please sign in to continue using Myriade
         </p>
       </div>
@@ -43,7 +45,10 @@
           {{ isSigningIn ? 'Signing in...' : 'Sign in to Myriade' }}
         </button>
 
-        <div v-if="error" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+        <div
+          v-if="error"
+          class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md"
+        >
           <div class="flex">
             <div class="flex-shrink-0">
               <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -55,7 +60,7 @@
               </svg>
             </div>
             <div class="ml-3">
-              <p class="text-sm text-red-700">
+              <p class="text-sm text-red-700 dark:text-red-300">
                 {{ error }}
               </p>
               <button
