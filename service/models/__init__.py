@@ -340,6 +340,26 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
                 if term:
                     base_dict["term"] = term.to_dict()
 
+        if (
+            functionCall
+            and functionCall.get("name") == "CatalogTool-catalog__post_message"
+        ):
+            asset_id = functionCall["arguments"].get("asset_id")
+            message = functionCall["arguments"].get("message")
+
+            if asset_id:
+                asset = session.query(Asset).filter(Asset.id == asset_id).first()
+                if asset:
+                    base_dict["postedMessage"] = {
+                        "asset": {
+                            "id": str(asset.id),
+                            "name": asset.name,
+                            "urn": asset.urn,
+                            "type": asset.type,
+                        },
+                        "message": message,
+                    }
+
         return base_dict
 
     def to_agentlys_message(self) -> AgentlysMessage:
