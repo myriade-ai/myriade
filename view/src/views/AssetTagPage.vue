@@ -21,13 +21,16 @@ import {
 import { Input } from '@/components/ui/input'
 import Label from '@/components/ui/label/Label.vue'
 import { Textarea } from '@/components/ui/textarea'
+import { useCatalogTags } from '@/composables/useCatalogTags'
 import { useCatalogStore, type AssetTag } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import { PlusIcon, Trash2 } from 'lucide-vue-next'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 
 const contextsStore = useContextsStore()
 const catalogStore = useCatalogStore()
+const tagsQuery = useCatalogTags()
+
 const selectedDatabaseId = computed<string | null>(() => {
   try {
     return contextsStore.getSelectedContextDatabaseId()
@@ -36,6 +39,9 @@ const selectedDatabaseId = computed<string | null>(() => {
     return null
   }
 })
+
+const tagsArray = computed(() => tagsQuery.data.value || [])
+
 const showCreateModal = ref(false)
 const showDeleteDialog = ref(false)
 const selectedTag = ref<AssetTag | null>(null)
@@ -79,8 +85,7 @@ async function createTag() {
     // Reset form
     newTag.value = { name: '', description: '' }
     showCreateModal.value = false
-
-    catalogStore.fetchTags(databaseId)
+    // Tags query will auto-refetch due to cache invalidation
   } catch (error) {
     console.error('Error creating tag:', error)
   }
@@ -123,22 +128,9 @@ async function confirmDelete() {
     console.error('Error deleting tag:', error)
   }
 }
-
-watch(selectedDatabaseId, async (newDatabaseId, oldDatabaseId) => {
-  if (!newDatabaseId || newDatabaseId === oldDatabaseId) {
-    return
-  }
-  await catalogStore.fetchTags(newDatabaseId)
-})
-
-onMounted(async () => {
-  if (selectedDatabaseId.value) {
-    await catalogStore.fetchTags(selectedDatabaseId.value)
-  }
-})
 </script>
 <template>
-  <PageHeader title="Asset Tags" :subtitle="`${catalogStore.tagsArray.length} tags`" sticky>
+  <PageHeader title="Asset Tags" :subtitle="`${tagsArray.length} tags`" sticky>
     <template #actions>
       <Button @click="showCreateModal = true">
         <PlusIcon class="h-4 w-4" />
@@ -148,9 +140,9 @@ onMounted(async () => {
   </PageHeader>
   <div class="flex-1 overflow-auto">
     <div class="px-4 py-4">
-      <div v-if="catalogStore.tagsArray.length > 0" class="space-y-4">
+      <div v-if="tagsArray.length > 0" class="space-y-4">
         <div
-          v-for="tag in catalogStore.tagsArray"
+          v-for="tag in tagsArray"
           :key="tag.id"
           class="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow"
         >

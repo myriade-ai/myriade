@@ -1,6 +1,7 @@
 import { useDatabasesStore } from '@/stores/databases'
 import { useProjectsStore } from '@/stores/projects'
 import { StorageSerializers, useLocalStorage } from '@vueuse/core'
+import { useQueryClient } from '@tanstack/vue-query'
 import { defineStore } from 'pinia'
 import { computed } from 'vue'
 
@@ -14,6 +15,7 @@ interface Context {
 export const useContextsStore = defineStore('contexts', () => {
   const projectsStore = useProjectsStore()
   const databasesStore = useDatabasesStore()
+  const queryClient = useQueryClient()
 
   // State
   // Store only the context ID instead of the full object
@@ -65,6 +67,25 @@ export const useContextsStore = defineStore('contexts', () => {
 
         if ((!contextSelectedId.value || !currentSelectionValid) && contexts.value.length > 0) {
           contextSelectedId.value = contexts.value[0].id
+        }
+
+        // Prefetch catalog tags for the selected context
+        if (contextSelectedId.value) {
+          try {
+            const databaseId = getDatabaseIdFromContext(contextSelectedId.value)
+            await queryClient.prefetchQuery({
+              queryKey: ['catalog', 'tags', databaseId],
+              queryFn: async () => {
+                const axios = (await import('@/plugins/axios')).default
+                const response = await axios.get(`/api/databases/${databaseId}/catalog/tags`)
+                return response.data
+              },
+              staleTime: 5 * 60 * 1000 // 5 minutes
+            })
+          } catch (error) {
+            // Silently fail - tags will be fetched on-demand if needed
+            console.warn('Failed to prefetch catalog tags:', error)
+          }
         }
       } finally {
         // Reset the promise after completion (success or failure)

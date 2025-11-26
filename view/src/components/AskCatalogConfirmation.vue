@@ -6,8 +6,13 @@
         <AssetBase
           :asset="formattedAssetData"
           :is-processing="isProcessing"
-          @approve="handleAssetApprove"
+          @save="handleAssetSave"
+          @publish="handleAssetPublish"
           @navigate-to-catalog="handleNavigateToCatalog"
+          @approve-description="handleApproveDescription"
+          @approve-tags="handleApproveTags"
+          @reject-description="handleRejectDescription"
+          @reject-tags="handleRejectTags"
         />
       </div>
 
@@ -51,8 +56,10 @@ const props = defineProps<{
     type: 'TABLE' | 'COLUMN'
     status?: AssetStatus
     ai_suggestion?: string | null
-    ai_flag_reason?: string | null
+    note?: string | null
     ai_suggested_tags?: string[] | null
+    published_by?: string | null
+    published_at?: string | null
   }
   term?: {
     id: string
@@ -95,10 +102,6 @@ const formattedAssetData = computed(() => {
     tableName = asset.column_facet.parent_table_facet?.table_name ?? null
   }
 
-  // NOTE: Fallback to catalog store removed as assets are now managed by TanStack Query
-  // This component receives all necessary data from the chat message props
-  // If schema/tableName are missing, they should be included in the function call args
-
   return {
     ...assetData.value,
     tags: assetData.value.tags || [],
@@ -135,37 +138,19 @@ const editableTermData = computed<CatalogTermState>({
   }
 })
 
-const handleAssetApprove = async (payload: {
-  id: string
-  description: string
-  tag_ids: string[]
-  approve_suggestion?: boolean
-  ai_suggestion?: null
-  ai_flag_reason?: null
-  ai_suggested_tags?: null
-}) => {
+const handleAssetSave = async (payload: { id: string; description: string; tag_ids: string[] }) => {
   const contextId = contextsStore.contextSelected?.id
   if (!contextId || !assetData.value) {
-    console.warn('Cannot approve asset without context or asset data')
+    console.warn('Cannot save asset without context or asset data')
     return
   }
 
   try {
     isProcessing.value = true
 
-    // Forward the payload to the catalog store
-    // If the payload includes ai_suggestion/ai_flag_reason/ai_suggested_tags as null, they will be cleared
     const updated = await catalogStore.updateAsset(payload.id, {
       description: payload.description,
-      tag_ids: payload.tag_ids,
-      ...(payload.approve_suggestion !== undefined && {
-        approve_suggestion: payload.approve_suggestion
-      }),
-      ...(payload.ai_suggestion !== undefined && { ai_suggestion: payload.ai_suggestion }),
-      ...(payload.ai_flag_reason !== undefined && { ai_flag_reason: payload.ai_flag_reason }),
-      ...(payload.ai_suggested_tags !== undefined && {
-        ai_suggested_tags: payload.ai_suggested_tags
-      })
+      tag_ids: payload.tag_ids
     })
 
     // Update the query cache directly instead of refetching
@@ -182,14 +167,11 @@ const handleAssetApprove = async (payload: {
 
     // Update local asset data
     if (assetData.value) {
-      assetData.value.description = payload.description
+      assetData.value.description = updated.description
       assetData.value.status = updated.status
-      assetData.value.ai_suggestion = updated.ai_suggestion
-      assetData.value.ai_flag_reason = updated.ai_flag_reason
-      assetData.value.ai_suggested_tags = updated.ai_suggested_tags
     }
   } catch (error) {
-    console.error('Failed to approve asset:', error)
+    console.error('Failed to save asset:', error)
   } finally {
     isProcessing.value = false
   }
@@ -223,6 +205,42 @@ const handleTermApprove = async () => {
   }
 }
 
+const handleAssetPublish = async (payload: { id: string }) => {
+  const contextId = contextsStore.contextSelected?.id
+  if (!contextId || !assetData.value) {
+    console.warn('Cannot publish asset without context or asset data')
+    return
+  }
+
+  try {
+    isProcessing.value = true
+    const updated = await catalogStore.publishAsset(payload.id)
+
+    // Update the query cache directly for optimistic update
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => {
+        if (a.id === updated.id) {
+          return { ...a, ...updated }
+        }
+        return a
+      })
+    })
+
+    // Update local asset data for immediate UI update
+    if (assetData.value) {
+      assetData.value.status = updated.status
+      assetData.value.published_by = updated.published_by
+      assetData.value.published_at = updated.published_at
+    }
+  } catch (error) {
+    console.error('Failed to publish asset:', error)
+  } finally {
+    isProcessing.value = false
+  }
+}
+
 const handleNavigateToCatalog = (payload: { id: string }) => {
   const assetId = payload?.id
   if (!assetId) return
@@ -231,5 +249,141 @@ const handleNavigateToCatalog = (payload: { id: string }) => {
     name: 'AssetPage',
     query: { assetId }
   })
+}
+
+const handleApproveDescription = async (payload: { id: string; description: string }) => {
+  const contextId = contextsStore.contextSelected?.id
+  if (!contextId || !assetData.value) {
+    console.warn('Cannot approve description without context or asset data')
+    return
+  }
+
+  try {
+    isProcessing.value = true
+
+    const updated = await catalogStore.updateAsset(payload.id, {
+      description: payload.description,
+      ai_suggestion: null
+      // Keep ai_suggested_tags if they exist
+    })
+
+    // Update the query cache directly
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => (a.id === updated.id ? updated : a))
+    })
+
+    // Update local asset data
+    if (assetData.value) {
+      assetData.value.description = updated.description
+      assetData.value.ai_suggestion = null
+    }
+  } catch (error) {
+    console.error('Failed to approve description:', error)
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+const handleApproveTags = async (payload: { id: string; tag_ids: string[] }) => {
+  const contextId = contextsStore.contextSelected?.id
+  if (!contextId || !assetData.value) {
+    console.warn('Cannot approve tags without context or asset data')
+    return
+  }
+
+  try {
+    isProcessing.value = true
+
+    const updated = await catalogStore.updateAsset(payload.id, {
+      tag_ids: payload.tag_ids,
+      ai_suggested_tags: null
+      // Keep ai_suggestion if it exists
+    })
+
+    // Update the query cache directly
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => (a.id === updated.id ? updated : a))
+    })
+
+    // Update local asset data
+    if (assetData.value) {
+      assetData.value.tags = updated.tags
+      assetData.value.ai_suggested_tags = null
+    }
+  } catch (error) {
+    console.error('Failed to approve tags:', error)
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+const handleRejectDescription = async (payload: { id: string }) => {
+  const contextId = contextsStore.contextSelected?.id
+  if (!contextId || !assetData.value) {
+    console.warn('Cannot reject description without context or asset data')
+    return
+  }
+
+  try {
+    isProcessing.value = true
+
+    const updated = await catalogStore.updateAsset(payload.id, {
+      ai_suggestion: null
+      // Keep description and ai_suggested_tags unchanged
+    })
+
+    // Update the query cache directly
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => (a.id === updated.id ? updated : a))
+    })
+
+    // Update local asset data
+    if (assetData.value) {
+      assetData.value.ai_suggestion = null
+    }
+  } catch (error) {
+    console.error('Failed to reject description:', error)
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+const handleRejectTags = async (payload: { id: string }) => {
+  const contextId = contextsStore.contextSelected?.id
+  if (!contextId || !assetData.value) {
+    console.warn('Cannot reject tags without context or asset data')
+    return
+  }
+
+  try {
+    isProcessing.value = true
+
+    const updated = await catalogStore.updateAsset(payload.id, {
+      ai_suggested_tags: null
+      // Keep tags and ai_suggestion unchanged
+    })
+
+    // Update the query cache directly
+    const queryKey = ['catalog', 'assets', contextsStore.contextSelected?.id]
+    queryClient.setQueryData(queryKey, (oldData: CatalogAsset[] | undefined) => {
+      if (!oldData) return oldData
+      return oldData.map((a) => (a.id === updated.id ? updated : a))
+    })
+
+    // Update local asset data
+    if (assetData.value) {
+      assetData.value.ai_suggested_tags = null
+    }
+  } catch (error) {
+    console.error('Failed to reject tags:', error)
+  } finally {
+    isProcessing.value = false
+  }
 }
 </script>

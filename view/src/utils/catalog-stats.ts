@@ -36,11 +36,9 @@ export function computeCatalogStats(assets: CatalogAsset[]): CatalogStats {
     (asset) => asset.description && asset.description.trim()
   ).length
 
-  const assetsToReview = assets.filter(
-    (asset) => asset.status === 'needs_review' || asset.status === 'requires_validation'
-  ).length
+  const assetsToReview = assets.filter((asset) => asset.status === 'draft').length
 
-  const assetsValidated = assets.filter((asset) => asset.status === 'validated').length
+  const assetsValidated = assets.filter((asset) => asset.status === 'published').length
 
   const assetsWithAiSuggestions = assets.filter((asset) => asset.ai_suggestion).length
 

@@ -304,7 +304,12 @@ class ConversationMessage(SerializerMixin, DefaultBase, Base):
                     # Include validation workflow fields
                     asset_dict["status"] = asset.status
                     asset_dict["ai_suggestion"] = asset.ai_suggestion
-                    asset_dict["ai_flag_reason"] = asset.ai_flag_reason
+                    asset_dict["note"] = asset.note
+                    asset_dict["ai_suggested_tags"] = asset.ai_suggested_tags
+                    asset_dict["published_by"] = asset.published_by
+                    asset_dict["published_at"] = (
+                        asset.published_at.isoformat() if asset.published_at else None
+                    )
 
                     # Add facet-specific data (schema/table info)
                     if asset.type == "TABLE" and asset.table_facet:

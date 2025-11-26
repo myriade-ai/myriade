@@ -1,10 +1,4 @@
-export type AssetStatus =
-  | 'validated'
-  | 'human_authored'
-  | 'published_by_ai'
-  | 'needs_review'
-  | 'requires_validation'
-  | null
+export type AssetStatus = 'draft' | 'published' | null
 
 export interface CatalogAssetUpdatePayload {
   description?: string | null
@@ -13,8 +7,10 @@ export interface CatalogAssetUpdatePayload {
   status?: AssetStatus
   approve_suggestion?: boolean
   ai_suggestion?: string | null
-  ai_flag_reason?: string | null
+  note?: string | null
   ai_suggested_tags?: string[] | null
+  published_by?: string | null
+  published_at?: string | null
 }
 
 export interface CatalogTermUpdatePayload {

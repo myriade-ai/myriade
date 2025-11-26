@@ -1,5 +1,6 @@
 import logging
 import uuid
+from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 
@@ -97,6 +98,10 @@ class CatalogTool:
                     "name": asset.name,
                     "type": asset.type,
                     "status": asset.status or None,
+                    "published_by": asset.published_by,
+                    "published_at": asset.published_at.isoformat()
+                    if asset.published_at
+                    else None,
                     "description": (
                         asset.description[:100] + "..."
                         if asset.description and len(asset.description) > 100
@@ -208,14 +213,18 @@ class CatalogTool:
                 for tag in asset.asset_tags
             ],
             "status": asset.status or None,
+            "published_by": asset.published_by,
+            "published_at": asset.published_at.isoformat()
+            if asset.published_at
+            else None,
             "created_at": asset.createdAt.isoformat(),
         }
 
         # Add AI metadata if present
         if asset.ai_suggestion:
             result["ai_suggestion"] = asset.ai_suggestion
-        if asset.ai_flag_reason:
-            result["ai_flag_reason"] = asset.ai_flag_reason
+        if asset.note:
+            result["note"] = asset.note
 
         # Add type-specific details
         if asset.type == "TABLE" and asset.table_facet:
@@ -312,45 +321,26 @@ class CatalogTool:
         self,
         asset_id: str,
         description: Optional[str] = None,
+        ai_suggestion: Optional[str] = None,
         tag_ids: Optional[list] = None,
-        suggested_tags: Optional[list] = None,
+        suggested_tags: Optional[list[str]] = None,
         status: Optional[str] = None,
-        flag_reason: Optional[str] = None,
+        note: Optional[str] = None,
     ) -> str:
         """
-        Update properties of a catalog asset with AI validation workflow
+        Update catalog asset documentation.
+
         Args:
             asset_id: UUID of the asset to update
-            description: New description for the asset
-            tag_ids: List of tag IDs to associate with the asset. Can be:
-                     - List of tag UUIDs (strings)
-                     - List of tag names (will auto-create if needed)
-                     Use when you're confident about the tags
-            suggested_tags: List of EXISTING tag names for AI review (strings only).
-                           IMPORTANT: Tags MUST already exist in the catalog.
-                           These are stored for user approval, not immediately linked.
-                           When using suggested_tags, the description is also stored as
-                           ai_suggestion (not applied directly).
-            status: Asset status to set. Valid values:
-                    - "published_by_ai": AI-generated, high confidence
-                    - "needs_review": Needs quick human confirmation
-                    - "requires_validation": Needs significant human input
-                    - "human_authored": Validating existing human description
-            flag_reason: User-facing explanation of what needs confirmation or
-                         clarification. REQUIRED when status is "needs_review" or
-                         "requires_validation".
-                         Should explain WHAT you need confirmed, not WHAT you did.
-                         Examples:
-                         - "Want to confirm if duplicate IDs are expected behavior"
-                         - "Unclear if this table is for reporting or operational use"
+            description: Set asset description (replaces existing). Auto-sets status="draft" if null.
+            ai_suggestion: Propose description for user review (doesn't replace existing).
+            tag_ids: Apply tags immediately (UUIDs or names). Auto-creates if needed. Replaces all existing tags.
+            suggested_tags: Propose tags for review (must exist in catalog). Replaces all when approved.
+            status: "draft" or "published". Auto-sets "draft" if providing description/tags without status.
+            note: Questions/clarifications (user-facing). REPLACES existing note completely.
 
-        Workflow:
-        - If status is "needs_review" or "requires_validation":
-          * Description stored as ai_suggestion for review
-          * flag_reason MUST be provided
-        - If status is "published_by_ai" or "human_authored":
-          * Description applied directly
-        - If using suggested_tags without explicit status → defaults to needs_review
+        Returns:
+            Confirmation message with asset name and status
         """
         asset = (
             self.session.query(Asset)
@@ -364,71 +354,50 @@ class CatalogTool:
         if not asset:
             raise ValueError(f"Asset with id {asset_id} not found")
 
-        has_existing_description = bool(asset.description and asset.description.strip())
-        is_providing_tag_suggestions = (
-            suggested_tags is not None and len(suggested_tags) > 0
-        )
-
         # Validate status parameter
-        valid_statuses = [
-            "published_by_ai",
-            "needs_review",
-            "requires_validation",
-            "human_authored",
-        ]
+        valid_statuses = ["draft", "published"]
         if status is not None and status not in valid_statuses:
             raise ValueError(
                 f"Invalid status '{status}'. Must be one of: {valid_statuses}"
             )
 
-        # Require flag_reason for review statuses
-        if status in ["needs_review", "requires_validation"] and not flag_reason:
-            raise ValueError(f"flag_reason is required when status is '{status}'")
+        # Update note if provided
+        if note is not None:
+            asset.note = note
 
-        # Determine how to handle the update based on status
-        if status in ["needs_review", "requires_validation"]:
-            # Store description as suggestion for human review
+        # Handle ai_suggestion update
+        if ai_suggestion is not None:
+            if isinstance(ai_suggestion, str):
+                asset.ai_suggestion = ai_suggestion.strip()
+            else:
+                asset.ai_suggestion = None
+
+        # Handle description update
+        if description is not None:
+            if isinstance(description, str):
+                asset.description = description.strip()
+            else:
+                asset.description = None
+
+        # Handle status update
+        if status is not None:
             asset.status = status
-            asset.ai_flag_reason = flag_reason
-            if description:
-                asset.ai_suggestion = description.strip()
-            # Store suggested tags for review
-            if suggested_tags is not None:
-                asset.ai_suggested_tags = self._validate_suggested_tags(suggested_tags)
+            # When setting to published, track who and when
+            if status == "published":
+                asset.published_by = "myriade-agent"
+                asset.published_at = datetime.utcnow()
+        elif description is not None or tag_ids is not None:
+            # If no status provided but making updates, set to draft if no status exists
+            if asset.status is None:
+                asset.status = "draft"
 
-        elif status in ["published_by_ai", "human_authored"]:
-            # Apply description directly
-            asset.status = status
-            asset.ai_flag_reason = None
-            if description is not None:
-                if isinstance(description, str):
-                    asset.description = description.strip()
-                else:
-                    asset.description = None
+        is_providing_tag_suggestions = (
+            suggested_tags is not None and len(suggested_tags) > 0
+        )
 
-        elif is_providing_tag_suggestions:
-            # Using suggested_tags without explicit status → default to needs_review
-            asset.status = "needs_review"
-            asset.ai_flag_reason = flag_reason or "AI suggested tags for review"
-            if description:
-                asset.ai_suggestion = description.strip()
-            if suggested_tags is not None:
-                asset.ai_suggested_tags = self._validate_suggested_tags(suggested_tags)
-
-        else:
-            # No explicit status and no suggested_tags - infer from context
-            if description is not None:
-                if isinstance(description, str):
-                    asset.description = description.strip()
-                else:
-                    asset.description = None
-
-            # Auto-determine status if not provided
-            if has_existing_description and description:
-                asset.status = "human_authored"
-            elif description:
-                asset.status = "published_by_ai"
-                asset.ai_flag_reason = None
+        # Handle suggested tags (for review)
+        if is_providing_tag_suggestions:
+            asset.ai_suggested_tags = self._validate_suggested_tags(suggested_tags)
 
         if tag_ids is not None:
             # Clear existing tag associations
@@ -481,15 +450,12 @@ class CatalogTool:
 
         asset_label = asset.name or asset.urn or asset_id
         status_emoji = {
-            "validated": "✓",
-            "human_authored": "✍️",
-            "published_by_ai": "🤖",
-            "needs_review": "⚠️",
-            "requires_validation": "📝",
+            "draft": "📝",
+            "published": "✓",
             None: "⭕",
         }.get(asset.status, "")
 
-        status_label = asset.status or "uncategorized"
+        status_label = asset.status or "unverified"
 
         return f"Updated asset '{asset_label}' ({status_emoji} {status_label})"
 
@@ -744,7 +710,9 @@ class CatalogTool:
 
         return yaml.dump(result)
 
-    def _validate_suggested_tags(self, suggested_tags: list) -> List[str]:
+    def _validate_suggested_tags(
+        self, suggested_tags: Optional[list[str]] = None
+    ) -> List[str]:
         """
         Validate that suggested tags exist in the database
         Args:

@@ -160,7 +160,7 @@ export function useCatalogIndexed(assets: ComputedRef<CatalogAsset[] | undefined
 
   /**
    * Index all assets by status
-   * Used for: Status-based filtering (needs_review, validated, etc.)
+   * Used for: Status-based filtering (draft, published, unverified)
    */
   const assetsByStatusMap = computed(() => {
     const map = new Map<string, CatalogAsset[]>()

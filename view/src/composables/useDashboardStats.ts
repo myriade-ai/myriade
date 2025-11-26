@@ -65,11 +65,10 @@ export function computeDashboardStats(
         assets_with_description++
       }
 
-      if (asset.status === 'validated') {
+      if (asset.status === 'published') {
         assets_validated++
-      } else if (asset.status === 'published_by_ai') {
-        assets_ai_generated++
-      } else if (asset.status === 'needs_review' || asset.status === 'requires_validation') {
+        assets_ai_generated++ // Count all published assets
+      } else if (asset.status === 'draft') {
         assets_to_review++
       }
     }
