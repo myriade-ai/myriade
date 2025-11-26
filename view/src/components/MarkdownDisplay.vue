@@ -13,8 +13,14 @@ const props = defineProps<{
 
 // We need to replace <QUERY:uuid> with link to the query
 // eg. uuid d3a2541d-6fc6-4ae9-841e-055e60f0575e
+// Also replace <AGENT:id> with styled agent mention
 const content = computed(() => {
-  return props.content.replace(/<QUERY:([^>]+)>/g, '<a href="/query/$1">Query $1</a>')
+  return props.content.replace(/<QUERY:([^>]+)>/g, '<a href="/query/$1">Query $1</a>').replace(
+    /<AGENT:([^>]+)>/g,
+    `<span class="agent-mention">
+        @Myriade Agent
+      </span>`
+  )
 })
 
 // Sanitize HTML to prevent XSS attacks
@@ -45,7 +51,8 @@ const sanitizedHtml = computed(() => {
       'tbody',
       'tr',
       'th',
-      'td'
+      'td',
+      'span'
     ],
     ALLOWED_ATTR: ['href', 'title', 'class']
   })
@@ -117,6 +124,23 @@ const sanitizedHtml = computed(() => {
     background-color: transparent;
     padding: 0;
     border-radius: 0;
+  }
+  .agent-mention {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.375rem;
+    background-color: rgb(243 232 255); /* purple-100 */
+    color: rgb(126 34 206); /* purple-700 */
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+  .agent-mention-icon {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.15em;
+    color: rgb(126 34 206); /* purple-700 */
   }
 }
 </style>

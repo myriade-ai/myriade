@@ -4,7 +4,7 @@
 
     <!-- BubbleMenu for text selection -->
     <BubbleMenu
-      v-if="editor"
+      v-if="editor && showBubbleMenu"
       :editor="editor"
       :should-show="shouldShowMenu"
       class="bubble-menu-container"
@@ -126,14 +126,19 @@
 <script setup lang="ts">
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { BubbleMenu } from '@tiptap/vue-3/menus'
-import { onUnmounted, ref, watch, nextTick } from 'vue'
+import { onUnmounted, ref, watch, nextTick, computed } from 'vue'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Mention from '@tiptap/extension-mention'
 import { QueryNode } from './editor/QueryNode'
 import { ChartNode } from './editor/ChartNode'
+import { AgentMentionNode } from './editor/AgentMentionNode'
 import { serializeToMarkdown } from './editor/markdownSerializer'
-import { mentionSuggestion } from './editor/mentions'
+import {
+  createMentionSuggestion,
+  getSuggestionComponent,
+  getSelectHandler
+} from './editor/mentions'
 import { useConversationsStore } from '@/stores/conversations'
 import { useContextsStore } from '@/stores/contexts'
 import { useRouter } from 'vue-router'
@@ -154,16 +159,52 @@ interface Props {
   placeholder?: string
   disabled?: boolean
   documentId?: string
+  /** Enable @ mentions for queries (inserts QueryNode) */
+  enableQueryMentions?: boolean
+  /** Enable @ mentions for charts (inserts ChartNode) */
+  enableChartMentions?: boolean
+  /** Enable @ mention for AI agent (inserts AgentMentionNode) */
+  enableAgentMention?: boolean
+  /** Whether to show the bubble menu for AI assistance (defaults to true) */
+  showBubbleMenu?: boolean
+  /** Minimum height for the editor content area */
+  minHeight?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  placeholder: 'Start writing... Use @ to mention queries or charts',
+  placeholder: 'Start writing...',
   disabled: false,
-  documentId: undefined
+  documentId: undefined,
+  enableQueryMentions: false,
+  enableChartMentions: false,
+  enableAgentMention: false,
+  showBubbleMenu: true,
+  minHeight: '200px'
+})
+
+// Check if any mention type is enabled
+const hasMentionsEnabled = computed(
+  () => props.enableQueryMentions || props.enableChartMentions || props.enableAgentMention
+)
+
+// Computed mention suggestion based on enabled mention types
+const mentionSuggestionConfig = computed(() => {
+  const options = {
+    enableQueryMentions: props.enableQueryMentions,
+    enableChartMentions: props.enableChartMentions,
+    enableAgentMention: props.enableAgentMention
+  }
+
+  const component = getSuggestionComponent(options)
+  if (!component) return null
+
+  const selectHandler = getSelectHandler(options)
+  return createMentionSuggestion(component, selectHandler)
 })
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
+  (e: 'submit'): void
 }>()
 
 // Get stores and router for conversation creation
@@ -343,13 +384,21 @@ function markdownToHTML(markdown: string): string {
   let inParagraph = false
   let paragraphContent: string[] = []
 
+  // Helper to process inline content including agent mentions
+  const processInlineContent = (text: string): string => {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code>$1</code>')
+      .replace(
+        /<AGENT:([^>]+)>/g,
+        '<span data-type="agent-mention" data-agent-id="$1" data-agent-label="Myriade Agent"></span>'
+      )
+  }
+
   const flushParagraph = () => {
     if (paragraphContent.length > 0) {
-      const content = paragraphContent
-        .join(' ')
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/`(.+?)`/g, '<code>$1</code>')
+      const content = processInlineContent(paragraphContent.join(' '))
       htmlParts.push(`<p>${content}</p>`)
       paragraphContent = []
     }
@@ -429,34 +478,56 @@ function markdownToHTML(markdown: string): string {
   return htmlParts.join('')
 }
 
-// Initialize Tiptap editor
-const editor = useEditor({
-  extensions: [
+// Build extensions array based on enabled features
+const buildExtensions = () => {
+  const extensions = [
     StarterKit,
     Placeholder.configure({
       placeholder: props.placeholder
     }),
-    Mention.configure({
-      HTMLAttributes: {
-        class: 'mention',
-        'data-type': 'mention',
-        'data-id': null
-      },
-      renderLabel: ({ node }) => {
-        return node.attrs.id || '@mention'
-      },
-      suggestion: mentionSuggestion
-    }),
     QueryNode,
-    ChartNode
-  ],
+    ChartNode,
+    AgentMentionNode
+  ]
+
+  // Only add Mention extension if any mention type is enabled
+  if (hasMentionsEnabled.value && mentionSuggestionConfig.value) {
+    extensions.push(
+      Mention.configure({
+        HTMLAttributes: {
+          class: 'mention',
+          'data-type': 'mention',
+          'data-id': null
+        },
+        renderLabel: ({ node }) => {
+          return node.attrs.id || '@mention'
+        },
+        suggestion: mentionSuggestionConfig.value
+      })
+    )
+  }
+
+  return extensions
+}
+
+// Initialize Tiptap editor
+const editor = useEditor({
+  extensions: buildExtensions(),
   content: (() => {
     const html = props.modelValue ? markdownToHTML(props.modelValue) : ''
     return html
   })(),
   editorProps: {
     attributes: {
-      class: 'prose prose-sm max-w-none focus:outline-none min-h-[200px] p-4 rounded-lg'
+      class: `prose prose-sm max-w-none focus:outline-none min-h-[${props.minHeight}] p-4 rounded-lg`
+    },
+    handleKeyDown: (_view, event) => {
+      // Handle Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux) to submit
+      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+        emit('submit')
+        return true
+      }
+      return false
     }
   },
   onUpdate: ({ editor }) => {
