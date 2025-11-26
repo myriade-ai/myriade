@@ -103,12 +103,12 @@ export function serializeToMarkdown(doc: ProseMirrorNode): string {
 }
 
 /**
- * Check if a node has inline nodes (like agent mentions)
+ * Check if a node has inline nodes (like agent mentions or user mentions)
  */
 function hasInlineNodes(node: ProseMirrorNode): boolean {
   let hasInline = false
   node.descendants((child) => {
-    if (child.type.name === 'agentMentionNode') {
+    if (child.type.name === 'agentMentionNode' || child.type.name === 'userMentionNode') {
       hasInline = true
       return false
     }
@@ -129,6 +129,15 @@ function serializeInlineContent(node: ProseMirrorNode): string {
       const agentId = child.attrs.agentId
       if (agentId) {
         text += `<AGENT:${agentId}>`
+      }
+      return false
+    }
+
+    // Handle user mention nodes (inline)
+    if (child.type.name === 'userMentionNode') {
+      const label = child.attrs.label
+      if (label) {
+        text += `<USER:${label}>`
       }
       return false
     }
