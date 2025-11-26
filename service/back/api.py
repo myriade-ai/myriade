@@ -1222,7 +1222,6 @@ def get_catalog_assets(database_id: UUID):
             if asset.published_at
             else None,
             "ai_suggestion": asset.ai_suggestion,
-            "note": asset.note,
             "ai_suggested_tags": asset.ai_suggested_tags,
         }
 
@@ -1407,8 +1406,8 @@ def update_catalog_asset(asset_id: str):
         if asset.status is None:
             asset.status = "draft"
 
-    if "note" in data:
-        asset.note = data["note"]
+    # Note field has been removed - silently ignore for backward compatibility
+    # Users should use the asset feed to post comments instead
 
     # Handle clearing AI fields
     if "ai_suggestion" in data:

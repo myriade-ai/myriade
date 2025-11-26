@@ -68,7 +68,6 @@ class Asset(SerializerMixin, DefaultBase, Base):
 
     status: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     ai_suggestion: Mapped[Optional[str]] = mapped_column(Text)
-    note: Mapped[Optional[str]] = mapped_column(Text)
     ai_suggested_tags: Mapped[Optional[List[str]]] = mapped_column(JSONB)
     published_by: Mapped[Optional[str]] = mapped_column(
         String, nullable=True

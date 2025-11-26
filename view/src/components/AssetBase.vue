@@ -68,15 +68,6 @@
       </CardAction>
     </CardHeader>
     <CardContent>
-      <!-- Note Alert (always show if present) - Moved to top -->
-      <div
-        v-if="props.asset.note"
-        class="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border-blue-200 text-blue-900 mb-4"
-      >
-        <Info class="size-4 mt-0.5 flex-shrink-0 text-blue-600" />
-        <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ props.asset.note }}</p>
-      </div>
-
       <!-- Description Edit -->
       <div class="space-y-2">
         <label class="text-xs font-medium text-muted-foreground">Description</label>
@@ -262,7 +253,6 @@ interface AssetInput {
   tableName?: string | null
   status?: AssetStatus
   ai_suggestion?: string | null
-  note?: string | null
   ai_suggested_tags?: string[] | null
   published_by?: string | null
   published_at?: string | null

@@ -133,6 +133,7 @@ import Mention from '@tiptap/extension-mention'
 import { QueryNode } from './editor/QueryNode'
 import { ChartNode } from './editor/ChartNode'
 import { AgentMentionNode } from './editor/AgentMentionNode'
+import { UserMentionNode } from './editor/UserMentionNode'
 import { serializeToMarkdown } from './editor/markdownSerializer'
 import {
   createMentionSuggestion,
@@ -384,7 +385,7 @@ function markdownToHTML(markdown: string): string {
   let inParagraph = false
   let paragraphContent: string[] = []
 
-  // Helper to process inline content including agent mentions
+  // Helper to process inline content including agent mentions and user mentions
   const processInlineContent = (text: string): string => {
     return text
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -393,6 +394,10 @@ function markdownToHTML(markdown: string): string {
       .replace(
         /<AGENT:([^>]+)>/g,
         '<span data-type="agent-mention" data-agent-id="$1" data-agent-label="Myriade Agent"></span>'
+      )
+      .replace(
+        /<USER:([^>]+)>/g,
+        '<span data-type="user-mention" data-user-label="$1"></span>'
       )
   }
 
@@ -487,7 +492,8 @@ const buildExtensions = () => {
     }),
     QueryNode,
     ChartNode,
-    AgentMentionNode
+    AgentMentionNode,
+    UserMentionNode
   ]
 
   // Only add Mention extension if any mention type is enabled
