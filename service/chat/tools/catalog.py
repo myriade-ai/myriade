@@ -13,7 +13,7 @@ from back.catalog_search import search_assets_and_terms
 from back.data_warehouse import AbstractDatabase
 from back.utils import get_provider_metadata_for_asset
 from models import Database
-from models.catalog import Asset, AssetActivity, AssetTag, Term
+from models.catalog import ActivityType, Asset, AssetActivity, AssetTag, Term
 
 logger = logging.getLogger(__name__)
 
@@ -856,8 +856,8 @@ class CatalogTool:
         Returns:
             Confirmation message
         """
+        # Lazy import to avoid circular dependency
         from back.activity import create_activity
-        from models.catalog import ActivityType
 
         asset = (
             self.session.query(Asset)
