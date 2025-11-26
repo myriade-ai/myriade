@@ -62,6 +62,9 @@
             @reject-description="$emit('reject-description')"
             @reject-tags="$emit('reject-tags')"
           />
+
+          <!-- Activity Feed -->
+          <AssetFeed v-if="asset" :asset-id="asset.id" />
         </TabsContent>
 
         <TabsContent v-if="isDatabaseAsset" value="schemas" class="space-y-4">
@@ -102,6 +105,7 @@
 
 <script setup lang="ts">
 import AssetDescriptionEditor from '@/components/catalog/AssetDescriptionEditor.vue'
+import AssetFeed from '@/components/catalog/AssetFeed.vue'
 import AssetPreviewTab from '@/components/catalog/AssetPreviewTab.vue'
 import AssetSourcesTab from '@/components/catalog/AssetSourcesTab.vue'
 import CatalogColumnsTab from '@/components/catalog/CatalogColumnsTab.vue'

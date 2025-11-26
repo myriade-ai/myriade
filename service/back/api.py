@@ -63,6 +63,7 @@ from models import (
 )
 from models.catalog import (
     Asset,
+    AssetActivity,
     AssetTag,
     ColumnFacet,
     TableFacet,
@@ -1369,6 +1370,7 @@ def search_catalog_assets(database_id: UUID):
 @user_middleware
 def update_catalog_asset(asset_id: str):
     """Update mutable fields of a catalog asset with validation workflow support."""
+    from back.activity import create_audit_trail
 
     try:
         asset_uuid = UUID(asset_id)
@@ -1381,6 +1383,13 @@ def update_catalog_asset(asset_id: str):
         return jsonify({"error": "Asset not found"}), 404
 
     data = request.get_json(silent=True) or {}
+
+    # Capture old values for audit trail
+    old_values = {
+        "description": asset.description,
+        "status": asset.status,
+        "tags": [tag.name for tag in asset.asset_tags],
+    }
 
     # Handle publishing
     if "status" in data and data["status"] == "published":
@@ -1425,6 +1434,24 @@ def update_catalog_asset(asset_id: str):
                 asset.asset_tags.append(tag)
 
     g.session.flush()
+
+    # Create audit trail for changed fields
+    new_values = {}
+    if "description" in data:
+        new_values["description"] = asset.description
+    if "status" in data:
+        new_values["status"] = asset.status
+    if "tag_ids" in data:
+        new_values["tags"] = [tag.name for tag in asset.asset_tags]
+
+    if new_values:
+        create_audit_trail(
+            session=g.session,
+            asset=asset,
+            actor_id=g.user.id,
+            old_values=old_values,
+            new_values=new_values,
+        )
 
     # Broadcast real-time update to other users viewing this database
     emit_asset_updated(asset, g.user.id)
@@ -1582,6 +1609,238 @@ def get_asset_sources(asset_id: str):
     except Exception as e:
         logger.error(f"Error fetching asset sources: {str(e)}")
         return jsonify({"error": f"Failed to fetch asset sources: {str(e)}"}), 500
+
+
+@api.route("/catalogs/assets/<string:asset_id>/activities", methods=["GET"])
+@user_middleware
+def get_asset_activities(asset_id: str):
+    """Get activity feed for a catalog asset."""
+    try:
+        asset_uuid = UUID(asset_id)
+    except ValueError:
+        return jsonify({"error": "Invalid asset id"}), 400
+
+    asset = g.session.query(Asset).filter(Asset.id == asset_uuid).first()
+
+    if not asset:
+        return jsonify({"error": "Asset not found"}), 404
+
+    # Verify user has access to the database
+    database = g.session.query(Database).filter_by(id=asset.database_id).first()
+
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    # Fetch activities ordered by created_at desc
+    activities = (
+        g.session.query(AssetActivity)
+        .filter(AssetActivity.asset_id == asset_uuid)
+        .order_by(AssetActivity.created_at.desc())
+        .all()
+    )
+
+    return jsonify([activity.to_dict() for activity in activities])
+
+
+@api.route("/catalogs/assets/<string:asset_id>/activities", methods=["POST"])
+@user_middleware
+def create_asset_activity(asset_id: str):
+    """
+    Create a new activity (comment) for a catalog asset.
+    If the content contains @myriade-agent, triggers an agent conversation.
+    """
+    from back.activity import create_activity, create_agent_working_activity
+
+    try:
+        asset_uuid = UUID(asset_id)
+    except ValueError:
+        return jsonify({"error": "Invalid asset id"}), 400
+
+    asset = g.session.query(Asset).filter(Asset.id == asset_uuid).first()
+
+    if not asset:
+        return jsonify({"error": "Asset not found"}), 404
+
+    # Verify user has access
+    database = g.session.query(Database).filter_by(id=asset.database_id).first()
+
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json(silent=True) or {}
+    content = data.get("content", "").strip()
+
+    if not content:
+        return jsonify({"error": "Content is required"}), 400
+
+    # Check for @myriade-agent mention
+    if "@myriade-agent" in content.lower():
+        from app import socketio
+        from back.activity import run_agent_for_activity_background
+        from back.session import get_db_session
+
+        # Create conversation with asset context
+        context_id = f"database-{database.id}"
+        database_id, project_id = extract_context(g.session, context_id)
+
+        # Set conversation name based on asset
+        asset_label = asset.name or asset.urn or "Asset"
+        conversation_name = f"Q: {asset_label}"
+
+        new_conversation = Conversation(
+            databaseId=database_id,
+            ownerId=g.user.id,
+            projectId=project_id,
+            name=conversation_name,
+        )
+        g.session.add(new_conversation)
+        g.session.flush()
+
+        # First, create the user's comment activity so it appears in the feed
+        from models.catalog import ActivityType
+
+        user_comment_activity = create_activity(
+            session=g.session,
+            asset_id=asset_uuid,
+            actor_id=g.user.id,
+            activity_type=ActivityType.COMMENT,
+            content=content,
+            conversation_id=new_conversation.id,
+        )
+
+        # Then create agent_working activity
+        activity = create_agent_working_activity(
+            session=g.session,
+            asset_id=asset_uuid,
+            conversation_id=new_conversation.id,
+            user_message=content,
+        )
+
+        # Store asset_id in conversation for context injection
+        # We'll pass this via the first message
+        asset_context = _build_asset_context_for_agent(asset, g.session)
+
+        # Create initial user message with asset context
+        from models import ConversationMessage
+
+        context_message = ConversationMessage(
+            conversationId=new_conversation.id,
+            role="user",
+            content=f"[Asset Context]\n{asset_context}\n\n[User Message]\n{content}",
+        )
+        g.session.add(context_message)
+        g.session.flush()
+
+        # Commit transaction before starting background task
+        g.session.commit()
+
+        # Emit socket event to notify frontend about new conversation
+        # This allows the sidebar to update without a page refresh
+        socketio.emit(
+            "conversation:created",
+            {
+                "conversation": new_conversation.to_dict(),
+                "databaseId": str(database.id),
+            },
+        )
+
+        # Capture sealed session for background task (needed for AI proxy auth)
+        sealed_session = g.sealed_session
+
+        # Run agent in background task
+        run_agent_for_activity_background(
+            conversation_id=new_conversation.id,
+            activity_id=activity.id,
+            session_factory=get_db_session,
+            sealed_session=sealed_session,
+        )
+
+        return jsonify(
+            {
+                "activity": user_comment_activity.to_dict(),
+                "conversation": new_conversation.to_dict(),
+                "agentTriggered": True,
+            }
+        )
+
+    # Regular comment (no agent trigger)
+    from models.catalog import ActivityType
+
+    activity = create_activity(
+        session=g.session,
+        asset_id=asset_uuid,
+        actor_id=g.user.id,
+        activity_type=ActivityType.COMMENT,
+        content=content,
+    )
+
+    return jsonify(
+        {
+            "activity": activity.to_dict(),
+            "agentTriggered": False,
+        }
+    )
+
+
+def _build_asset_context_for_agent(asset: Asset, session) -> str:
+    """Build asset context string for agent conversation."""
+    context_parts = [
+        f"Asset ID: {asset.id}",
+        f"URN: {asset.urn}",
+        f"Name: {asset.name or 'N/A'}",
+        f"Type: {asset.type}",
+        f"Description: {asset.description or 'No description'}",
+    ]
+
+    # Add tags
+    if asset.asset_tags:
+        tag_names = [tag.name for tag in asset.asset_tags]
+        context_parts.append(f"Tags: {', '.join(tag_names)}")
+
+    # Add type-specific info
+    if asset.type == "TABLE" and asset.table_facet:
+        tf = asset.table_facet
+        context_parts.extend(
+            [
+                f"Schema: {tf.schema}",
+                f"Table Name: {tf.table_name}",
+                f"Database Name: {tf.database_name}",
+            ]
+        )
+    elif asset.type == "COLUMN" and asset.column_facet:
+        cf = asset.column_facet
+        context_parts.extend(
+            [
+                f"Column Name: {cf.column_name}",
+                f"Data Type: {cf.data_type}",
+            ]
+        )
+        # Get parent table info
+        if cf.parent_table_asset and cf.parent_table_asset.table_facet:
+            ptf = cf.parent_table_asset.table_facet
+            context_parts.append(f"Parent Table: {ptf.schema}.{ptf.table_name}")
+
+    return "\n".join(context_parts)
 
 
 @api.route("/databases/<uuid:database_id>/catalog/terms", methods=["GET"])
