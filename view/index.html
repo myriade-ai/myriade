@@ -9,6 +9,17 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover, user-scalable=no"
     />
+    <script>
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)')
+
+      const applyTheme = (isDark) => {
+        document.documentElement.classList.toggle('dark', isDark)
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light'
+      }
+
+      applyTheme(prefersDark.matches)
+      prefersDark.addEventListener('change', (event) => applyTheme(event.matches))
+    </script>
     <title>Myriade – AI-Powered Data Analysis Made Simple</title>
     <meta name="title" content="Myriade – AI-Powered Data Analysis" />
     <meta
