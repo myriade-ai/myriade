@@ -3,8 +3,8 @@
     <!-- Card Layout (for setup funnel) -->
     <div class="space-y-4">
       <div class="text-center" v-if="showTitle">
-        <h2 class="text-2xl font-bold text-gray-900 mb-2">Select Your Database Type</h2>
-        <p class="text-gray-600">
+        <h2 class="text-2xl font-bold text-foreground mb-2">Select Your Database Type</h2>
+        <p class="text-muted-foreground">
           Select the database you'd like to connect to start using Myriade's AI capabilities.
         </p>
       </div>
@@ -14,10 +14,10 @@
           v-for="dbType in availableTypes"
           :key="dbType.value"
           @click="selectType(dbType.value)"
-          class="relative group p-6 bg-white border border-gray-200 rounded-lg hover:border-primary-500 hover:shadow-md transition-all duration-200 cursor-pointer"
+          class="relative group p-6 bg-card border border-border rounded-lg hover:border-primary-500 hover:shadow-md transition-all duration-200 cursor-pointer"
           :class="{
             'border-primary-500 bg-primary-50': modelValue === dbType.value,
-            'hover:bg-gray-50': modelValue !== dbType.value
+            'hover:bg-muted': modelValue !== dbType.value
           }"
         >
           <div class="flex flex-col items-center space-y-3">
@@ -27,8 +27,8 @@
             >
               <component :is="dbType.icon" class="w-6 h-6" :class="dbType.iconColor" />
             </div>
-            <h3 class="text-sm font-medium text-gray-900">{{ dbType.name }}</h3>
-            <p class="text-xs text-gray-500 text-center">{{ dbType.description }}</p>
+            <h3 class="text-sm font-medium text-foreground">{{ dbType.name }}</h3>
+            <p class="text-xs text-muted-foreground text-center">{{ dbType.description }}</p>
           </div>
           <CheckCircleIcon
             v-if="modelValue === dbType.value"
@@ -114,8 +114,8 @@ const allDatabaseTypes: DatabaseType[] = [
     name: 'SQLite',
     description: 'Lightweight embedded database',
     icon: CircleStackIcon,
-    iconBg: 'bg-gray-100',
-    iconColor: 'text-gray-600'
+    iconBg: 'bg-muted',
+    iconColor: 'text-muted-foreground'
   },
   {
     value: 'bigquery',

@@ -3,9 +3,9 @@
     <!-- Removed duplicate big heading to avoid redundancy with page title -->
 
     <!-- Legend / descriptions -->
-    <div class="bg-gray-50 p-4 rounded-md">
+    <div class="bg-muted p-4 rounded-md">
       <h2 class="text-sm font-semibold mb-2">Privacy options</h2>
-      <ul class="space-y-1 text-sm text-gray-600">
+      <ul class="space-y-1 text-sm text-muted-foreground">
         <li v-for="opt in privacyOptions" :key="String(opt.key)">
           <span class="font-medium">{{ opt.label }}:</span> {{ opt.description }}
         </li>
@@ -14,11 +14,11 @@
 
     <!-- User Group Selector -->
     <!-- <div class="flex items-center space-x-3">
-      <label class="font-medium text-gray-700" for="userGroup">User group</label>
+      <label class="font-medium text-muted-foreground" for="userGroup">User group</label>
       <select
         id="userGroup"
         v-model="selectedGroup"
-        class="border-gray-300 rounded-md shadow-xs focus:border-primary-500 focus:ring-primary-500 text-sm"
+        class="border-input rounded-md shadow-xs focus:border-primary-500 focus:ring-primary-500 text-sm"
       >
         <option v-for="g in userGroups" :key="g.key" :value="g.key">{{ g.name }}</option>
       </select>
@@ -34,68 +34,72 @@
         <!-- Table header -->
         <details>
           <summary
-            class="flex justify-between items-center cursor-pointer px-4 py-2 bg-gray-50 hover:bg-gray-100"
+            class="flex justify-between items-center cursor-pointer px-4 py-2 bg-muted hover:bg-muted"
           >
             <div class="flex flex-col">
               <div class="flex items-center space-x-2">
                 <span class="font-medium">{{ table.schema }}.{{ table.name }}</span>
-                <span class="text-xs text-gray-500" v-if="statsForTable(table)">
+                <span class="text-xs text-muted-foreground" v-if="statsForTable(table)">
                   ({{ statsForTable(table) }})
                 </span>
               </div>
-              <span class="text-xs text-gray-500">{{ table.description }}</span>
+              <span class="text-xs text-muted-foreground">{{ table.description }}</span>
             </div>
-            <span class="text-xs text-gray-400">{{ table.type }}</span>
+            <span class="text-xs text-muted-foreground">{{ table.type }}</span>
           </summary>
 
           <!-- Column list -->
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 table-fixed">
-              <thead class="bg-gray-50">
+              <thead class="bg-muted">
                 <tr>
                   <th
-                    class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4"
+                    class="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-1/4"
                   >
                     Column
                   </th>
                   <th
-                    class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4"
+                    class="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-1/4"
                   >
                     Type
                   </th>
                   <th
-                    class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4"
+                    class="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-1/4"
                   >
                     Description
                   </th>
                   <th
-                    class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4"
+                    class="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-1/4"
                   >
                     Privacy
                   </th>
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
+              <tbody class="bg-card divide-y divide-gray-200">
                 <tr v-for="col in table.columns" :key="col.name">
-                  <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-foreground">
                     {{ col.name }}
                   </td>
-                  <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ col.type }}</td>
-                  <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                  <td class="px-4 py-2 whitespace-nowrap text-sm text-muted-foreground">
+                    {{ col.type }}
+                  </td>
+                  <td class="px-4 py-2 whitespace-nowrap text-sm text-muted-foreground">
                     {{ col.description }}
                   </td>
-                  <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                  <td class="px-4 py-2 whitespace-nowrap text-sm text-muted-foreground">
                     <select
                       v-model="col.privacy[selectedGroup]"
                       :disabled="!isTextType(col.type)"
-                      class="border-gray-300 rounded-md shadow-xs focus:border-primary-500 focus:ring-primary-500 text-sm"
+                      class="border-input rounded-md shadow-xs focus:border-primary-500 focus:ring-primary-500 text-sm"
                       :class="[
                         col.privacy[selectedGroup] &&
                         col.privacy[selectedGroup] !== 'Default' &&
                         col.privacy[selectedGroup] !== 'Visible'
                           ? 'bg-primary-100'
-                          : 'text-gray-700',
-                        !isTextType(col.type) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''
+                          : 'text-muted-foreground',
+                        !isTextType(col.type)
+                          ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                          : ''
                       ]"
                     >
                       <option v-for="opt in privacyOptions" :key="String(opt.key)" :value="opt.key">
@@ -120,7 +124,7 @@
           'px-4 py-2 rounded-md text-sm focus:outline-hidden focus:ring-2 focus:ring-offset-2',
           hasUnsavedChanges
             ? 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500'
-            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : 'bg-muted text-muted-foreground cursor-not-allowed'
         ]"
       >
         Save Configuration

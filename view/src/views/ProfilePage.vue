@@ -1,8 +1,8 @@
 <template>
-  <div class="h-full bg-gray-100 py-8 overflow-y-auto">
+  <div class="h-full bg-muted py-8 overflow-y-auto">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Header Section -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+      <div class="bg-card rounded-lg shadow-sm border border-border p-6 mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
           <!-- Avatar placeholder -->
           <div
@@ -15,10 +15,10 @@
 
           <!-- User info -->
           <div class="flex-1">
-            <h1 class="text-3xl font-bold text-gray-900 mb-1">
+            <h1 class="text-3xl font-bold text-foreground mb-1">
               {{ user.firstName }} {{ user.lastName }}
             </h1>
-            <p class="text-gray-600 flex items-center">
+            <p class="text-muted-foreground flex items-center">
               <svg
                 class="w-4 h-4 mr-2 flex-shrink-0"
                 fill="none"
@@ -85,10 +85,10 @@
       <OrganizationSettings v-if="user.inOrganization" class="mb-6" />
 
       <!-- Profile Details Card -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+      <div class="bg-card rounded-lg shadow-sm border border-border p-6">
+        <h2 class="text-xl font-semibold text-foreground mb-4 flex items-center">
           <svg
-            class="w-5 h-5 mr-2 text-gray-600 flex-shrink-0"
+            class="w-5 h-5 mr-2 text-muted-foreground flex-shrink-0"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -106,34 +106,34 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- First Name -->
           <div class="space-y-2">
-            <label class="text-sm font-medium text-gray-700">First Name</label>
-            <div class="p-3 bg-gray-100 rounded-md border border-gray-200">
-              <p class="text-gray-900">{{ user.firstName || 'Not provided' }}</p>
+            <label class="text-sm font-medium text-foreground">First Name</label>
+            <div class="p-3 bg-muted rounded-md border border-border">
+              <p class="text-foreground">{{ user.firstName || 'Not provided' }}</p>
             </div>
           </div>
 
           <!-- Last Name -->
           <div class="space-y-2">
-            <label class="text-sm font-medium text-gray-700">Last Name</label>
-            <div class="p-3 bg-gray-100 rounded-md border border-gray-200">
-              <p class="text-gray-900">{{ user.lastName || 'Not provided' }}</p>
+            <label class="text-sm font-medium text-foreground">Last Name</label>
+            <div class="p-3 bg-muted rounded-md border border-border">
+              <p class="text-foreground">{{ user.lastName || 'Not provided' }}</p>
             </div>
           </div>
 
           <!-- Email -->
           <div class="space-y-2 md:col-span-2">
-            <label class="text-sm font-medium text-gray-700">Email Address</label>
-            <div class="p-3 bg-gray-100 rounded-md border border-gray-200">
-              <p class="text-gray-900">{{ user.email || 'Not provided' }}</p>
+            <label class="text-sm font-medium text-foreground">Email Address</label>
+            <div class="p-3 bg-muted rounded-md border border-border">
+              <p class="text-foreground">{{ user.email || 'Not provided' }}</p>
             </div>
           </div>
 
           <!-- Account Type -->
           <div class="space-y-2 md:col-span-2">
-            <label class="text-sm font-medium text-gray-700">Account Type</label>
-            <div class="p-3 bg-gray-100 rounded-md border border-gray-200">
+            <label class="text-sm font-medium text-foreground">Account Type</label>
+            <div class="p-3 bg-muted rounded-md border border-border">
               <div class="flex items-center">
-                <span class="text-gray-900 mr-2">
+                <span class="text-foreground mr-2">
                   {{ user.isAdmin ? 'Administrator' : 'Standard User' }}
                 </span>
                 <span

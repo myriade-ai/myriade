@@ -1,30 +1,30 @@
 <template>
-  <div class="border rounded-lg overflow-hidden bg-white">
+  <div class="border rounded-lg overflow-hidden bg-background">
     <!-- Header badge -->
     <button
       @click="isExpanded = !isExpanded"
-      class="w-full flex items-center justify-between bg-gray-50 border-b px-3 py-2 hover:bg-gray-100 transition-colors cursor-pointer group"
+      class="w-full flex items-center justify-between bg-muted/30 border-b px-3 py-2 hover:bg-muted/50 transition-colors cursor-pointer group"
     >
       <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-gray-700">✏️ Code Edit</span>
-        <span v-if="fileName" class="text-xs text-gray-500 font-mono">{{ fileName }}</span>
+        <span class="text-sm font-medium text-foreground">✏️ Code Edit</span>
+        <span v-if="fileName" class="text-xs text-muted-foreground font-mono">{{ fileName }}</span>
       </div>
       <div class="flex items-center gap-2">
         <span
           v-if="stats.added > 0"
-          class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full"
+          class="text-xs bg-green-500/10 text-green-600 dark:text-green-400 px-2 py-1 rounded-full"
         >
           +{{ stats.added }}
         </span>
         <span
           v-if="stats.removed > 0"
-          class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full"
+          class="text-xs bg-red-500/10 text-red-600 dark:text-red-400 px-2 py-1 rounded-full"
         >
           -{{ stats.removed }}
         </span>
         <ChevronDownIcon
           :class="[
-            'h-4 w-4 text-gray-500 transition-transform group-hover:text-gray-700',
+            'h-4 w-4 text-muted-foreground transition-transform group-hover:text-foreground',
             isExpanded && 'rotate-180'
           ]"
         />
@@ -38,10 +38,10 @@
         <div
           v-for="(hunk, hunkIndex) in diffHunks"
           :key="hunkIndex"
-          class="border-b border-gray-200 last:border-b-0"
+          class="border-b border-border last:border-b-0"
         >
           <!-- Hunk header -->
-          <div class="bg-blue-50 border-l-4 border-blue-400 px-3 py-1 text-xs text-blue-800">
+          <div class="bg-blue-500/10 border-l-4 border-blue-400 px-3 py-1 text-xs text-blue-600 dark:text-blue-400">
             {{ hunk.header }}
           </div>
           <!-- Diff lines -->
@@ -51,10 +51,10 @@
             :class="getDiffLineClasses(line)"
             class="flex"
           >
-            <span class="w-12 text-xs text-gray-500 text-right pr-2 select-none flex-shrink-0">
+            <span class="w-12 text-xs text-muted-foreground text-right pr-2 select-none flex-shrink-0">
               {{ line.oldLineNumber || '' }}
             </span>
-            <span class="w-12 text-xs text-gray-500 text-right pr-2 select-none flex-shrink-0">
+            <span class="w-12 text-xs text-muted-foreground text-right pr-2 select-none flex-shrink-0">
               {{ line.newLineNumber || '' }}
             </span>
             <span
@@ -165,11 +165,11 @@ function getHunkSize(changes: Change[], isOld: boolean): number {
 function getDiffLineClasses(line: DiffLine): string {
   switch (line.type) {
     case 'added':
-      return 'bg-green-50 hover:bg-green-100'
+      return 'bg-green-500/10 hover:bg-green-500/20'
     case 'removed':
-      return 'bg-red-50 hover:bg-red-100'
+      return 'bg-red-500/10 hover:bg-red-500/20'
     case 'context':
-      return 'hover:bg-gray-50'
+      return 'hover:bg-muted/50'
     default:
       return ''
   }
@@ -179,11 +179,11 @@ function getDiffLineClasses(line: DiffLine): string {
 function getDiffPrefixClasses(line: DiffLine): string {
   switch (line.type) {
     case 'added':
-      return 'text-green-700 font-bold'
+      return 'text-green-600 dark:text-green-400 font-bold'
     case 'removed':
-      return 'text-red-700 font-bold'
+      return 'text-red-600 dark:text-red-400 font-bold'
     case 'context':
-      return 'text-gray-400'
+      return 'text-muted-foreground'
     default:
       return ''
   }

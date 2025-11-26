@@ -12,10 +12,10 @@
   <Transition name="slide">
     <div
       v-if="documentsStore.isDocumentPanelOpen && document"
-      class="fixed right-0 top-0 bottom-0 w-[600px] bg-white shadow-2xl z-50 flex flex-col"
+      class="fixed right-0 top-0 bottom-0 w-[600px] bg-card shadow-2xl z-50 flex flex-col"
     >
       <!-- Header -->
-      <div class="flex items-center justify-between p-4 border-b bg-gray-50">
+      <div class="flex items-center justify-between p-4 border-b bg-muted">
         <input
           v-if="isEditingTitle"
           v-model="editedTitle"
@@ -38,8 +38,8 @@
             class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
             :class="
               hasUnsavedChanges && !isSaving
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                : 'bg-muted text-muted-foreground cursor-not-allowed'
             "
             title="Save changes"
           >
@@ -58,7 +58,7 @@
           >
             <template #trigger>
               <button
-                class="px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-2"
+                class="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted rounded-md transition-colors flex items-center gap-2"
               >
                 <span>Export</span>
               </button>
@@ -68,7 +68,7 @@
           <!-- Version history button -->
           <button
             @click="toggleVersionHistory"
-            class="px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            class="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted rounded-md transition-colors"
             title="Version History"
           >
             <Clock class="w-5 h-5" />
@@ -77,7 +77,7 @@
           <!-- Close button -->
           <button
             @click="documentsStore.closeDocument()"
-            class="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            class="p-1.5 text-muted-foreground hover:text-muted-foreground hover:bg-muted rounded-md transition-colors"
           >
             <X class="w-6 h-6" />
           </button>
@@ -112,21 +112,23 @@
         <!-- Version History View -->
         <div v-if="showVersionHistory" class="space-y-4">
           <h3 class="text-lg font-semibold mb-4">Version History</h3>
-          <div v-if="versions.length === 0" class="text-center text-gray-500 py-8">
+          <div v-if="versions.length === 0" class="text-center text-muted-foreground py-8">
             Loading versions...
           </div>
           <div v-else class="space-y-3">
             <div
               v-for="version in versions"
               :key="version.id"
-              class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+              class="border rounded-lg p-4 hover:bg-muted cursor-pointer"
               @click="viewVersion(version)"
             >
               <div class="flex items-center justify-between mb-2">
-                <span class="font-medium text-gray-900">Version {{ version.versionNumber }}</span>
-                <span class="text-xs text-gray-500">{{ formatDate(version.createdAt) }}</span>
+                <span class="font-medium text-foreground">Version {{ version.versionNumber }}</span>
+                <span class="text-xs text-muted-foreground">{{
+                  formatDate(version.createdAt)
+                }}</span>
               </div>
-              <p v-if="version.changeDescription" class="text-sm text-gray-600">
+              <p v-if="version.changeDescription" class="text-sm text-muted-foreground">
                 {{ version.changeDescription }}
               </p>
             </div>
@@ -170,8 +172,8 @@
       </div>
 
       <!-- Footer -->
-      <div class="border-t p-4 bg-gray-50 flex items-center justify-between">
-        <div class="text-sm text-gray-500">
+      <div class="border-t p-4 bg-muted flex items-center justify-between">
+        <div class="text-sm text-muted-foreground">
           <span v-if="showVersionHistory">{{ versions.length }} versions</span>
           <span v-else-if="viewingVersion">
             Version {{ viewingVersion.versionNumber }} - {{ formatDate(viewingVersion.createdAt) }}
@@ -186,14 +188,14 @@
           <button
             v-if="showVersionHistory"
             @click="backToDocument"
-            class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            class="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-md transition-colors"
           >
             Back to Document
           </button>
           <button
             v-else-if="viewingVersion"
             @click="viewCurrentVersion"
-            class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            class="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-md transition-colors"
           >
             Current Version
           </button>
@@ -447,7 +449,7 @@ const formatDate = (dateString: string): string => {
 
 /* Prose styles for markdown rendering */
 .prose {
-  color: #374151;
+  color: var(--foreground);
   max-width: 100%;
 }
 
@@ -488,15 +490,15 @@ const formatDate = (dateString: string): string => {
 }
 
 .prose :deep(code) {
-  background-color: #f3f4f6;
+  background-color: var(--muted);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   font-size: 0.875rem;
 }
 
 .prose :deep(pre) {
-  background-color: #1f2937;
-  color: #f9fafb;
+  background-color: var(--muted);
+  color: var(--foreground);
   padding: 1rem;
   border-radius: 0.5rem;
   overflow-x: auto;

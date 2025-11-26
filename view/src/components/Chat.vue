@@ -80,7 +80,7 @@
               <li v-if="group.internalMessages.length > 0" class="flex justify-center">
                 <button
                   @click="toggleInternalMessages(index)"
-                  class="inline-flex items-center px-3 py-1 my-1 text-sm text-gray-500 rounded-full hover:bg-gray-200"
+                  class="inline-flex items-center px-3 py-1 my-1 text-sm text-muted-foreground rounded-full hover:bg-muted"
                 >
                   <EyeIcon v-if="!internalMessageGroups[index]" class="h-4 w-4 mr-2" />
                   <EyeSlashIcon v-else class="h-4 w-4 mr-2" />
@@ -111,7 +111,7 @@
                     @editInlineClick="editInline"
                     @regenerateFromMessage="conversationsStore.regenerateFromMessage"
                     @rejected="focusInput"
-                    class="border-l-4 border-gray-500 pl-3 bg-gray-50"
+                    class="border-l-4 border-gray-500 pl-3 bg-muted/50"
                   />
                 </li>
               </transition-group>
@@ -151,7 +151,7 @@
               <!-- Add stop button, centered, displayed only if a query is running -->
               <button
                 @click="stopQuery"
-                class="w-full bg-gray-500 text-white py-2 px-4 rounded-sm"
+                class="w-full bg-muted-foreground text-background py-2 px-4 rounded-sm"
                 type="submit"
               >
                 Stop
@@ -163,7 +163,7 @@
 
       <div
         id="chat-input"
-        class="w-full max-w-4xl border-gray-300 bottom-0 sticky z-10 mx-auto lg:px-2 px-0 bg-white pb-4"
+        class="w-full max-w-4xl border-gray-300 bottom-0 sticky z-10 mx-auto lg:px-2 px-0 bg-background pb-4"
       >
         <transition
           enter-active-class="transition-all duration-300 ease-out"
@@ -187,7 +187,7 @@
                 class="flex items-center space-x-2"
               >
                 <button
-                  class="rounded-md bg-white px-3.5 py-2 text-sm text-primary-500 shadow-xs ring-1 ring-inset ring-primary-300 hover:bg-primary-50 text-left"
+                  class="rounded-md bg-card px-3.5 py-2 text-sm text-primary-500 shadow-xs ring-1 ring-inset ring-primary-300 hover:bg-primary-50 text-left"
                   @click="applySuggestion(suggestion)"
                 >
                   {{ suggestion }}
@@ -202,7 +202,7 @@
           class="flex justify-end mb-2 px-2"
           v-if="user?.credits !== undefined && user.credits < 50"
         >
-          <div class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-md">
+          <div class="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
             {{ user.credits }} credits left
           </div>
         </div>

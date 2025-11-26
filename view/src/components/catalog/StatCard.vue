@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
+    class="bg-card border border-border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
   >
     <div class="flex items-start justify-between mb-3">
       <div class="flex items-center gap-2">
@@ -14,7 +14,7 @@
       <slot />
     </div>
 
-    <div v-if="$slots.footer" class="mt-4 pt-4 border-t border-slate-100">
+    <div v-if="$slots.footer" class="mt-4 pt-4 border-t border-border">
       <slot name="footer" />
     </div>
   </div>
@@ -30,6 +30,6 @@ interface Props {
 }
 
 withDefaults(defineProps<Props>(), {
-  iconColor: 'text-slate-600'
+  iconColor: 'text-muted-foreground'
 })
 </script>

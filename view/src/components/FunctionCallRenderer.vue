@@ -2,8 +2,8 @@
   <div>
     <div class="flex items-center gap-2 mb-2">
       <span class="text-lg">{{ displayInfo.icon }}</span>
-      <b class="text-gray-700">{{ displayInfo.displayName }}</b>
-      <span v-if="displayInfo.description" class="text-sm text-gray-500">
+      <b class="text-muted-foreground">{{ displayInfo.displayName }}</b>
+      <span v-if="displayInfo.description" class="text-sm text-muted-foreground">
         - {{ displayInfo.description }}
       </span>
     </div>
@@ -15,7 +15,7 @@
 
     <!-- Think renderer -->
     <div v-else-if="isThinkCall(functionCall)">
-      <p class="text-sm text-gray-500">
+      <p class="text-sm text-muted-foreground">
         <MarkdownDisplay :content="functionCall.arguments.thought" />
       </p>
     </div>
@@ -34,7 +34,9 @@
 
     <!-- Code editor read file renderer - compact badge only -->
     <div v-else-if="isCodeEditorReadFileCall(functionCall)" class="flex items-center gap-2">
-      <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+      <span
+        class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full"
+      >
         📄 Reading {{ (functionCall.arguments.path as string) || 'file' }}
         <span v-if="functionCall.arguments.start_line && functionCall.arguments.end_line">
           (lines {{ functionCall.arguments.start_line }}-{{ functionCall.arguments.end_line }})

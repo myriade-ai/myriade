@@ -3,7 +3,7 @@
     <!-- Page header -->
     <div>
       <h1 class="text-2xl font-semibold">Zero Knowledge Protection</h1>
-      <p class="text-sm text-gray-600 mt-2">
+      <p class="text-sm text-muted-foreground mt-2">
         Zero Knowledge Protection is an advanced anonymization layer that ensures sensitive
         information is securely masked before any interaction with external AI models or services.
         <br />
@@ -16,12 +16,12 @@
 
     <!-- Database selector -->
     <div class="flex items-center space-x-3">
-      <label for="db-select" class="text-sm font-medium text-gray-700">Database</label>
+      <label for="db-select" class="text-sm font-medium text-muted-foreground">Database</label>
       <select
         id="db-select"
         v-model="selectedDbId"
         @change="onDatabaseChange"
-        class="border-gray-300 rounded-md shadow-xs focus:border-primary-500 focus:ring-primary-500 text-sm"
+        class="border-border bg-background text-foreground rounded-md shadow-xs focus:border-primary-500 focus:ring-primary-500 text-sm"
       >
         <option disabled value="">Select a database</option>
         <option v-for="db in databases" :key="db.id" :value="db.id">
@@ -32,7 +32,7 @@
 
     <!-- Privacy configuration component -->
     <PrivacyConfiguration v-if="selectedDbId" :database-id="selectedDbId" />
-    <div v-else class="text-sm text-gray-500">
+    <div v-else class="text-sm text-muted-foreground">
       Please select a database to configure zero knowledge protection.
     </div>
   </div>

@@ -1,6 +1,7 @@
 import App from '@/App.vue'
 import '@/assets/main.css'
 import '@/check_version'
+import '@/composables/useDarkMode'
 import router from '@/router'
 import * as Sentry from '@sentry/vue'
 import Notifications from 'notiwind'

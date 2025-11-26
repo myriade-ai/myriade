@@ -74,20 +74,22 @@
           </Alert>
 
           <!-- Git-style unified diff view (only if there's an actual AI suggestion) -->
-          <div v-if="props.asset.ai_suggestion" class="overflow-hidden bg-white border rounded-md">
+          <div v-if="props.asset.ai_suggestion" class="overflow-hidden bg-card border rounded-md">
             <div class="space-y-0 text-xs font-mono leading-relaxed">
               <!-- Before (removal) -->
-              <div class="bg-red-50 px-2 py-1 border-l-2 border-red-400">
+              <div class="bg-red-50 dark:bg-red-900/20 px-2 py-1 border-l-2 border-red-400">
                 <span class="text-red-600 select-none mr-2">−</span>
-                <span class="text-red-900">{{ props.asset.description || '' }}</span>
+                <span class="text-red-900 dark:text-red-200">{{
+                  props.asset.description || ''
+                }}</span>
               </div>
               <!-- After (addition) - Editable -->
-              <div class="bg-green-50 px-2 py-1 border-l-2 border-green-400">
+              <div class="bg-green-50 dark:bg-green-900/20 px-2 py-1 border-l-2 border-green-400">
                 <span class="text-green-600 select-none mr-2">+</span>
                 <Textarea
                   v-model="draft.description"
                   rows="3"
-                  class="inline-block align-top w-[calc(100%-1.5rem)] border-0 p-0 text-xs font-mono text-green-900 bg-transparent focus:ring-0 focus:ring-offset-0 focus:outline-none focus:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none leading-relaxed shadow-none"
+                  class="inline-block align-top w-[calc(100%-1.5rem)] border-0 p-0 text-xs font-mono text-green-900 dark:text-green-200 bg-transparent focus:ring-0 focus:ring-offset-0 focus:outline-none focus:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none leading-relaxed shadow-none"
                   :disabled="isProcessing"
                   placeholder="Edit AI suggestion..."
                 />
@@ -123,9 +125,9 @@
       >
         <label class="text-xs font-medium text-muted-foreground">Tags</label>
 
-        <div class="overflow-hidden bg-white border rounded-md">
+        <div class="overflow-hidden bg-card border rounded-md">
           <div class="space-y-0">
-            <div class="bg-red-50 px-3 py-2 border-l-2 border-red-400">
+            <div class="bg-red-50 dark:bg-red-900/20 px-3 py-2 border-l-2 border-red-400">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-red-600 select-none">−</span>
                 <div v-if="props.asset.tags.length > 0" class="flex items-center gap-1 flex-wrap">
@@ -133,17 +135,17 @@
                     v-for="tag in props.asset.tags"
                     :key="tag.id"
                     variant="outline"
-                    class="text-red-900 border-red-200"
+                    class="text-red-900 dark:text-red-200 border-red-200"
                   >
                     {{ tag.name }}
                   </Badge>
                 </div>
-                <span v-else class="text-red-900 text-sm italic">No tags</span>
+                <span v-else class="text-red-900 dark:text-red-200 text-sm italic">No tags</span>
               </div>
             </div>
             <div
               v-if="newSuggestedTagsForDiff.length > 0"
-              class="bg-green-50 px-3 py-2 border-l-2 border-green-400"
+              class="bg-green-50 dark:bg-green-900/20 px-3 py-2 border-l-2 border-green-400"
             >
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-green-600 select-none">+</span>
@@ -152,7 +154,7 @@
                     v-for="tag in newSuggestedTagsForDiff"
                     :key="tag.id"
                     variant="outline"
-                    class="text-green-900 border-green-200"
+                    class="text-green-900 dark:text-green-200 border-green-200"
                   >
                     {{ tag.name }}
                   </Badge>
@@ -160,7 +162,7 @@
               </div>
             </div>
             <!-- Edit all tags section (shown separately) -->
-            <div class="px-3 py-2 border-t border-gray-200">
+            <div class="px-3 py-2 border-t border-border">
               <label class="text-xs font-medium text-muted-foreground mb-2 block">Edit Tags</label>
               <AssetTagSelect
                 v-model="draft.tags"

@@ -61,15 +61,15 @@ export default defineComponent({
   <NodeViewWrapper class="query-node-wrapper my-4">
     <Card class="p-0 pb-3.5 pt-1">
       <CardContent>
-        <div v-if="loading" class="p-4 text-center text-gray-500">Loading query...</div>
+        <div v-if="loading" class="p-4 text-center text-muted-foreground">Loading query...</div>
         <div v-else-if="error" class="p-4 text-center text-red-500">
           {{ error }}
         </div>
         <div v-else-if="queryData" class="space-y-4">
           <div class="pb-3 border-b">
-            <h3 class="font-semibold text-lg text-gray-900">{{ queryData.title }}</h3>
+            <h3 class="font-semibold text-lg text-foreground">{{ queryData.title }}</h3>
           </div>
-          <div class="bg-gray-100 p-3 rounded font-mono text-sm">
+          <div class="bg-muted p-3 rounded font-mono text-sm">
             {{ queryData.sql }}
           </div>
           <DataTable :data="queryData.rows" :count="queryData.count" :columns="queryData.columns" />

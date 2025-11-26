@@ -2,17 +2,17 @@
   <button
     :class="
       cn('inline-flex items-center justify-center rounded-full p-2', {
-        'bg-gray-300 cursor-not-allowed': disabled,
-        'bg-black hover:bg-gray-800 cursor-pointer': !disabled
+        'bg-muted cursor-not-allowed': disabled,
+        'bg-foreground hover:bg-foreground/80 cursor-pointer': !disabled
       })
     "
     @click="onClick"
     :disabled="disabled"
   >
     <div class="h-6 w-6">
-      <RefreshCw v-if="status === 'running'" class="h-6 w-6 animate-spin text-white" />
+      <RefreshCw v-if="status === 'running'" class="h-6 w-6 animate-spin text-background" />
       <X v-else-if="status === 'error'" class="h-6 w-6 text-error-200" />
-      <ArrowUp v-else class="h-6 w-6 text-white" />
+      <ArrowUp v-else class="h-6 w-6 text-background" />
     </div>
   </button>
 </template>

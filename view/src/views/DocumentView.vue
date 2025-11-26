@@ -8,7 +8,7 @@
           size="sm"
           @click="handleDelete"
           :disabled="isDeleting"
-          class="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+          class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-300 dark:border-red-800"
         >
           Delete
         </Button>
@@ -50,7 +50,7 @@
       <!-- Loading state -->
       <div v-if="documentQuery.isPending.value" class="text-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        <p class="mt-4 text-gray-500">Loading report...</p>
+        <p class="mt-4 text-muted-foreground">Loading report...</p>
       </div>
 
       <!-- Error state -->
@@ -63,21 +63,21 @@
       <!-- Version History Sidebar -->
       <div v-else-if="showVersionHistory && document" class="space-y-4">
         <h3 class="text-lg font-semibold mb-4">Version History</h3>
-        <div v-if="versionsQuery.isPending.value" class="text-center text-gray-500 py-8">
+        <div v-if="versionsQuery.isPending.value" class="text-center text-muted-foreground py-8">
           Loading versions...
         </div>
         <div v-else class="space-y-3">
           <Card
             v-for="version in versions"
             :key="version.id"
-            class="p-4 hover:bg-gray-50 cursor-pointer"
+            class="p-4 hover:bg-muted cursor-pointer"
             @click="viewVersion(version)"
           >
             <div class="flex items-center justify-between mb-2">
-              <span class="font-medium text-gray-900">Version {{ version.versionNumber }}</span>
-              <span class="text-xs text-gray-500">{{ formatDate(version.createdAt) }}</span>
+              <span class="font-medium text-foreground">Version {{ version.versionNumber }}</span>
+              <span class="text-xs text-muted-foreground">{{ formatDate(version.createdAt) }}</span>
             </div>
-            <p v-if="version.changeDescription" class="text-sm text-gray-600">
+            <p v-if="version.changeDescription" class="text-sm text-muted-foreground">
               {{ version.changeDescription }}
             </p>
           </Card>
@@ -87,13 +87,10 @@
       <!-- Document content -->
       <div v-else-if="document">
         <!-- Archived banner -->
-        <div
-          v-if="document.archived"
-          class="mb-4 p-3 bg-gray-100 border border-gray-300 rounded-lg"
-        >
+        <div v-if="document.archived" class="mb-4 p-3 bg-muted border border-border rounded-lg">
           <div class="flex items-center gap-2">
-            <Archive class="w-5 h-5 text-gray-600" />
-            <span class="text-sm font-medium text-gray-700">This report is archived</span>
+            <Archive class="w-5 h-5 text-muted-foreground" />
+            <span class="text-sm font-medium text-foreground">This report is archived</span>
           </div>
         </div>
 
@@ -422,15 +419,15 @@ const formatDate = (dateString: string): string => {
 }
 
 .prose :deep(code) {
-  background-color: #f3f4f6;
+  background-color: var(--muted);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   font-size: 0.875rem;
 }
 
 .prose :deep(pre) {
-  background-color: #1f2937;
-  color: #f9fafb;
+  background-color: var(--muted);
+  color: var(--foreground);
   padding: 1rem;
   border-radius: 0.5rem;
   overflow-x: auto;

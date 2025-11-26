@@ -1,10 +1,10 @@
 <template>
   <aside
     v-if="!props.collapsed"
-    class="flex flex-col h-full border-r border-slate-200 bg-gradient-to-b from-slate-50 to-stone-50 transition-all duration-300"
+    class="flex flex-col h-full border-r border-border bg-gradient-to-b from-muted/50 to-muted/30 dark:from-muted/20 dark:to-muted/10 transition-all duration-300"
   >
     <div
-      class="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-6 py-4 flex-shrink-0"
+      class="flex items-center justify-between border-b border-border bg-muted/50 dark:bg-muted/20 px-6 py-4 flex-shrink-0"
     >
       <div>
         <p class="text-sm font-medium">Explorer</p>
@@ -52,7 +52,7 @@
                 >
                   <button
                     type="button"
-                    class="text-xs text-muted-foreground hover:text-slate-700 hover:underline transition-colors"
+                    class="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
                     @click="$emit('select-all-children', databaseNode.asset.id)"
                   >
                     {{
@@ -96,7 +96,7 @@
                         >
                           <button
                             type="button"
-                            class="text-xs text-muted-foreground hover:text-slate-700 hover:underline transition-colors"
+                            class="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
                             @click="
                               schemaNode.asset && $emit('select-all-children', schemaNode.asset.id)
                             "
@@ -143,7 +143,7 @@
                                 >
                                   <button
                                     type="button"
-                                    class="text-xs text-muted-foreground hover:text-slate-700 hover:underline transition-colors"
+                                    class="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
                                     @click="$emit('select-all-children', tableNode.asset.id)"
                                   >
                                     {{

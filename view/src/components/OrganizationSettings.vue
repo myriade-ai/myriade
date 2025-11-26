@@ -1,8 +1,8 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-    <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+  <div class="bg-card rounded-lg shadow-sm border border-gray-200 p-6">
+    <h2 class="text-xl font-semibold text-foreground mb-4 flex items-center">
       <svg
-        class="w-5 h-5 mr-2 text-gray-600 flex-shrink-0"
+        class="w-5 h-5 mr-2 text-muted-foreground flex-shrink-0"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -17,24 +17,24 @@
       Organization Settings
     </h2>
 
-    <div v-if="loading" class="text-gray-600">Loading...</div>
+    <div v-if="loading" class="text-muted-foreground">Loading...</div>
     <div v-else-if="error" class="text-error-600">{{ error }}</div>
     <div v-else class="space-y-6">
       <!-- Organization Name -->
       <div class="space-y-2">
-        <label class="text-sm font-medium text-gray-700">Organization Name</label>
-        <div class="p-3 bg-gray-100 rounded-md border border-gray-200">
-          <p class="text-gray-900">{{ organization.name || 'Not provided' }}</p>
+        <label class="text-sm font-medium text-muted-foreground">Organization Name</label>
+        <div class="p-3 bg-muted rounded-md border border-gray-200">
+          <p class="text-foreground">{{ organization.name || 'Not provided' }}</p>
         </div>
       </div>
 
       <!-- Language Setting -->
       <div class="space-y-2">
-        <label class="text-sm font-medium text-gray-700">
+        <label class="text-sm font-medium text-muted-foreground">
           Organization Language
-          <span v-if="!isAdmin" class="text-gray-500 text-xs ml-2">(Admin only)</span>
+          <span v-if="!isAdmin" class="text-muted-foreground text-xs ml-2">(Admin only)</span>
         </label>
-        <p class="text-xs text-gray-500 mb-2">
+        <p class="text-xs text-muted-foreground mb-2">
           This language will be used by the AI for documentation, catalog entries, and quality
           reports.
         </p>
@@ -43,7 +43,7 @@
           <select
             v-model="selectedLanguage"
             @change="updateLanguage"
-            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            class="block w-full px-3 py-2 border border-input rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 bg-background text-foreground"
             :disabled="updating"
           >
             <option value="">User's language (default)</option>
@@ -63,8 +63,8 @@
           </p>
           <p v-if="updateError" class="mt-2 text-sm text-error-600">{{ updateError }}</p>
         </div>
-        <div v-else class="p-3 bg-gray-100 rounded-md border border-gray-200">
-          <p class="text-gray-900">
+        <div v-else class="p-3 bg-muted rounded-md border border-gray-200">
+          <p class="text-foreground">
             {{ organization.language || "User's language (default)" }}
           </p>
         </div>
@@ -72,8 +72,8 @@
 
       <!-- GitHub Integration -->
       <div class="space-y-3 pt-4 border-t border-gray-100">
-        <label class="text-sm font-medium text-gray-700">GitHub Integration</label>
-        <p class="text-sm text-gray-600">
+        <label class="text-sm font-medium text-muted-foreground">GitHub Integration</label>
+        <p class="text-sm text-muted-foreground">
           GitHub repositories are now connected per datasource. Open a database from the Databases
           page to link its GitHub project and enable pull-request workflows.
         </p>

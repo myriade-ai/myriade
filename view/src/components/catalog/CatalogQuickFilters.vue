@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center gap-2 p-3 bg-white border-b border-slate-200">
+  <div class="flex items-center gap-2 p-3 bg-card border-b border-border">
     <span class="text-sm font-medium text-muted-foreground">Quick filters:</span>
     <Button
       v-for="filter in quickFilters"

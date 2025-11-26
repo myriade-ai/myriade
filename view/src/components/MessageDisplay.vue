@@ -8,10 +8,7 @@
       :class="
         cn(
           props.message.role === 'user'
-            ? cn(
-                'bg-gray-100 rounded-lg p-4',
-                isEditing ? 'w-full rounded-xl' : 'max-w-3/4 ml-auto'
-              )
+            ? cn('bg-muted rounded-lg p-4', isEditing ? 'w-full rounded-xl' : 'max-w-3/4 ml-auto')
             : 'w-full p-2'
         )
       "
@@ -25,7 +22,7 @@
             rows="2"
           />
           <div class="flex flex-col sm:flex-row justify-end mt-2 gap-2">
-            <Button @click="cancelEdit" variant="secondary" size="sm" class="bg-white">
+            <Button @click="cancelEdit" variant="secondary" size="sm" class="bg-background">
               Cancel
             </Button>
             <Button @click="saveEdit" size="sm" class="bg-primary hover:bg-primary/90">
@@ -52,7 +49,7 @@
             <div
               v-if="part.type === 'error'"
               :key="`error-${index}`"
-              class="w-full overflow-x-auto p-2 sm:p-3 bg-red-100 border border-red-300 rounded text-sm"
+              class="w-full overflow-x-auto p-2 sm:p-3 bg-destructive/10 border border-destructive/20 rounded text-sm"
               style="white-space: pre-wrap"
             >
               {{ part.content }}
@@ -407,7 +404,7 @@ onUnmounted(() => {
 
 <style>
 .sql-code {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 2px 4px;
   font-family: monospace;
@@ -447,7 +444,7 @@ onUnmounted(() => {
 }
 
 .message-display :deep(code) {
-  background-color: #f0f0f0;
+  background-color: var(--muted);
   padding: 0.2em 0.4em;
   border-radius: 3px;
   font-family: monospace;
@@ -456,10 +453,18 @@ onUnmounted(() => {
 }
 
 .message-display :deep(pre) {
+  background-color: var(--muted);
+  padding: 1rem;
+  border-radius: 0.5rem;
   overflow-x: auto;
   max-width: 100%;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.message-display :deep(pre code) {
+  background-color: transparent;
+  padding: 0;
 }
 
 .message-display :deep(table) {

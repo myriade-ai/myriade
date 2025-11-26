@@ -1,11 +1,16 @@
 <template>
   <div v-if="status">
-    <div v-if="status === 'success'" class="bg-green-50 border border-green-200 rounded-md p-4">
+    <div
+      v-if="status === 'success'"
+      class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-4"
+    >
       <div class="flex">
         <CheckCircleIcon class="h-5 w-5 text-green-400" aria-hidden="true" />
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-green-800">Connection Successful</h3>
-          <div class="mt-2 text-sm text-green-700">
+          <h3 class="text-sm font-medium text-green-800 dark:text-green-200">
+            Connection Successful
+          </h3>
+          <div class="mt-2 text-sm text-green-700 dark:text-green-300">
             <p>{{ message }}</p>
           </div>
         </div>

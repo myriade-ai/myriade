@@ -6,9 +6,9 @@
         <div class="-mt-px flex w-0 flex-1">
           <a
             @click.prevent="clickCancel"
-            class="inline-flex items-center border-t-2 border-transparent pt-4 pr-1 text-sm font-medium text-gray-500 hover:text-gray-700 cursor-pointer"
+            class="inline-flex items-center border-t-2 border-transparent pt-4 pr-1 text-sm font-medium text-muted-foreground hover:text-muted-foreground cursor-pointer"
           >
-            <ArrowLeftIcon class="mr-3 h-5 w-5 text-gray-400" aria-hidden="true" />
+            <ArrowLeftIcon class="mr-3 h-5 w-5 text-muted-foreground" aria-hidden="true" />
             Return to all databases
           </a>
         </div>
@@ -25,13 +25,13 @@
 
       <!-- Organisation Sharing Section -->
       <div v-if="canManageSharing" class="py-5 max-w-lg">
-        <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <h3 class="text-sm font-medium text-gray-900 mb-2">Organisation Sharing</h3>
-          <p class="text-sm text-gray-500 mb-4">
+        <div class="p-4 bg-muted rounded-lg border border-border">
+          <h3 class="text-sm font-medium text-foreground mb-2">Organisation Sharing</h3>
+          <p class="text-sm text-muted-foreground mb-4">
             Share this database with your organisation to allow other members to access it.
           </p>
           <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-700">
+            <span class="text-sm">
               {{ isSharedWithOrg ? 'Shared with organisation' : 'Private (only you)' }}
             </span>
             <Button
@@ -66,7 +66,7 @@
             <p class="mb-4">
               This action cannot be undone. Deleting this database will permanently remove:
             </p>
-            <ul class="list-disc list-inside space-y-2 text-sm text-gray-700 mb-4">
+            <ul class="list-disc list-inside space-y-2 text-sm text-muted-foreground mb-4">
               <li>All conversations and chat history</li>
               <li>All saved queries and charts</li>
               <li>All projects and their configurations</li>

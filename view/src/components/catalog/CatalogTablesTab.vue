@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="tables.length"
-    class="bg-gradient-to-b from-white to-slate-50/20 divide-y divide-slate-200 shadow-sm"
+    class="bg-gradient-to-b from-card to-muted/20 divide-y divide-border shadow-sm"
   >
     <div
       v-for="table in tables"
@@ -9,8 +9,8 @@
       :class="[
         'px-4 py-2 transition-colors space-y-3 cursor-pointer',
         table.asset.id === selectedAssetId
-          ? 'bg-gradient-to-r from-blue-50 to-slate-50 border-l-2 border-primary-500'
-          : 'hover:bg-gradient-to-r hover:from-slate-50 hover:to-stone-50/50'
+          ? 'bg-gradient-to-r from-primary-50 to-muted/50 dark:from-primary-900/20 dark:to-muted/20 border-l-2 border-primary-500'
+          : 'hover:bg-gradient-to-r hover:from-muted/50 hover:to-muted/30 dark:hover:from-muted/20 dark:hover:to-muted/10'
       ]"
       @click="$emit('select-table', table.asset.id)"
     >
@@ -54,7 +54,7 @@
   </div>
   <div
     v-else
-    class="border border-slate-200 border-dashed bg-gradient-to-br from-slate-50 to-stone-50 p-8 text-center text-sm text-muted-foreground shadow-sm"
+    class="border border-border border-dashed bg-gradient-to-br from-muted/50 to-muted/30 dark:from-muted/20 dark:to-muted/10 p-8 text-center text-sm text-muted-foreground shadow-sm"
   >
     No tables documented for this schema yet.
   </div>

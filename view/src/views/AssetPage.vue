@@ -120,41 +120,41 @@ onMounted(async () => {
     <!-- Stats Bar -->
     <div
       v-if="stats"
-      class="flex flex-wrap gap-3 lg:gap-4 px-4 py-3 border-b bg-gray-50/50 flex-shrink-0"
+      class="flex flex-wrap gap-3 lg:gap-4 px-4 py-3 border-b bg-muted/50 flex-shrink-0"
     >
       <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-gray-700">Total Assets:</span>
-        <span class="text-sm font-semibold text-gray-900">{{ stats.total_assets }}</span>
+        <span class="text-sm font-medium text-muted-foreground">Total Assets:</span>
+        <span class="text-sm font-semibold text-foreground">{{ stats.total_assets }}</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-gray-700">Completion Score:</span>
+        <span class="text-sm font-medium text-muted-foreground">Completion Score:</span>
         <span
           class="text-sm font-semibold"
           :class="
             stats.completion_score >= 70
-              ? 'text-green-600'
+              ? 'text-green-600 dark:text-green-400'
               : stats.completion_score >= 40
-                ? 'text-yellow-600'
-                : 'text-red-600'
+                ? 'text-yellow-600 dark:text-yellow-400'
+                : 'text-destructive'
           "
           >{{ stats.completion_score }}%</span
         >
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-gray-700">To Review:</span>
+        <span class="text-sm font-medium text-muted-foreground">To Review:</span>
         <span
           class="text-sm font-semibold"
-          :class="stats.assets_to_review > 0 ? 'text-orange-600' : 'text-gray-900'"
+          :class="stats.assets_to_review > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-foreground'"
           >{{ stats.assets_to_review }}</span
         >
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-gray-700">Validated:</span>
-        <span class="text-sm font-semibold text-gray-900">{{ stats.assets_validated }}</span>
+        <span class="text-sm font-medium text-muted-foreground">Validated:</span>
+        <span class="text-sm font-semibold text-foreground">{{ stats.assets_validated }}</span>
       </div>
       <div v-if="stats.assets_with_ai_suggestions > 0" class="flex items-center gap-2">
-        <span class="text-sm font-medium text-gray-700">AI Suggestions:</span>
-        <span class="text-sm font-semibold text-purple-600">{{
+        <span class="text-sm font-medium text-muted-foreground">AI Suggestions:</span>
+        <span class="text-sm font-semibold text-purple-600 dark:text-purple-400">{{
           stats.assets_with_ai_suggestions
         }}</span>
       </div>

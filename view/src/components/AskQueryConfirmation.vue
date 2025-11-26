@@ -1,5 +1,7 @@
 <template>
-  <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 my-3">
+  <div
+    class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 my-3"
+  >
     <div class="flex items-start">
       <ExclamationTriangleIcon
         v-if="status === 'pending_confirmation'"
@@ -13,10 +15,10 @@
       <div class="flex-1">
         <!-- Pending Confirmation State -->
         <template v-if="status === 'pending_confirmation' || !status">
-          <h4 class="text-sm font-medium text-yellow-800 mb-2">
+          <h4 class="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">
             {{ operationType }} Operation Confirmation Required
           </h4>
-          <p class="text-sm text-yellow-700 mb-3">
+          <p class="text-sm text-yellow-700 dark:text-yellow-300 mb-3">
             This query will modify your database. Please review it carefully before proceeding.
           </p>
 

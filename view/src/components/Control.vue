@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-screen">
     <!-- Left Panel: Business Entities Grid -->
-    <div class="flex-1 bg-gray-100 py-4 px-8 overflow-y-auto">
+    <div class="flex-1 bg-muted/30 py-4 px-8 overflow-y-auto">
       <div class="flex items-center">
         <h2 class="text-2xl font-semibold mb-3 inline-block">Business Entities</h2>
         <button
@@ -21,7 +21,10 @@
       </div>
 
       <!-- Error State -->
-      <div v-else-if="store.error" class="bg-error-50 border border-error-200 rounded-md p-4 mb-4">
+      <div
+        v-else-if="store.error"
+        class="bg-destructive/10 border border-destructive/20 rounded-md p-4 mb-4"
+      >
         <div class="flex">
           <div class="flex-shrink-0">
             <svg class="h-5 w-5 text-error-400" viewBox="0 0 20 20" fill="currentColor">
@@ -33,8 +36,8 @@
             </svg>
           </div>
           <div class="ml-3">
-            <h3 class="text-sm font-medium text-error-800">Error loading business entities</h3>
-            <div class="mt-2 text-sm text-error-700">{{ store.error }}</div>
+            <h3 class="text-sm font-medium text-destructive">Error loading business entities</h3>
+            <div class="mt-2 text-sm text-destructive/80">{{ store.error }}</div>
           </div>
         </div>
       </div>
@@ -48,7 +51,7 @@
           class="w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-400"
         />
         <svg
-          class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
+          class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
@@ -71,20 +74,23 @@
         <div
           v-for="entity in filteredEntities"
           :key="entity.id"
-          class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer"
+          class="bg-card rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer"
           @click="selectEntity(entity)"
         >
           <!-- Entity Header -->
           <div class="flex justify-between items-start mb-3">
-            <h3 class="text-lg font-semibold text-gray-800">{{ entity.name }}</h3>
-            <span v-if="entity.review_date" class="text-sm text-gray-500">{{
+            <h3 class="text-lg font-semibold text-card-foreground">{{ entity.name }}</h3>
+            <span v-if="entity.review_date" class="text-sm text-muted-foreground">{{
               formatDate(entity.review_date)
             }}</span>
-            <span v-else class="text-sm text-gray-400">Not scanned</span>
+            <span v-else class="text-sm text-muted-foreground">Not scanned</span>
           </div>
 
           <!-- Definition and Table Ref -->
-          <div v-if="entity.definition || entity.table_ref" class="mb-3 text-sm text-gray-600">
+          <div
+            v-if="entity.definition || entity.table_ref"
+            class="mb-3 text-sm text-muted-foreground"
+          >
             <p v-if="entity.definition" :title="entity.definition">
               <strong>Definition:</strong> {{ entity.definition }}
             </p>
@@ -96,7 +102,7 @@
           <!-- Unscanned State -->
           <div v-if="!entity.completeness && !entity.quality_score" class="text-center py-4">
             <svg
-              class="mx-auto h-12 w-12 text-gray-400"
+              class="mx-auto h-12 w-12 text-muted-foreground"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -108,11 +114,11 @@
                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">Not Scanned</h3>
-            <p class="mt-1 text-sm text-gray-500">This entity hasn't been analyzed yet.</p>
+            <h3 class="mt-2 text-sm font-medium text-foreground">Not Scanned</h3>
+            <p class="mt-1 text-sm text-muted-foreground">This entity hasn't been analyzed yet.</p>
             <button
               @click.stop="startAnalysis(entity)"
-              class="mt-3 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              class="mt-3 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-primary bg-primary/10 hover:bg-primary/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               Start Analysis
             </button>
@@ -123,9 +129,9 @@
             <!-- Quality Metrics -->
             <div class="grid grid-cols-2 gap-4 mb-4">
               <div class="text-center">
-                <div class="text-sm text-gray-600 mb-1">Completeness</div>
+                <div class="text-sm text-muted-foreground mb-1">Completeness</div>
                 <div class="relative">
-                  <div class="h-2 bg-gray-200 rounded-full">
+                  <div class="h-2 bg-muted rounded-full">
                     <div
                       class="h-2 rounded-full"
                       :class="getQualityColor(entity.completeness || 0)"
@@ -138,9 +144,9 @@
                 </div>
               </div>
               <div class="text-center">
-                <div class="text-sm text-gray-600 mb-1">Quality Score</div>
+                <div class="text-sm text-muted-foreground mb-1">Quality Score</div>
                 <div class="relative">
-                  <div class="h-2 bg-gray-200 rounded-full">
+                  <div class="h-2 bg-muted rounded-full">
                     <div
                       class="h-2 rounded-full"
                       :class="getQualityColor(entity.quality_score || 0)"
@@ -156,8 +162,8 @@
 
             <!-- Recommendations Preview -->
             <div v-if="entity.issues && entity.issues.length > 0" class="mt-3">
-              <h4 class="text-sm font-medium text-gray-700 mb-2">Top Issues</h4>
-              <ul class="text-sm text-gray-600 space-y-1">
+              <h4 class="text-sm font-medium text-muted-foreground mb-2">Top Issues</h4>
+              <ul class="text-sm text-muted-foreground space-y-1">
                 <li
                   v-for="(rec, index) in entity.issues.slice(0, 2)"
                   :key="index"

@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-gray-50 pt-8">
+  <div class="min-h-screen bg-background pt-8">
     <!-- Pricing Section -->
     <div class="max-w-4xl mx-auto px-4 pb-8">
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+      <div class="bg-card rounded-lg shadow-sm border border-border p-8">
         <div class="space-y-6">
           <div class="text-center">
-            <h2 class="text-2xl font-bold text-gray-900 mb-2">Activate AI</h2>
-            <p class="text-gray-600">
+            <h2 class="text-2xl font-bold text-foreground mb-2">Activate AI</h2>
+            <p class="text-muted-foreground">
               Subscribe to get access to latest AI models and enjoy AI-powered database analytics.
             </p>
           </div>
@@ -14,16 +14,16 @@
           <!-- Professional Plan Card -->
           <div class="max-w-md mx-auto mt-8">
             <div
-              class="bg-white border border-primary-500 rounded-lg p-6 shadow-lg ring-2 ring-primary-200 cursor-pointer hover:shadow-xl transition-shadow"
+              class="bg-card border border-primary-500 rounded-lg p-6 shadow-lg ring-2 ring-primary-200 cursor-pointer hover:shadow-xl transition-shadow"
               @click="processPayment"
             >
               <div class="text-center">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Standard Plan</h3>
+                <h3 class="text-lg font-semibold text-foreground mb-2">Standard Plan</h3>
                 <div class="mb-4">
-                  <span class="text-3xl font-bold text-gray-900">$49</span>
-                  <span class="text-gray-600">/month</span>
+                  <span class="text-3xl font-bold text-foreground">$49</span>
+                  <span class="text-muted-foreground">/month</span>
                 </div>
-                <ul class="text-sm text-gray-600 space-y-2 mb-6 text-left">
+                <ul class="text-sm text-muted-foreground space-y-2 mb-6 text-left">
                   <li class="flex items-center">
                     <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
                     Unlimited guest users
@@ -77,27 +77,27 @@
 
           <!-- FAQ Section -->
           <div class="mt-12">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Frequently Asked Questions</h3>
+            <h3 class="text-lg font-medium text-foreground mb-4">Frequently Asked Questions</h3>
             <div class="space-y-4">
-              <div class="border-b border-gray-200 pb-4">
-                <h4 class="font-medium text-gray-900">Can I cancel anytime?</h4>
-                <p class="text-gray-600 mt-1">
+              <div class="border-b border-border pb-4">
+                <h4 class="font-medium text-foreground">Can I cancel anytime?</h4>
+                <p class="text-muted-foreground mt-1">
                   Yes, you can cancel your subscription at any time. Your access will continue until
                   the end of your billing period.
                 </p>
               </div>
-              <div class="border-b border-gray-200 pb-4">
-                <h4 class="font-medium text-gray-900">
+              <div class="border-b border-border pb-4">
+                <h4 class="font-medium text-foreground">
                   What happens if I exceed my AI request limit?
                 </h4>
-                <p class="text-gray-600 mt-1">
+                <p class="text-muted-foreground mt-1">
                   You can purchase additional AI request bundles or upgrade to a higher plan with
                   more included requests.
                 </p>
               </div>
-              <div class="border-b border-gray-200 pb-4">
-                <h4 class="font-medium text-gray-900">Is my data secure?</h4>
-                <p class="text-gray-600 mt-1">
+              <div class="border-b border-border pb-4">
+                <h4 class="font-medium text-foreground">Is my data secure?</h4>
+                <p class="text-muted-foreground mt-1">
                   Yes, we use industry-standard encryption and security measures to protect your
                   data. We never store your database credentials permanently.
                 </p>
@@ -110,7 +110,7 @@
             <div class="space-x-4">
               <router-link
                 to="/chat/new"
-                class="text-gray-600 hover:text-gray-800 text-sm font-medium"
+                class="text-muted-foreground hover:text-foreground text-sm font-medium"
               >
                 Continue without subscription
               </router-link>

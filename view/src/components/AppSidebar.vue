@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModeToggle from '@/components/ModeToggle.vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
@@ -223,23 +224,28 @@ async function handleDeleteConversation(conversationId: string) {
       <!-- When collapsed: Show only Myriade icon, trigger appears on hover -->
       <div class="group-data-[collapsible=icon]:block hidden relative group">
         <router-link to="/" class="flex items-center justify-center mb-2 mt-2">
-          <img src="/icon.svg?v=3" class="h-8 w-auto" />
+          <img src="/icon.svg?v=4" class="h-8 w-auto dark:hidden" />
+          <img src="/icon-white.svg" class="h-8 w-auto hidden dark:block" />
         </router-link>
         <SidebarTrigger
-          class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-white group-hover:bg-sidebar group-hover:rounded-none transition-opacity duration-200 bg-sidebar-background/80 backdrop-blur-sm h-8 w-8 overflow-hidden"
+          class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-sidebar group-hover:bg-sidebar group-hover:rounded-none transition-opacity duration-200 bg-sidebar-background/80 backdrop-blur-sm h-8 w-8 overflow-hidden"
         />
       </div>
 
       <!-- When expanded: Show full logo + text + collapse trigger -->
       <div class="group-data-[collapsible=icon]:hidden flex items-center justify-between mb-2 mt-2">
         <router-link to="/" class="flex items-center min-w-0">
-          <img src="/logo.svg?v=3" class="h-8 w-auto" />
+          <img src="/icon.svg?v=4" class="h-8 w-auto dark:hidden" />
+          <img src="/icon-white.svg" class="h-8 w-auto hidden dark:block" />
+          <span class="ml-2 text-lg font-semibold font-outfit text-[#010b3e] dark:text-white"
+            >Myriade</span
+          >
         </router-link>
         <SidebarTrigger class="-mr-1" />
       </div>
       <div class="group-data-[collapsible=icon]:hidden">
         <Select v-model="contextsStore.contextSelectedId">
-          <SelectTrigger class="w-full bg-white">
+          <SelectTrigger class="w-full bg-background">
             <SelectValue placeholder="Contexts" />
           </SelectTrigger>
           <SelectContent>
@@ -446,6 +452,9 @@ async function handleDeleteConversation(conversationId: string) {
               <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
                   <RouterLink to="/profile"> <UserRoundPen /><span>Profile</span></RouterLink>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <ModeToggle />
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />

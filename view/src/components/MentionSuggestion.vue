@@ -1,23 +1,26 @@
 <template>
   <div
     ref="dropdownRef"
-    class="z-50 w-[36rem] max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg"
+    class="z-50 w-[36rem] max-h-72 overflow-y-auto bg-card border border-border rounded-lg shadow-lg"
   >
     <!-- Loading state -->
-    <div v-if="isLoading" class="p-4 text-center text-sm text-gray-500">
+    <div v-if="isLoading" class="p-4 text-center text-sm text-muted-foreground">
       <Loader2 class="inline-block w-4 h-4 animate-spin mr-2" />
       Loading...
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="displayedItems.length === 0" class="p-4 text-center text-sm text-gray-500">
+    <div
+      v-else-if="displayedItems.length === 0"
+      class="p-4 text-center text-sm text-muted-foreground"
+    >
       No queries or charts found
     </div>
 
     <!-- Mentions list -->
     <div v-else class="py-2">
       <!-- Show section header for recent items when not searching -->
-      <div v-if="!hasSearch" class="px-3 py-1 text-xs font-medium text-gray-500 uppercase">
+      <div v-if="!hasSearch" class="px-3 py-1 text-xs font-medium text-muted-foreground uppercase">
         Recent
       </div>
       <button
@@ -26,19 +29,26 @@
         @click="selectItem(index)"
         @mouseenter="selectedIndex = index"
         :class="[
-          'w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none transition-colors',
-          selectedIndex === index && 'bg-gray-100'
+          'w-full text-left px-3 py-2 hover:bg-muted focus:bg-muted focus:outline-none transition-colors',
+          selectedIndex === index && 'bg-muted'
         ]"
       >
         <div class="flex items-start gap-2">
           <component
             :is="item.type === 'query' ? FileCode : BarChart3"
             class="w-4 h-4 mt-0.5 flex-shrink-0"
-            :class="item.type === 'query' ? 'text-blue-600' : 'text-green-600'"
+            :class="
+              item.type === 'query'
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-green-600 dark:text-green-400'
+            "
           />
           <div class="flex-1 min-w-0 leading-normal">
-            <div class="font-medium text-sm truncate text-black">{{ item.title }}</div>
-            <div v-if="item.type === 'query' && item.sql" class="text-xs text-gray-500 truncate">
+            <div class="font-medium text-sm truncate text-foreground">{{ item.title }}</div>
+            <div
+              v-if="item.type === 'query' && item.sql"
+              class="text-xs text-muted-foreground truncate"
+            >
               {{ item.sql }}
             </div>
           </div>
@@ -151,7 +161,7 @@ function scrollToSelected() {
   nextTick(() => {
     if (!dropdownRef.value) return
 
-    const selectedElement = dropdownRef.value.querySelector('.bg-gray-100') as HTMLElement | null
+    const selectedElement = dropdownRef.value.querySelector('.bg-muted') as HTMLElement | null
     if (selectedElement) {
       selectedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }

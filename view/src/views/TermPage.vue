@@ -32,6 +32,7 @@ const selectedDatabaseId = computed<string | null>(() => {
   try {
     return contextsStore.getSelectedContextDatabaseId()
   } catch (error) {
+    console.error('Error getting selected database ID:', error)
     return null
   }
 })
@@ -180,7 +181,7 @@ onMounted(async () => {
         <div
           v-for="term in catalogStore.termsArray"
           :key="term.id"
-          class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+          class="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow"
         >
           <div v-if="isEditing(term.id)" class="space-y-3">
             <div>
@@ -232,19 +233,19 @@ onMounted(async () => {
 
           <div v-else class="flex items-start justify-between">
             <div class="flex-1 cursor-pointer" @click="startEditing(term)">
-              <h3 class="text-lg font-medium text-gray-900">{{ term.name }}</h3>
-              <p class="text-sm text-gray-600 mt-1">{{ term.definition }}</p>
+              <h3 class="text-lg font-medium text-foreground">{{ term.name }}</h3>
+              <p class="text-sm text-muted-foreground mt-1">{{ term.definition }}</p>
 
               <div v-if="term.synonyms?.length" class="mt-2">
-                <span class="text-xs text-gray-500">Synonyms: </span>
-                <span class="text-xs text-gray-700">{{ term.synonyms.join(', ') }}</span>
+                <span class="text-xs text-muted-foreground">Synonyms: </span>
+                <span class="text-xs text-muted-foreground">{{ term.synonyms.join(', ') }}</span>
               </div>
 
               <div v-if="term.business_domains?.length" class="mt-2 flex flex-wrap gap-1">
                 <span
                   v-for="domain in term.business_domains"
                   :key="domain"
-                  class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800"
+                  class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300"
                 >
                   {{ domain }}
                 </span>
@@ -256,7 +257,7 @@ onMounted(async () => {
                 @click="openDeleteDialog(term)"
                 variant="ghost"
                 size="icon"
-                class="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                class="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                 title="Delete term"
               >
                 <Trash2 class="h-4 w-4" />
@@ -267,8 +268,8 @@ onMounted(async () => {
       </div>
 
       <div v-else class="text-center py-8">
-        <p class="text-gray-500 mb-2">No business terms defined</p>
-        <p class="text-sm text-gray-400 mb-4">
+        <p class="text-muted-foreground mb-2">No business terms defined</p>
+        <p class="text-sm text-muted-foreground mb-4">
           Create terms to help define your business vocabulary
         </p>
         <Button @click="showCreateTerm = true"> Create Your First Term </Button>

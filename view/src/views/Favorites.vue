@@ -17,8 +17,8 @@
           >
             <Heart class="h-6 w-6 text-primary-600" />
           </div>
-          <h3 class="mt-2 text-sm font-medium text-gray-900">No favorites yet</h3>
-          <p class="mt-1 text-sm text-gray-500">
+          <h3 class="mt-2 text-sm font-medium text-foreground">No favorites yet</h3>
+          <p class="mt-1 text-sm text-muted-foreground">
             Create a chat to save your favorite queries and charts for quick access later!
           </p>
           <div class="mt-6">
@@ -52,37 +52,41 @@
             <template v-if="item.type === 'query'">
               <CardContent>
                 <div class="flex items-center gap-2 mb-2">
-                  <div class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">Query</div>
+                  <div
+                    class="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full"
+                  >
+                    Query
+                  </div>
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 truncate">
+                <h3 class="text-lg font-medium text-foreground truncate">
                   {{ item.data.title || 'Untitled Query' }}
                 </h3>
                 <div
-                  class="mt-2 max-h-60 overflow-hidden text-sm text-gray-500 text-ellipsis line-clamp-3"
+                  class="mt-2 max-h-60 overflow-hidden text-sm text-muted-foreground text-ellipsis line-clamp-3"
                 >
                   {{ item.data.sql }}
                 </div>
                 <!-- Add query result preview -->
-                <div class="mt-2 border rounded p-2 bg-gray-50 overflow-auto max-h-40">
+                <div class="mt-2 border rounded p-2 bg-muted overflow-auto max-h-40">
                   <div v-if="item.data.rows && item.data.rows.length > 0" class="text-xs">
                     <table class="min-w-full divide-y divide-gray-200">
-                      <thead class="bg-gray-100">
+                      <thead class="bg-muted">
                         <tr>
                           <th
                             v-for="(_, key) in item.data.rows[0]"
                             :key="key"
-                            class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                            class="px-2 py-1 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
                           >
                             {{ key }}
                           </th>
                         </tr>
                       </thead>
-                      <tbody class="bg-white divide-y divide-gray-200">
+                      <tbody class="bg-card divide-y divide-gray-200">
                         <tr v-for="(row, i) in item.data.rows.slice(0, 3)" :key="i">
                           <td
                             v-for="(value, key) in row"
                             :key="key"
-                            class="px-2 py-1 whitespace-nowrap text-xs text-gray-500"
+                            class="px-2 py-1 whitespace-nowrap text-xs text-muted-foreground"
                           >
                             {{ value }}
                           </td>
@@ -91,12 +95,12 @@
                     </table>
                     <div
                       v-if="item.data.rows.length > 3"
-                      class="text-center text-xs mt-1 text-gray-500"
+                      class="text-center text-xs mt-1 text-muted-foreground"
                     >
                       + {{ item.data.rows.length - 3 }} more rows
                     </div>
                   </div>
-                  <div v-else class="text-xs text-gray-500">No results available</div>
+                  <div v-else class="text-xs text-muted-foreground">No results available</div>
                 </div>
               </CardContent>
 
@@ -119,11 +123,13 @@
             <template v-else-if="item.type === 'chart'">
               <CardContent>
                 <div class="flex items-center gap-2 mb-2">
-                  <div class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                  <div
+                    class="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full"
+                  >
                     Chart
                   </div>
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 truncate">
+                <h3 class="text-lg font-medium text-foreground truncate">
                   {{ getChartTitle(item.data) }}
                 </h3>
                 <div class="mt-2">

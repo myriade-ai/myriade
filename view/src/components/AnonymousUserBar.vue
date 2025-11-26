@@ -2,7 +2,7 @@
   <div
     ref="barElement"
     v-if="shouldShow"
-    class="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 px-4 py-2 sm:py-3"
+    class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 border-b border-amber-200 dark:border-amber-800 px-4 py-2 sm:py-3"
   >
     <div class="mx-auto">
       <!-- Desktop Layout -->
@@ -11,8 +11,10 @@
           <!-- Message -->
           <div class="flex-1">
             <div class="flex items-center space-x-2">
-              <span class="text-sm font-medium text-amber-800"> 🧪 You are in sandbox mode </span>
-              <span class="text-sm text-amber-700">
+              <span class="text-sm font-medium text-amber-800 dark:text-amber-200">
+                🧪 You are in sandbox mode
+              </span>
+              <span class="text-sm text-amber-700 dark:text-amber-300">
                 • Limited to {{ user.credits }} free credits
               </span>
             </div>
@@ -41,8 +43,12 @@
       <!-- Mobile Layout -->
       <div class="sm:hidden flex items-center justify-between">
         <div class="flex items-center space-x-2">
-          <span class="text-sm font-medium text-amber-800"> 🧪 Sandbox mode </span>
-          <span class="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+          <span class="text-sm font-medium text-amber-800 dark:text-amber-200">
+            🧪 Sandbox mode
+          </span>
+          <span
+            class="text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-800/50 px-2 py-0.5 rounded-full"
+          >
             {{ user.credits }} credits
           </span>
         </div>

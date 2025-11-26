@@ -22,7 +22,7 @@
     <CardContent class="space-y-2">
       <div>
         <label class="font-semibold block mb-1">Definition</label>
-        <Textarea class="bg-white" v-model="termDefinitionModel" :disabled="!isEditable" rows="4" />
+        <Textarea class="bg-card" v-model="termDefinitionModel" :disabled="!isEditable" rows="4" />
       </div>
 
       <div>
