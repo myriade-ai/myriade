@@ -1044,7 +1044,7 @@
               }),
             ]),
             'default': None,
-            'description': 'Set asset description (replaces existing). Auto-sets status="draft" if null.',
+            'description': 'Set asset description (replaces existing). Keep it short and factual.',
             'title': 'Description',
           }),
           'status': dict({
@@ -1057,7 +1057,7 @@
               }),
             ]),
             'default': None,
-            'description': '"draft" or "published". Auto-sets "draft" if providing description/tags without status.',
+            'description': '"draft" (needs review) or "published" (production-ready).',
             'title': 'Status',
           }),
           'suggested_tags': dict({
@@ -1073,7 +1073,7 @@
               }),
             ]),
             'default': None,
-            'description': 'Propose tags for review (must exist in catalog). Replaces all when approved.',
+            'description': 'Propose tags for user review (must already exist in catalog).',
             'title': 'Suggested Tags',
           }),
           'tag_ids': dict({
@@ -1088,7 +1088,7 @@
               }),
             ]),
             'default': None,
-            'description': 'Apply tags immediately (UUIDs or names). Auto-creates if needed. Replaces all existing tags.',
+            'description': 'Apply tags immediately using tag names or UUIDs (e.g. ["Sales", "PII"]).',
             'title': 'Tag Ids',
           }),
         }),
@@ -2496,7 +2496,7 @@
               }),
             ]),
             'default': None,
-            'description': 'Set asset description (replaces existing). Auto-sets status="draft" if null.',
+            'description': 'Set asset description (replaces existing). Keep it short and factual.',
             'title': 'Description',
           }),
           'status': dict({
@@ -2509,7 +2509,7 @@
               }),
             ]),
             'default': None,
-            'description': '"draft" or "published". Auto-sets "draft" if providing description/tags without status.',
+            'description': '"draft" (needs review) or "published" (production-ready).',
             'title': 'Status',
           }),
           'suggested_tags': dict({
@@ -2525,7 +2525,7 @@
               }),
             ]),
             'default': None,
-            'description': 'Propose tags for review (must exist in catalog). Replaces all when approved.',
+            'description': 'Propose tags for user review (must already exist in catalog).',
             'title': 'Suggested Tags',
           }),
           'tag_ids': dict({
@@ -2540,7 +2540,7 @@
               }),
             ]),
             'default': None,
-            'description': 'Apply tags immediately (UUIDs or names). Auto-creates if needed. Replaces all existing tags.',
+            'description': 'Apply tags immediately using tag names or UUIDs (e.g. ["Sales", "PII"]).',
             'title': 'Tag Ids',
           }),
         }),

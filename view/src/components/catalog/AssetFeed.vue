@@ -9,7 +9,7 @@
           <div class="flex-1 min-w-0">
             <MarkdownEditor
               v-model="commentText"
-              placeholder="Leave a comment... Type @ to mention AI"
+              placeholder="Leave a comment... Type @ to mention Myriade Agent"
               :disabled="isSubmitting"
               :show-bubble-menu="false"
               :enable-agent-mention="true"
@@ -119,7 +119,7 @@
               </div>
               <div class="flex items-baseline gap-1.5">
                 <span class="text-sm text-muted-foreground">
-                  <span class="font-medium text-foreground">AI</span>
+                  <span class="font-medium text-foreground">Myriade Agent</span>
                   {{
                     activity.status === 'error'
                       ? 'encountered an error'
