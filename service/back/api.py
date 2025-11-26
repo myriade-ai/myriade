@@ -1693,8 +1693,13 @@ def create_asset_activity(asset_id: str):
     if not content:
         return jsonify({"error": "Content is required"}), 400
 
-    # Check for @myriade-agent mention
-    if "@myriade-agent" in content.lower():
+    # Check for @myriade-agent mention (supports both @myriade-agent and <AGENT:myriade-agent> formats)
+    import re
+
+    has_agent_mention = bool(
+        re.search(r"@myriade-agent|<AGENT:myriade-agent>", content, re.IGNORECASE)
+    )
+    if has_agent_mention:
         from app import socketio
         from back.activity import run_agent_for_activity_background
         from back.session import get_db_session
