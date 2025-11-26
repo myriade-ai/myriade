@@ -355,7 +355,11 @@ class AssetActivity(SerializerMixin, Base):
     asset: Mapped[Asset] = relationship("Asset")
     conversation: Mapped[Optional["Conversation"]] = relationship("Conversation")
 
-    def to_dict(self) -> dict:
+    def to_dict(
+        self,
+        include_relations: bool = False,
+        exclude: Optional[List[str]] = None,
+    ) -> dict:
         """Serialize activity for API response"""
         # Get actor email from User if possible
         actor_email = None
