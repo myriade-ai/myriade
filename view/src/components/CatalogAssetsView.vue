@@ -61,7 +61,7 @@
             <!-- Details Navigation Bar (when viewing asset details) -->
             <div
               v-else
-              class="flex items-center gap-3 flex-shrink-0 p-4 border-b border-border bg-gradient-to-r from-muted/50 via-muted/30 to-muted/50 dark:from-muted/20 dark:via-muted/10 dark:to-muted/20"
+              class="flex items-center gap-3 flex-shrink-0 px-4 py-3 border-b border-border bg-gradient-to-r from-muted/50 via-muted/30 to-muted/50 dark:from-muted/20 dark:via-muted/10 dark:to-muted/20"
             >
               <!-- Explorer toggle (when collapsed) -->
               <Button
@@ -70,30 +70,96 @@
                 size="icon"
                 @click="openExplorer"
                 title="Expand explorer"
+                class="-ml-2"
               >
                 <ChevronsRight class="h-4 w-4" />
               </Button>
               <!-- Mobile explorer button -->
               <Button
                 v-if="isMobile"
-                variant="outline"
-                size="sm"
-                class="flex items-center gap-2"
+                variant="ghost"
+                size="icon"
                 @click="openExplorer"
+                class="-ml-2"
               >
                 <PanelLeft class="size-4" />
-                <span>Explorer</span>
               </Button>
-              <!-- Back to list button -->
-              <Button
-                variant="outline"
-                size="sm"
-                class="flex items-center gap-2"
-                @click="clearAssetSelection"
-              >
-                <ArrowLeft class="h-4 w-4" />
-                <span>Back to list</span>
-              </Button>
+              <!-- Breadcrumb navigation -->
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <!-- List (root) -->
+                  <BreadcrumbItem>
+                    <BreadcrumbLink
+                      class="flex items-center gap-1.5 cursor-pointer"
+                      @click="clearAssetSelection"
+                    >
+                      <List class="h-4 w-4" />
+                      <span>Back to list</span>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+
+                  <!-- Database -->
+                  <template v-if="breadcrumbItems.database">
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbLink
+                        v-if="breadcrumbItems.database.id !== selectedAssetId"
+                        class="cursor-pointer"
+                        @click="handleSelectAsset(breadcrumbItems.database.id)"
+                      >
+                        {{ breadcrumbItems.database.name }}
+                      </BreadcrumbLink>
+                      <BreadcrumbPage v-else>
+                        {{ breadcrumbItems.database.name }}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </template>
+
+                  <!-- Schema -->
+                  <template v-if="breadcrumbItems.schema">
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbLink
+                        v-if="breadcrumbItems.schema.id !== selectedAssetId"
+                        class="cursor-pointer"
+                        @click="handleSelectAsset(breadcrumbItems.schema.id)"
+                      >
+                        {{ breadcrumbItems.schema.name }}
+                      </BreadcrumbLink>
+                      <BreadcrumbPage v-else>
+                        {{ breadcrumbItems.schema.name }}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </template>
+
+                  <!-- Table -->
+                  <template v-if="breadcrumbItems.table">
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbLink
+                        v-if="breadcrumbItems.table.id !== selectedAssetId"
+                        class="cursor-pointer"
+                        @click="handleSelectAsset(breadcrumbItems.table.id)"
+                      >
+                        {{ breadcrumbItems.table.name }}
+                      </BreadcrumbLink>
+                      <BreadcrumbPage v-else>
+                        {{ breadcrumbItems.table.name }}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </template>
+
+                  <!-- Column -->
+                  <template v-if="breadcrumbItems.column">
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>
+                        {{ breadcrumbItems.column.name }}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </template>
+                </BreadcrumbList>
+              </Breadcrumb>
             </div>
 
             <!-- Details View (when asset selected) -->
@@ -160,6 +226,14 @@ import CatalogExplorer from '@/components/catalog/CatalogExplorer.vue'
 import CatalogFilters from '@/components/catalog/CatalogFilters.vue'
 import CatalogListView from '@/components/catalog/CatalogListView.vue'
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator
+} from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import {
@@ -175,7 +249,7 @@ import { useContextsStore } from '@/stores/contexts'
 import type { CatalogAssetUpdatePayload } from '@/types/catalog'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useMediaQuery } from '@vueuse/core'
-import { ArrowLeft, ChevronsRight, PanelLeft } from 'lucide-vue-next'
+import { ChevronsRight, List, PanelLeft } from 'lucide-vue-next'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { EditableDraft } from './catalog/types'
@@ -346,6 +420,127 @@ const selectedTable = computed(() => {
     return indexes.tablesByIdMap.value.get(tableId) ?? null
   }
   return null
+})
+
+// Breadcrumb items for navigation hierarchy
+const breadcrumbItems = computed(() => {
+  const asset = selectedAsset.value
+  if (!asset) return {}
+
+  const items: {
+    database?: { id: string; name: string }
+    schema?: { id: string; name: string }
+    table?: { id: string; name: string }
+    column?: { id: string; name: string }
+  } = {}
+
+  if (asset.type === 'DATABASE') {
+    items.database = {
+      id: asset.id,
+      name: asset.database_facet?.database_name || asset.name || 'Database'
+    }
+  } else if (asset.type === 'SCHEMA') {
+    // Find parent database
+    const dbName = asset.schema_facet?.database_name
+    if (dbName) {
+      const dbAsset = assetsData.value?.find(
+        (a) => a.type === 'DATABASE' && a.database_facet?.database_name === dbName
+      )
+      if (dbAsset) {
+        items.database = { id: dbAsset.id, name: dbName }
+      }
+    }
+    items.schema = {
+      id: asset.id,
+      name: asset.schema_facet?.schema_name || asset.name || 'Schema'
+    }
+  } else if (asset.type === 'TABLE') {
+    const tableFacet = asset.table_facet
+    // Find parent database
+    if (tableFacet?.database_name) {
+      const dbAsset = assetsData.value?.find(
+        (a) => a.type === 'DATABASE' && a.database_facet?.database_name === tableFacet.database_name
+      )
+      if (dbAsset) {
+        items.database = { id: dbAsset.id, name: tableFacet.database_name }
+      }
+    }
+    // Find parent schema
+    if (tableFacet?.parent_schema_asset_id) {
+      const schemaAsset = indexes.assetsByIdMap.value.get(tableFacet.parent_schema_asset_id)
+      if (schemaAsset) {
+        items.schema = {
+          id: schemaAsset.id,
+          name: schemaAsset.schema_facet?.schema_name || tableFacet.schema || 'Schema'
+        }
+      }
+    } else if (tableFacet?.schema) {
+      // Fallback: find schema by name
+      const schemaAsset = assetsData.value?.find(
+        (a) =>
+          a.type === 'SCHEMA' &&
+          a.schema_facet?.schema_name === tableFacet.schema &&
+          a.schema_facet?.database_name === tableFacet.database_name
+      )
+      if (schemaAsset) {
+        items.schema = { id: schemaAsset.id, name: tableFacet.schema }
+      }
+    }
+    items.table = {
+      id: asset.id,
+      name: tableFacet?.table_name || asset.name || 'Table'
+    }
+  } else if (asset.type === 'COLUMN') {
+    const columnFacet = asset.column_facet
+    const parentTableFacet = columnFacet?.parent_table_facet
+    // Find parent database
+    if (parentTableFacet?.database_name) {
+      const dbAsset = assetsData.value?.find(
+        (a) =>
+          a.type === 'DATABASE' &&
+          a.database_facet?.database_name === parentTableFacet.database_name
+      )
+      if (dbAsset) {
+        items.database = { id: dbAsset.id, name: parentTableFacet.database_name }
+      }
+    }
+    // Find parent schema
+    if (parentTableFacet?.parent_schema_asset_id) {
+      const schemaAsset = indexes.assetsByIdMap.value.get(parentTableFacet.parent_schema_asset_id)
+      if (schemaAsset) {
+        items.schema = {
+          id: schemaAsset.id,
+          name: schemaAsset.schema_facet?.schema_name || parentTableFacet.schema || 'Schema'
+        }
+      }
+    } else if (parentTableFacet?.schema) {
+      const schemaAsset = assetsData.value?.find(
+        (a) =>
+          a.type === 'SCHEMA' &&
+          a.schema_facet?.schema_name === parentTableFacet.schema &&
+          a.schema_facet?.database_name === parentTableFacet.database_name
+      )
+      if (schemaAsset) {
+        items.schema = { id: schemaAsset.id, name: parentTableFacet.schema }
+      }
+    }
+    // Find parent table
+    if (columnFacet?.parent_table_asset_id) {
+      const tableAsset = indexes.tablesByIdMap.value.get(columnFacet.parent_table_asset_id)
+      if (tableAsset) {
+        items.table = {
+          id: tableAsset.id,
+          name: tableAsset.table_facet?.table_name || tableAsset.name || 'Table'
+        }
+      }
+    }
+    items.column = {
+      id: asset.id,
+      name: columnFacet?.column_name || asset.name || 'Column'
+    }
+  }
+
+  return items
 })
 
 const columnsForSelectedTable = computed(() => {
