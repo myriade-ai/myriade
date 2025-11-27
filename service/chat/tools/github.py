@@ -39,21 +39,24 @@ class GithubTool:
         """
         logger.info("Initializing workspace for conversation")
         workspace = ensure_conversation_workspace(self.session, self.conversation)
-        self.conversation.workspace_path = str(workspace)
+        # Ensure workspace_path doesn't have trailing slash to prevent path truncation bugs
+        normalized_workspace_path = str(workspace).rstrip("/")
+        self.conversation.workspace_path = normalized_workspace_path
         self.session.flush()
         if not workspace:
             raise GithubIntegrationError(
                 "No GitHub integration is configured for this database."
             )
         logger.info(
-            "Workspace initialized successfully", extra={"path": str(workspace)}
+            "Workspace initialized successfully",
+            extra={"path": normalized_workspace_path},
         )
         return {
             "status": "ready",
-            "workspace_path": str(workspace),
+            "workspace_path": normalized_workspace_path,
             "branch": "myriade/{self.conversation.id}",
             "message": (
-                f"Workspace initialized at {workspace}. "
+                f"Workspace initialized at {normalized_workspace_path}. "
                 f"You are now on branch 'myriade/{self.conversation.id}'. "
                 "The DBT environment is ready. "
                 "You can now edit files using the code_editor tool."
