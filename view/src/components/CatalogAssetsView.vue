@@ -25,7 +25,7 @@
           <CatalogExplorer
             ref="desktopExplorerRef"
             v-model:collapsed="explorerCollapsed"
-            :tree="filteredTree"
+            :tree="explorerTree"
             :selected-asset-id="selectedAssetId"
             :show-collapse-button="!isMobile"
             @select-asset="handleSelectAsset"
@@ -38,8 +38,9 @@
         <!-- Right side - Content and Filters Panel -->
         <ResizablePanel :default-size="explorerCollapsed ? 100 : 75">
           <div class="flex flex-1 flex-col min-h-0 h-full">
-            <!-- Filters Bar -->
+            <!-- Filters Bar (only when viewing list) -->
             <CatalogFilters
+              v-if="!selectedAsset"
               v-model:search-query="searchQueryInput"
               v-model:selected-database="selectedDatabase"
               v-model:selected-schema="selectedSchema"
@@ -56,6 +57,44 @@
               @toggle-explorer="openExplorer"
               @open-explorer="openExplorer"
             />
+
+            <!-- Details Navigation Bar (when viewing asset details) -->
+            <div
+              v-else
+              class="flex items-center gap-3 flex-shrink-0 p-4 border-b border-border bg-gradient-to-r from-muted/50 via-muted/30 to-muted/50 dark:from-muted/20 dark:via-muted/10 dark:to-muted/20"
+            >
+              <!-- Explorer toggle (when collapsed) -->
+              <Button
+                v-if="explorerCollapsed && !isMobile"
+                variant="ghost"
+                size="icon"
+                @click="openExplorer"
+                title="Expand explorer"
+              >
+                <ChevronsRight class="h-4 w-4" />
+              </Button>
+              <!-- Mobile explorer button -->
+              <Button
+                v-if="isMobile"
+                variant="outline"
+                size="sm"
+                class="flex items-center gap-2"
+                @click="openExplorer"
+              >
+                <PanelLeft class="size-4" />
+                <span>Explorer</span>
+              </Button>
+              <!-- Back to list button -->
+              <Button
+                variant="outline"
+                size="sm"
+                class="flex items-center gap-2"
+                @click="clearAssetSelection"
+              >
+                <ArrowLeft class="h-4 w-4" />
+                <span>Back to list</span>
+              </Button>
+            </div>
 
             <!-- Details View (when asset selected) -->
             <CatalogDetailsView
@@ -104,7 +143,7 @@
         </SheetHeader>
         <CatalogExplorer
           ref="mobileExplorerRef"
-          :tree="filteredTree"
+          :tree="explorerTree"
           :selected-asset-id="selectedAssetId"
           :collapsed="false"
           :show-collapse-button="false"
@@ -136,6 +175,7 @@ import { useContextsStore } from '@/stores/contexts'
 import type { CatalogAssetUpdatePayload } from '@/types/catalog'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useMediaQuery } from '@vueuse/core'
+import { ArrowLeft, ChevronsRight, PanelLeft } from 'lucide-vue-next'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { EditableDraft } from './catalog/types'
@@ -187,7 +227,6 @@ type ExplorerInstance = InstanceType<typeof CatalogExplorer>
 const desktopExplorerRef = ref<ExplorerInstance | null>(null)
 const mobileExplorerRef = ref<ExplorerInstance | null>(null)
 const showExplorerSheet = ref(false)
-const hasAutoSelected = ref(false)
 
 // Debounced search handler
 const debouncedUpdateSearch = debounce((query: string) => {
@@ -280,6 +319,15 @@ const filteredTree = computed(() =>
     selectedDatabase: selectedDatabase.value,
     selectedSchema: selectedSchema.value,
     matchingIds: matchingIds.value
+  })
+)
+
+// Unfiltered tree for the explorer (always shows all assets)
+const explorerTree = computed(() =>
+  buildFilteredTree({
+    selectedDatabase: '__all__',
+    selectedSchema: '__all__',
+    matchingIds: null
   })
 )
 
@@ -426,7 +474,6 @@ watch(
       selectedTag.value = '__all__'
       selectedStatus.value = '__all__'
       selectedAssetId.value = null
-      hasAutoSelected.value = false // Reset flag to allow auto-selection in new context
     }
   }
 )
@@ -484,43 +531,8 @@ watch(
 watch([searchQuery, selectedSchema, selectedTag, selectedStatus], () => {
   if (selectedAssetId.value) {
     selectedAssetId.value = null
-    // Don't reset hasAutoSelected - keep it true to prevent re-selection during filtering
   }
 })
-
-// Auto-select first database on initial load or when no asset is selected
-watch(
-  [filteredTree, selectedAssetId, routeAssetId, loading],
-  ([tree, currentSelection, routeId, isLoading]) => {
-    // Only auto-select once on initial load
-    if (hasAutoSelected.value) return
-
-    // Don't auto-select if loading
-    if (isLoading) return
-
-    // Don't auto-select if there's already a selection
-    if (currentSelection) return
-
-    // Don't auto-select if there's a route asset ID (user navigation)
-    if (routeId) return
-
-    // Don't auto-select if user is actively filtering (they want to see the list)
-    const hasActiveFilters =
-      searchQuery.value.trim() ||
-      selectedSchema.value !== '__all__' ||
-      selectedTag.value !== '__all__' ||
-      selectedStatus.value !== '__all__'
-    if (hasActiveFilters) return
-
-    // Auto-select first database if available
-    if (tree.length > 0 && tree[0].asset) {
-      const firstDatabaseId = tree[0].asset.id
-      selectedAssetId.value = firstDatabaseId
-      hasAutoSelected.value = true
-    }
-  },
-  { immediate: true }
-)
 
 function setExplorerSheetOpen(value: boolean) {
   showExplorerSheet.value = value
@@ -576,6 +588,10 @@ function handleSelectAsset(assetId: string) {
   if (isMobile.value) {
     showExplorerSheet.value = false
   }
+}
+
+function clearAssetSelection() {
+  selectedAssetId.value = null
 }
 
 function clearFilters() {
