@@ -2,16 +2,18 @@ import logging
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import yaml
+from agentlys.chat import StopLoopException
+from agentlys.model import Message
 from sqlalchemy.orm import Session
 
 from back.catalog_search import search_assets_and_terms
 from back.data_warehouse import AbstractDatabase
 from back.utils import get_provider_metadata_for_asset
 from models import Database
-from models.catalog import Asset, AssetTag, Term
+from models.catalog import ActivityType, Asset, AssetActivity, AssetTag, Term
 
 logger = logging.getLogger(__name__)
 
@@ -26,14 +28,20 @@ class AssetType(Enum):
 
 class CatalogTool:
     def __init__(
-        self, session: Session, database: Database, data_warehouse: AbstractDatabase
+        self,
+        session: Session,
+        database: Database,
+        data_warehouse: AbstractDatabase,
+        conversation=None,
     ):
         self.session = session
         self.database = database
         self.data_warehouse = data_warehouse
+        self.conversation = conversation
 
     def __llm__(self):
         """Summary of catalog contents for agent context"""
+        # Always include general catalog info
         assets = self._get_assets_summary()
         terms = self._get_terms_summary()
 
@@ -45,7 +53,7 @@ class CatalogTool:
                 asset_counts[asset_type] = 0
             asset_counts[asset_type] += 1
 
-        context = {
+        context: dict[str, Any] = {
             "CATALOG": {
                 "database_name": self.database.name,
                 "total_assets": len(assets),
@@ -53,6 +61,45 @@ class CatalogTool:
                 "total_terms": len(terms),
             }
         }
+
+        print(
+            f"#### Owner : {getattr(self.conversation, 'owner', None)} OwnerId: {getattr(self.conversation, 'ownerId', None)}"
+        )
+
+        # If asset_id is present, add focused asset details
+        if (
+            self.conversation
+            and hasattr(self.conversation, "asset_id")
+            and self.conversation.asset_id
+        ):
+            try:
+                asset_context_yaml = self.read_asset(str(self.conversation.asset_id))
+                # Parse the YAML to get the dict, then add to context
+                asset_data = yaml.safe_load(asset_context_yaml)
+                context["FOCUSED_ASSET"] = asset_data
+
+                # Add conversation owner information
+                if self.conversation.owner:
+                    context["CONVERSATION_OWNER"] = {
+                        "id": self.conversation.owner.id,
+                        "email": self.conversation.owner.email,
+                    }
+                    context["NOTE"] = (
+                        "This conversation is about the FOCUSED_ASSET above. "
+                        "Focus your responses on this asset, but you can also reference other assets in the CATALOG if needed. "
+                        f"You can mention the conversation owner using <USER:{self.conversation.owner.email}>. "
+                        f"Owner: {self.conversation.owner.email} (ID: {self.conversation.owner.id})"
+                    )
+                else:
+                    context["NOTE"] = (
+                        "This conversation is about the FOCUSED_ASSET above. Focus your responses on this asset, but you can also reference other assets in the CATALOG if needed."
+                    )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to load asset {self.conversation.asset_id}: {e}"
+                )
+                # Asset not found or error, continue with general context only
+
         return yaml.dump(context)
 
     # TODO: Add Delete Asset function
@@ -223,8 +270,6 @@ class CatalogTool:
         # Add AI metadata if present
         if asset.ai_suggestion:
             result["ai_suggestion"] = asset.ai_suggestion
-        if asset.note:
-            result["note"] = asset.note
 
         # Add type-specific details
         if asset.type == "TABLE" and asset.table_facet:
@@ -285,6 +330,28 @@ class CatalogTool:
         if provider_metadata:
             result["sources"] = {self.data_warehouse.dialect: provider_metadata}
 
+        # Add all activity feed entries
+        activities = (
+            self.session.query(AssetActivity)
+            .filter(AssetActivity.asset_id == asset.id)
+            .order_by(AssetActivity.created_at.desc())
+            .all()
+        )
+        result["activities"] = [
+            {
+                "id": str(activity.id),
+                "actor_id": activity.actor_id,
+                "activity_type": activity.activity_type,
+                "content": activity.content,
+                "changes": activity.changes,
+                "status": activity.status,
+                "created_at": activity.created_at.isoformat()
+                if activity.created_at
+                else None,
+            }
+            for activity in activities
+        ]
+
         return yaml.dump(result)
 
     def read_term(self, term_id: str) -> str:
@@ -325,7 +392,6 @@ class CatalogTool:
         tag_ids: Optional[list] = None,
         suggested_tags: Optional[list[str]] = None,
         status: Optional[str] = None,
-        note: Optional[str] = None,
     ) -> str:
         """
         Update catalog asset documentation.
@@ -337,7 +403,6 @@ class CatalogTool:
             tag_ids: Apply tags immediately (UUIDs or names). Auto-creates if needed. Replaces all existing tags.
             suggested_tags: Propose tags for review (must exist in catalog). Replaces all when approved.
             status: "draft" or "published". Auto-sets "draft" if providing description/tags without status.
-            note: Questions/clarifications (user-facing). REPLACES existing note completely.
 
         Returns:
             Confirmation message with asset name and status
@@ -361,9 +426,7 @@ class CatalogTool:
                 f"Invalid status '{status}'. Must be one of: {valid_statuses}"
             )
 
-        # Update note if provided
-        if note is not None:
-            asset.note = note
+        # Note: note field has been removed. Use post_message() to add clarifying questions to the feed
 
         # Handle ai_suggestion update
         if ai_suggestion is not None:
@@ -777,3 +840,52 @@ class CatalogTool:
             .filter(Asset.database_id == self.database.id)
             .all()
         )
+
+    def post_message(
+        self, asset_id: str, message: str, from_response: Message | None = None
+    ) -> str:
+        """
+        Post a message to the asset's activity feed.
+        Use this to respond to user questions about the asset or provide insights.
+
+        Args:
+            asset_id: UUID of the asset to post message to
+            message: The message content to post
+            from_response: Optional Message object to attach metadata to
+
+        Returns:
+            Confirmation message
+        """
+        # Lazy import to avoid circular dependency
+        from back.activity import create_activity
+
+        asset = (
+            self.session.query(Asset)
+            .filter(
+                Asset.id == uuid.UUID(asset_id),
+                Asset.database_id == self.database.id,
+            )
+            .first()
+        )
+
+        if not asset:
+            raise ValueError(f"Asset with id {asset_id} not found")
+
+        create_activity(
+            session=self.session,
+            asset_id=asset.id,
+            actor_id="myriade-agent",
+            activity_type=ActivityType.AGENT_MESSAGE,
+            content=message,
+        )
+
+        if from_response:
+            # Attach asset data to the message for frontend display
+            from_response.posted_asset_id = uuid.UUID(asset_id)  # type: ignore
+            from_response.posted_message = message  # type: ignore
+            from_response.isAnswer = True  # type: ignore # Mark as final answer
+            # Raise StopLoopException to stop agent loop
+            raise StopLoopException("Message posted to asset feed")
+
+        asset_label = asset.name or asset.urn or asset_id
+        return f"Posted message to asset '{asset_label}' activity feed"

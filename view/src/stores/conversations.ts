@@ -65,6 +65,15 @@ export interface Message {
     business_domains?: string[] | null
     reviewed: boolean
   }
+  postedMessage?: {
+    asset: {
+      id: string
+      name: string
+      urn: string
+      type: 'TABLE' | 'COLUMN' | 'DATABASE' | 'SCHEMA'
+    }
+    message: string
+  }
 }
 
 // A small type for tracking conversation status & errors
@@ -432,6 +441,26 @@ export const useConversationsStore = defineStore('conversations', () => {
     if (error.message === 'SUBSCRIPTION_REQUIRED') {
       subscriptionRequired.value = true
       setConversationStatus(error.conversationId, STATUS.CLEAR)
+    }
+  })
+
+  // Handle new conversation created (e.g., from asset feed @myriade-agent mention)
+  socket.on('conversation:created', (payload: { conversation: any; databaseId: string }) => {
+    const { conversation } = payload
+    // Only add if this conversation belongs to the current context
+    const currentContext = contextsStore.contextSelected
+    if (!currentContext || currentContext.id !== `database-${payload.databaseId}`) {
+      return
+    }
+
+    // Add the new conversation to the store if it doesn't exist
+    if (!conversations.value[conversation.id]) {
+      conversations.value[conversation.id] = {
+        ...conversation,
+        createdAt: new Date(conversation.createdAt),
+        updatedAt: new Date(conversation.updatedAt),
+        messages: []
+      }
     }
   })
 

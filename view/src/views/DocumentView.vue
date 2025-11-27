@@ -122,6 +122,8 @@
             :disabled="document.archived"
             :document-id="documentId"
             placeholder="Start writing... Use @ to mention queries or charts"
+            :enable-query-mentions="true"
+            :enable-chart-mentions="true"
           />
         </div>
 

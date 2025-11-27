@@ -4,7 +4,7 @@ from uuid import UUID
 
 from flask import Blueprint
 from flask import session as flask_session
-from flask_socketio import emit
+from flask_socketio import emit, join_room, leave_room
 from pydantic import validate_call
 
 from app import socketio
@@ -506,3 +506,19 @@ def on_connect():
         organization_id=auth_response.organization_id,
         sealed_session=auth_response.sealed_session,
     )
+
+
+@socketio.on("join")
+@socket_auth_required
+def handle_join(conversation_id: str):
+    """Join a conversation room to receive real-time updates."""
+    logger.info(f"Client joining conversation room: {conversation_id}")
+    join_room(conversation_id)
+
+
+@socketio.on("leave")
+@socket_auth_required
+def handle_leave(conversation_id: str):
+    """Leave a conversation room."""
+    logger.info(f"Client leaving conversation room: {conversation_id}")
+    leave_room(conversation_id)
