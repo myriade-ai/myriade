@@ -526,14 +526,119 @@ def sync_database_metadata_to_assets(
                 ColumnFacet.asset_id == asset.id
             ).delete()
         elif asset.type == "TABLE":
+            # Delete child column assets that reference this table
+            # First get the column facets that reference this table
+            column_facets_to_delete = (
+                db_session.query(ColumnFacet)
+                .filter(ColumnFacet.parent_table_asset_id == asset.id)
+                .all()
+            )
+
+            # Delete the column assets and their facets
+            for column_facet in column_facets_to_delete:
+                column_asset = (
+                    db_session.query(Asset)
+                    .filter(Asset.id == column_facet.asset_id)
+                    .first()
+                )
+                if column_asset:
+                    db_session.delete(column_asset)
+                db_session.delete(column_facet)
+
+            # Delete the table facet
             db_session.query(TableFacet).filter(
                 TableFacet.asset_id == asset.id
             ).delete()
         elif asset.type == "SCHEMA":
+            # Delete child table assets that reference this schema
+            table_facets_to_delete = (
+                db_session.query(TableFacet)
+                .filter(TableFacet.parent_schema_asset_id == asset.id)
+                .all()
+            )
+
+            # Delete the table assets and their facets (which will cascade to columns)
+            for table_facet in table_facets_to_delete:
+                table_asset = (
+                    db_session.query(Asset)
+                    .filter(Asset.id == table_facet.asset_id)
+                    .first()
+                )
+                if table_asset:
+                    # Delete column assets that reference this table
+                    column_facets = (
+                        db_session.query(ColumnFacet)
+                        .filter(ColumnFacet.parent_table_asset_id == table_asset.id)
+                        .all()
+                    )
+                    for column_facet in column_facets:
+                        column_asset = (
+                            db_session.query(Asset)
+                            .filter(Asset.id == column_facet.asset_id)
+                            .first()
+                        )
+                        if column_asset:
+                            db_session.delete(column_asset)
+                        db_session.delete(column_facet)
+                    db_session.delete(table_asset)
+                db_session.delete(table_facet)
+
+            # Delete the schema facet
             db_session.query(SchemaFacet).filter(
                 SchemaFacet.asset_id == asset.id
             ).delete()
         elif asset.type == "DATABASE":
+            # Delete child schema assets that reference this database
+            schema_facets_to_delete = (
+                db_session.query(SchemaFacet)
+                .filter(SchemaFacet.parent_database_asset_id == asset.id)
+                .all()
+            )
+
+            # Delete schema assets and their children (tables and columns)
+            for schema_facet in schema_facets_to_delete:
+                schema_asset = (
+                    db_session.query(Asset)
+                    .filter(Asset.id == schema_facet.asset_id)
+                    .first()
+                )
+                if schema_asset:
+                    # Delete table assets that reference this schema
+                    table_facets = (
+                        db_session.query(TableFacet)
+                        .filter(TableFacet.parent_schema_asset_id == schema_asset.id)
+                        .all()
+                    )
+                    for table_facet in table_facets:
+                        table_asset = (
+                            db_session.query(Asset)
+                            .filter(Asset.id == table_facet.asset_id)
+                            .first()
+                        )
+                        if table_asset:
+                            # Delete column assets that reference this table
+                            column_facets = (
+                                db_session.query(ColumnFacet)
+                                .filter(
+                                    ColumnFacet.parent_table_asset_id == table_asset.id
+                                )
+                                .all()
+                            )
+                            for column_facet in column_facets:
+                                column_asset = (
+                                    db_session.query(Asset)
+                                    .filter(Asset.id == column_facet.asset_id)
+                                    .first()
+                                )
+                                if column_asset:
+                                    db_session.delete(column_asset)
+                                db_session.delete(column_facet)
+                            db_session.delete(table_asset)
+                        db_session.delete(table_facet)
+                    db_session.delete(schema_asset)
+                db_session.delete(schema_facet)
+
+            # Delete the database facet
             db_session.query(DatabaseFacet).filter(
                 DatabaseFacet.asset_id == asset.id
             ).delete()
