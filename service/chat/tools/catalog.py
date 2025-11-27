@@ -158,6 +158,11 @@ class CatalogTool:
                         {"id": str(tag.id), "name": tag.name}
                         for tag in asset.asset_tags
                     ],
+                    "has_ai_suggestion": asset.ai_suggestion is not None,
+                    "has_ai_suggested_tags": (
+                        asset.ai_suggested_tags is not None
+                        and len(asset.ai_suggested_tags) > 0
+                    ),
                 }
 
                 # Add type-specific information
