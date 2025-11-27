@@ -173,11 +173,13 @@ class DataAnalystAgent:
 
             # Add Code Editor tool to the agent if the conversation has a workspace path
             if self.conversation.workspace_path:
-                code_editor = CodeEditor(self.conversation.workspace_path)
+                # Normalize workspace path to prevent path truncation bugs
+                workspace_path = self.conversation.workspace_path.rstrip("/")
+                code_editor = CodeEditor(workspace_path)
                 self.agent.add_tool(code_editor, "code_editor")
 
                 dbt_editor = DBTEditor(
-                    repo_path=self.conversation.workspace_path,
+                    repo_path=workspace_path,
                     database_config={
                         "engine": self.conversation.database.engine,
                         "details": self.conversation.database.details,
