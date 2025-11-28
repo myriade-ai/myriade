@@ -41,7 +41,9 @@
           class="border-b border-border last:border-b-0"
         >
           <!-- Hunk header -->
-          <div class="bg-blue-500/10 border-l-4 border-blue-400 px-3 py-1 text-xs text-blue-600 dark:text-blue-400">
+          <div
+            class="bg-blue-500/10 border-l-4 border-blue-400 px-3 py-1 text-xs text-blue-600 dark:text-blue-400"
+          >
             {{ hunk.header }}
           </div>
           <!-- Diff lines -->
@@ -51,10 +53,14 @@
             :class="getDiffLineClasses(line)"
             class="flex"
           >
-            <span class="w-12 text-xs text-muted-foreground text-right pr-2 select-none flex-shrink-0">
+            <span
+              class="w-12 text-xs text-muted-foreground text-right pr-2 select-none flex-shrink-0"
+            >
               {{ line.oldLineNumber || '' }}
             </span>
-            <span class="w-12 text-xs text-muted-foreground text-right pr-2 select-none flex-shrink-0">
+            <span
+              class="w-12 text-xs text-muted-foreground text-right pr-2 select-none flex-shrink-0"
+            >
               {{ line.newLineNumber || '' }}
             </span>
             <span
