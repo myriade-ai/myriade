@@ -22,7 +22,7 @@
           </div>
         </div>
       </div>
-      <div v-if="asset.tags?.length" class="mt-3 flex flex-wrap gap-2">
+      <div v-if="asset.tags?.length" class="flex flex-wrap">
         <Badge v-for="tag in asset.tags" :key="tag.id" variant="secondary" class="text-xs">
           {{ tag.name }}
         </Badge>
@@ -30,16 +30,6 @@
     </div>
     <div class="flex flex-col gap-2 items-end">
       <div class="flex items-center gap-2">
-        <Button
-          v-if="showReviewButton"
-          variant="outline"
-          size="sm"
-          class="whitespace-nowrap gap-1.5"
-          @click="reviewWithAI"
-        >
-          <SparklesIcon class="h-3.5 w-3.5" />
-          Review with AI
-        </Button>
         <Tooltip v-if="asset.status === 'draft'" :disabled="!hasAiSuggestions">
           <TooltipTrigger as-child>
             <Button
@@ -62,16 +52,12 @@
 </template>
 
 <script setup lang="ts">
+import AssetBadgeStatus from '@/components/AssetBadgeStatus.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import AssetBadgeStatus from '@/components/AssetBadgeStatus.vue'
 import type { CatalogAsset } from '@/stores/catalog'
-import { useConversationsStore } from '@/stores/conversations'
-import { useContextsStore } from '@/stores/contexts'
 import { computed, type Component } from 'vue'
-import { useRouter } from 'vue-router'
-import { SparklesIcon } from 'lucide-vue-next'
 
 interface Props {
   asset: CatalogAsset
@@ -87,38 +73,10 @@ defineEmits<{
   publish: []
 }>()
 
-const conversationsStore = useConversationsStore()
-const contextsStore = useContextsStore()
-const router = useRouter()
-
-const showReviewButton = computed(() => {
-  const status = props.asset.status
-  // Show review button for unverified (null) or draft assets
-  return !status || status === 'draft'
-})
-
 const hasAiSuggestions = computed(() => {
   return (
     !!props.asset.ai_suggestion ||
     (props.asset.ai_suggested_tags && props.asset.ai_suggested_tags.length > 0)
   )
 })
-
-async function reviewWithAI() {
-  const contextId = contextsStore.contextSelected?.id
-  if (!contextId) return
-
-  const conversation = await conversationsStore.createConversation(contextId)
-
-  let message = ''
-  if (props.asset.type === 'TABLE') {
-    message = `Please review the table "${props.asset.name}" (id: ${props.asset.id}) and suggest improvements to its description, tags`
-  } else if (props.asset.type === 'COLUMN') {
-    message = `Please review the column "${props.asset.name}" (id: ${props.asset.id}) and suggest improvements to its description, tags`
-  }
-
-  await conversationsStore.sendMessage(conversation.id, message, 'text')
-
-  router.push({ name: 'ChatPage', params: { id: conversation.id.toString() } })
-}
 </script>
