@@ -7,7 +7,9 @@
       >
         <div class="relative h-4 w-4 flex-shrink-0">
           <Sun class="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon class="absolute inset-0 h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <Moon
+            class="absolute inset-0 h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+          />
         </div>
         <span class="flex-1 text-left">Theme</span>
         <ChevronRight class="h-4 w-4 ml-auto flex-shrink-0" />
@@ -49,4 +51,3 @@ import { ChevronRight, Monitor, Moon, Sun } from 'lucide-vue-next'
 
 const { mode } = useDarkMode()
 </script>
-

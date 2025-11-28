@@ -49,16 +49,37 @@ def _apply_asset_type_filter(query: Query, asset_type: Optional[str]) -> Query:
     return query
 
 
+def _apply_ai_suggestion_filter(
+    query: Query, has_ai_suggestion: Optional[bool]
+) -> Query:
+    """Apply AI suggestion filter to query if specified."""
+    if has_ai_suggestion is True:
+        return query.filter(
+            or_(
+                Asset.ai_suggestion.isnot(None),
+                Asset.ai_suggested_tags.isnot(None),
+            )
+        )
+    elif has_ai_suggestion is False:
+        return query.filter(
+            Asset.ai_suggestion.is_(None),
+            Asset.ai_suggested_tags.is_(None),
+        )
+    return query
+
+
 def _apply_common_filters(
     query: Query,
     asset_type: Optional[str],
     tag_ids: Optional[List[str]],
     statuses: Optional[List[str]],
+    has_ai_suggestion: Optional[bool] = None,
 ) -> Query:
-    """Apply all common filters (asset_type, tags, statuses) to a query."""
+    """Apply all common filters (asset_type, tags, statuses, ai_suggestion) to a query."""
     query = _apply_asset_type_filter(query, asset_type)
     query = _apply_tag_filter(query, tag_ids)
     query = _apply_status_filter(query, statuses)
+    query = _apply_ai_suggestion_filter(query, has_ai_suggestion)
     return query
 
 
@@ -70,6 +91,7 @@ def search_assets(
     limit: int = 50,
     tag_ids: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None,
+    has_ai_suggestion: Optional[bool] = None,
 ) -> List[Dict[str, Any]]:
     """
     Search catalog assets by text query and/or filters. Returns ONLY assets (no terms).
@@ -85,13 +107,22 @@ def search_assets(
         limit: Maximum number of results (default 50)
         tag_ids: Optional list of tag UUIDs to filter by
         statuses: Optional list of status values to filter by ("validated", "needs_review", etc. or None/"unverified")
+        has_ai_suggestion: Optional filter for assets with/without AI suggestions
 
     Returns:
         List of matching assets as dictionaries with id, name, type, etc.
     """
     is_postgresql = get_dialect_name(session) == "postgresql"
     assets = _execute_asset_search(
-        session, database_id, text, asset_type, limit, is_postgresql, tag_ids, statuses
+        session,
+        database_id,
+        text,
+        asset_type,
+        limit,
+        is_postgresql,
+        tag_ids,
+        statuses,
+        has_ai_suggestion,
     )
 
     return [_format_asset_result(asset) for asset in assets]
@@ -151,6 +182,7 @@ def _execute_postgresql_search(
     limit: Optional[int],
     tag_ids: Optional[List[str]],
     statuses: Optional[List[str]],
+    has_ai_suggestion: Optional[bool] = None,
 ) -> List[Asset]:
     """Execute PostgreSQL asset search with optional text matching."""
     similarity_threshold = 0.3
@@ -166,7 +198,9 @@ def _execute_postgresql_search(
 
     # If no text search, use simple query without similarity scoring
     if not text:
-        query = _apply_common_filters(base_query, asset_type, tag_ids, statuses)
+        query = _apply_common_filters(
+            base_query, asset_type, tag_ids, statuses, has_ai_suggestion
+        )
         query = query.order_by(Asset.name.asc())
 
         if limit is not None:
@@ -205,7 +239,9 @@ def _execute_postgresql_search(
         .distinct()
     )
 
-    query = _apply_common_filters(query, asset_type, tag_ids, statuses)
+    query = _apply_common_filters(
+        query, asset_type, tag_ids, statuses, has_ai_suggestion
+    )
     query = query.order_by(similarity_score.desc(), Asset.name.asc())
 
     if limit is not None:
@@ -224,6 +260,7 @@ def _execute_asset_search(
     is_postgresql: bool,
     tag_ids: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None,
+    has_ai_suggestion: Optional[bool] = None,
 ) -> List[Asset]:
     """
     Execute asset search with fuzzy matching support.
@@ -240,6 +277,7 @@ def _execute_asset_search(
         is_postgresql: Whether using PostgreSQL
         tag_ids: Optional list of tag UUIDs to filter by
         statuses: Optional list of status values to filter by
+        has_ai_suggestion: Optional filter for assets with/without AI suggestions
 
     Returns:
         List of Asset model instances
@@ -247,7 +285,14 @@ def _execute_asset_search(
 
     if is_postgresql:
         return _execute_postgresql_search(
-            session, database_id, text, asset_type, limit, tag_ids, statuses
+            session,
+            database_id,
+            text,
+            asset_type,
+            limit,
+            tag_ids,
+            statuses,
+            has_ai_suggestion,
         )
 
     # SQLite: Simple ILIKE query without fuzzy matching
@@ -269,7 +314,9 @@ def _execute_asset_search(
             | AssetTag.name.ilike(f"%{text}%")  # Search tag names
         )
 
-    query = _apply_common_filters(query, asset_type, tag_ids, statuses)
+    query = _apply_common_filters(
+        query, asset_type, tag_ids, statuses, has_ai_suggestion
+    )
 
     if limit is not None:
         return query.limit(limit).all()
