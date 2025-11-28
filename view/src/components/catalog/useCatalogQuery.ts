@@ -4,7 +4,7 @@ import { useContextsStore } from '@/stores/contexts'
 import type { Table } from '@/stores/tables'
 import { keepPreviousData, useQuery, type UseQueryReturnType } from '@tanstack/vue-query'
 import type { AxiosResponse } from 'axios'
-import { computed, type Ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 
 export interface AssetSourceMetadata {
   description?: string
@@ -155,14 +155,15 @@ export function useAssetSourcesQuery(
 /**
  * TanStack Query hook for searching catalog assets
  * Returns only asset IDs matching the search query using server-side fuzzy matching
- * Triggered for queries >= 3 characters or when tag/status filters are selected
+ * Triggered for queries >= 3 characters or when tag/status/AI suggestion filters are selected
  */
 export function useCatalogSearchQuery(
   databaseId: Ref<string | null>,
   searchText: Ref<string>,
   enabled: Ref<boolean>,
   selectedTag: Ref<string>,
-  selectedStatus: Ref<string>
+  selectedStatus: Ref<string>,
+  hasAiSuggestion: Ref<string> = ref('__all__')
 ): UseQueryReturnType<string[], Error> {
   const query = useQuery({
     queryKey: computed(() => [
@@ -171,13 +172,15 @@ export function useCatalogSearchQuery(
       databaseId.value,
       searchText.value,
       selectedTag.value,
-      selectedStatus.value
+      selectedStatus.value,
+      hasAiSuggestion.value
     ]),
     queryFn: async (): Promise<string[]> => {
       const currentDatabaseId = databaseId.value
       const currentSearchText = searchText.value
       const currentTag = selectedTag.value
       const currentStatus = selectedStatus.value
+      const currentHasAiSuggestion = hasAiSuggestion.value
 
       if (!currentDatabaseId) {
         return []
@@ -188,6 +191,7 @@ export function useCatalogSearchQuery(
         q?: string
         tag_ids?: string[]
         statuses?: string[]
+        has_ai_suggestion?: string
       } = {}
 
       // Only include search query if it has meaningful length
@@ -201,6 +205,10 @@ export function useCatalogSearchQuery(
 
       if (currentStatus && currentStatus !== '__all__') {
         params.statuses = [currentStatus]
+      }
+
+      if (currentHasAiSuggestion && currentHasAiSuggestion !== '__all__') {
+        params.has_ai_suggestion = currentHasAiSuggestion
       }
 
       const response: AxiosResponse<string[]> = await axios.get(

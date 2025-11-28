@@ -21,10 +21,7 @@ const currentIcon = computed(() => {
   <DropdownMenu>
     <DropdownMenuTrigger as-child>
       <Button variant="ghost" size="icon">
-        <component
-          :is="currentIcon"
-          class="h-[1.2rem] w-[1.2rem] transition-all"
-        />
+        <component :is="currentIcon" class="h-[1.2rem] w-[1.2rem] transition-all" />
         <span class="sr-only">Toggle theme</span>
       </Button>
     </DropdownMenuTrigger>

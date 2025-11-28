@@ -1,8 +1,5 @@
 <template>
-  <div
-    ref="scrollElement"
-    class="flex-1 overflow-y-auto bg-background"
-  >
+  <div ref="scrollElement" class="flex-1 overflow-y-auto bg-background">
     <div v-if="!assets.length" class="p-12 text-center">
       <p class="text-muted-foreground">No assets found matching the current filters.</p>
     </div>
@@ -37,9 +34,25 @@
               class="h-5 w-5 text-primary-600 flex-shrink-0"
             />
             <div class="flex-1 min-w-0">
-              <h3 class="font-medium truncate">
-                {{ getAssetTitle(assets[virtualRow.index]) }}
-              </h3>
+              <div class="flex items-center gap-2">
+                <h3 class="font-medium truncate">
+                  {{ getAssetTitle(assets[virtualRow.index]) }}
+                </h3>
+                <!-- AI Suggestion Indicator -->
+                <Tooltip v-if="hasAiSuggestion(assets[virtualRow.index])">
+                  <TooltipTrigger as-child>
+                    <span
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300"
+                    >
+                      <Sparkles class="h-3 w-3" />
+                      <span class="hidden sm:inline">AI</span>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Has AI suggestions to review</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <p class="text-sm text-muted-foreground truncate mt-1">
                 {{ getAssetMetadata(assets[virtualRow.index]) }}
               </p>
@@ -54,13 +67,29 @@
             />
           </div>
         </div>
+        <!-- AI Suggestion Preview (if exists and no regular description) -->
         <div
-          v-if="assets[virtualRow.index].description"
+          v-if="assets[virtualRow.index].ai_suggestion && !assets[virtualRow.index].description"
+          class="mt-2 text-sm text-purple-600 dark:text-purple-400 line-clamp-2 flex items-start gap-1.5"
+        >
+          <Sparkles class="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+          <span class="italic">{{ assets[virtualRow.index].ai_suggestion }}</span>
+        </div>
+        <!-- Regular Description -->
+        <div
+          v-else-if="assets[virtualRow.index].description"
           class="mt-2 text-sm text-muted-foreground line-clamp-2"
         >
           <MarkdownDisplay :content="assets[virtualRow.index].description ?? ''" />
         </div>
-        <div v-if="assets[virtualRow.index].tags?.length" class="mt-2 flex flex-wrap gap-2">
+        <!-- Tags and AI Suggested Tags -->
+        <div
+          v-if="
+            assets[virtualRow.index].tags?.length ||
+            assets[virtualRow.index].ai_suggested_tags?.length
+          "
+          class="mt-2 flex flex-wrap gap-2"
+        >
           <Badge
             v-for="tag in assets[virtualRow.index].tags"
             :key="tag.id"
@@ -68,6 +97,16 @@
             class="text-xs"
           >
             {{ tag.name }}
+          </Badge>
+          <!-- AI Suggested Tags Preview -->
+          <Badge
+            v-for="tagName in assets[virtualRow.index].ai_suggested_tags?.slice(0, 3)"
+            :key="tagName"
+            variant="outline"
+            class="text-xs border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400 border-dashed"
+          >
+            <Sparkles class="h-2.5 w-2.5 mr-1" />
+            {{ tagName }}
           </Badge>
         </div>
       </div>
@@ -79,12 +118,14 @@
 import AssetBadgeStatus from '@/components/AssetBadgeStatus.vue'
 import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { CatalogAsset } from '@/stores/catalog'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import {
   Columns3,
   Database,
   FolderTree,
+  Sparkles,
   Table as TableIcon,
   View as ViewIcon
 } from 'lucide-vue-next'
@@ -96,6 +137,13 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+// Helper to check if asset has any AI suggestions
+function hasAiSuggestion(asset: CatalogAsset): boolean {
+  return Boolean(
+    asset.ai_suggestion || (asset.ai_suggested_tags && asset.ai_suggested_tags.length > 0)
+  )
+}
 
 defineEmits<{
   'select-asset': [assetId: string]
