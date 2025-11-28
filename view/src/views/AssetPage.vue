@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { useCatalogStore } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import { useDatabasesStore } from '@/stores/databases'
-import { computeCatalogStats } from '@/utils/catalog-stats'
 import { RefreshCwIcon, SparklesIcon } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
 import { computed, onMounted } from 'vue'
@@ -21,14 +20,6 @@ const { syncStatus, syncProgress } = storeToRefs(catalogStore)
 const { data: assets, isLoading, isFetching } = useCatalogAssetsQuery()
 
 const assetsCount = computed(() => assets.value?.length ?? 0)
-
-// Compute stats from assets directly in the frontend
-const stats = computed(() => {
-  if (!assets.value || assets.value.length === 0) {
-    return null
-  }
-  return computeCatalogStats(assets.value)
-})
 
 const syncButtonText = computed(() => {
   switch (syncStatus.value) {
@@ -116,49 +107,6 @@ onMounted(async () => {
         </Button>
       </template>
     </PageHeader>
-
-    <!-- Stats Bar -->
-    <div
-      v-if="stats"
-      class="flex flex-wrap gap-3 lg:gap-4 px-4 py-3 border-b bg-muted/50 flex-shrink-0"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-muted-foreground">Total Assets:</span>
-        <span class="text-sm font-semibold text-foreground">{{ stats.total_assets }}</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-muted-foreground">Completion Score:</span>
-        <span
-          class="text-sm font-semibold"
-          :class="
-            stats.completion_score >= 70
-              ? 'text-green-600 dark:text-green-400'
-              : stats.completion_score >= 40
-                ? 'text-yellow-600 dark:text-yellow-400'
-                : 'text-destructive'
-          "
-          >{{ stats.completion_score }}%</span
-        >
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-muted-foreground">To Review:</span>
-        <span
-          class="text-sm font-semibold"
-          :class="stats.assets_to_review > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-foreground'"
-          >{{ stats.assets_to_review }}</span
-        >
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-muted-foreground">Validated:</span>
-        <span class="text-sm font-semibold text-foreground">{{ stats.assets_validated }}</span>
-      </div>
-      <div v-if="stats.assets_with_ai_suggestions > 0" class="flex items-center gap-2">
-        <span class="text-sm font-medium text-muted-foreground">AI Suggestions:</span>
-        <span class="text-sm font-semibold text-purple-600 dark:text-purple-400">{{
-          stats.assets_with_ai_suggestions
-        }}</span>
-      </div>
-    </div>
 
     <div class="flex-1 min-h-0 h-full">
       <CatalogAssetsView :is-loading="isLoading" :is-fetching="isFetching" />

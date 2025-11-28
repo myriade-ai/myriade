@@ -46,6 +46,7 @@
               v-model:selected-schema="selectedSchema"
               v-model:selected-tag="selectedTag"
               v-model:selected-status="selectedStatus"
+              v-model:has-ai-suggestion="hasAiSuggestion"
               :database-options="databaseOptions"
               :schema-options="schemaOptions"
               :tag-options="tagOptions"
@@ -53,6 +54,10 @@
               :explorer-collapsed="explorerCollapsed"
               :show-explorer-shortcut="isMobile"
               :is-searching="isSearching"
+              :ai-suggestion-count="filterCounts.aiSuggestionCount"
+              :draft-count="filterCounts.draftCount"
+              :published-count="filterCounts.publishedCount"
+              :unverified-count="filterCounts.unverifiedCount"
               @clear-filters="clearFilters"
               @toggle-explorer="openExplorer"
               @open-explorer="openExplorer"
@@ -105,7 +110,7 @@
                       <BreadcrumbLink
                         v-if="breadcrumbItems.database.id !== selectedAssetId"
                         class="cursor-pointer"
-                        @click="handleSelectAsset(breadcrumbItems.database.id)"
+                        @click="handleBreadcrumbNavigation(breadcrumbItems.database.id)"
                       >
                         {{ breadcrumbItems.database.name }}
                       </BreadcrumbLink>
@@ -122,7 +127,7 @@
                       <BreadcrumbLink
                         v-if="breadcrumbItems.schema.id !== selectedAssetId"
                         class="cursor-pointer"
-                        @click="handleSelectAsset(breadcrumbItems.schema.id)"
+                        @click="handleBreadcrumbNavigation(breadcrumbItems.schema.id)"
                       >
                         {{ breadcrumbItems.schema.name }}
                       </BreadcrumbLink>
@@ -139,7 +144,7 @@
                       <BreadcrumbLink
                         v-if="breadcrumbItems.table.id !== selectedAssetId"
                         class="cursor-pointer"
-                        @click="handleSelectAsset(breadcrumbItems.table.id)"
+                        @click="handleBreadcrumbNavigation(breadcrumbItems.table.id)"
                       >
                         {{ breadcrumbItems.table.name }}
                       </BreadcrumbLink>
@@ -291,6 +296,7 @@ const selectedDatabase = ref('__all__')
 const selectedSchema = ref('__all__')
 const selectedTag = ref('__all__')
 const selectedStatus = ref('__all__')
+const hasAiSuggestion = ref('__all__')
 const activeTab = ref<'overview' | 'columns' | 'schemas' | 'tables' | 'preview' | 'sources'>(
   'overview'
 )
@@ -347,7 +353,8 @@ const searchEnabled = computed(() => {
     !!selectedDatabaseId.value &&
     (searchQuery.value.length > 0 ||
       selectedTag.value !== '__all__' ||
-      selectedStatus.value !== '__all__')
+      selectedStatus.value !== '__all__' ||
+      hasAiSuggestion.value !== '__all__')
   )
 })
 
@@ -356,7 +363,8 @@ const { data: searchResultIds, isFetching: isSearching } = useCatalogSearchQuery
   searchQuery,
   searchEnabled,
   selectedTag,
-  selectedStatus
+  selectedStatus,
+  hasAiSuggestion
 )
 
 const matchingIds = computed(() => {
@@ -384,9 +392,23 @@ const hasActiveFilters = computed(() =>
       (selectedDatabase.value && selectedDatabase.value !== '__all__') ||
       (selectedSchema.value && selectedSchema.value !== '__all__') ||
       (selectedTag.value && selectedTag.value !== '__all__') ||
-      (selectedStatus.value && selectedStatus.value !== '__all__')
+      (selectedStatus.value && selectedStatus.value !== '__all__') ||
+      (hasAiSuggestion.value && hasAiSuggestion.value !== '__all__')
   )
 )
+
+// Filter counts for the filter chips
+const filterCounts = computed(() => {
+  const assets = assetsData.value || []
+  return {
+    aiSuggestionCount: assets.filter(
+      (a) => a.ai_suggestion || (a.ai_suggested_tags && a.ai_suggested_tags.length > 0)
+    ).length,
+    draftCount: assets.filter((a) => a.status === 'draft').length,
+    publishedCount: assets.filter((a) => a.status === 'published').length,
+    unverifiedCount: assets.filter((a) => !a.status).length
+  }
+})
 
 const filteredTree = computed(() =>
   buildFilteredTree({
@@ -492,48 +514,53 @@ const breadcrumbItems = computed(() => {
     }
   } else if (asset.type === 'COLUMN') {
     const columnFacet = asset.column_facet
-    const parentTableFacet = columnFacet?.parent_table_facet
-    // Find parent database
-    if (parentTableFacet?.database_name) {
+
+    // First, find the parent table asset - this is the most reliable source
+    const tableAsset = columnFacet?.parent_table_asset_id
+      ? indexes.tablesByIdMap.value.get(columnFacet.parent_table_asset_id)
+      : null
+    const tableFacet = tableAsset?.table_facet || columnFacet?.parent_table_facet
+
+    // Find parent database using table's facet data
+    if (tableFacet?.database_name) {
       const dbAsset = assetsData.value?.find(
-        (a) =>
-          a.type === 'DATABASE' &&
-          a.database_facet?.database_name === parentTableFacet.database_name
+        (a) => a.type === 'DATABASE' && a.database_facet?.database_name === tableFacet.database_name
       )
       if (dbAsset) {
-        items.database = { id: dbAsset.id, name: parentTableFacet.database_name }
+        items.database = { id: dbAsset.id, name: tableFacet.database_name }
       }
     }
-    // Find parent schema
-    if (parentTableFacet?.parent_schema_asset_id) {
-      const schemaAsset = indexes.assetsByIdMap.value.get(parentTableFacet.parent_schema_asset_id)
+
+    // Find parent schema using table's facet data
+    if (tableFacet?.parent_schema_asset_id) {
+      const schemaAsset = indexes.assetsByIdMap.value.get(tableFacet.parent_schema_asset_id)
       if (schemaAsset) {
         items.schema = {
           id: schemaAsset.id,
-          name: schemaAsset.schema_facet?.schema_name || parentTableFacet.schema || 'Schema'
+          name: schemaAsset.schema_facet?.schema_name || tableFacet.schema || 'Schema'
         }
       }
-    } else if (parentTableFacet?.schema) {
+    } else if (tableFacet?.schema) {
+      // Fallback: find schema by name
       const schemaAsset = assetsData.value?.find(
         (a) =>
           a.type === 'SCHEMA' &&
-          a.schema_facet?.schema_name === parentTableFacet.schema &&
-          a.schema_facet?.database_name === parentTableFacet.database_name
+          a.schema_facet?.schema_name === tableFacet.schema &&
+          a.schema_facet?.database_name === tableFacet.database_name
       )
       if (schemaAsset) {
-        items.schema = { id: schemaAsset.id, name: parentTableFacet.schema }
+        items.schema = { id: schemaAsset.id, name: tableFacet.schema }
       }
     }
-    // Find parent table
-    if (columnFacet?.parent_table_asset_id) {
-      const tableAsset = indexes.tablesByIdMap.value.get(columnFacet.parent_table_asset_id)
-      if (tableAsset) {
-        items.table = {
-          id: tableAsset.id,
-          name: tableAsset.table_facet?.table_name || tableAsset.name || 'Table'
-        }
+
+    // Add parent table to breadcrumb
+    if (tableAsset) {
+      items.table = {
+        id: tableAsset.id,
+        name: tableAsset.table_facet?.table_name || tableAsset.name || 'Table'
       }
     }
+
     items.column = {
       id: asset.id,
       name: columnFacet?.column_name || asset.name || 'Column'
@@ -668,6 +695,7 @@ watch(
       selectedSchema.value = '__all__'
       selectedTag.value = '__all__'
       selectedStatus.value = '__all__'
+      hasAiSuggestion.value = '__all__'
       selectedAssetId.value = null
     }
   }
@@ -723,7 +751,7 @@ watch(
 )
 
 // Reset selection when filters change while viewing asset details
-watch([searchQuery, selectedSchema, selectedTag, selectedStatus], () => {
+watch([searchQuery, selectedSchema, selectedTag, selectedStatus, hasAiSuggestion], () => {
   if (selectedAssetId.value) {
     selectedAssetId.value = null
   }
@@ -749,6 +777,16 @@ function expandForAsset(assetId: string) {
     (instance): instance is ExplorerInstance => Boolean(instance)
   )
 
+  // Handle DATABASE assets
+  if (asset.type === 'DATABASE' && asset.database_facet) {
+    const databaseName = asset.database_facet.database_name
+    const databaseKey = `database:${databaseName}`
+    explorers.forEach((explorer) => {
+      explorer.expandNode(databaseKey)
+    })
+    return
+  }
+
   // Handle SCHEMA assets
   if (asset.type === 'SCHEMA' && asset.schema_facet) {
     const databaseName = asset.schema_facet.database_name
@@ -768,9 +806,13 @@ function expandForAsset(assetId: string) {
       ? asset
       : tableById.value.get(asset.column_facet?.parent_table_asset_id || '')
   if (!table) return
-  const schemaKey = `schema:${table.table_facet?.schema || ''}`
+  const databaseName = table.table_facet?.database_name || ''
+  const schemaName = table.table_facet?.schema || ''
+  const databaseKey = `database:${databaseName}`
+  const schemaKey = `schema:${databaseName}:${schemaName}`
   const tableKey = `table:${table.id}`
   explorers.forEach((explorer) => {
+    explorer.expandNode(databaseKey)
     explorer.expandNode(schemaKey)
     if (asset.type === 'COLUMN') {
       explorer.expandNode(tableKey)
@@ -785,6 +827,14 @@ function handleSelectAsset(assetId: string) {
   }
 }
 
+function handleBreadcrumbNavigation(assetId: string) {
+  // Clear filters when navigating via breadcrumb to ensure the asset is visible
+  if (hasActiveFilters.value) {
+    clearFilters()
+  }
+  selectedAssetId.value = assetId
+}
+
 function clearAssetSelection() {
   selectedAssetId.value = null
 }
@@ -796,6 +846,7 @@ function clearFilters() {
   selectedSchema.value = '__all__'
   selectedTag.value = '__all__'
   selectedStatus.value = '__all__'
+  hasAiSuggestion.value = '__all__'
 }
 
 async function refresh() {

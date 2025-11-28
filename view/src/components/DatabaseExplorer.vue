@@ -23,7 +23,10 @@
       </div>
 
       <div v-else ref="scrollElement" class="flex-1 overflow-y-auto">
-        <div v-if="visibleTables.length === 0" class="px-4 py-4 text-center text-sm text-muted-foreground">
+        <div
+          v-if="visibleTables.length === 0"
+          class="px-4 py-4 text-center text-sm text-muted-foreground"
+        >
           <div v-if="tables.length === 0">No table available. <br />Please contact support.</div>
           <div v-else>No tables matching search.</div>
         </div>

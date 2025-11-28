@@ -1326,6 +1326,7 @@ def search_catalog_assets(database_id: UUID):
     - asset_type: Filter by type (optional: "TABLE", "COLUMN", "SCHEMA", "DATABASE")
     - tag_ids: Filter by tag IDs (optional, array: ?tag_ids=uuid1&tag_ids=uuid2)
     - statuses: Filter by status values (optional, array: ?statuses=validated&statuses=needs_review)
+    - has_ai_suggestion: Filter by AI suggestions (optional: "true" or "false")
 
     Returns: Array of matching asset IDs (strings)
     """
@@ -1348,11 +1349,18 @@ def search_catalog_assets(database_id: UUID):
     )
     statuses = statuses_list if statuses_list else None
 
+    has_ai_suggestion_param = request.args.get("has_ai_suggestion", "").strip().lower()
+    has_ai_suggestion = None
+    if has_ai_suggestion_param == "true":
+        has_ai_suggestion = True
+    elif has_ai_suggestion_param == "false":
+        has_ai_suggestion = False
+
     # Require at least one filter
-    if not search_query and not tag_ids and not statuses:
+    if not search_query and not tag_ids and not statuses and has_ai_suggestion is None:
         return jsonify(
             {
-                "error": "At least one of 'q' (search query), 'tag_ids', or 'statuses' must be provided"
+                "error": "At least one of 'q' (search query), 'tag_ids', 'statuses', or 'has_ai_suggestion' must be provided"
             }
         ), 400
 
@@ -1364,6 +1372,7 @@ def search_catalog_assets(database_id: UUID):
             asset_type=asset_type,
             tag_ids=tag_ids,
             statuses=statuses,
+            has_ai_suggestion=has_ai_suggestion,
             limit=50,
         )
         asset_ids = [asset["id"] for asset in results]
@@ -1420,7 +1429,12 @@ def update_catalog_asset(asset_id: str):
     if "ai_suggestion" in data:
         asset.ai_suggestion = data["ai_suggestion"]
     if "ai_suggested_tags" in data:
-        asset.ai_suggested_tags = data["ai_suggested_tags"]
+        # Normalize ai_suggested_tags: treat empty list as NULL
+        tags_value = data["ai_suggested_tags"]
+        if tags_value is None or tags_value == []:
+            asset.ai_suggested_tags = None
+        else:
+            asset.ai_suggested_tags = tags_value
 
     if "tag_ids" in data:
         asset.asset_tags.clear()
