@@ -28,6 +28,16 @@ if DATABASE_URL.startswith("sqlite:///") and ENV != "development":
 
 HOST = os.environ.get("HOST")
 
+# Warn if HOST is not set in production (may cause OAuth redirect issues)
+if ENV == "production" and not HOST:
+    import logging
+
+    logging.warning(
+        "HOST environment variable is not set. "
+        "OAuth redirects may fail if running behind a reverse proxy. "
+        "Set HOST to your public URL (e.g., HOST=https://myriade.example.com)"
+    )
+
 # Infra Configuration
 INFRA_URL = os.environ.get("INFRA_URL", "https://infra.myriade.ai")
 SENTRY_DSN = os.environ.get("SENTRY_DSN")

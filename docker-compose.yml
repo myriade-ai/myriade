@@ -33,6 +33,10 @@ services:
       AGENTLYS_MODEL: ${MODEL:-claude-sonnet-4-5-20250929}
       AGENTLYS_OUTPUT_SIZE_LIMIT: ${AGENTLYS_OUTPUT_SIZE_LIMIT:-20000}
 
+      # Host URL for OAuth callbacks (e.g., https://myriade.example.com)
+      # Set this if running behind a reverse proxy
+      HOST: ${HOST:-}
+
       # Optional integrations
       SENTRY_DSN: ${SENTRY_DSN:-}
     networks:
