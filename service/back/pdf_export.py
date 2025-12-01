@@ -39,6 +39,7 @@ from models import Chart, Document, Query
 
 TAG_PATTERN = re.compile(r"(<QUERY:([^>]+)>|<CHART:([^>]+)>)")
 MAX_TABLE_ROWS = 25
+INLINE_CODE_FONT = "DejaVuSansMono"
 
 
 @dataclass
@@ -484,7 +485,11 @@ def _format_inline(text: str) -> str:
     escaped = html.escape(text)
     escaped = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", escaped)
     escaped = re.sub(r"\*(.+?)\*", r"<i>\1</i>", escaped)
-    escaped = re.sub(r"`(.+?)`", r"<font face='Courier'>\1</font>", escaped)
+    escaped = re.sub(
+        r"`(.+?)`",
+        rf"<font face='{INLINE_CODE_FONT}'>\1</font>",
+        escaped,
+    )
     return escaped.replace("\n", "<br/>")
 
 
@@ -525,16 +530,20 @@ def _safe_uuid(value: str) -> uuid.UUID | None:
 
 
 def _build_styles() -> StyleSheet1:
-    _register_fonts()
+    fonts = _register_fonts()
 
-    body_font = "DejaVuSans"
-    mono_font = "DejaVuSansMono"
+    body_font = fonts["body"]
+    mono_font = fonts["mono"]
+    fallback_fonts = fonts.get("emoji_fallbacks", [])
     styles = getSampleStyleSheet()
     styles["Normal"].fontName = body_font
     styles["BodyText"].fontName = body_font
     styles["Heading1"].fontName = body_font
     styles["Heading2"].fontName = body_font
     styles["Heading3"].fontName = body_font
+    for style_name in ("Normal", "BodyText", "Heading1", "Heading2", "Heading3"):
+        style = styles[style_name]
+        style.fallbackFonts = fallback_fonts
     styles.add(
         ParagraphStyle(
             name="DocTitle",
@@ -543,6 +552,7 @@ def _build_styles() -> StyleSheet1:
             leading=26,
             spaceAfter=6,
             fontName=body_font,
+            fallbackFonts=fallback_fonts,
         )
     )
     styles.add(
@@ -553,6 +563,7 @@ def _build_styles() -> StyleSheet1:
             textColor=colors.HexColor("#6b7280"),
             spaceAfter=6,
             fontName=body_font,
+            fallbackFonts=fallback_fonts,
         )
     )
     styles.add(
@@ -562,6 +573,7 @@ def _build_styles() -> StyleSheet1:
             fontSize=11,
             leading=16,
             fontName=body_font,
+            fallbackFonts=fallback_fonts,
         )
     )
     styles.add(
@@ -571,6 +583,7 @@ def _build_styles() -> StyleSheet1:
             fontSize=18,
             leading=22,
             fontName="DejaVuSans-Bold",
+            fallbackFonts=fallback_fonts,
         )
     )
     styles.add(
@@ -580,6 +593,7 @@ def _build_styles() -> StyleSheet1:
             fontSize=15,
             leading=19,
             fontName="DejaVuSans-Bold",
+            fallbackFonts=fallback_fonts,
         )
     )
     styles.add(
@@ -589,6 +603,7 @@ def _build_styles() -> StyleSheet1:
             fontSize=13,
             leading=17,
             fontName="DejaVuSans-Bold",
+            fallbackFonts=fallback_fonts,
         )
     )
     styles.add(
@@ -600,6 +615,7 @@ def _build_styles() -> StyleSheet1:
             spaceBefore=4,
             spaceAfter=6,
             fontName="DejaVuSans-Bold",
+            fallbackFonts=fallback_fonts,
         )
     )
     styles.add(
@@ -611,23 +627,79 @@ def _build_styles() -> StyleSheet1:
             textColor=colors.HexColor("#f9fafb"),
             spaceAfter=0,
             fontName=mono_font,
+            fallbackFonts=fallback_fonts,
         )
     )
     return styles
 
 
-def _register_fonts() -> None:
-    font_dir = Path("/usr/share/fonts/truetype/dejavu")
-    fonts = {
-        "DejaVuSans": "DejaVuSans.ttf",
-        "DejaVuSans-Bold": "DejaVuSans-Bold.ttf",
-        "DejaVuSansMono": "DejaVuSansMono.ttf",
-    }
+def _register_fonts() -> dict[str, list[str] | str]:
+    """Register body, mono, and optional emoji fonts.
 
-    for font_name, filename in fonts.items():
-        if font_name in pdfmetrics.getRegisteredFontNames():
+    Returns a mapping of font roles so styles can reference fallbacks.
+    """
+
+    logger = None
+    try:  # Avoid requiring an application context
+        logger = current_app.logger
+    except Exception:  # pragma: no cover - only hit without Flask context
+        pass
+
+    search_paths = [
+        Path(__file__).resolve().parent / "fonts",
+        Path("/usr/share/fonts/truetype/dejavu"),
+        Path("/usr/share/fonts/truetype/noto"),
+        Path("/usr/local/share/fonts"),
+    ]
+
+    def find_font(filename: str) -> Path | None:
+        for base in search_paths:
+            candidate = base / filename
+            if candidate.exists():
+                return candidate
+        return None
+
+    base_fonts = {
+        "body": ("DejaVuSans", "DejaVuSans.ttf"),
+        "body_bold": ("DejaVuSans-Bold", "DejaVuSans-Bold.ttf"),
+        "mono": ("DejaVuSansMono", "DejaVuSansMono.ttf"),
+    }
+    registered: dict[str, str] = {}
+    for role, (name, filename) in base_fonts.items():
+        if name not in pdfmetrics.getRegisteredFontNames():
+            font_path = find_font(filename)
+            if font_path:
+                pdfmetrics.registerFont(TTFont(name, str(font_path)))
+            elif logger:
+                logger.warning("Font %s not found; falling back to defaults", name)
+
+        if name in pdfmetrics.getRegisteredFontNames():
+            registered[role] = name
+        elif role == "mono":
+            registered[role] = "Courier"
+        else:
+            registered[role] = "Helvetica"
+
+    emoji_candidates = [
+        ("NotoColorEmoji", "NotoColorEmoji.ttf"),
+        ("NotoEmoji", "NotoEmoji-Regular.ttf"),
+        ("OpenMoji", "OpenMoji-Black.ttf"),
+        ("Twemoji", "TwitterColorEmoji-SVGinOT.ttf"),
+    ]
+
+    emoji_fonts: list[str] = []
+    for name, filename in emoji_candidates:
+        if name in pdfmetrics.getRegisteredFontNames():
+            emoji_fonts.append(name)
             continue
 
-        font_path = font_dir / filename
-        if font_path.exists():
-            pdfmetrics.registerFont(TTFont(font_name, str(font_path)))
+        font_path = find_font(filename)
+        if font_path:
+            try:
+                pdfmetrics.registerFont(TTFont(name, str(font_path)))
+                emoji_fonts.append(name)
+            except Exception:
+                # Skip fonts ReportLab cannot handle (e.g., unsupported emoji formats)
+                continue
+
+    return {"body": registered["body"], "mono": registered["mono"], "emoji_fallbacks": emoji_fonts}
