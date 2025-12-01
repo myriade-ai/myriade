@@ -182,6 +182,13 @@
 }
 
 :root {
+  /* Brand Colors */
+  --navy-text: #010B3E;
+  --navy-bg: #000834;
+  --gold: #FAAF03;
+  --gold-hover: #E9A000;
+  --light-gray: #F9F9F9;
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
