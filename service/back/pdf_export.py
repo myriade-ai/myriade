@@ -19,6 +19,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, StyleSheet1, getSampleStyleSheet
 from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     HRFlowable,
     Image,
@@ -87,7 +89,9 @@ def generate_document_pdf(
             has_content = True
         elif part["type"] == "query":
             flowables.extend(
-                _build_query_section(part["query_id"], queries, include_sql, styles)
+                _build_query_section(
+                    part["query_id"], queries, include_sql, template.width, styles
+                )
             )
             has_content = True
         elif part["type"] == "chart":
@@ -254,6 +258,7 @@ def _build_query_section(
     query_id: str,
     queries: dict[str, QueryExportData],
     include_sql: bool,
+    max_width: float,
     styles: StyleSheet1,
 ) -> list[Any]:
     flowables: list[Any] = []
@@ -273,7 +278,7 @@ def _build_query_section(
     if include_sql and data.query.sql:
         # Create SQL code block with dark background using a table wrapper
         sql_preformatted = Preformatted(data.query.sql, styles["DocCode"])
-        sql_table = Table([[sql_preformatted]], colWidths=[None])
+        sql_table = Table([[sql_preformatted]], colWidths=[max_width])
         sql_table.setStyle(
             TableStyle(
                 [
@@ -290,7 +295,7 @@ def _build_query_section(
         flowables.append(sql_table)
         flowables.append(Spacer(1, 8))
 
-    table = _build_results_table(data)
+    table = _build_results_table(data, max_width)
     if table:
         flowables.append(table)
         if len(data.rows) > MAX_TABLE_ROWS:
@@ -309,7 +314,7 @@ def _build_query_section(
     return flowables
 
 
-def _build_results_table(data: QueryExportData) -> Table | None:
+def _build_results_table(data: QueryExportData, max_width: float) -> Table | None:
     if not data.rows:
         return None
 
@@ -323,14 +328,16 @@ def _build_results_table(data: QueryExportData) -> Table | None:
     for row in limited_rows:
         table_data.append([_format_table_value(row.get(column)) for column in columns])
 
-    table = Table(table_data, repeatRows=1)
+    col_widths = [max_width / len(columns)] * len(columns)
+    table = Table(table_data, repeatRows=1, colWidths=col_widths)
     table.setStyle(
         TableStyle(
             [
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f3f4f6")),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#111827")),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTNAME", (0, 0), (-1, 0), "DejaVuSans-Bold"),
                 ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("FONTNAME", (0, 1), (-1, -1), "DejaVuSans"),
                 ("ALIGN", (0, 0), (-1, -1), "LEFT"),
                 ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#e5e7eb")),
                 (
@@ -518,7 +525,16 @@ def _safe_uuid(value: str) -> uuid.UUID | None:
 
 
 def _build_styles() -> StyleSheet1:
+    _register_fonts()
+
+    body_font = "DejaVuSans"
+    mono_font = "DejaVuSansMono"
     styles = getSampleStyleSheet()
+    styles["Normal"].fontName = body_font
+    styles["BodyText"].fontName = body_font
+    styles["Heading1"].fontName = body_font
+    styles["Heading2"].fontName = body_font
+    styles["Heading3"].fontName = body_font
     styles.add(
         ParagraphStyle(
             name="DocTitle",
@@ -526,6 +542,7 @@ def _build_styles() -> StyleSheet1:
             fontSize=20,
             leading=26,
             spaceAfter=6,
+            fontName=body_font,
         )
     )
     styles.add(
@@ -535,6 +552,7 @@ def _build_styles() -> StyleSheet1:
             fontSize=9,
             textColor=colors.HexColor("#6b7280"),
             spaceAfter=6,
+            fontName=body_font,
         )
     )
     styles.add(
@@ -543,6 +561,7 @@ def _build_styles() -> StyleSheet1:
             parent=styles["BodyText"],
             fontSize=11,
             leading=16,
+            fontName=body_font,
         )
     )
     styles.add(
@@ -551,6 +570,7 @@ def _build_styles() -> StyleSheet1:
             parent=styles["Heading1"],
             fontSize=18,
             leading=22,
+            fontName="DejaVuSans-Bold",
         )
     )
     styles.add(
@@ -559,6 +579,7 @@ def _build_styles() -> StyleSheet1:
             parent=styles["Heading2"],
             fontSize=15,
             leading=19,
+            fontName="DejaVuSans-Bold",
         )
     )
     styles.add(
@@ -567,6 +588,7 @@ def _build_styles() -> StyleSheet1:
             parent=styles["Heading3"],
             fontSize=13,
             leading=17,
+            fontName="DejaVuSans-Bold",
         )
     )
     styles.add(
@@ -577,6 +599,7 @@ def _build_styles() -> StyleSheet1:
             leading=16,
             spaceBefore=4,
             spaceAfter=6,
+            fontName="DejaVuSans-Bold",
         )
     )
     styles.add(
@@ -587,6 +610,24 @@ def _build_styles() -> StyleSheet1:
             leading=12,
             textColor=colors.HexColor("#f9fafb"),
             spaceAfter=0,
+            fontName=mono_font,
         )
     )
     return styles
+
+
+def _register_fonts() -> None:
+    font_dir = Path("/usr/share/fonts/truetype/dejavu")
+    fonts = {
+        "DejaVuSans": "DejaVuSans.ttf",
+        "DejaVuSans-Bold": "DejaVuSans-Bold.ttf",
+        "DejaVuSansMono": "DejaVuSansMono.ttf",
+    }
+
+    for font_name, filename in fonts.items():
+        if font_name in pdfmetrics.getRegisteredFontNames():
+            continue
+
+        font_path = font_dir / filename
+        if font_path.exists():
+            pdfmetrics.registerFont(TTFont(font_name, str(font_path)))
