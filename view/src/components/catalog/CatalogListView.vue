@@ -42,7 +42,7 @@
                 <Tooltip v-if="hasAiSuggestion(assets[virtualRow.index])">
                   <TooltipTrigger as-child>
                     <span
-                      class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300"
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-[var(--gold)]/10 text-[var(--gold)]"
                     >
                       <Sparkles class="h-3 w-3" />
                       <span class="hidden sm:inline">AI</span>
@@ -70,10 +70,13 @@
         <!-- AI Suggestion Preview (if exists and no regular description) -->
         <div
           v-if="assets[virtualRow.index].ai_suggestion && !assets[virtualRow.index].description"
-          class="mt-2 text-sm text-purple-600 dark:text-purple-400 line-clamp-2 flex items-start gap-1.5"
+          class="mt-2 text-sm text-[var(--gold)] line-clamp-2 flex items-start gap-1.5"
         >
           <Sparkles class="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-          <span class="italic">{{ assets[virtualRow.index].ai_suggestion }}</span>
+          <MarkdownDisplay
+            :content="assets[virtualRow.index].ai_suggestion ?? ''"
+            class="italic flex-1"
+          />
         </div>
         <!-- Regular Description -->
         <div
@@ -103,7 +106,7 @@
             v-for="tagName in assets[virtualRow.index].ai_suggested_tags?.slice(0, 3)"
             :key="tagName"
             variant="outline"
-            class="text-xs border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400 border-dashed"
+            class="text-xs border-[var(--gold)]/30 text-[var(--gold)] border-dashed"
           >
             <Sparkles class="h-2.5 w-2.5 mr-1" />
             {{ tagName }}

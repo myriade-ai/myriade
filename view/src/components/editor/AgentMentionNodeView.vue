@@ -1,7 +1,7 @@
 <template>
   <NodeViewWrapper as="span" class="agent-mention-wrapper">
     <span
-      class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 font-medium text-sm cursor-default"
+      class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[var(--gold)]/15 text-[var(--navy-text)] font-medium text-sm cursor-default"
       contenteditable="false"
     >
       <span>@{{ node.attrs.label || 'Myriade Agent' }}</span>

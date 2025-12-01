@@ -2,65 +2,69 @@
   <div class="space-y-4">
     <div class="space-y-2">
       <div class="flex items-center justify-between gap-2">
-        <h3 class="text-sm font-medium text-muted-foreground">Description</h3>
+        <h3 class="text-xs font-medium uppercase tracking-wide">Description</h3>
         <div
-          v-if="asset && draft && isEditing && !needsDescriptionReview"
+          v-if="asset && draft && !needsDescriptionReview && hasChanges"
           class="flex items-center gap-2"
         >
-          <Button variant="ghost" size="sm" :disabled="isSaving" @click="$emit('cancel-edit')">
-            Cancel
-          </Button>
-          <Transition
-            enter-active-class="transition-opacity duration-200"
-            leave-active-class="transition-opacity duration-200"
-            enter-from-class="opacity-0"
-            leave-to-class="opacity-0"
+          <Button
+            size="sm"
+            class="h-7 text-xs"
+            :disabled="isSaving"
+            :is-loading="isSaving"
+            @click="$emit('save')"
           >
-            <Button
-              v-if="hasChanges"
-              variant="outline"
-              size="sm"
-              :disabled="isSaving || !hasChanges"
-              :is-loading="isSaving"
-              @click="$emit('save')"
-            >
-              <template #loading>Saving...</template>
-              Save
-            </Button>
-          </Transition>
+            <template #loading>Saving...</template>
+            Save
+          </Button>
         </div>
       </div>
 
       <div v-if="needsDescriptionReview" class="space-y-3">
         <!-- Git-style unified diff view (only if there's an actual AI suggestion) -->
-        <div v-if="asset.ai_suggestion" class="overflow-hidden bg-card border rounded-md">
-          <div class="space-y-0 text-xs font-mono leading-relaxed">
+        <div v-if="asset.ai_suggestion" class="overflow-hidden rounded-lg border border-border">
+          <div class="space-y-0 text-[13px] font-mono leading-relaxed">
             <!-- Before (removal) -->
-            <div class="bg-red-50 dark:bg-red-900/20 px-2 py-1 border-l-2 border-red-400">
-              <span class="text-red-600 select-none mr-2">−</span>
-              <span class="text-red-900 dark:text-red-200">{{ asset.description || '' }}</span>
+            <div
+              class="bg-red-50 dark:bg-red-950/30 px-3 py-2.5 border-l-[3px] border-red-400 dark:border-red-500 flex"
+            >
+              <span class="text-red-500 dark:text-red-400 select-none mr-2 flex-shrink-0">−</span>
+              <span class="text-red-800 dark:text-red-200">{{
+                asset.description || '(empty)'
+              }}</span>
             </div>
             <!-- After (addition) - Editable -->
-            <div class="bg-green-50 dark:bg-green-900/20 px-2 py-1 border-l-2 border-green-400">
-              <span class="text-green-600 select-none mr-2">+</span>
+            <div
+              class="bg-green-50 dark:bg-green-950/30 px-3 py-2.5 border-l-[3px] border-green-400 dark:border-green-500 flex"
+            >
+              <span class="text-green-500 dark:text-green-400 select-none mr-2 flex-shrink-0"
+                >+</span
+              >
               <Textarea
                 :model-value="editableSuggestion"
                 @update:model-value="updateEditableSuggestion"
                 rows="3"
-                class="inline-block align-top w-[calc(100%-1.5rem)] border-0 p-0 text-xs font-mono text-green-900 dark:text-green-200 bg-transparent focus:ring-0 focus:ring-offset-0 focus:outline-none focus:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none leading-relaxed shadow-none"
+                class="flex-1 border-0 p-0 text-[13px] font-mono text-green-800 dark:text-green-200 bg-transparent focus:ring-0 focus:ring-offset-0 focus:outline-none focus:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none leading-relaxed shadow-none"
                 :disabled="isSaving"
                 placeholder="Edit AI suggestion..."
               />
             </div>
           </div>
           <!-- Action buttons for description -->
-          <div class="px-2 py-2 bg-gray-50 border-t flex justify-end gap-2">
-            <Button @click="handleRejectDescription" size="sm" variant="ghost" :disabled="isSaving">
+          <div class="px-3 py-2.5 bg-muted/30 border-t border-border flex justify-end gap-2">
+            <Button
+              @click="handleRejectDescription"
+              size="sm"
+              variant="ghost"
+              class="h-7 text-xs"
+              :disabled="isSaving"
+            >
               Reject
             </Button>
             <Button
               @click="handleApproveDescription"
               size="sm"
+              class="h-7 text-xs"
               :disabled="isSaving || !editableSuggestion.trim()"
               :is-loading="isSaving"
             >
@@ -76,7 +80,7 @@
           :model-value="editableSuggestion"
           @update:model-value="updateEditableSuggestion"
           rows="5"
-          class="rounded-lg"
+          class="rounded-lg text-sm"
           :disabled="isSaving"
           placeholder="Edit description..."
         />
@@ -84,24 +88,16 @@
 
       <!-- Regular description view/edit (all other statuses) -->
       <div v-else>
-        <!-- Read-only markdown view when not editing -->
-        <div
-          v-if="!isEditing && draft.description"
-          class="prose prose-sm max-w-none p-3 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted transition-colors"
-          @click="$emit('start-edit')"
-        >
-          <MarkdownDisplay :content="draft.description" class="text-sm" />
-        </div>
-        <!-- Editable textarea when editing or no description -->
-        <Textarea
-          v-else
+        <MarkdownEditor
           :model-value="draft.description"
           @update:model-value="updateDescription"
-          rows="5"
-          class="rounded-lg"
+          @submit="$emit('save')"
           :disabled="isSaving"
-          @focus="$emit('start-edit')"
-          placeholder="Click to add description..."
+          :show-bubble-menu="false"
+          placeholder="Enter asset description..."
+          min-height="80px"
+          :compact="true"
+          class="rounded-lg border border-border bg-transparent hover:border-border/80 focus-within:border-primary/50 transition-colors"
         />
       </div>
 
@@ -112,50 +108,50 @@
 
     <!-- Tags Section with diff (only in needsReview mode and if there are suggested tags) -->
     <div v-if="needsReview && asset.ai_suggested_tags && asset.ai_suggested_tags.length > 0">
-      <h3 class="text-sm font-medium text-muted-foreground">Tags</h3>
+      <h3 class="text-xs font-medium uppercase tracking-wide mb-2">Tags</h3>
 
       <!-- Git-style unified diff view for tags -->
-      <div class="overflow-hidden bg-card border rounded-md">
+      <div class="overflow-hidden rounded-lg border border-border">
         <div class="space-y-0">
           <!-- Before (removal) - Current tags -->
-          <div class="bg-red-50 dark:bg-red-900/20 px-3 py-2 border-l-2 border-red-400">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-red-600 select-none">−</span>
-              <div v-if="asset.tags.length > 0" class="flex items-center gap-1 flex-wrap">
-                <Badge
-                  v-for="tag in asset.tags"
-                  :key="tag.id"
-                  variant="outline"
-                  class="text-red-900 dark:text-red-200 border-red-200"
-                >
-                  {{ tag.name }}
-                </Badge>
-              </div>
-              <span v-else class="text-red-900 dark:text-red-200 text-sm italic">No tags</span>
+          <div
+            class="bg-red-50 dark:bg-red-950/30 px-3 py-2.5 border-l-[3px] border-red-400 dark:border-red-500 flex items-center gap-2 flex-wrap"
+          >
+            <span class="text-red-500 dark:text-red-400 select-none text-sm">−</span>
+            <div v-if="asset.tags.length > 0" class="flex items-center gap-1.5 flex-wrap">
+              <Badge
+                v-for="tag in asset.tags"
+                :key="tag.id"
+                variant="outline"
+                class="text-red-700 dark:text-red-300 border-red-200 dark:border-red-800 bg-transparent text-xs"
+              >
+                {{ tag.name }}
+              </Badge>
             </div>
+            <span v-else class="text-red-600 dark:text-red-400 text-xs italic">No tags</span>
           </div>
           <!-- After (addition) - Show only NEW suggested tags in diff -->
           <div
             v-if="newSuggestedTagsForDiff.length > 0"
-            class="bg-green-50 dark:bg-green-900/20 px-3 py-2 border-l-2 border-green-400"
+            class="bg-green-50 dark:bg-green-950/30 px-3 py-2.5 border-l-[3px] border-green-400 dark:border-green-500 flex items-center gap-2 flex-wrap"
           >
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-green-600 select-none">+</span>
-              <div class="flex items-center gap-1 flex-wrap">
-                <Badge
-                  v-for="tag in newSuggestedTagsForDiff"
-                  :key="tag.id"
-                  variant="outline"
-                  class="text-green-900 dark:text-green-200 border-green-200"
-                >
-                  {{ tag.name }}
-                </Badge>
-              </div>
+            <span class="text-green-500 dark:text-green-400 select-none text-sm">+</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <Badge
+                v-for="tag in newSuggestedTagsForDiff"
+                :key="tag.id"
+                variant="outline"
+                class="text-green-700 dark:text-green-300 border-green-200 dark:border-green-800 bg-transparent text-xs"
+              >
+                {{ tag.name }}
+              </Badge>
             </div>
           </div>
           <!-- Edit all tags section (shown separately) -->
-          <div class="px-3 py-2 border-t border-gray-200">
-            <label class="text-xs font-medium text-muted-foreground mb-2 block">Edit Tags</label>
+          <div class="px-3 py-2.5 border-t border-border">
+            <label class="text-[11px] font-medium uppercase tracking-wide mb-2 block"
+              >Edit Tags</label
+            >
             <AssetTagSelect
               v-model="editableSuggestedTags"
               :disabled="isSaving"
@@ -163,13 +159,20 @@
             />
           </div>
           <!-- Action buttons for tags -->
-          <div class="px-3 py-2 bg-gray-50 border-t flex justify-end gap-2">
-            <Button @click="handleRejectTags" size="sm" variant="ghost" :disabled="isSaving">
+          <div class="px-3 py-2.5 bg-muted/30 border-t border-border flex justify-end gap-2">
+            <Button
+              @click="handleRejectTags"
+              size="sm"
+              variant="ghost"
+              class="h-7 text-xs"
+              :disabled="isSaving"
+            >
               Reject
             </Button>
             <Button
               @click="handleApproveTags"
               size="sm"
+              class="h-7 text-xs"
               :disabled="isSaving"
               :is-loading="isSaving"
             >
@@ -182,8 +185,8 @@
     </div>
 
     <!-- Regular tags section (when not in needsReview mode or no suggested tags) -->
-    <div v-else class="space-y-2 w-full flex-1">
-      <h3 class="text-sm font-medium text-muted-foreground">Tags</h3>
+    <div v-else class="space-y-2">
+      <h3 class="text-xs font-medium uppercase tracking-wide">Tags</h3>
       <AssetTagSelect
         :model-value="draft.tags"
         @update:model-value="updateTags"
@@ -197,12 +200,11 @@
 
 <script setup lang="ts">
 import AssetTagSelect from '@/components/AssetTagSelect.vue'
-import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useCatalogStore, type AssetTag, type CatalogAsset } from '@/stores/catalog'
-import { Info } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import type { EditableDraft } from './types'
 
@@ -303,9 +305,8 @@ watch(
   }
 )
 
-function updateDescription(description: string | number) {
-  emit('update:draft', { ...props.draft, description: String(description) })
-  emit('start-edit')
+function updateDescription(description: string) {
+  emit('update:draft', { ...props.draft, description })
 }
 
 function updateTags(tags: AssetTag[]) {
