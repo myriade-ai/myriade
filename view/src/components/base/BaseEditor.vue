@@ -8,7 +8,7 @@
     :min-lines="isReadOnly ? 2 : 5"
     :max-lines="20"
     @keydown.enter.meta.exact="runQuery"
-    :options="{ readOnly: isReadOnly, showPrintMargin: false, fontSize: 14 }"
+    :options="{ readOnly: isReadOnly, showPrintMargin: false, fontSize: 14, wrap: true }"
     placeholder="SELECT * FROM ..."
   />
 </template>
@@ -20,6 +20,7 @@ import { VAceEditor } from 'vue3-ace-editor'
 // Import after vue3-ace-editor
 import 'brace/mode/sql'
 import 'brace/theme/monokai'
+import { formatSQL } from '@/lib/utils'
 
 defineComponent({ VAceEditor })
 
@@ -41,9 +42,20 @@ const runQuery = () => {
 
 const isReadOnly = computed(() => props.readOnly)
 
+const formattedModelValue = computed(() => {
+  if (!isReadOnly.value) return props.modelValue
+
+  try {
+    return formatSQL(props.modelValue)
+  } catch (error) {
+    console.error('Failed to format SQL:', error)
+    return props.modelValue
+  }
+})
+
 const inputText: WritableComputedRef<string> = computed({
   get() {
-    return props.modelValue
+    return formattedModelValue.value
   },
   set(value) {
     if (!props.readOnly) {
