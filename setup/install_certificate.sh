@@ -228,12 +228,24 @@ case $CHOICE in
         
         # Update Nginx configuration
         print_message "Updating Nginx configuration..."
-        
-        # Backup existing config
-        sudo cp /etc/nginx/sites-available/myriade /etc/nginx/sites-available/myriade.backup
-        
+
+        # Ensure Nginx config directory exists
+        sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+
+        # Backup existing config when present
+        NGINX_CONFIG="/etc/nginx/sites-available/myriade"
+        NGINX_BACKUP="${NGINX_CONFIG}.backup"
+        BACKUP_CREATED=false
+
+        if [ -f "$NGINX_CONFIG" ]; then
+            sudo cp "$NGINX_CONFIG" "$NGINX_BACKUP"
+            BACKUP_CREATED=true
+        else
+            print_warning "No existing Nginx config found at $NGINX_CONFIG. A fresh one will be created."
+        fi
+
         # Create new SSL config
-        sudo tee /etc/nginx/sites-available/myriade > /dev/null <<EOF
+        sudo tee "$NGINX_CONFIG" > /dev/null <<EOF
 # HTTP to HTTPS redirect
 server {
     listen 80;
@@ -308,7 +320,12 @@ EOF
         else
             print_error "Nginx configuration test failed"
             print_info "Restoring backup..."
-            sudo mv /etc/nginx/sites-available/myriade.backup /etc/nginx/sites-available/myriade
+            if [ "$BACKUP_CREATED" = true ] && [ -f "$NGINX_BACKUP" ]; then
+                sudo mv "$NGINX_BACKUP" "$NGINX_CONFIG"
+            else
+                sudo rm -f "$NGINX_CONFIG"
+                print_warning "No backup available. The generated config has been removed."
+            fi
             exit 1
         fi
         ;;
