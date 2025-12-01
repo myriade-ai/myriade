@@ -1,11 +1,11 @@
 <template>
   <SidebarProvider :default-open="true">
     <AppSidebar />
-    <SidebarInset class="min-w-0 w-full h-screen">
+    <SidebarInset class="min-w-0 w-full h-screen overflow-hidden">
       <div class="flex flex-col h-full bg-background">
-        <AnonymousUserBar />
+        <AnonymousUserBar class="shrink-0" />
         <Suspense>
-          <router-view class="flex-1 flex flex-col min-h-0" />
+          <router-view class="flex-1 min-h-0 overflow-y-auto overscroll-contain" />
         </Suspense>
       </div>
     </SidebarInset>
