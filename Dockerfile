@@ -9,7 +9,7 @@ ENV NODE_OPTIONS="--max_old_space_size=4096"
 RUN yarn install
 
 COPY view/ .
-RUN yarn build
+RUN yarn build:prod
 
 # Stage 2: Main application
 FROM python:3.11.4

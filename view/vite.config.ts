@@ -6,19 +6,34 @@ import { defineConfig } from 'vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // build: {
-  //   commonjsOptions: {
-  //     esmExternals: true
-  //   }
-  // },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          echarts: ['echarts', 'vue-echarts'],
+          tiptap: [
+            '@tiptap/core',
+            '@tiptap/vue-3',
+            '@tiptap/starter-kit',
+            '@tiptap/extension-bubble-menu',
+            '@tiptap/extension-mention',
+            '@tiptap/extension-placeholder',
+            '@tiptap/suggestion',
+            'tiptap-markdown'
+          ]
+        }
+      }
+    }
+  },
   plugins: [
     vue(),
-    sentryVitePlugin({
-      org: 'myriade-ai',
-      project: 'view',
-      authToken: process.env.SENTRY_AUTH_TOKEN
-    })
-  ],
+    process.env.SENTRY_AUTH_TOKEN &&
+      sentryVitePlugin({
+        org: 'myriade-ai',
+        project: 'view',
+        authToken: process.env.SENTRY_AUTH_TOKEN
+      })
+  ].filter(Boolean),
 
   server: {
     proxy: {
