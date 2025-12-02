@@ -52,8 +52,10 @@ class JSONB(TypeDecorator):
 
     def load_dialect_impl(self, dialect):
         if dialect.name == "postgresql":
-            return dialect.type_descriptor(PG_JSONB())
-        return dialect.type_descriptor(JSON())
+            # Use none_as_null=True to store Python None as SQL NULL
+            # instead of JSON 'null' string
+            return dialect.type_descriptor(PG_JSONB(none_as_null=True))
+        return dialect.type_descriptor(JSON(none_as_null=True))
 
 
 class UtcDateTime(TypeDecorator):
