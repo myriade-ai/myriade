@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import socket
-from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -20,16 +19,15 @@ from app import socketio
 from back.activity import (
     create_activity,
     create_agent_working_activity,
-    create_audit_trail,
     run_agent_for_activity_background,
 )
 from back.background_sync import run_metadata_sync_background
 from back.catalog_events import (
-    emit_asset_updated,
     emit_tag_deleted,
     emit_tag_updated,
 )
 from back.catalog_search import search_assets
+from back.catalog_utils import update_asset
 from back.data_warehouse import ConnectionError, DataWarehouseFactory
 from back.dbt_sync import run_dbt_generation_background
 from back.github_manager import (
@@ -1406,82 +1404,24 @@ def update_catalog_asset(asset_id: str):
 
     data = request.get_json(silent=True) or {}
 
-    # Capture old values for audit trail
-    old_values = {
-        "description": asset.description,
-        "status": asset.status,
-        "tags": [tag.name for tag in asset.asset_tags],
-    }
-
-    # Handle publishing
-    if "status" in data and data["status"] == "published":
-        asset.status = "published"
-        asset.published_by = g.user.id
-        asset.published_at = datetime.utcnow()
-
-    # Standard field updates
+    # Handle name update separately (not supported by shared function)
     if "name" in data:
         asset.name = data["name"]
 
-    if "description" in data:
-        asset.description = data["description"]
-        # If user manually edits or approves, set to draft if no status
-        if asset.status is None:
-            asset.status = "draft"
-
-    # Note field has been removed - silently ignore for backward compatibility
-    # Users should use the asset feed to post comments instead
-
-    # Handle clearing AI fields
-    if "ai_suggestion" in data:
-        asset.ai_suggestion = data["ai_suggestion"]
-    if "ai_suggested_tags" in data:
-        # Normalize ai_suggested_tags: treat empty list as NULL
-        tags_value = data["ai_suggested_tags"]
-        if tags_value is None or tags_value == []:
-            asset.ai_suggested_tags = None
-        else:
-            asset.ai_suggested_tags = tags_value
-
-    if "tag_ids" in data:
-        asset.asset_tags.clear()
-
-        # Add new tag associations
-        for tag_id in data["tag_ids"]:
-            tag_uuid = UUID(tag_id)
-            tag = (
-                g.session.query(AssetTag)
-                .filter(
-                    AssetTag.id == tag_uuid,
-                    AssetTag.database_id == asset.database_id,
-                )
-                .first()
-            )
-            if tag:
-                asset.asset_tags.append(tag)
-
-    g.session.flush()
-
-    # Create audit trail for changed fields
-    new_values = {}
-    if "description" in data:
-        new_values["description"] = asset.description
-    if "status" in data:
-        new_values["status"] = asset.status
-    if "tag_ids" in data:
-        new_values["tags"] = [tag.name for tag in asset.asset_tags]
-
-    if new_values:
-        create_audit_trail(
-            session=g.session,
-            asset=asset,
-            actor_id=g.user.id,
-            old_values=old_values,
-            new_values=new_values,
-        )
-
-    # Broadcast real-time update to other users viewing this database
-    emit_asset_updated(asset, g.user.id)
+    # Use shared function for common update logic with activity tracking
+    # Check if keys exist in data to distinguish "not provided" from "explicitly null"
+    update_asset(
+        session=g.session,
+        asset=asset,
+        actor_id=str(g.user.id),
+        description=data.get("description"),
+        ai_suggestion=data["ai_suggestion"] if "ai_suggestion" in data else ...,
+        tag_ids=data.get("tag_ids"),
+        ai_suggested_tags=data["ai_suggested_tags"]
+        if "ai_suggested_tags" in data
+        else ...,
+        status=data.get("status"),
+    )
 
     asset_dict = asset.to_dict()
     asset_dict["tags"] = [tag.to_dict() for tag in asset.asset_tags]
