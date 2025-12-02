@@ -130,6 +130,7 @@ import { onUnmounted, ref, watch, nextTick, computed } from 'vue'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Mention from '@tiptap/extension-mention'
+import { Markdown } from 'tiptap-markdown'
 import { QueryNode } from './editor/QueryNode'
 import { ChartNode } from './editor/ChartNode'
 import { AgentMentionNode } from './editor/AgentMentionNode'
@@ -375,109 +376,20 @@ const handleCloseBubble = () => {
   editor.value?.commands.focus()
 }
 
-// Parse markdown content to HTML for initial load
-function markdownToHTML(markdown: string): string {
+// Preprocess markdown to convert custom tags to HTML that Tiptap can understand
+// The Markdown extension handles the rest of the markdown parsing
+function preprocessMarkdown(markdown: string): string {
   if (!markdown) return ''
 
-  // Split by lines and process
-  const lines = markdown.split('\n')
-  const htmlParts: string[] = []
-  let inParagraph = false
-  let paragraphContent: string[] = []
-
-  // Helper to process inline content including agent mentions and user mentions
-  const processInlineContent = (text: string): string => {
-    return text
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/`(.+?)`/g, '<code>$1</code>')
-      .replace(
-        /<AGENT:([^>]+)>/g,
-        '<span data-type="agent-mention" data-agent-id="$1" data-agent-label="Myriade Agent"></span>'
-      )
-      .replace(/<USER:([^>]+)>/g, '<span data-type="user-mention" data-user-label="$1"></span>')
-  }
-
-  const flushParagraph = () => {
-    if (paragraphContent.length > 0) {
-      const content = processInlineContent(paragraphContent.join(' '))
-      htmlParts.push(`<p>${content}</p>`)
-      paragraphContent = []
-    }
-    inParagraph = false
-  }
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    const trimmedLine = line.trim()
-
-    // Check for custom tags
-    const queryMatch = trimmedLine.match(/^<QUERY:([^>]+)>$/)
-    const chartMatch = trimmedLine.match(/^<CHART:([^>]+)>$/)
-
-    if (queryMatch) {
-      flushParagraph()
-      const html = `<div data-type="query-node" data-query-id="${queryMatch[1].trim()}"></div>`
-      htmlParts.push(html)
-      continue
-    }
-
-    if (chartMatch) {
-      flushParagraph()
-      htmlParts.push(`<div data-type="chart-node" data-chart-id="${chartMatch[1].trim()}"></div>`)
-      continue
-    }
-
-    // Check for headings
-    if (trimmedLine.startsWith('### ')) {
-      flushParagraph()
-      htmlParts.push(`<h3>${trimmedLine.substring(4)}</h3>`)
-      continue
-    }
-
-    if (trimmedLine.startsWith('## ')) {
-      flushParagraph()
-      htmlParts.push(`<h2>${trimmedLine.substring(3)}</h2>`)
-      continue
-    }
-
-    if (trimmedLine.startsWith('# ')) {
-      flushParagraph()
-      htmlParts.push(`<h1>${trimmedLine.substring(2)}</h1>`)
-      continue
-    }
-
-    // Check for list items
-    if (trimmedLine.startsWith('- ')) {
-      flushParagraph()
-      htmlParts.push(`<ul><li>${trimmedLine.substring(2)}</li></ul>`)
-      continue
-    }
-
-    // Check for horizontal rule
-    if (trimmedLine === '---') {
-      flushParagraph()
-      htmlParts.push('<hr>')
-      continue
-    }
-
-    // Empty line - end paragraph
-    if (trimmedLine === '') {
-      flushParagraph()
-      continue
-    }
-
-    // Regular text - add to paragraph
-    if (!inParagraph) {
-      inParagraph = true
-    }
-    paragraphContent.push(trimmedLine)
-  }
-
-  // Flush any remaining paragraph
-  flushParagraph()
-
-  return htmlParts.join('')
+  // Replace custom tags with HTML that our custom nodes will recognize
+  return markdown
+    .replace(/<QUERY:([^>]+)>/g, '\n\n<div data-type="query-node" data-query-id="$1"></div>\n\n')
+    .replace(/<CHART:([^>]+)>/g, '\n\n<div data-type="chart-node" data-chart-id="$1"></div>\n\n')
+    .replace(
+      /<AGENT:([^>]+)>/g,
+      '<span data-type="agent-mention" data-agent-id="$1" data-agent-label="Myriade Agent"></span>'
+    )
+    .replace(/<USER:([^>]+)>/g, '<span data-type="user-mention" data-user-label="$1"></span>')
 }
 
 // Build extensions array based on enabled features
@@ -486,6 +398,11 @@ const buildExtensions = () => {
     StarterKit,
     Placeholder.configure({
       placeholder: props.placeholder
+    }),
+    Markdown.configure({
+      html: true, // Allow HTML (needed for our custom nodes)
+      transformPastedText: true,
+      transformCopiedText: true
     }),
     QueryNode,
     ChartNode,
@@ -516,10 +433,7 @@ const buildExtensions = () => {
 // Initialize Tiptap editor
 const editor = useEditor({
   extensions: buildExtensions(),
-  content: (() => {
-    const html = props.modelValue ? markdownToHTML(props.modelValue) : ''
-    return html
-  })(),
+  content: preprocessMarkdown(props.modelValue),
   editorProps: {
     attributes: {
       class: `prose prose-sm max-w-none focus:outline-none min-h-[${props.minHeight}] p-4 rounded-lg`
@@ -551,8 +465,7 @@ watch(
 
     const currentMarkdown = serializeToMarkdown(editor.value.state.doc)
     if (newValue !== currentMarkdown) {
-      const html = markdownToHTML(newValue)
-      editor.value.commands.setContent(html)
+      editor.value.commands.setContent(preprocessMarkdown(newValue))
     }
   },
   { immediate: true }
