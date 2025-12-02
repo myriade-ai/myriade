@@ -47,8 +47,6 @@ export function useCatalogTags(): UseQueryReturnType<AssetTag[], Error> {
  * TanStack Query mutation for creating a catalog tag
  */
 export function useCreateCatalogTag() {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: async (variables: {
       databaseId: string
@@ -63,13 +61,6 @@ export function useCreateCatalogTag() {
         }
       )
       return response.data
-    },
-    onSuccess: (newTag, variables) => {
-      // Optimistically update the cache
-      queryClient.setQueryData<AssetTag[]>(['catalog', 'tags', variables.databaseId], (oldData) => {
-        if (!oldData) return [newTag]
-        return [...oldData, newTag]
-      })
     }
   })
 }
