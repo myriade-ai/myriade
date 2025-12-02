@@ -157,7 +157,7 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-baseline gap-1.5 text-[13px]">
                 <span class="font-medium text-foreground/80">
-                  {{ getDisplayName(activity.actor_email) || 'System' }}
+                  {{ getActorDisplayName(activity) }}
                 </span>
                 <span class="text-muted-foreground">
                   {{ getActivityVerb(activity.activity_type) }}
@@ -294,6 +294,15 @@ interface Activity {
   conversation_id: string | null
   status: string | null // running, finished, error
   created_at: string
+}
+
+function getActorDisplayName(activity: Activity): string {
+  // Check if it's the Myriade Agent
+  if (activity.actor_id === 'myriade-agent') {
+    return 'Myriade Agent'
+  }
+  // Otherwise use email-based display name or fall back to System
+  return getDisplayName(activity.actor_email) || 'System'
 }
 
 // State
