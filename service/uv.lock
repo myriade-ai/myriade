@@ -825,7 +825,7 @@ wheels = [
 
 [[package]]
 name = "myriade-service"
-version = "1.27.4"
+version = "1.28.0"
 source = { virtual = "." }
 dependencies = [
     { name = "agentlys", extra = ["all"] },
