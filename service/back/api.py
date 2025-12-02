@@ -1138,7 +1138,6 @@ def get_favorites():
         .join(UserFavorite, UserFavorite.query_id == Query.id)
         .filter(
             UserFavorite.user_id == g.user.id,
-            Query.rows.isnot(None),
             Query.exception.is_(None),
             Query.databaseId == database_id,
         )

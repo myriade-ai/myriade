@@ -66,6 +66,13 @@ class CatalogTool:
             f"#### Owner : {getattr(self.conversation, 'owner', None)} OwnerId: {getattr(self.conversation, 'ownerId', None)}"
         )
 
+        # Add conversation owner information (always, if available)
+        if self.conversation and self.conversation.owner:
+            context["CONVERSATION_OWNER"] = {
+                "id": self.conversation.owner.id,
+                "email": self.conversation.owner.email,
+            }
+
         # If asset_id is present, add focused asset details
         if (
             self.conversation
@@ -78,12 +85,8 @@ class CatalogTool:
                 asset_data = yaml.safe_load(asset_context_yaml)
                 context["FOCUSED_ASSET"] = asset_data
 
-                # Add conversation owner information
+                # Add note for focused asset context
                 if self.conversation.owner:
-                    context["CONVERSATION_OWNER"] = {
-                        "id": self.conversation.owner.id,
-                        "email": self.conversation.owner.email,
-                    }
                     context["NOTE"] = (
                         "This conversation is about the FOCUSED_ASSET above. "
                         "Focus your responses on this asset, but you can also reference other assets in the CATALOG if needed. "
