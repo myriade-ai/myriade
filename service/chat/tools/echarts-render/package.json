@@ -9,7 +9,7 @@
   "dependencies": {
     "echarts": "^6.0.0",
     "body-parser": "^2.2.1",
-    "express": "^4.18.2",
+    "express": "^4.22.0",
     "sharp": "^0.34.3"
   }
 }
