@@ -22,7 +22,7 @@
           </div>
         </div>
       </div>
-      <div v-if="asset.tags?.length" class="flex flex-wrap">
+      <div v-if="asset.tags?.length" class="flex flex-wrap gap-1">
         <Badge v-for="tag in asset.tags" :key="tag.id" variant="secondary" class="text-xs">
           {{ tag.name }}
         </Badge>

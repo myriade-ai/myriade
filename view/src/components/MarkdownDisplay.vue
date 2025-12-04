@@ -61,36 +61,51 @@ const sanitizedHtml = computed(() => {
 
 <style>
 .markdown-content {
+  /* Inherit font-size from parent for flexibility */
+  font-size: inherit;
+  line-height: 1.5;
+
   h1 {
-    font-size: 1.5rem;
+    font-size: 1.25em;
     font-weight: 600;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
+    margin-top: 0.5rem;
   }
   h2 {
-    font-size: 1.25rem;
+    font-size: 1.125em;
     font-weight: 600;
+    margin-bottom: 0.5rem;
+    margin-top: 0.375rem;
   }
   h3 {
-    font-size: 1rem;
+    font-size: 1em;
     font-weight: 600;
+    margin-bottom: 0.375rem;
   }
   h4 {
-    font-size: 0.875rem;
+    font-size: 0.9375em;
     font-weight: 600;
-    margin-bottom: 1rem;
+    margin-bottom: 0.375rem;
+  }
+  p {
+    margin-bottom: 0.5rem;
+  }
+  p:last-child {
+    margin-bottom: 0;
   }
   ul {
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     list-style-type: disc;
-    padding-left: 1rem;
+    padding-left: 1.25rem;
   }
   ol {
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     list-style-type: decimal;
-    padding-left: 1rem;
+    padding-left: 1.25rem;
   }
   li {
-    padding-left: 0rem;
+    padding-left: 0;
+    margin-bottom: 0.25rem;
   }
   a {
     color: var(--primary);
@@ -98,26 +113,28 @@ const sanitizedHtml = computed(() => {
   table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.9375em;
   }
   th,
   td {
     border: 1px solid var(--border);
-    padding: 0.2rem;
+    padding: 0.375rem 0.5rem;
   }
   pre {
     background-color: var(--muted);
     border: 1px solid var(--border);
     border-radius: 0.375rem;
-    padding: 1rem;
+    padding: 0.75rem;
     overflow-x: auto;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.875em;
   }
   code {
     background-color: var(--muted);
-    padding: 0.2rem 0.4rem;
+    padding: 0.125rem 0.25rem;
     border-radius: 0.25rem;
-    font-family: monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.875em;
   }
   pre code {
@@ -125,32 +142,55 @@ const sanitizedHtml = computed(() => {
     padding: 0;
     border-radius: 0;
   }
+  blockquote {
+    border-left: 3px solid var(--border);
+    padding-left: 0.75rem;
+    margin-left: 0;
+    margin-bottom: 0.5rem;
+    color: var(--muted-foreground);
+    font-style: italic;
+  }
   .agent-mention {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.125rem 0.375rem;
-    border-radius: 0.375rem;
-    background-color: rgb(243 232 255); /* purple-100 */
-    color: rgb(126 34 206); /* purple-700 */
+    gap: 0.2rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.25rem;
+    background-color: rgba(250, 175, 3, 0.15); /* gold/15 */
+    color: var(--navy-text, #010b3e);
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: 0.9em;
   }
   .agent-mention-icon {
-    width: 1rem;
-    height: 1rem;
-    margin-right: 0.15em;
-    color: rgb(126 34 206); /* purple-700 */
+    width: 0.875rem;
+    height: 0.875rem;
+    margin-right: 0.1em;
+    color: var(--gold, #faaf03);
   }
   .user-mention {
     display: inline-flex;
     align-items: center;
-    padding: 0.125rem 0.375rem;
-    border-radius: 0.375rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.25rem;
     background-color: rgb(219 234 254); /* blue-100/primary-100 */
     color: rgb(29 78 216); /* blue-700/primary-700 */
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: 0.9em;
+  }
+}
+
+/* Dark mode adjustments for mentions */
+.dark .markdown-content {
+  .agent-mention {
+    background-color: rgba(250, 175, 3, 0.2); /* gold/20 */
+    color: var(--gold, #faaf03);
+  }
+  .agent-mention-icon {
+    color: var(--gold, #faaf03);
+  }
+  .user-mention {
+    background-color: rgb(30 58 138 / 0.3); /* blue-900/30 */
+    color: rgb(147 197 253); /* blue-300 */
   }
 }
 </style>

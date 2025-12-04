@@ -63,7 +63,7 @@
         :class="[
           'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 whitespace-nowrap border',
           hasAiSuggestion === 'true'
-            ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700 shadow-sm'
+            ? 'bg-[var(--gold)]/80 text-[var(--navy)] border-[var(--gold)]/30 shadow-sm'
             : 'bg-background hover:bg-muted/60 text-muted-foreground hover:text-foreground border-border'
         ]"
       >
@@ -74,9 +74,7 @@
           variant="secondary"
           :class="[
             'ml-0.5 h-5 min-w-5 px-1.5 text-[10px] rounded-full',
-            hasAiSuggestion === 'true'
-              ? 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200'
-              : ''
+            hasAiSuggestion === 'true' ? 'bg-[var(--gold)]/60 text-[var(--navy)]' : ''
           ]"
         >
           {{ aiSuggestionCount }}

@@ -1,5 +1,5 @@
 <template>
-  <div class="unified-markdown-editor">
+  <div :class="['unified-markdown-editor', { 'compact-editor': props.compact }]">
     <EditorContent :editor="editor" class="tiptap-editor-content" />
 
     <!-- BubbleMenu for text selection -->
@@ -171,6 +171,8 @@ interface Props {
   showBubbleMenu?: boolean
   /** Minimum height for the editor content area */
   minHeight?: string
+  /** Use compact styling for smaller contexts (feeds, descriptions) */
+  compact?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -181,7 +183,8 @@ const props = withDefaults(defineProps<Props>(), {
   enableChartMentions: false,
   enableAgentMention: false,
   showBubbleMenu: true,
-  minHeight: '200px'
+  minHeight: '200px',
+  compact: false
 })
 
 // Check if any mention type is enabled
@@ -436,7 +439,7 @@ const editor = useEditor({
   content: preprocessMarkdown(props.modelValue),
   editorProps: {
     attributes: {
-      class: `prose prose-sm max-w-none focus:outline-none min-h-[${props.minHeight}] p-4 rounded-lg`
+      class: `prose prose-sm max-w-none focus:outline-none min-h-[${props.minHeight}] ${props.compact ? 'p-3' : 'p-4'} rounded-lg`
     },
     handleKeyDown: (_view, event) => {
       // Handle Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux) to submit
@@ -613,5 +616,84 @@ onUnmounted(() => {
 /* Bubble menu styles */
 .bubble-menu-container {
   z-index: 50;
+}
+
+/* Compact variant for smaller contexts */
+.compact-editor .tiptap-editor-content .ProseMirror {
+  font-size: 0.8125rem; /* 13px - matches feed text */
+  line-height: 1.6;
+  color: var(--foreground);
+}
+
+.compact-editor .tiptap-editor-content .ProseMirror h1 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
+  margin-bottom: 0.375rem;
+  color: var(--foreground);
+}
+
+.compact-editor .tiptap-editor-content .ProseMirror h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.625rem;
+  margin-bottom: 0.25rem;
+  color: var(--foreground);
+}
+
+.compact-editor .tiptap-editor-content .ProseMirror h3 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  color: var(--foreground);
+}
+
+.compact-editor .tiptap-editor-content .ProseMirror p {
+  margin-bottom: 0.375rem;
+  line-height: 1.6;
+}
+
+.compact-editor .tiptap-editor-content .ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
+.compact-editor .tiptap-editor-content .ProseMirror ul,
+.compact-editor .tiptap-editor-content .ProseMirror ol {
+  margin-bottom: 0.375rem;
+  padding-left: 1.125rem;
+}
+
+.compact-editor .tiptap-editor-content .ProseMirror li {
+  margin-bottom: 0.125rem;
+}
+
+.compact-editor .tiptap-editor-content .ProseMirror code {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.25rem;
+  background-color: var(--muted);
+  border-radius: 0.25rem;
+}
+
+.compact-editor .tiptap-editor-content .ProseMirror pre {
+  padding: 0.625rem;
+  margin-bottom: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.compact-editor .tiptap-editor-content .ProseMirror blockquote {
+  padding-left: 0.625rem;
+  margin-bottom: 0.375rem;
+  font-size: 0.8125rem;
+  border-left-width: 2px;
+}
+
+.compact-editor .tiptap-editor-content .ProseMirror hr {
+  margin: 0.75rem 0;
+}
+
+/* Placeholder styling for compact editor */
+.compact-editor .tiptap-editor-content .ProseMirror p.is-empty::before {
+  font-size: 0.8125rem;
 }
 </style>
