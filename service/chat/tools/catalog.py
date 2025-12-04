@@ -331,6 +331,19 @@ class CatalogTool:
                 }
             )
 
+        elif asset.type == "SCHEMA" and asset.schema_facet:
+            facet = asset.schema_facet
+            result.update(
+                {
+                    "database_name": facet.database_name,
+                    "schema_name": facet.schema_name,
+                }
+            )
+
+        parent_assets = self._get_parent_assets(asset)
+        if parent_assets:
+            result["parent_assets"] = parent_assets
+
         # Add metadata from data provider
         provider_metadata = get_provider_metadata_for_asset(
             asset, self.data_warehouse, self.session
@@ -855,6 +868,66 @@ class CatalogTool:
             .filter(Asset.database_id == self.database.id)
             .all()
         )
+
+    def _get_parent_asset_id(self, asset: Asset) -> Optional[uuid.UUID]:
+        """
+        Get the parent asset ID for a given asset based on its type.
+        Returns None if no parent exists.
+        """
+        if asset.type == "COLUMN" and asset.column_facet:
+            return asset.column_facet.parent_table_asset_id
+        if asset.type == "TABLE" and asset.table_facet:
+            return asset.table_facet.parent_schema_asset_id
+        if asset.type == "SCHEMA" and asset.schema_facet:
+            return asset.schema_facet.parent_database_asset_id
+        return None
+
+    def _get_parent_assets(self, asset: Asset) -> List[dict]:
+        """
+        Recursively get all parent assets with their descriptions and tags.
+        Returns a list ordered from immediate parent to root ancestor.
+        """
+        parents = []
+        parent_id = self._get_parent_asset_id(asset)
+
+        while parent_id:
+            parent_asset = (
+                self.session.query(Asset)
+                .filter(
+                    Asset.id == parent_id,
+                    Asset.database_id == self.database.id,
+                )
+                .first()
+            )
+
+            if not parent_asset:
+                break
+
+            parents.append(
+                {
+                    "id": str(parent_asset.id),
+                    "name": parent_asset.name,
+                    "type": parent_asset.type,
+                    "description": parent_asset.description,
+                    "tags": [
+                        {
+                            "id": str(tag.id),
+                            "name": tag.name,
+                            "description": tag.description,
+                        }
+                        for tag in parent_asset.asset_tags
+                    ],
+                    "has_ai_suggestion": parent_asset.ai_suggestion is not None,
+                    "has_ai_suggested_tags": (
+                        parent_asset.ai_suggested_tags is not None
+                        and len(parent_asset.ai_suggested_tags) > 0
+                    ),
+                }
+            )
+
+            parent_id = self._get_parent_asset_id(parent_asset)
+
+        return parents
 
     def post_message(
         self, asset_id: str, message: str, from_response: Message | None = None
