@@ -1,6 +1,5 @@
 import logging
 import uuid
-from datetime import datetime
 from enum import Enum
 from typing import Any, List, Optional
 
@@ -10,6 +9,7 @@ from agentlys.model import Message
 from sqlalchemy.orm import Session
 
 from back.catalog_search import search_assets_and_terms
+from back.catalog_utils import update_asset
 from back.data_warehouse import AbstractDatabase
 from back.utils import get_provider_metadata_for_asset
 from models import Database
@@ -61,10 +61,6 @@ class CatalogTool:
                 "total_terms": len(terms),
             }
         }
-
-        print(
-            f"#### Owner : {getattr(self.conversation, 'owner', None)} OwnerId: {getattr(self.conversation, 'ownerId', None)}"
-        )
 
         # Add conversation owner information (always, if available)
         if self.conversation and self.conversation.owner:
@@ -434,98 +430,27 @@ class CatalogTool:
         if not asset:
             raise ValueError(f"Asset with id {asset_id} not found")
 
-        # Validate status parameter
-        valid_statuses = ["draft", "published"]
-        if status is not None and status not in valid_statuses:
-            raise ValueError(
-                f"Invalid status '{status}'. Must be one of: {valid_statuses}"
-            )
+        # Validate suggested_tags before passing to shared function
+        # Use ... (Ellipsis) as sentinel to indicate "don't change" vs None meaning "clear"
+        validated_suggested_tags: Any = ...
+        if suggested_tags is not None and len(suggested_tags) > 0:
+            validated_suggested_tags = self._validate_suggested_tags(suggested_tags)
 
-        # Note: note field has been removed. Use post_message() to add clarifying questions to the feed
-
-        # Handle ai_suggestion update
-        if ai_suggestion is not None:
-            if isinstance(ai_suggestion, str):
-                asset.ai_suggestion = ai_suggestion.strip()
-            else:
-                asset.ai_suggestion = None
-
-        # Handle description update
-        if description is not None:
-            if isinstance(description, str):
-                asset.description = description.strip()
-            else:
-                asset.description = None
-
-        # Handle status update
-        if status is not None:
-            asset.status = status
-            # When setting to published, track who and when
-            if status == "published":
-                asset.published_by = "myriade-agent"
-                asset.published_at = datetime.utcnow()
-        elif description is not None or tag_ids is not None:
-            # If no status provided but making updates, set to draft if no status exists
-            if asset.status is None:
-                asset.status = "draft"
-
-        is_providing_tag_suggestions = (
-            suggested_tags is not None and len(suggested_tags) > 0
+        # Use shared function for update and activity tracking
+        # Pass ... (Ellipsis) for ai_suggestion/ai_suggested_tags when not provided
+        # to distinguish from None which means "clear the field"
+        result = update_asset(
+            session=self.session,
+            asset=asset,
+            actor_id="myriade-agent",
+            description=description,
+            ai_suggestion=ai_suggestion if ai_suggestion is not None else ...,
+            tag_ids=tag_ids,
+            ai_suggested_tags=validated_suggested_tags,
+            status=status,
         )
 
-        # Handle suggested tags (for review)
-        if is_providing_tag_suggestions:
-            asset.ai_suggested_tags = self._validate_suggested_tags(suggested_tags)
-
-        if tag_ids is not None:
-            # Clear existing tag associations
-            asset.asset_tags.clear()
-
-            # Add new tag associations
-            for tag_identifier in tag_ids:
-                tag = None
-
-                # Try to parse as UUID first
-                try:
-                    tag_uuid = uuid.UUID(tag_identifier)
-                    tag = (
-                        self.session.query(AssetTag)
-                        .filter(
-                            AssetTag.id == tag_uuid,
-                            AssetTag.database_id == self.database.id,
-                        )
-                        .first()
-                    )
-                except (ValueError, AttributeError):
-                    # If not a UUID, treat as tag name
-                    tag = (
-                        self.session.query(AssetTag)
-                        .filter(
-                            AssetTag.database_id == self.database.id,
-                            AssetTag.name.ilike(tag_identifier),
-                        )
-                        .first()
-                    )
-
-                    # Auto-create tag if it doesn't exist
-                    if not tag:
-                        tag = AssetTag(
-                            name=tag_identifier,
-                            database_id=self.database.id,
-                        )
-                        self.session.add(tag)
-                        self.session.flush()
-
-                if tag:
-                    asset.asset_tags.append(tag)
-
-        self.session.flush()
-
-        # Broadcast real-time update to users viewing this database
-        from back.catalog_events import emit_asset_updated
-
-        emit_asset_updated(asset, "ai-assistant")
-
+        asset = result["asset"]
         asset_label = asset.name or asset.urn or asset_id
         status_emoji = {
             "draft": "📝",
@@ -762,7 +687,7 @@ class CatalogTool:
             # Broadcast real-time update to users viewing this database
             from back.catalog_events import emit_tag_updated
 
-            emit_tag_updated(existing_tag, "ai-assistant")
+            emit_tag_updated(existing_tag, "myriade-agent")
 
             return f"Updated tag '{next_name}'"
 
@@ -779,7 +704,7 @@ class CatalogTool:
         # Broadcast real-time update to users viewing this database
         from back.catalog_events import emit_tag_updated
 
-        emit_tag_updated(new_tag, "ai-assistant")
+        emit_tag_updated(new_tag, "myriade-agent")
 
         result = {
             "message": f"Created tag '{name}'",
@@ -792,7 +717,7 @@ class CatalogTool:
         self, suggested_tags: Optional[list[str]] = None
     ) -> List[str]:
         """
-        Validate that suggested tags exist in the database
+        Validate that suggested tags exist in the database.
         Args:
             suggested_tags: List of tag names (strings)
         Returns:
