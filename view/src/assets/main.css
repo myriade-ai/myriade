@@ -133,6 +133,14 @@
   touch-action: manipulation;
 }
 
+/* Fix for iOS Safari 100vh issue - provide fallback for dvh */
+@supports not (height: 100dvh) {
+  .h-dvh {
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
