@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="flex flex-col min-h-full">
     <PageHeader
       title="Chat"
       subtitle="Ask questions about your data and get instant answers."
@@ -58,21 +58,57 @@
     </PageHeader>
     <div
       ref="scrollContainer"
-      class="flex justify-center px-2 sm:px-4 lg:px-0"
+      class="flex-1 px-2 sm:px-4 lg:px-0"
       v-touch:swipe.right="
         () => {
           if (isMobile) toggleSidebar()
         }
       "
     >
-      <div class="flex flex-col w-full min-h-[calc(100vh-4rem)]">
-        <div class="flex flex-col flex-1 w-full max-w-3xl m-auto">
-          <div class="w-full lg:pt-4">
-            <ul class="list-none space-y-4">
-              <template v-for="(group, index) in messageGroups" :key="index">
+      <div class="w-full max-w-3xl mx-auto">
+        <div class="w-full lg:pt-4">
+          <ul class="list-none space-y-4">
+            <template v-for="(group, index) in messageGroups" :key="index">
+              <li
+                v-for="message in group.publicMessages"
+                :key="message.id"
+                class="overflow-x-hidden"
+                :class="message.role === 'user' ? 'flex justify-end' : ''"
+              >
+                <MessageDisplay
+                  :message="message"
+                  @editInlineClick="editInline"
+                  @regenerateFromMessage="conversationsStore.regenerateFromMessage"
+                  @rejected="focusInput"
+                />
+              </li>
+              <li v-if="group.internalMessages.length > 0" class="flex justify-center">
+                <button
+                  @click="toggleInternalMessages(index)"
+                  class="inline-flex items-center px-3 py-1 my-1 text-sm text-muted-foreground rounded-full hover:bg-muted"
+                >
+                  <EyeIcon v-if="!internalMessageGroups[index]" class="h-4 w-4 mr-2" />
+                  <EyeSlashIcon v-else class="h-4 w-4 mr-2" />
+                  <span>
+                    {{ internalMessageGroups[index] ? 'Hide' : 'Show' }}
+                    {{ group.internalMessages.length }} internal messages
+                  </span>
+                </button>
+              </li>
+              <transition-group
+                name="internal-messages"
+                enter-active-class="transition-all duration-300 ease-out"
+                enter-from-class="opacity-0 max-h-0"
+                enter-to-class="opacity-100 max-h-[1000px]"
+                leave-active-class="transition-all duration-300 ease-in"
+                leave-from-class="opacity-100 max-h-[1000px]"
+                leave-to-class="opacity-0 max-h-0"
+                v-if="internalMessageGroups[index]"
+              >
                 <li
-                  v-for="message in group.publicMessages"
+                  v-for="message in group.internalMessages"
                   :key="message.id"
+                  class="overflow-hidden"
                   :class="message.role === 'user' ? 'flex justify-end' : ''"
                 >
                   <MessageDisplay
@@ -80,187 +116,150 @@
                     @editInlineClick="editInline"
                     @regenerateFromMessage="conversationsStore.regenerateFromMessage"
                     @rejected="focusInput"
+                    class="border-l-4 border-gray-500 pl-3 bg-muted/50"
                   />
                 </li>
-                <li v-if="group.internalMessages.length > 0" class="flex justify-center">
-                  <button
-                    @click="toggleInternalMessages(index)"
-                    class="inline-flex items-center px-3 py-1 my-1 text-sm text-muted-foreground rounded-full hover:bg-muted"
-                  >
-                    <EyeIcon v-if="!internalMessageGroups[index]" class="h-4 w-4 mr-2" />
-                    <EyeSlashIcon v-else class="h-4 w-4 mr-2" />
-                    <span>
-                      {{ internalMessageGroups[index] ? 'Hide' : 'Show' }}
-                      {{ group.internalMessages.length }} internal messages
-                    </span>
-                  </button>
-                </li>
-                <transition-group
-                  name="internal-messages"
-                  enter-active-class="transition-all duration-300 ease-out"
-                  enter-from-class="opacity-0 max-h-0"
-                  enter-to-class="opacity-100 max-h-[1000px]"
-                  leave-active-class="transition-all duration-300 ease-in"
-                  leave-from-class="opacity-100 max-h-[1000px]"
-                  leave-to-class="opacity-0 max-h-0"
-                  v-if="internalMessageGroups[index]"
-                >
-                  <li
-                    v-for="message in group.internalMessages"
-                    :key="message.id"
-                    class="overflow-hidden"
-                    :class="message.role === 'user' ? 'flex justify-end' : ''"
-                  >
-                    <MessageDisplay
-                      :message="message"
-                      @editInlineClick="editInline"
-                      @regenerateFromMessage="conversationsStore.regenerateFromMessage"
-                      @rejected="focusInput"
-                      class="border-l-4 border-gray-500 pl-3 bg-muted/50"
-                    />
-                  </li>
-                </transition-group>
-              </template>
-            </ul>
-          </div>
-
-          <div id="chat-status" class="w-full pb-4">
-            <div class="w-full flex justify-center">
-              <!-- Subscription Prompt -->
-              <div
-                v-if="showSubscriptionPrompt"
-                class="flex flex-col items-center w-full"
-                style="position: relative"
-              >
-                <SubscriptionPrompt />
-              </div>
-
-              <!-- Display error message if queryStatus is error -->
-              <div v-else-if="queryStatus === 'error'" class="flex flex-col items-center">
-                <div>
-                  <p class="text-error-500">{{ errorMessage }}</p>
-                </div>
-                <div>
-                  <Button
-                    variant="default"
-                    @click="conversationsStore.regenerateFromMessage(lastMessage.id)"
-                  >
-                    Regenerate
-                  </Button>
-                </div>
-              </div>
-
-              <div v-else-if="queryStatus === STATUS.RUNNING || queryStatus === STATUS.PENDING">
-                <!-- Add loading icon, centered, displayed only if a query is running -->
-                <LoaderIcon /><br />
-                <!-- Add stop button, centered, displayed only if a query is running -->
-                <button
-                  @click="stopQuery"
-                  class="w-full bg-muted-foreground text-background py-2 px-4 rounded-sm"
-                  type="submit"
-                >
-                  Stop
-                </button>
-              </div>
-            </div>
-          </div>
+              </transition-group>
+            </template>
+          </ul>
         </div>
 
-        <div
-          id="chat-input"
-          class="w-full max-w-4xl border-gray-300 bottom-0 sticky z-10 mx-auto lg:px-2 px-0 bg-background pb-4"
-        >
-          <transition
-            enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 transform translate-y-4"
-            enter-to-class="opacity-100 transform translate-y-0"
-            leave-active-class="transition-all duration-300 ease-in"
-            leave-from-class="opacity-100 transform translate-y-0"
-            leave-to-class="opacity-0 transform translate-y-4"
-          >
-            <!-- 3 suggestions generated by AI -->
+        <div id="chat-status" class="w-full pb-4">
+          <div class="w-full flex justify-center">
+            <!-- Subscription Prompt -->
             <div
-              class="flex flex-col mb-2"
-              v-if="aiSuggestions && aiSuggestions.length && messages.length === 0"
+              v-if="showSubscriptionPrompt"
+              class="flex flex-col items-center w-full"
+              style="position: relative"
             >
-              <SparklesIcon class="h-5 w-5 text-primary-500" />
-              <span class="text-primary-700 text-sm font-bold mb-2">AI Suggestions</span>
-              <div v-if="aiSuggestions && aiSuggestions.length" class="flex flex-col space-y-2">
-                <div
-                  v-for="(suggestion, index) in aiSuggestions"
-                  :key="index"
-                  class="flex items-center space-x-2"
+              <SubscriptionPrompt />
+            </div>
+
+            <!-- Display error message if queryStatus is error -->
+            <div v-else-if="queryStatus === 'error'" class="flex flex-col items-center">
+              <div>
+                <p class="text-error-500">{{ errorMessage }}</p>
+              </div>
+              <div>
+                <Button
+                  variant="default"
+                  @click="conversationsStore.regenerateFromMessage(lastMessage.id)"
                 >
-                  <button
-                    class="rounded-md bg-card px-3.5 py-2 text-sm text-primary-500 shadow-xs ring-1 ring-inset ring-primary-300 hover:bg-primary-50 text-left"
-                    @click="applySuggestion(suggestion)"
-                  >
-                    {{ suggestion }}
-                  </button>
-                </div>
+                  Regenerate
+                </Button>
               </div>
             </div>
-          </transition>
 
-          <!-- Credits Display - moved outside input container to prevent deformation -->
-          <div
-            class="flex justify-end mb-2 px-2"
-            v-if="user?.credits !== undefined && user.credits < 50"
-          >
-            <div class="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
-              {{ user.credits }} credits left
+            <div v-else-if="queryStatus === STATUS.RUNNING || queryStatus === STATUS.PENDING">
+              <!-- Add loading icon, centered, displayed only if a query is running -->
+              <LoaderIcon /><br />
+              <!-- Add stop button, centered, displayed only if a query is running -->
+              <button
+                @click="stopQuery"
+                class="w-full bg-muted-foreground text-background py-2 px-4 rounded-sm"
+                type="submit"
+              >
+                Stop
+              </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
 
-          <Card id="input-container" class="py-0 px-2">
-            <div class="flex items-center">
-              <div class="w-full flex py-1">
-                <Textarea
-                  @input="resizeTextarea"
-                  @keydown.enter="handleEnter"
-                  ref="inputTextarea"
-                  rows="1"
-                  placeholder="Type your message"
-                  v-model="inputText"
-                  class="bg-transparent flex-1 resize-none border-none shadow-none focus:border-none focus:ring-0 focus:outline-none focus-visible:border-none focus-visible:ring-0 focus-visible:outline-none break-words overflow-wrap-anywhere"
-                  style="max-height: 400px"
-                  v-if="editMode === 'text'"
-                />
-                <BaseEditor
-                  v-model="inputSQL"
-                  @run-query="handleSendMessage"
-                  v-if="editMode === 'SQL'"
-                />
-
-                <div class="flex items-center space-x-4">
-                  <Button
-                    @click="toggleEditMode"
-                    variant="ghost"
-                    size="sm"
-                    class="text-xs px-2 py-1 ml-2"
-                  >
-                    {{ editMode === 'text' ? 'SQL' : 'Text' }}
-                  </Button>
-
-                  <SendButtonWithStatus
-                    :status="sendStatus"
-                    :disabled="isSendDisabled"
-                    @clicked="handleSendMessage"
-                  />
-                </div>
-              </div>
+    <div
+      id="chat-input"
+      class="w-full max-w-4xl sticky bottom-0 z-10 mx-auto lg:px-2 px-2 bg-background pb-[max(env(safe-area-inset-bottom),1rem)] pt-2"
+    >
+      <transition
+        enter-active-class="transition-all duration-300 ease-out"
+        enter-from-class="opacity-0 transform translate-y-4"
+        enter-to-class="opacity-100 transform translate-y-0"
+        leave-active-class="transition-all duration-300 ease-in"
+        leave-from-class="opacity-100 transform translate-y-0"
+        leave-to-class="opacity-0 transform translate-y-4"
+      >
+        <!-- 3 suggestions generated by AI -->
+        <div
+          class="flex flex-col mb-2"
+          v-if="aiSuggestions && aiSuggestions.length && messages.length === 0"
+        >
+          <SparklesIcon class="h-5 w-5 text-primary-500" />
+          <span class="text-primary-700 text-sm font-bold mb-2">AI Suggestions</span>
+          <div v-if="aiSuggestions && aiSuggestions.length" class="flex flex-col space-y-2">
+            <div
+              v-for="(suggestion, index) in aiSuggestions"
+              :key="index"
+              class="flex items-center space-x-2"
+            >
+              <button
+                class="rounded-md bg-card px-3.5 py-2 text-sm text-primary-500 shadow-xs ring-1 ring-inset ring-primary-300 hover:bg-primary-50 text-left"
+                @click="applySuggestion(suggestion)"
+              >
+                {{ suggestion }}
+              </button>
             </div>
-          </Card>
+          </div>
+        </div>
+      </transition>
+
+      <!-- Credits Display - moved outside input container to prevent deformation -->
+      <div
+        class="flex justify-end mb-2 px-2"
+        v-if="user?.credits !== undefined && user.credits < 50"
+      >
+        <div class="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
+          {{ user.credits }} credits left
         </div>
       </div>
 
-      <!-- Connection status notification -->
-      <div
-        v-if="!isConnected"
-        class="fixed top-3 bg-error-500 text-white px-4 py-2 rounded-md shadow-lg z-50"
-      >
-        Socket disconnected
-      </div>
+      <Card id="input-container" class="py-0 px-2">
+        <div class="flex items-center">
+          <div class="w-full flex py-1">
+            <Textarea
+              @input="resizeTextarea"
+              @keydown.enter="handleEnter"
+              ref="inputTextarea"
+              rows="1"
+              placeholder="Type your message"
+              v-model="inputText"
+              class="bg-transparent flex-1 resize-none border-none shadow-none focus:border-none focus:ring-0 focus:outline-none focus-visible:border-none focus-visible:ring-0 focus-visible:outline-none break-words overflow-wrap-anywhere"
+              style="max-height: 400px"
+              v-if="editMode === 'text'"
+            />
+            <BaseEditor
+              v-model="inputSQL"
+              @run-query="handleSendMessage"
+              v-if="editMode === 'SQL'"
+            />
+
+            <div class="flex items-center space-x-4">
+              <Button
+                @click="toggleEditMode"
+                variant="ghost"
+                size="sm"
+                class="text-xs px-2 py-1 ml-2"
+              >
+                {{ editMode === 'text' ? 'SQL' : 'Text' }}
+              </Button>
+
+              <SendButtonWithStatus
+                :status="sendStatus"
+                :disabled="isSendDisabled"
+                @clicked="handleSendMessage"
+              />
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+
+    <!-- Connection status notification -->
+    <div
+      v-if="!isConnected"
+      class="fixed top-3 bg-error-500 text-white px-4 py-2 rounded-md shadow-lg z-50"
+    >
+      Socket disconnected
     </div>
 
     <!-- Document Panel -->
@@ -707,8 +706,10 @@ const scrollContainer = ref<HTMLDivElement | null>(null)
 
 const scrollToBottom = () => {
   nextTick(() => {
-    if (scrollContainer.value) {
-      scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight
+    // Scroll the parent router-view container (page-level scroll)
+    const scrollParent = scrollContainer.value?.closest('.overflow-y-auto')
+    if (scrollParent) {
+      scrollParent.scrollTop = scrollParent.scrollHeight
     }
   })
 }
