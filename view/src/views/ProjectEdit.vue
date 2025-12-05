@@ -1,85 +1,87 @@
 <template>
-  <div class="min-h-screen">
-    <Form @submit="clickSave" class="max-w-7xl mx-auto px-4 py-4">
-      <div class="mb-4 p-4 border-l-4 border-warning-500 bg-warning-50 dark:bg-warning-900/20">
-        <div class="flex items-start gap-3">
-          <LightBulbIcon class="h-5 w-5 text-warning-600 mt-0.5 flex-shrink-0" />
-          <div class="text-sm text-foreground">
-            <div class="font-medium text-warning-800 dark:text-warning-400 mb-2">
-              When to create a project?
+  <div class="flex flex-col h-full">
+    <PageHeader :title="isNew ? 'New Project' : 'Edit Project'" />
+    <Form @submit="clickSave" class="flex flex-col flex-1 min-h-0">
+      <div class="flex-1 overflow-auto px-4 py-4 pb-2">
+        <div class="max-w-7xl mx-auto">
+          <div class="mb-4 p-4 border-l-4 border-warning-500 bg-warning-50 dark:bg-warning-900/20">
+            <div class="flex items-start gap-3">
+              <LightBulbIcon class="h-5 w-5 text-warning-600 mt-0.5 flex-shrink-0" />
+              <div class="text-sm text-foreground">
+                <div class="font-medium text-warning-800 dark:text-warning-400 mb-2">
+                  When to create a project?
+                </div>
+                <ul class="space-y-1 text-muted-foreground">
+                  <li>• "When you have lots of tables, and want to focus on a specific subset"</li>
+                  <li>
+                    • When you want to analyze a specific business domain that needs context
+                    explanation
+                  </li>
+                  <li>
+                    • When you want to analyze the same business problem or metrics repeatedly
+                  </li>
+                </ul>
+              </div>
             </div>
-            <ul class="space-y-1 text-muted-foreground">
-              <li>• "When you have lots of tables, and want to focus on a specific subset"</li>
-              <li>
-                • When you want to analyze a specific business domain that needs context explanation
-              </li>
-              <li>• When you want to analyze the same business problem or metrics repeatedly</li>
-            </ul>
           </div>
-        </div>
-      </div>
-      <!-- Project Name -->
-      <div class="mb-6">
-        <Field
-          name="Name"
-          v-model="project.name"
-          rules="required"
-          placeholder="eg. 'Company Financial Performance'"
-        />
-      </div>
+          <!-- Project Name -->
+          <div class="mb-6">
+            <Field
+              name="Name"
+              v-model="project.name"
+              rules="required"
+              placeholder="eg. 'Company Financial Performance'"
+            />
+          </div>
 
-      <!-- Project Description -->
-      <div class="mb-6">
-        <div class="mb-4">
-          <Label for="description">Project Description</Label>
-          <p class="text-sm text-muted-foreground mt-1">
-            Provide clear context, as you would to new hire. <br />
-          </p>
-        </div>
-        <Textarea
-          name="Description"
-          v-model="project.description"
-          placeholder="What is your objective?
+          <!-- Project Description -->
+          <div class="mb-6">
+            <div class="mb-4">
+              <Label for="description">Project Description</Label>
+              <p class="text-sm text-muted-foreground mt-1">
+                Provide clear context, as you would to new hire. <br />
+              </p>
+            </div>
+            <Textarea
+              name="Description"
+              v-model="project.description"
+              placeholder="What is your objective?
 What are the business rules?
 What are the key metrics?
 What to be aware of?
 "
-          class="h-96 bg-card"
-        />
-      </div>
+              class="h-96 bg-card"
+            />
+          </div>
 
-      <!-- Tables Selection -->
-      <div v-if="selectedDatabase && !isLoading" class="mb-6">
-        <label class="block text-foreground text-sm font-medium mb-2" for="tables">
-          Tables linked to this project
-        </label>
-        <DatabaseTableSelector :groups="groups" v-model="selectedItems" />
-      </div>
+          <!-- Tables Selection -->
+          <div v-if="selectedDatabase && !isLoading" class="mb-0">
+            <label class="block text-foreground text-sm font-medium mb-2" for="tables">
+              Tables linked to this project
+            </label>
+            <DatabaseTableSelector :groups="groups" v-model="selectedItems" />
+          </div>
 
-      <!-- Loading indicator -->
-      <div v-if="isLoading" class="mb-6 text-center py-8">
-        <div class="text-muted-foreground">Loading database schema...</div>
-      </div>
+          <!-- Loading indicator -->
+          <div v-if="isLoading" class="mb-6 text-center py-8">
+            <div class="text-muted-foreground">Loading database schema...</div>
+          </div>
 
-      <Alert v-if="apiError" class="mt-5">
-        <CircleAlert class="h-5 w-5" />
-        <AlertTitle> There is an error 😔 </AlertTitle>
-        <AlertDescription>
-          {{ apiError }}
-        </AlertDescription>
-      </Alert>
+          <Alert v-if="apiError" class="mt-5">
+            <CircleAlert class="h-5 w-5" />
+            <AlertTitle> There is an error 😔 </AlertTitle>
+            <AlertDescription>
+              {{ apiError }}
+            </AlertDescription>
+          </Alert>
 
-      <div class="bottom-6 right-6 flex space-x-2 z-50 py-4 float-right">
-        <Button
-          variant="destructive"
-          v-if="!isNew"
-          @click="clickDelete"
-          type="button"
-          class="cursor-pointer"
-        >
-          Delete
-        </Button>
-        <Button type="submit" class="cursor-pointer"> Save </Button>
+          <div class="flex justify-end space-x-2 pt-6 pb-4">
+            <Button variant="destructive" v-if="!isNew" @click="clickDelete" type="button">
+              Delete
+            </Button>
+            <Button type="submit"> Save </Button>
+          </div>
+        </div>
       </div>
     </Form>
   </div>
@@ -88,6 +90,7 @@ What to be aware of?
 <script setup lang="ts">
 import type { Group, Item } from '@/components/base/DatabaseTableSelector.vue'
 import DatabaseTableSelector from '@/components/base/DatabaseTableSelector.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import Field from '@/components/ui/input/Field.vue'
