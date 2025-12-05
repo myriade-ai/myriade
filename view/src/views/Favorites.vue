@@ -1,7 +1,7 @@
 <template>
   <PageHeader title="Favorites" subtitle="Your saved queries and charts" sticky />
   <div class="flex-1 overflow-auto">
-    <div class="px-8">
+    <div class="px-6">
       <div v-if="loading" class="mt-4 text-center">
         <p>Loading...</p>
       </div>
@@ -50,8 +50,8 @@
           >
             <!-- Query Card -->
             <template v-if="item.type === 'query'">
-              <CardContent>
-                <div class="flex items-center gap-2 mb-2">
+              <CardContent class="p-4 space-y-3">
+                <div class="flex items-center gap-2">
                   <div
                     class="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full"
                   >
@@ -61,28 +61,23 @@
                 <h3 class="text-lg font-medium text-foreground truncate">
                   {{ item.data.title || 'Untitled Query' }}
                 </h3>
-                <div
-                  class="mt-2 max-h-60 overflow-hidden text-sm text-muted-foreground text-ellipsis line-clamp-3"
-                >
-                  {{ item.data.sql }}
-                </div>
-                <!-- Add query result preview -->
-                <div class="mt-2 border rounded p-2 bg-muted overflow-auto max-h-40">
-                  <div v-if="item.data.rows && item.data.rows.length > 0" class="text-xs">
+                <!-- Query result preview -->
+                <div class="border rounded p-2 bg-muted overflow-auto max-h-48">
+                  <div v-if="getTablePreview(item.data.rows)" class="text-xs">
                     <table class="min-w-full divide-y divide-gray-200">
                       <thead class="bg-muted">
                         <tr>
                           <th
-                            v-for="(_, key) in item.data.rows[0]"
-                            :key="key"
-                            class="px-2 py-1 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                            v-for="header in getTablePreview(item.data.rows)?.headers"
+                            :key="header"
+                            class="px-2 py-1 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider"
                           >
-                            {{ key }}
+                            {{ header }}
                           </th>
                         </tr>
                       </thead>
                       <tbody class="bg-card divide-y divide-gray-200">
-                        <tr v-for="(row, i) in item.data.rows.slice(0, 3)" :key="i">
+                        <tr v-for="(row, i) in getTablePreview(item.data.rows)?.rows" :key="i">
                           <td
                             v-for="(value, key) in row"
                             :key="key"
@@ -94,26 +89,32 @@
                       </tbody>
                     </table>
                     <div
-                      v-if="item.data.rows.length > 3"
+                      v-if="getTablePreview(item.data.rows)?.extraCount"
                       class="text-center text-xs mt-1 text-muted-foreground"
                     >
-                      + {{ item.data.rows.length - 3 }} more rows
+                      + {{ getTablePreview(item.data.rows)?.extraCount }} more rows
                     </div>
                   </div>
                   <div v-else class="text-xs text-muted-foreground">No results available</div>
                 </div>
               </CardContent>
 
-              <CardFooter class="justify-between mt-2">
+              <CardFooter class="justify-end gap-2 px-4 pb-4 pt-0">
                 <Button
                   class="text-sm font-medium text-primary-600 hover:text-primary-500"
+                  size="sm"
                   variant="link"
                   asChild
                 >
                   <RouterLink :to="`/query/${item.data.id}`"> View Query </RouterLink>
                 </Button>
 
-                <Button @click="unfavoriteQuery(item.data.id)" variant="ghost_destructive">
+                <Button
+                  size="sm"
+                  @click="unfavoriteQuery(item.data.id)"
+                  variant="ghost_destructive"
+                  class="px-3"
+                >
                   Remove
                 </Button>
               </CardFooter>
@@ -121,8 +122,8 @@
 
             <!-- Chart Card -->
             <template v-else-if="item.type === 'chart'">
-              <CardContent>
-                <div class="flex items-center gap-2 mb-2">
+              <CardContent class="p-4 space-y-3">
+                <div class="flex items-center gap-2">
                   <div
                     class="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full"
                   >
@@ -132,24 +133,66 @@
                 <h3 class="text-lg font-medium text-foreground truncate">
                   {{ getChartTitle(item.data) }}
                 </h3>
-                <div class="mt-2">
+                <div class="rounded border bg-muted p-2">
                   <Echart
                     :option="{ ...item.data.config, query_id: item.data.queryId }"
                     style="height: 200px; width: 100%"
                   />
                 </div>
+
+                <div class="border rounded p-2 bg-muted overflow-auto max-h-48">
+                  <div v-if="getChartTablePreview(item.data)" class="text-xs">
+                    <table class="min-w-full divide-y divide-gray-200">
+                      <thead class="bg-muted">
+                        <tr>
+                          <th
+                            v-for="header in getChartTablePreview(item.data)?.headers"
+                            :key="header"
+                            class="px-2 py-1 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider"
+                          >
+                            {{ header }}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody class="bg-card divide-y divide-gray-200">
+                        <tr v-for="(row, i) in getChartTablePreview(item.data)?.rows" :key="i">
+                          <td
+                            v-for="(value, key) in row"
+                            :key="key"
+                            class="px-2 py-1 whitespace-nowrap text-xs text-muted-foreground"
+                          >
+                            {{ value }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div
+                      v-if="getChartTablePreview(item.data)?.extraCount"
+                      class="text-center text-xs mt-1 text-muted-foreground"
+                    >
+                      + {{ getChartTablePreview(item.data)?.extraCount }} more rows
+                    </div>
+                  </div>
+                  <div v-else class="text-xs text-muted-foreground">No data available</div>
+                </div>
               </CardContent>
 
-              <CardFooter class="justify-between">
+              <CardFooter class="justify-end gap-2 px-4 pb-4 pt-0">
                 <Button
                   class="text-sm font-medium text-primary-600 hover:text-primary-500"
+                  size="sm"
                   variant="link"
                   asChild
                 >
                   <RouterLink :to="`/query/${item.data.queryId}`"> View Query </RouterLink>
                 </Button>
 
-                <Button @click="unfavoriteChart(item.data.id)" variant="ghost_destructive">
+                <Button
+                  size="sm"
+                  @click="unfavoriteChart(item.data.id)"
+                  variant="ghost_destructive"
+                  class="px-3"
+                >
                   Remove
                 </Button>
               </CardFooter>
@@ -219,6 +262,54 @@ onMounted(async () => {
 const getChartTitle = (chart: Chart) => {
   if (!chart.config) return 'Untitled Chart'
   return chart.config.title?.text || 'Untitled Chart'
+}
+
+const getTablePreview = (rows?: Record<string, any>[]) => {
+  if (!rows || rows.length === 0) return null
+
+  const headers = Object.keys(rows[0])
+  const previewRows = rows.slice(0, 3)
+  const extraCount = rows.length - previewRows.length
+
+  if (headers.length === 0) return null
+
+  return {
+    headers,
+    rows: previewRows,
+    extraCount: extraCount > 0 ? extraCount : 0
+  }
+}
+
+const getChartTablePreview = (chart: Chart) => {
+  const source = chart.config?.dataset?.source
+
+  if (!Array.isArray(source) || source.length === 0) return null
+
+  let headers: string[] = []
+  let dataRows: Record<string, any>[] = []
+
+  if (Array.isArray(source[0])) {
+    const [headerRow, ...rest] = source as any[][]
+    if (!Array.isArray(headerRow)) return null
+    headers = headerRow.map(String)
+    dataRows = rest.map((row) =>
+      Object.fromEntries(headers.map((header, index) => [header, Array.isArray(row) ? row[index] : undefined]))
+    )
+  } else if (typeof source[0] === 'object' && source[0] !== null) {
+    headers = Object.keys(source[0] as Record<string, any>)
+    dataRows = source as Record<string, any>[]
+  }
+
+  if (headers.length === 0 || dataRows.length === 0) return null
+
+  const previewRows = dataRows.slice(0, 3)
+  const extraCount = Math.max(0, dataRows.length - previewRows.length)
+
+  return {
+    headers,
+    rows: previewRows,
+    extraCount
+  }
 }
 
 // TODO: switch to store when Query Store is clean...
