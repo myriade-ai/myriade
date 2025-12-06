@@ -289,14 +289,21 @@ const loading = computed(() => {
 
 const error = computed(() => queryError.value?.message || catalogStore.error)
 
-// State
+const route = useRoute()
+const getStateParam = (key: string, defaultValue: string = '__all__') => {
+  const state = window.history.state as Record<string, unknown> | null
+  if (!state) return defaultValue
+  const value = state[key]
+  return typeof value === 'string' && value.trim().length > 0 ? value : defaultValue
+}
+
 const searchQueryInput = ref('')
 const searchQuery = ref('')
 const selectedDatabase = ref('__all__')
 const selectedSchema = ref('__all__')
 const selectedTag = ref('__all__')
-const selectedStatus = ref('__all__')
-const hasAiSuggestion = ref('__all__')
+const selectedStatus = ref(getStateParam('status'))
+const hasAiSuggestion = ref(getStateParam('ai'))
 const activeTab = ref<'overview' | 'columns' | 'schemas' | 'tables' | 'preview' | 'sources'>(
   'overview'
 )
@@ -327,7 +334,6 @@ const assetDraft = reactive<EditableDraft>({
   tags: []
 })
 
-const route = useRoute()
 const router = useRouter()
 
 // Use catalog data composable with TanStack Query as the source

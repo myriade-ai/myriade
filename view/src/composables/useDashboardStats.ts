@@ -5,8 +5,7 @@ export interface OverallStats {
   total_assets: number // Total catalogable assets (tables, views, etc.) - excludes columns
   completion_percentage: number
   assets_validated: number
-  assets_ai_generated: number
-  assets_to_review: number
+  assets_with_ai_suggestions: number // Assets that have AI suggestions pending review
 }
 
 export interface SchemaStats {
@@ -54,8 +53,7 @@ export function computeDashboardStats(
     // Overall stats
     let total_assets = 0
     let assets_validated = 0
-    let assets_ai_generated = 0
-    let assets_to_review = 0
+    let assets_with_ai_suggestions = 0
     let assets_with_description = 0
 
     for (const asset of nonColumnAssets) {
@@ -67,9 +65,10 @@ export function computeDashboardStats(
 
       if (asset.status === 'published') {
         assets_validated++
-        assets_ai_generated++ // Count all published assets
-      } else if (asset.status === 'draft') {
-        assets_to_review++
+      }
+
+      if (asset.ai_suggestion || (asset.ai_suggested_tags && asset.ai_suggested_tags.length > 0)) {
+        assets_with_ai_suggestions++
       }
     }
 
@@ -170,8 +169,7 @@ export function computeDashboardStats(
         total_assets,
         completion_percentage,
         assets_validated,
-        assets_ai_generated,
-        assets_to_review
+        assets_with_ai_suggestions
       },
       databases
     }
