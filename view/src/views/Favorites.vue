@@ -10,7 +10,7 @@
         <p>{{ error }}</p>
       </div>
 
-      <div v-else class="space-y-6 my-4">
+      <div v-else class="space-y-4 my-4">
         <div v-if="combinedItems.length === 0" class="text-center py-8">
           <div
             class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary-100"
@@ -41,33 +41,37 @@
 
         <div
           v-if="combinedItems.length > 0"
-          class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2"
+          class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2"
         >
           <Card
             v-for="item in combinedItems"
             :key="`${item.type}-${item.data.id}`"
-            class="overflow-hidden gap-0 h-fit"
+            class="overflow-hidden gap-0 h-fit p-0"
           >
             <!-- Query Card -->
             <template v-if="item.type === 'query'">
-              <CardContent>
-                <div class="flex items-center gap-2 mb-2">
-                  <div
-                    class="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full"
+              <CardContent class="p-4 relative">
+                <div class="absolute top-2 right-2 flex gap-1">
+                  <Button size="icon" variant="ghost" class="h-7 w-7" asChild>
+                    <RouterLink :to="`/query/${item.data.id}`" title="View Query">
+                      <Eye class="h-4 w-4" />
+                    </RouterLink>
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost_destructive"
+                    class="h-7 w-7"
+                    title="Remove"
+                    @click="unfavoriteQuery(item.data.id)"
                   >
-                    Query
-                  </div>
+                    <Trash2 class="h-4 w-4" />
+                  </Button>
                 </div>
-                <h3 class="text-lg font-medium text-foreground truncate">
+                <h3 class="text-base font-medium text-foreground truncate mb-1.5 pr-16">
                   {{ item.data.title || 'Untitled Query' }}
                 </h3>
-                <div
-                  class="mt-2 max-h-60 overflow-hidden text-sm text-muted-foreground text-ellipsis line-clamp-3"
-                >
-                  {{ item.data.sql }}
-                </div>
                 <!-- Add query result preview -->
-                <div class="mt-2 border rounded p-2 bg-muted overflow-auto max-h-40">
+                <div class="mt-1.5 border rounded p-1.5 bg-muted overflow-auto max-h-100">
                   <div v-if="item.data.rows && item.data.rows.length > 0" class="text-xs">
                     <table class="min-w-full divide-y divide-gray-200">
                       <thead class="bg-muted">
@@ -75,18 +79,18 @@
                           <th
                             v-for="(_, key) in item.data.rows[0]"
                             :key="key"
-                            class="px-2 py-1 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                            class="px-1.5 py-0.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
                           >
                             {{ key }}
                           </th>
                         </tr>
                       </thead>
                       <tbody class="bg-card divide-y divide-gray-200">
-                        <tr v-for="(row, i) in item.data.rows.slice(0, 3)" :key="i">
+                        <tr v-for="(row, i) in item.data.rows.slice(0, 9)" :key="i">
                           <td
                             v-for="(value, key) in row"
                             :key="key"
-                            class="px-2 py-1 whitespace-nowrap text-xs text-muted-foreground"
+                            class="px-1.5 py-0.5 whitespace-nowrap text-xs text-muted-foreground"
                           >
                             {{ value }}
                           </td>
@@ -94,65 +98,46 @@
                       </tbody>
                     </table>
                     <div
-                      v-if="item.data.rows.length > 3"
+                      v-if="item.data.rows.length > 9"
                       class="text-center text-xs mt-1 text-muted-foreground"
                     >
-                      + {{ item.data.rows.length - 3 }} more rows
+                      + {{ item.data.rows.length - 9 }} more rows
                     </div>
                   </div>
                   <div v-else class="text-xs text-muted-foreground">No results available</div>
                 </div>
               </CardContent>
-
-              <CardFooter class="justify-between mt-2">
-                <Button
-                  class="text-sm font-medium text-primary-600 hover:text-primary-500"
-                  variant="link"
-                  asChild
-                >
-                  <RouterLink :to="`/query/${item.data.id}`"> View Query </RouterLink>
-                </Button>
-
-                <Button @click="unfavoriteQuery(item.data.id)" variant="ghost_destructive">
-                  Remove
-                </Button>
-              </CardFooter>
             </template>
 
             <!-- Chart Card -->
             <template v-else-if="item.type === 'chart'">
-              <CardContent>
-                <div class="flex items-center gap-2 mb-2">
-                  <div
-                    class="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full"
+              <CardContent class="p-4 relative">
+                <div class="absolute top-2 right-2 flex gap-1 z-10">
+                  <Button size="icon" variant="ghost" class="h-7 w-7" asChild>
+                    <RouterLink :to="`/query/${item.data.queryId}`" title="View Query">
+                      <Eye class="h-4 w-4" />
+                    </RouterLink>
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost_destructive"
+                    class="h-7 w-7"
+                    title="Remove"
+                    @click="unfavoriteChart(item.data.id)"
                   >
-                    Chart
-                  </div>
+                    <Trash2 class="h-4 w-4" />
+                  </Button>
                 </div>
-                <h3 class="text-lg font-medium text-foreground truncate">
+                <h3 class="text-base font-medium text-foreground truncate mb-1.5 pr-16">
                   {{ getChartTitle(item.data) }}
                 </h3>
-                <div class="mt-2">
+                <div class="mt-1.5">
                   <Echart
                     :option="{ ...item.data.config, query_id: item.data.queryId }"
                     style="height: 200px; width: 100%"
                   />
                 </div>
               </CardContent>
-
-              <CardFooter class="justify-between">
-                <Button
-                  class="text-sm font-medium text-primary-600 hover:text-primary-500"
-                  variant="link"
-                  asChild
-                >
-                  <RouterLink :to="`/query/${item.data.queryId}`"> View Query </RouterLink>
-                </Button>
-
-                <Button @click="unfavoriteChart(item.data.id)" variant="ghost_destructive">
-                  Remove
-                </Button>
-              </CardFooter>
             </template>
           </Card>
         </div>
@@ -165,12 +150,12 @@
 import Echart from '@/components/Echart.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import type { Query } from '@/composables/useQueryEditor'
 import axios from '@/plugins/axios'
 import { useChartStore, type Chart } from '@/stores/chart'
 import { useContextsStore } from '@/stores/contexts'
-import { Heart } from 'lucide-vue-next'
+import { Eye, Heart, Trash2 } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 

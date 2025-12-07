@@ -1152,12 +1152,20 @@ def get_favorites():
         .all()
     )
 
-    # Include rows and count for favorite queries since they're needed in the UI
+    # Fetch fresh results for favorite queries since they're needed in the UI
     queries = []
     for query in query_favorites:
         query_dict = query.to_dict()
-        query_dict["rows"] = query.rows
-        query_dict["count"] = query.count
+        # Re-execute query to get fresh results
+        try:
+            data_warehouse = query.database.create_data_warehouse()
+            rows, count, _ = data_warehouse.query(query.sql, role="users")
+            query_dict["rows"] = rows
+            query_dict["count"] = count
+        except Exception as e:
+            query_dict["rows"] = None
+            query_dict["count"] = None
+            query_dict["error"] = str(e)
         queries.append(query_dict)
 
     charts = [chart.to_dict() for chart in chart_favorites]
