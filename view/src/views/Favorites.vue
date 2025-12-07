@@ -1,7 +1,7 @@
 <template>
   <PageHeader title="Favorites" subtitle="Your saved queries and charts" sticky />
   <div class="flex-1 overflow-auto">
-    <div class="px-8">
+    <div class="px-2 sm:px-8">
       <div v-if="loading" class="mt-4 text-center">
         <p>Loading...</p>
       </div>
@@ -41,7 +41,7 @@
 
         <div
           v-if="combinedItems.length > 0"
-          class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2"
+          class="mt-4 grid grid-cols-1 gap-2 sm:gap-3 sm:grid-cols-2"
         >
           <Card
             v-for="item in combinedItems"
@@ -50,7 +50,7 @@
           >
             <!-- Query Card -->
             <template v-if="item.type === 'query'">
-              <CardContent class="p-4 relative">
+              <CardContent class="p-3 sm:p-4 relative">
                 <div class="absolute top-2 right-2 flex gap-1">
                   <Button size="icon" variant="ghost" class="h-7 w-7" asChild>
                     <RouterLink :to="`/query/${item.data.id}`" title="View Query">
@@ -111,7 +111,7 @@
 
             <!-- Chart Card -->
             <template v-else-if="item.type === 'chart'">
-              <CardContent class="p-4 relative">
+              <CardContent class="p-3 sm:p-4 relative">
                 <div class="absolute top-2 right-2 flex gap-1 z-10">
                   <Button size="icon" variant="ghost" class="h-7 w-7" asChild>
                     <RouterLink :to="`/query/${item.data.queryId}`" title="View Query">
