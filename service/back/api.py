@@ -1612,7 +1612,7 @@ def get_asset_activities(asset_id: str):
     activities = (
         g.session.query(AssetActivity)
         .filter(AssetActivity.asset_id == asset_uuid)
-        .order_by(AssetActivity.created_at.desc())
+        .order_by(AssetActivity.createdAt.desc())
         .all()
     )
 
