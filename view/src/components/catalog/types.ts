@@ -44,3 +44,45 @@ export interface ExplorerDatabaseNode {
   asset: CatalogAsset
   schemas: ExplorerSchemaNode[]
 }
+
+// ============================================
+// Unified Explorer Types
+// ============================================
+
+/**
+ * Explorer mode determines the primary interaction pattern
+ * - browse: View hierarchy, select single asset to view details
+ * - select: Multi-select with checkboxes for batch operations
+ * - editor: Interact with SQL editor, quick actions available
+ */
+export type ExplorerMode = 'browse' | 'select' | 'editor'
+
+/**
+ * Asset status display configuration
+ */
+export interface AssetStatusInfo {
+  label: string
+  variant: 'default' | 'draft' | 'published' | 'ai-suggestion' | 'used'
+  icon?: string
+}
+
+/**
+ * Quick action configuration for editor mode
+ */
+export interface ExplorerQuickAction {
+  id: string
+  label: string
+  icon: string
+}
+
+/**
+ * Flat item for list view (used in editor mode or search results)
+ */
+export interface ExplorerFlatItem {
+  id: string
+  asset: CatalogAsset
+  label: string
+  sublabel?: string
+  meta?: string
+  columns?: ExplorerColumnNode[]
+}
