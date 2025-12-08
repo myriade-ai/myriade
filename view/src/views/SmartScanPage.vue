@@ -957,15 +957,33 @@ async function analyzeSelected() {
     return
   }
 
+  const databases = selectedDatabases.value
+  const schemas = selectedSchemas.value
   const tables = selectedTables.value
   const columns = selectedColumns.value
 
+  const MAX_DATABASES_IN_PROMPT = 200
+  const MAX_SCHEMAS_IN_PROMPT = 200
   const MAX_TABLES_IN_PROMPT = 200
   const MAX_COLUMNS_IN_PROMPT = 200
 
+  const databasesForPrompt = databases.slice(0, MAX_DATABASES_IN_PROMPT)
+  const schemasForPrompt = schemas.slice(0, MAX_SCHEMAS_IN_PROMPT)
   const tablesForPrompt = tables.slice(0, MAX_TABLES_IN_PROMPT)
   const columnsForPrompt = columns.slice(0, MAX_COLUMNS_IN_PROMPT)
 
+  const databasesList = databasesForPrompt
+    .map(
+      (database) =>
+        `- ${database.database_facet?.database_name || database.name || database.urn} (id: ${database.id})`
+    )
+    .join('\n')
+  const schemasList = schemasForPrompt
+    .map(
+      (schema) =>
+        `- ${schema.schema_facet?.database_name || 'Unknown'}.${schema.schema_facet?.schema_name || schema.name || schema.urn} (id: ${schema.id})`
+    )
+    .join('\n')
   const tablesList = tablesForPrompt
     .map(
       (table) => `- ${table.table_facet?.table_name || table.name || table.urn} (id: ${table.id})`
@@ -978,6 +996,8 @@ async function analyzeSelected() {
     )
     .join('\n')
 
+  const truncatedDatabases = databases.length > MAX_DATABASES_IN_PROMPT
+  const truncatedSchemas = schemas.length > MAX_SCHEMAS_IN_PROMPT
   const truncatedTables = tables.length > MAX_TABLES_IN_PROMPT
   const truncatedColumns = columns.length > MAX_COLUMNS_IN_PROMPT
 
@@ -994,6 +1014,20 @@ async function analyzeSelected() {
     '2. Prioritize assets that unlock the most analytical value or appear in mission-critical workflows.',
     '3. Produce concise, business-focused descriptions that include relationships, freshness, quality notes, and suggested tags.'
   ]
+
+  if (databasesForPrompt.length > 0) {
+    promptSections.push('\n**Databases to document:**', databasesList)
+    if (truncatedDatabases) {
+      promptSections.push(`\n…and ${databases.length - MAX_DATABASES_IN_PROMPT} more databases.`)
+    }
+  }
+
+  if (schemasForPrompt.length > 0) {
+    promptSections.push('\n**Schemas to document:**', schemasList)
+    if (truncatedSchemas) {
+      promptSections.push(`\n…and ${schemas.length - MAX_SCHEMAS_IN_PROMPT} more schemas.`)
+    }
+  }
 
   if (tablesForPrompt.length > 0) {
     promptSections.push('\n**Tables to document:**', tablesList)
