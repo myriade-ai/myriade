@@ -351,7 +351,7 @@ class CatalogTool:
         activities = (
             self.session.query(AssetActivity)
             .filter(AssetActivity.asset_id == asset.id)
-            .order_by(AssetActivity.created_at.desc())
+            .order_by(AssetActivity.createdAt.desc())
             .all()
         )
         result["activities"] = [

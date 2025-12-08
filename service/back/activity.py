@@ -3,7 +3,6 @@ Activity tracking for catalog assets - audit trails, comments, and agent interac
 """
 
 import logging
-from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -86,7 +85,6 @@ def create_activity(
         changes=changes,
         conversation_id=conversation_id,
         status=status_str,
-        created_at=datetime.utcnow(),
     )
 
     session.add(activity)
