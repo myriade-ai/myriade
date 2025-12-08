@@ -1,3 +1,4 @@
+import json
 import re
 
 
@@ -10,16 +11,21 @@ def parse_answer_text(text: str):
      {type: "chart", chart_id: 2},
      {type: "text", content: " and "},
      {type: "document", document_id: 3}]
+    
+    Tables can be embedded using <TABLE>...</TABLE> with JSON data:
+    > parse_answer_text("Here's data: <TABLE>[{\"col1\": \"val1\"}]</TABLE>")
+    [{type: "markdown", content: "Here's data: "},
+     {type: "table", content: [{"col1": "val1"}]}]
     """
     if not text:
         return []
 
     chunks = []
-    # Regex to find <QUERY:id>, <CHART:id>, or <DOCUMENT:id> tags and capture the id
-    tag_regex = r"(<QUERY:([^>]+)>)|(<CHART:([^>]+)>)|(<DOCUMENT:([^>]+)>)"
+    # Regex to find <QUERY:id>, <CHART:id>, <DOCUMENT:id>, or <TABLE>json</TABLE> tags
+    tag_regex = r"(<QUERY:([^>]+)>)|(<CHART:([^>]+)>)|(<DOCUMENT:([^>]+)>)|(<TABLE>(.*?)</TABLE>)"
 
     last_end = 0
-    for match in re.finditer(tag_regex, text):
+    for match in re.finditer(tag_regex, text, re.DOTALL):
         start, end = match.span()
 
         # Add preceding text segment if it exists
@@ -36,6 +42,23 @@ def parse_answer_text(text: str):
         elif match.group(5):  # Matched <DOCUMENT:id>
             document_id = match.group(6).strip()
             chunks.append({"type": "document", "document_id": document_id})
+        elif match.group(7):  # Matched <TABLE>json</TABLE>
+            table_data_str = match.group(8).strip()
+            try:
+                table_data = json.loads(table_data_str)
+                # Support both array of objects and {rows, columns} format
+                if isinstance(table_data, dict):
+                    chunks.append({"type": "table", "content": table_data})
+                elif isinstance(table_data, list):
+                    chunks.append({"type": "table", "content": table_data})
+                else:
+                    # If it's not valid table data, treat it as markdown
+                    chunks.append(
+                        {"type": "markdown", "content": match.group(0)}
+                    )
+            except json.JSONDecodeError:
+                # If JSON parsing fails, treat the tag as markdown
+                chunks.append({"type": "markdown", "content": match.group(0)})
 
         last_end = end
 

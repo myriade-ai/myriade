@@ -111,3 +111,118 @@ def test_parse_text_containing_partial_tags():
             "content": "Text with <QUERY and CHART: > but no real tags.",
         }
     ]
+
+
+def test_parse_only_table():
+    # Test case 15: Only a table with JSON array
+    result = parse_answer_text('<TABLE>[{"col1": "val1", "col2": "val2"}]</TABLE>')
+    assert result == [{"type": "table", "content": [{"col1": "val1", "col2": "val2"}]}]
+
+
+def test_parse_text_with_table():
+    # Test case 16: Text with a table
+    result = parse_answer_text(
+        'Here are the results: <TABLE>[{"metric": "GMV", "value": "13.6M"}]</TABLE>'
+    )
+    assert result == [
+        {"type": "markdown", "content": "Here are the results: "},
+        {"type": "table", "content": [{"metric": "GMV", "value": "13.6M"}]},
+    ]
+
+
+def test_parse_table_with_multiple_rows():
+    # Test case 17: Table with multiple rows
+    result = parse_answer_text(
+        '<TABLE>[{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}]</TABLE>'
+    )
+    assert result == [
+        {
+            "type": "table",
+            "content": [{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}],
+        }
+    ]
+
+
+def test_parse_table_with_dict_format():
+    # Test case 18: Table with dict format (rows and columns)
+    result = parse_answer_text(
+        '<TABLE>{"rows": [{"col1": "val1"}], "columns": [{"name": "col1"}]}</TABLE>'
+    )
+    assert result == [
+        {
+            "type": "table",
+            "content": {"rows": [{"col1": "val1"}], "columns": [{"name": "col1"}]},
+        }
+    ]
+
+
+def test_parse_mixed_content_with_table():
+    # Test case 19: Mixed content with table, query, and chart
+    result = parse_answer_text(
+        'Text <QUERY:1> then <TABLE>[{"a": 1}]</TABLE> and <CHART:2> end'
+    )
+    assert result == [
+        {"type": "markdown", "content": "Text "},
+        {"type": "query", "query_id": "1"},
+        {"type": "markdown", "content": " then "},
+        {"type": "table", "content": [{"a": 1}]},
+        {"type": "markdown", "content": " and "},
+        {"type": "chart", "chart_id": "2"},
+        {"type": "markdown", "content": " end"},
+    ]
+
+
+def test_parse_table_with_invalid_json():
+    # Test case 20: Table with invalid JSON should be treated as markdown
+    result = parse_answer_text("<TABLE>{invalid json}</TABLE>")
+    assert result == [{"type": "markdown", "content": "<TABLE>{invalid json}</TABLE>"}]
+
+
+def test_parse_table_multiline():
+    # Test case 21: Table with multiline JSON
+    result = parse_answer_text(
+        """Here's a table:
+<TABLE>
+[
+  {"metric": "Total Orders", "value": 99441},
+  {"metric": "GMV Total", "value": "13.6M BRL"}
+]
+</TABLE>
+Done."""
+    )
+    assert result == [
+        {"type": "markdown", "content": "Here's a table:\n"},
+        {
+            "type": "table",
+            "content": [
+                {"metric": "Total Orders", "value": 99441},
+                {"metric": "GMV Total", "value": "13.6M BRL"},
+            ],
+        },
+        {"type": "markdown", "content": "\nDone."},
+    ]
+
+
+def test_parse_document_tag():
+    # Test case 22: Document tag
+    assert parse_answer_text("<DOCUMENT:doc-123>") == [
+        {"type": "document", "document_id": "doc-123"}
+    ]
+
+
+def test_parse_mixed_all_tags():
+    # Test case 23: All tag types together
+    result = parse_answer_text(
+        "Start <QUERY:q1> mid <CHART:c1> table <TABLE>[{\"x\":1}]</TABLE> doc <DOCUMENT:d1> end"
+    )
+    assert result == [
+        {"type": "markdown", "content": "Start "},
+        {"type": "query", "query_id": "q1"},
+        {"type": "markdown", "content": " mid "},
+        {"type": "chart", "chart_id": "c1"},
+        {"type": "markdown", "content": " table "},
+        {"type": "table", "content": [{"x": 1}]},
+        {"type": "markdown", "content": " doc "},
+        {"type": "document", "document_id": "d1"},
+        {"type": "markdown", "content": " end"},
+    ]

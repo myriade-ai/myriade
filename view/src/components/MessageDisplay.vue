@@ -96,6 +96,16 @@
                 class="mt-2"
               />
             </div>
+            <div v-if="part.type === 'table'" :key="`table-${index}`" class="w-full overflow-x-auto">
+              <DataTable
+                :data="Array.isArray(part.content) ? part.content : part.content.rows || []"
+                :count="
+                  part.content.count ?? (Array.isArray(part.content) ? part.content.length : 0)
+                "
+                :columns="part.content.columns"
+                class="mt-2"
+              />
+            </div>
           </template>
 
           <div v-if="props.message.image" class="w-full">
@@ -344,7 +354,7 @@ function openDocument(documentId: string) {
 const parsedText = computed<
   Array<{ type: string; content: any; query_id?: string; chart_id?: string; document_id?: string }>
 >(() => {
-  const regex = /```((?:sql|json|error))\s*([\s\S]*?)\s*```/g
+  const regex = /```((?:sql|json|error|table))\s*([\s\S]*?)\s*```/g
   let match
   let lastIndex = 0
   const parts: Array<{
@@ -376,7 +386,7 @@ const parsedText = computed<
 
     let type = match[1]
     let content
-    if (type === 'json') {
+    if (type === 'json' || type === 'table') {
       content = JSON.parse(match[2].trim())
     } else if (type === 'sql') {
       content = match[2].trim()

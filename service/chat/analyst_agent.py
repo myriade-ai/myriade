@@ -234,8 +234,12 @@ class DataAnalystAgent:
         You can insert a query with it's preview result in the text using the <QUERY:{query_id}> tag.
         You can insert a chart in the text using the <CHART:{chart_id}> tag.
         You can insert a document in the text using the <DOCUMENT:{document_id}> tag.
+        You can insert a table with data using <TABLE>[{col1: val1, col2: val2}]</TABLE> with JSON array.
         Replace {query_id}, {chart_id}, and {document_id} with the actual IDs.
-        Show the query / chart / document only if the user asked for it or if that makes sense to have it.
+        Show the query / chart / document / table only if the user asked for it or if that makes sense to have it.
+        
+        Example table usage:
+        answer("Here are the results: <TABLE>[{\"metric\": \"GMV\", \"value\": \"13.6M BRL\"}]</TABLE>")
         """  # noqa: E501
 
         chunks = parse_answer_text(text)
