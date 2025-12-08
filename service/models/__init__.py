@@ -639,9 +639,6 @@ class Project(SerializerMixin, DefaultBase, Base):
     organisation: Mapped[Optional["Organisation"]] = relationship(
         back_populates="projects",
         lazy="joined",
-        cascade="all, delete-orphan",
-        single_parent=True,
-        # order_by="Project.createdAt",
     )
     tables: Mapped[List["ProjectTables"]] = relationship(
         "ProjectTables",
