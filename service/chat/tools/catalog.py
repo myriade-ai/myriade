@@ -362,8 +362,8 @@ class CatalogTool:
                 "content": activity.content,
                 "changes": activity.changes,
                 "status": activity.status,
-                "created_at": activity.created_at.isoformat()
-                if activity.created_at
+                "created_at": activity.createdAt.isoformat()
+                if activity.createdAt
                 else None,
             }
             for activity in activities
