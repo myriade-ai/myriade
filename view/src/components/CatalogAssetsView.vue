@@ -22,12 +22,16 @@
           :max-size="40"
           :collapsible="false"
         >
-          <CatalogExplorer
+          <UnifiedExplorer
             ref="desktopExplorerRef"
             v-model:collapsed="explorerCollapsed"
+            mode="browse"
             :tree="explorerTree"
             :selected-asset-id="selectedAssetId"
             :show-collapse-button="!isMobile"
+            :expand-databases-by-default="true"
+            header-title="Explorer"
+            header-subtitle="Browse by database, schema, and table"
             @select-asset="handleSelectAsset"
           />
         </ResizablePanel>
@@ -212,12 +216,16 @@
           <SheetTitle>Catalog explorer</SheetTitle>
           <SheetDescription>Browse by schema and table.</SheetDescription>
         </SheetHeader>
-        <CatalogExplorer
+        <UnifiedExplorer
           ref="mobileExplorerRef"
+          mode="browse"
           :tree="explorerTree"
           :selected-asset-id="selectedAssetId"
           :collapsed="false"
           :show-collapse-button="false"
+          :expand-databases-by-default="true"
+          header-title="Explorer"
+          header-subtitle="Browse by database, schema, and table"
           @select-asset="handleSelectAsset"
         />
       </SheetContent>
@@ -227,9 +235,9 @@
 
 <script setup lang="ts">
 import CatalogDetailsView from '@/components/catalog/CatalogDetailsView.vue'
-import CatalogExplorer from '@/components/catalog/CatalogExplorer.vue'
 import CatalogFilters from '@/components/catalog/CatalogFilters.vue'
 import CatalogListView from '@/components/catalog/CatalogListView.vue'
+import UnifiedExplorer from '@/components/catalog/UnifiedExplorer.vue'
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import {
   Breadcrumb,
@@ -252,6 +260,7 @@ import type { CatalogAsset } from '@/stores/catalog'
 import { useCatalogStore } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import type { CatalogAssetUpdatePayload } from '@/types/catalog'
+import { debounce } from '@/utils/debounce'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useMediaQuery } from '@vueuse/core'
 import { ChevronsRight, List, PanelLeft } from 'lucide-vue-next'
@@ -260,7 +269,6 @@ import { useRoute, useRouter } from 'vue-router'
 import type { EditableDraft } from './catalog/types'
 import { useCatalogData } from './catalog/useCatalogData'
 import { useCatalogAssetsQuery, useCatalogSearchQuery } from './catalog/useCatalogQuery'
-import { debounce } from '@/utils/debounce'
 
 interface Props {
   isLoading?: boolean
@@ -310,7 +318,7 @@ const activeTab = ref<'overview' | 'columns' | 'schemas' | 'tables' | 'preview' 
 const isMobile = useMediaQuery('(max-width: 1023px)')
 const selectedAssetId = ref<string | null>(null)
 const explorerCollapsed = ref(false)
-type ExplorerInstance = InstanceType<typeof CatalogExplorer>
+type ExplorerInstance = InstanceType<typeof UnifiedExplorer>
 const desktopExplorerRef = ref<ExplorerInstance | null>(null)
 const mobileExplorerRef = ref<ExplorerInstance | null>(null)
 const showExplorerSheet = ref(false)

@@ -182,13 +182,18 @@
               </div>
 
               <div v-else class="max-h-[60vh] overflow-y-auto">
-                <CatalogExplorer
+                <UnifiedExplorer
                   :tree="explorerTree"
                   :selected-asset-id="null"
-                  :collapsed="false"
-                  :selection-mode="true"
+                  mode="select"
                   :selected-asset-ids="selectedIdsComputed"
                   :disabled="scanMode !== 'custom'"
+                  :collapsed="false"
+                  :show-collapse-button="false"
+                  :show-header="false"
+                  :show-search="false"
+                  :show-status-badge="true"
+                  :expand-databases-by-default="true"
                   @toggle-asset-selection="handleToggleAssetSelection"
                   @select-all-children="handleSelectAllChildren"
                 />
@@ -405,13 +410,18 @@
               </div>
 
               <div v-else class="max-h-[520px] overflow-y-auto">
-                <CatalogExplorer
+                <UnifiedExplorer
                   :tree="explorerTree"
                   :selected-asset-id="null"
-                  :collapsed="false"
-                  :selection-mode="true"
+                  mode="select"
                   :selected-asset-ids="selectedIdsComputed"
                   :disabled="scanMode !== 'custom'"
+                  :collapsed="false"
+                  :show-collapse-button="false"
+                  :show-header="false"
+                  :show-search="false"
+                  :show-status-badge="true"
+                  :expand-databases-by-default="true"
                   @toggle-asset-selection="handleToggleAssetSelection"
                   @select-all-children="handleSelectAllChildren"
                 />
@@ -515,13 +525,13 @@
 </template>
 
 <script setup lang="ts">
-import CatalogExplorer from '@/components/catalog/CatalogExplorer.vue'
 import type {
   ExplorerColumnNode,
   ExplorerDatabaseNode,
   ExplorerSchemaNode,
   ExplorerTableNode
 } from '@/components/catalog/types'
+import UnifiedExplorer from '@/components/catalog/UnifiedExplorer.vue'
 import { useCatalogAssetsQuery } from '@/components/catalog/useCatalogQuery'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'

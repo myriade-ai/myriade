@@ -184,7 +184,7 @@
 
 :root {
   /* Gold color - brand accent */
-  --gold: #FAAF03;
+  --gold: #faaf03;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
@@ -224,7 +224,7 @@
 
 .dark {
   /* Gold color - slightly brighter for dark mode */
-  --gold: #FFB820;
+  --gold: #ffb820;
 
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
