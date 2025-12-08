@@ -24,7 +24,7 @@
     <div v-if="database.schemas.length > 0">
       <!-- Schemas Toggle Button -->
       <button
-        class="w-full px-6 py-3 flex items-center justify-between hover:bg-muted transition-colors border-t border-border text-left bg-muted/50 dark:bg-muted/30"
+        class="w-full px-6 py-3 flex items-center justify-between hover:bg-muted transition-colors border-t border-border text-left bg-muted/80 dark:bg-muted/30 cursor-pointer"
         @click="isExpanded = !isExpanded"
       >
         <span
@@ -32,7 +32,7 @@
         >
           <ChevronRight v-if="!isExpanded" class="h-4 w-4 text-muted-foreground" />
           <ChevronDown v-else class="h-4 w-4 text-muted-foreground" />
-          Schemas:
+          Schemas
         </span>
       </button>
 
@@ -61,16 +61,6 @@
           </button>
         </div>
       </div>
-
-      <!-- Collapse Button -->
-      <button
-        v-show="isExpanded"
-        @click="isExpanded = false"
-        class="w-full px-6 py-2 text-xs font-semibold text-foreground uppercase tracking-wide hover:bg-muted transition-colors border-t border-border"
-      >
-        <ChevronUp class="h-4 w-4 text-muted-foreground inline mr-2" />
-        Collapse schemas
-      </button>
     </div>
 
     <!-- Empty State -->
@@ -81,11 +71,11 @@
 </template>
 
 <script setup lang="ts">
-import ProgressBar from './ProgressBar.vue'
-import { ChevronDown, ChevronUp, ChevronRight, Database, FolderTree } from 'lucide-vue-next'
+import type { DatabaseStats } from '@/composables/useDashboardStats'
+import { ChevronDown, ChevronRight, Database, FolderTree } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import type { DatabaseStats } from '@/composables/useDashboardStats'
+import ProgressBar from './ProgressBar.vue'
 
 interface Props {
   database: DatabaseStats
@@ -94,7 +84,7 @@ interface Props {
 const props = defineProps<Props>()
 const router = useRouter()
 
-const isExpanded = ref(false)
+const isExpanded = ref(true)
 
 const sortedSchemas = computed(() => {
   return [...(props.database?.schemas || [])].sort((a, b) =>
