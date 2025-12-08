@@ -43,7 +43,6 @@
                   ({{ statsForTable(table) }})
                 </span>
               </div>
-              <span class="text-xs text-muted-foreground">{{ table.description }}</span>
             </div>
             <span class="text-xs text-muted-foreground">{{ table.type }}</span>
           </summary>
@@ -84,7 +83,7 @@
                     {{ col.type }}
                   </td>
                   <td class="px-4 py-2 whitespace-nowrap text-sm text-muted-foreground">
-                    {{ col.description }}
+                    {{ col.description ? col.description?.substring(0, 40) + '...' : '' }}
                   </td>
                   <td class="px-4 py-2 whitespace-nowrap text-sm text-muted-foreground">
                     <select
