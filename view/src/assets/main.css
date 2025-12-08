@@ -142,6 +142,7 @@
 }
 
 @theme inline {
+  --color-gold: var(--gold);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -182,12 +183,8 @@
 }
 
 :root {
-  /* Brand Colors */
-  --navy-text: #010B3E;
-  --navy-bg: #000834;
+  /* Gold color - brand accent */
   --gold: #FAAF03;
-  --gold-hover: #E9A000;
-  --light-gray: #F9F9F9;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
@@ -226,6 +223,9 @@
 }
 
 .dark {
+  /* Gold color - slightly brighter for dark mode */
+  --gold: #FFB820;
+
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.129 0.042 264.695);

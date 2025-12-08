@@ -1,16 +1,19 @@
 <template>
   <div
     ref="dropdownRef"
-    class="z-50 w-64 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg"
+    class="z-50 w-64 max-h-72 overflow-y-auto bg-popover border border-border rounded-lg shadow-lg"
   >
     <!-- Loading state (kept for consistency, though we don't fetch data) -->
-    <div v-if="isLoading" class="p-4 text-center text-sm text-gray-500">
+    <div v-if="isLoading" class="p-4 text-center text-sm text-muted-foreground">
       <Loader2 class="inline-block w-4 h-4 animate-spin mr-2" />
       Loading...
     </div>
 
     <!-- Empty state when query doesn't match -->
-    <div v-else-if="displayedItems.length === 0" class="p-4 text-center text-sm text-gray-500">
+    <div
+      v-else-if="displayedItems.length === 0"
+      class="p-4 text-center text-sm text-muted-foreground"
+    >
       No matches found
     </div>
 
@@ -22,15 +25,15 @@
         @click="selectItem(index)"
         @mouseenter="selectedIndex = index"
         :class="[
-          'w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none transition-colors',
-          selectedIndex === index && 'bg-gray-100'
+          'w-full text-left px-3 py-2 hover:bg-accent focus:bg-accent focus:outline-none transition-colors',
+          selectedIndex === index && 'bg-accent'
         ]"
       >
         <div class="flex items-start gap-2">
-          <SparklesIcon class="w-4 h-4 mt-0.5 flex-shrink-0 text-purple-600" />
+          <SparklesIcon class="w-4 h-4 mt-0.5 flex-shrink-0 text-gold" />
           <div class="flex-1 min-w-0 leading-normal">
-            <div class="font-medium text-sm text-black">{{ item.label }}</div>
-            <div class="text-xs text-gray-500">{{ item.description }}</div>
+            <div class="font-medium text-sm text-foreground">{{ item.label }}</div>
+            <div class="text-xs text-muted-foreground">{{ item.description }}</div>
           </div>
         </div>
       </button>

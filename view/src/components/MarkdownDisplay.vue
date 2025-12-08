@@ -156,8 +156,8 @@ const sanitizedHtml = computed(() => {
     gap: 0.2rem;
     padding: 0.1rem 0.35rem;
     border-radius: 0.25rem;
-    background-color: rgba(250, 175, 3, 0.15); /* gold/15 */
-    color: var(--navy-text, #010b3e);
+    background-color: oklch(from var(--gold) l c h / 0.15);
+    color: var(--foreground);
     font-weight: 500;
     font-size: 0.9em;
   }
@@ -165,7 +165,7 @@ const sanitizedHtml = computed(() => {
     width: 0.875rem;
     height: 0.875rem;
     margin-right: 0.1em;
-    color: var(--gold, #faaf03);
+    color: var(--gold);
   }
   .user-mention {
     display: inline-flex;
@@ -182,11 +182,11 @@ const sanitizedHtml = computed(() => {
 /* Dark mode adjustments for mentions */
 .dark .markdown-content {
   .agent-mention {
-    background-color: rgba(250, 175, 3, 0.2); /* gold/20 */
-    color: var(--gold, #faaf03);
+    background-color: oklch(from var(--gold) l c h / 0.2);
+    color: var(--gold);
   }
   .agent-mention-icon {
-    color: var(--gold, #faaf03);
+    color: var(--gold);
   }
   .user-mention {
     background-color: rgb(30 58 138 / 0.3); /* blue-900/30 */
