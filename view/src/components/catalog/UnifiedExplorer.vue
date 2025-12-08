@@ -3,12 +3,14 @@
     v-if="!props.collapsed"
     class="flex flex-col h-full border-r border-border bg-gradient-to-b from-muted/50 to-muted/30 dark:from-muted/20 dark:to-muted/10 transition-all duration-300"
   >
+    <!-- Header -->
     <div
-      class="flex items-center justify-between border-b border-border bg-muted/50 dark:bg-muted/20 px-6 py-4 flex-shrink-0"
+      v-if="showHeader"
+      class="flex items-center justify-between border-b border-border bg-muted/50 dark:bg-muted/20 px-4 py-3 flex-shrink-0"
     >
       <div>
-        <p class="text-sm font-medium">Explorer</p>
-        <p class="text-xs text-muted-foreground">Browse by database, schema, and table</p>
+        <p class="text-sm font-medium">{{ headerTitle }}</p>
+        <p class="text-xs text-muted-foreground">{{ headerSubtitle }}</p>
       </div>
       <Button
         v-if="props.showCollapseButton"
@@ -18,34 +20,65 @@
         title="Collapse explorer"
         class="-m-2"
       >
-        <ChevronsLeft />
+        <ChevronsLeft class="h-4 w-4" />
       </Button>
     </div>
+
+    <!-- Search Bar -->
+    <div v-if="showSearch" class="px-3 py-2 border-b border-border flex-shrink-0 space-y-2">
+      <div class="relative">
+        <SearchIcon
+          class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          :model-value="searchQuery"
+          class="pl-9 h-9"
+          :placeholder="searchPlaceholder"
+          @update:model-value="handleSearchInput"
+        />
+      </div>
+      <label
+        v-if="props.showUndocumentedFilter"
+        class="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer"
+      >
+        <Checkbox
+          :model-value="showOnlyUndocumented"
+          class="cursor-pointer h-3.5 w-3.5"
+          @click.stop.prevent="$emit('update:showOnlyUndocumented', !showOnlyUndocumented)"
+        />
+        <span class="select-none">Show only undocumented</span>
+      </label>
+    </div>
+
+    <!-- Content -->
     <div class="flex-1 overflow-y-auto min-h-0">
+      <!-- Tree View -->
       <ul v-if="props.tree.length" class="space-y-1 p-2">
         <li v-for="databaseNode in props.tree" :key="databaseNode.key">
-          <ExplorerNode
+          <ExplorerTreeItem
             v-if="databaseNode.asset"
             :label="databaseNode.name"
             icon="database"
             :expanded="isExpanded(databaseNode.key)"
             :is-selected="props.selectedAssetId === databaseNode.asset.id"
-            :selection-mode="props.selectionMode"
+            :mode="props.mode"
             :checked="isAssetSelected(databaseNode.asset.id)"
             :disabled="props.disabled"
-            :status="getAssetStatus(databaseNode.asset)"
+            :status-info="getAssetStatusInfo(databaseNode.asset)"
             :child-count="getChildCount(databaseNode)"
             :child-type="getChildType(databaseNode)"
+            :is-used="isAssetUsed(databaseNode.asset)"
             @toggle="handleDatabaseClick(databaseNode.key)"
             @select="$emit('select-asset', databaseNode.asset.id)"
             @toggle-check="$emit('toggle-asset-selection', databaseNode.asset.id)"
+            @quick-action="(action) => $emit('quick-action', action, databaseNode.asset)"
           >
             <template #default>
               <ul class="space-y-1 pl-3">
                 <!-- Select all children button -->
                 <li
                   v-if="
-                    props.selectionMode &&
+                    props.mode === 'select' &&
                     hasDirectChildren(databaseNode) &&
                     getChildCount(databaseNode) > 2
                   "
@@ -62,18 +95,20 @@
                     }}
                   </button>
                 </li>
+
                 <li v-for="schemaNode in databaseNode.schemas" :key="schemaNode.key">
-                  <ExplorerNode
+                  <ExplorerTreeItem
                     :label="schemaNode.name || 'default'"
                     icon="schema"
                     :expanded="isExpanded(schemaNode.key)"
                     :is-selected="schemaNode.asset && props.selectedAssetId === schemaNode.asset.id"
-                    :selection-mode="props.selectionMode"
+                    :mode="props.mode"
                     :checked="isAssetSelected(schemaNode.asset?.id)"
                     :disabled="props.disabled"
-                    :status="getAssetStatus(schemaNode.asset)"
+                    :status-info="getAssetStatusInfo(schemaNode.asset)"
                     :child-count="getChildCount(schemaNode)"
                     :child-type="getChildType(schemaNode)"
+                    :is-used="schemaNode.asset ? isAssetUsed(schemaNode.asset) : false"
                     @toggle="handleSchemaClick(schemaNode.key)"
                     @select="
                       schemaNode.asset
@@ -83,13 +118,17 @@
                     @toggle-check="
                       schemaNode.asset && $emit('toggle-asset-selection', schemaNode.asset.id)
                     "
+                    @quick-action="
+                      (action) =>
+                        schemaNode.asset && $emit('quick-action', action, schemaNode.asset)
+                    "
                   >
                     <template #default>
-                      <ul class="space-y-2 pl-3">
+                      <ul class="space-y-1 pl-3">
                         <!-- Select all children button -->
                         <li
                           v-if="
-                            props.selectionMode &&
+                            props.mode === 'select' &&
                             hasDirectChildren(schemaNode) &&
                             getChildCount(schemaNode) > 2
                           "
@@ -108,8 +147,9 @@
                             }}
                           </button>
                         </li>
+
                         <li v-for="tableNode in schemaNode.tables" :key="tableNode.asset.id">
-                          <ExplorerNode
+                          <ExplorerTreeItem
                             :label="
                               tableNode.asset.name ||
                               tableNode.asset.table_facet?.table_name ||
@@ -120,22 +160,27 @@
                             "
                             :expanded="isExpanded(tableNode.key)"
                             :is-selected="props.selectedAssetId === tableNode.asset.id"
-                            :selection-mode="props.selectionMode"
+                            :mode="props.mode"
                             :checked="isAssetSelected(tableNode.asset.id)"
                             :disabled="props.disabled"
-                            :status="getAssetStatus(tableNode.asset)"
+                            :status-info="getAssetStatusInfo(tableNode.asset)"
                             :child-count="getChildCount(tableNode)"
                             :child-type="getChildType(tableNode)"
+                            :is-used="isAssetUsed(tableNode.asset)"
+                            :show-quick-actions="props.mode === 'editor'"
                             @toggle="toggleNode(tableNode.key)"
                             @select="$emit('select-asset', tableNode.asset.id)"
                             @toggle-check="$emit('toggle-asset-selection', tableNode.asset.id)"
+                            @quick-action="
+                              (action) => $emit('quick-action', action, tableNode.asset)
+                            "
                           >
                             <template #default>
-                              <transition-group name="fade" tag="ul" class="space-y-0.5 pl-8 mt-1">
+                              <transition-group name="fade" tag="ul" class="space-y-0.5 pl-6 mt-1">
                                 <!-- Select all children button -->
                                 <li
                                   v-if="
-                                    props.selectionMode &&
+                                    props.mode === 'select' &&
                                     hasDirectChildren(tableNode) &&
                                     getChildCount(tableNode) > 2
                                   "
@@ -154,100 +199,187 @@
                                   </button>
                                 </li>
                                 <li
-                                  v-for="columnNode in tableNode.columns"
+                                  v-for="columnNode in getVisibleColumns(tableNode)"
                                   :key="columnNode.asset.id"
                                 >
-                                  <ExplorerLeaf
+                                  <ExplorerTreeLeaf
                                     :is-selected="props.selectedAssetId === columnNode.asset.id"
                                     :label="
                                       columnNode.asset.column_facet?.column_name ||
                                       columnNode.asset.name ||
                                       'Unnamed column'
                                     "
-                                    type="column"
-                                    :meta="columnNode.meta"
-                                    :selection-mode="props.selectionMode"
+                                    :mode="props.mode"
                                     :checked="isAssetSelected(columnNode.asset.id)"
                                     :disabled="props.disabled"
-                                    :status="getAssetStatus(columnNode.asset)"
+                                    :status-info="getAssetStatusInfo(columnNode.asset)"
                                     @select="$emit('select-asset', columnNode.asset.id)"
                                     @toggle-check="
                                       $emit('toggle-asset-selection', columnNode.asset.id)
                                     "
                                   />
                                 </li>
+                                <li
+                                  v-if="hasMoreColumns(tableNode)"
+                                  :key="`more-${tableNode.asset.id}`"
+                                  class="text-xs text-muted-foreground italic pl-2"
+                                >
+                                  + {{ tableNode.columns.length - maxVisibleColumns }} more
+                                  columns...
+                                </li>
                               </transition-group>
                             </template>
-                          </ExplorerNode>
+                          </ExplorerTreeItem>
                         </li>
                       </ul>
                     </template>
-                  </ExplorerNode>
+                  </ExplorerTreeItem>
                 </li>
               </ul>
             </template>
-          </ExplorerNode>
+          </ExplorerTreeItem>
         </li>
       </ul>
+
+      <!-- Empty State -->
       <div v-else class="flex h-full items-center justify-center p-6 text-sm text-muted-foreground">
-        No assets match the current filters.
+        <div class="text-center space-y-2">
+          <FolderOpen class="h-8 w-8 mx-auto text-muted-foreground/50" />
+          <p>{{ emptyMessage }}</p>
+        </div>
       </div>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
-import ExplorerLeaf from '@/components/catalog/ExplorerLeaf.vue'
-import ExplorerNode from '@/components/catalog/ExplorerNode.vue'
+import ExplorerTreeItem from '@/components/catalog/ExplorerTreeItem.vue'
+import ExplorerTreeLeaf from '@/components/catalog/ExplorerTreeLeaf.vue'
+import { useExplorerState } from '@/components/catalog/useExplorerState'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import type { CatalogAsset } from '@/stores/catalog'
-import { ChevronsLeft } from 'lucide-vue-next'
-import { reactive } from 'vue'
-import type { ExplorerDatabaseNode, ExplorerSchemaNode, ExplorerTableNode } from './types'
+import { ChevronsLeft, FolderOpen, SearchIcon } from 'lucide-vue-next'
+import { computed, watch } from 'vue'
+import type {
+  AssetStatusInfo,
+  ExplorerDatabaseNode,
+  ExplorerMode,
+  ExplorerSchemaNode,
+  ExplorerTableNode
+} from './types'
 
 interface Props {
+  // Data
   tree: ExplorerDatabaseNode[]
-  selectedAssetId: string | null
-  collapsed: boolean
-  showCollapseButton?: boolean
-  selectionMode?: boolean
+
+  // Mode
+  mode?: ExplorerMode
+
+  // Browse mode
+  selectedAssetId?: string | null
+
+  // Select mode
   selectedAssetIds?: string[]
   disabled?: boolean
+
+  // Editor mode
+  usedAssetIds?: Set<string>
+
+  // Search
+  showSearch?: boolean
+  searchQuery?: string
+  searchPlaceholder?: string
+  showUndocumentedFilter?: boolean
+  showOnlyUndocumented?: boolean
+
+  // Status display
+  showStatusBadge?: boolean
+
+  // Layout
+  collapsed?: boolean
+  showCollapseButton?: boolean
+  showHeader?: boolean
+  headerTitle?: string
+  headerSubtitle?: string
+  emptyMessage?: string
+
+  // Column display limit (for editor mode)
+  maxVisibleColumns?: number
+
+  // Auto-expand databases on load
+  expandDatabasesByDefault?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  selectionMode: false,
+  mode: 'browse',
+  selectedAssetId: null,
   selectedAssetIds: () => [],
-  disabled: false
+  disabled: false,
+  showSearch: false,
+  searchQuery: '',
+  searchPlaceholder: 'Search...',
+  showUndocumentedFilter: false,
+  showOnlyUndocumented: false,
+  showStatusBadge: true,
+  collapsed: false,
+  showCollapseButton: false,
+  showHeader: true,
+  headerTitle: 'Explorer',
+  headerSubtitle: 'Browse by database, schema, and table',
+  emptyMessage: 'No assets match the current filters.',
+  maxVisibleColumns: 50,
+  expandDatabasesByDefault: false
 })
 
 const emit = defineEmits<{
   'update:collapsed': [value: boolean]
+  'update:searchQuery': [value: string]
+  'update:showOnlyUndocumented': [value: boolean]
   'select-asset': [assetId: string]
   'select-database': [databaseKey: string]
   'toggle-asset-selection': [assetId: string]
   'select-all-children': [parentAssetId: string]
+  'quick-action': [action: string, asset: CatalogAsset]
 }>()
 
-const expandedNodes = reactive<Record<string, boolean>>({})
+// ============================================
+// Expand/Collapse State (shared across all explorer instances)
+// ============================================
 
-function isExpanded(key: string) {
-  return expandedNodes[key] ?? false
+const {
+  isExpanded,
+  expandNode,
+  collapseNode,
+  toggleNode,
+  expandNodes,
+  hasExplicitState,
+  expandedNodes
+} = useExplorerState()
+
+// Expand all databases by default when prop is enabled (only if not already set)
+function expandAllDatabases() {
+  if (!props.expandDatabasesByDefault) return
+  const keysToExpand = props.tree.filter((db) => !hasExplicitState(db.key)).map((db) => db.key)
+  expandNodes(keysToExpand)
 }
 
-function toggleNode(key: string) {
-  expandedNodes[key] = !expandedNodes[key]
-}
+// Watch for tree changes to expand new databases
+watch(
+  () => props.tree,
+  () => expandAllDatabases(),
+  { immediate: true }
+)
 
 function handleDatabaseClick(databaseKey: string) {
-  // Toggle the clicked database
-  expandedNodes[databaseKey] = !expandedNodes[databaseKey]
+  toggleNode(databaseKey)
 
-  // If expanding, collapse all other databases
-  if (expandedNodes[databaseKey]) {
+  // If expanding and not in "expand all" mode, collapse all other databases
+  if (isExpanded(databaseKey) && !props.expandDatabasesByDefault) {
     Object.keys(expandedNodes).forEach((key) => {
       if (key.startsWith('database:') && key !== databaseKey) {
-        expandedNodes[key] = false
+        collapseNode(key)
       }
     })
   }
@@ -256,22 +388,71 @@ function handleDatabaseClick(databaseKey: string) {
 }
 
 function handleSchemaClick(schemaKey: string) {
-  // Toggle the clicked schema
-  expandedNodes[schemaKey] = !expandedNodes[schemaKey]
+  toggleNode(schemaKey)
 }
 
+// ============================================
+// Selection State
+// ============================================
+
 function isAssetSelected(assetId: string | undefined): boolean {
-  if (!assetId || !props.selectionMode) return false
+  if (!assetId || props.mode !== 'select') return false
   return props.selectedAssetIds.includes(assetId)
 }
 
-function getAssetStatus(asset: CatalogAsset | undefined): string | undefined {
-  if (!asset) return undefined
+// ============================================
+// Status Display
+// ============================================
+
+function getAssetStatusInfo(asset: CatalogAsset | undefined): AssetStatusInfo | undefined {
+  if (!asset || !props.showStatusBadge) return undefined
+
+  // AI suggestion takes priority
+  if (asset.ai_suggestion || (asset.ai_suggested_tags && asset.ai_suggested_tags.length > 0)) {
+    return {
+      label: 'AI Suggestion',
+      variant: 'ai-suggestion',
+      icon: 'sparkles'
+    }
+  }
+
   const status = asset.status
-  if (status === 'draft') return 'Draft'
-  if (status === 'published') return 'Published'
-  return undefined // null = unverified
+  if (status === 'draft') {
+    return {
+      label: 'Draft',
+      variant: 'draft'
+    }
+  }
+  if (status === 'published') {
+    return {
+      label: 'Published',
+      variant: 'published'
+    }
+  }
+
+  // Only show "Undocumented" in select mode
+  if (props.mode === 'select') {
+    return {
+      label: 'Undocumented',
+      variant: 'default'
+    }
+  }
+
+  return undefined
 }
+
+// ============================================
+// Editor Mode - Used Assets
+// ============================================
+
+function isAssetUsed(asset: CatalogAsset): boolean {
+  if (props.mode !== 'editor' || !props.usedAssetIds) return false
+  return props.usedAssetIds.has(asset.id)
+}
+
+// ============================================
+// Tree Helpers
+// ============================================
 
 type TreeNode = ExplorerDatabaseNode | ExplorerSchemaNode | ExplorerTableNode
 
@@ -317,19 +498,42 @@ function collectChildIds(node: TreeNode): string[] {
 }
 
 function areAllChildrenSelected(node: TreeNode): boolean {
-  if (!props.selectionMode) return false
+  if (props.mode !== 'select') return false
   const childIds = collectChildIds(node)
   if (childIds.length === 0) return false
   return childIds.every((id) => props.selectedAssetIds.includes(id))
 }
 
+// ============================================
+// Column Display Limit
+// ============================================
+
+const maxVisibleColumns = computed(() => props.maxVisibleColumns)
+
+function getVisibleColumns(tableNode: ExplorerTableNode) {
+  return tableNode.columns.slice(0, maxVisibleColumns.value)
+}
+
+function hasMoreColumns(tableNode: ExplorerTableNode): boolean {
+  return tableNode.columns.length > maxVisibleColumns.value
+}
+
+// ============================================
+// Search
+// ============================================
+
+function handleSearchInput(value: string | number) {
+  emit('update:searchQuery', String(value))
+}
+
+// ============================================
+// Expose methods for parent components
+// ============================================
+
 defineExpose({
-  expandNode: (key: string) => {
-    expandedNodes[key] = true
-  },
-  collapseNode: (key: string) => {
-    expandedNodes[key] = false
-  }
+  expandNode,
+  collapseNode,
+  isExpanded
 })
 </script>
 
