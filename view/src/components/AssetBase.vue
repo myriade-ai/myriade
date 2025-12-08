@@ -116,14 +116,18 @@
           </div>
         </div>
 
-        <!-- Regular Description textarea (when no AI suggestion) -->
-        <Textarea
+        <!-- Regular Description editor (when no AI suggestion) -->
+        <MarkdownEditor
           v-else
-          v-model="draft.description"
-          rows="4"
-          class="max-h-72"
+          :model-value="draft.description"
+          @update:model-value="(val) => (draft.description = val)"
+          @submit="handleSave"
           :disabled="isProcessing"
+          :show-bubble-menu="false"
           placeholder="Add description..."
+          min-height="80px"
+          :compact="true"
+          class="rounded-lg border border-border bg-transparent hover:border-border/80 focus-within:border-primary/50 transition-colors"
         />
       </div>
 
@@ -231,10 +235,11 @@ import {
   type AssetType,
   type Privacy
 } from '@/stores/catalog'
-import { Columns3, Database, ExternalLink, FolderTree, Info } from 'lucide-vue-next'
+import { Columns3, Database, ExternalLink, FolderTree } from 'lucide-vue-next'
 import { computed, reactive, ref, watch, type Component } from 'vue'
 import AssetBadgeStatus from './AssetBadgeStatus.vue'
 import AssetTagSelect from './AssetTagSelect.vue'
+import MarkdownEditor from './MarkdownEditor.vue'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
