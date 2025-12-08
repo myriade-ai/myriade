@@ -159,10 +159,11 @@
             </div>
             <div class="flex flex-wrap items-center justify-between gap-3">
               <label class="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                <Checkbox 
-                  :checked="showOnlyUndocumented" 
-                  @update:checked="(value: boolean) => (showOnlyUndocumented = value)"
-                  id="undocumented-filter-mobile" 
+                <Checkbox
+                  id="undocumented-filter-mobile"
+                  :model-value="showOnlyUndocumented"
+                  class="cursor-pointer"
+                  @click.stop.prevent="showOnlyUndocumented = !showOnlyUndocumented"
                 />
                 <span class="select-none">Show only undocumented</span>
               </label>
@@ -381,10 +382,11 @@
             </div>
             <div class="flex flex-wrap items-center justify-between gap-3">
               <label class="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                <Checkbox 
-                  :checked="showOnlyUndocumented" 
-                  @update:checked="(value: boolean) => (showOnlyUndocumented = value)"
-                  id="undocumented-filter-desktop" 
+                <Checkbox
+                  id="undocumented-filter-desktop"
+                  :model-value="showOnlyUndocumented"
+                  class="cursor-pointer"
+                  @click.stop.prevent="showOnlyUndocumented = !showOnlyUndocumented"
                 />
                 <span class="select-none">Show only undocumented</span>
               </label>
