@@ -46,7 +46,9 @@ onMounted(async () => {
 
 <style scoped>
 .chart {
-  min-height: 240px;
+  min-height: 320px;
+  height: 320px;
+  width: 100%;
   background-color: white;
   border-radius: 0.28571rem;
 }

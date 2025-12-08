@@ -134,7 +134,7 @@
                 <div class="mt-1.5">
                   <Echart
                     :option="{ ...item.data.config, query_id: item.data.queryId }"
-                    style="height: 200px; width: 100%"
+                    style="min-height: 320px; height: 320px; width: 100%"
                   />
                 </div>
               </CardContent>
