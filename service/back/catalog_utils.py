@@ -75,6 +75,11 @@ def update_asset(
             asset.description = None
         new_values["description"] = asset.description
 
+        # If the description was updated but no explicit AI suggestion was provided,
+        # clear any existing proposal so it doesn't linger after the change.
+        if ai_suggestion is _NOT_PROVIDED and asset.ai_suggestion is not None:
+            asset.ai_suggestion = None
+
     # Handle status update
     if status is not None:
         asset.status = status
