@@ -319,7 +319,7 @@ class ActivityStatus(str, PyEnum):
 
 
 @dataclass
-class AssetActivity(SerializerMixin, Base):
+class AssetActivity(SerializerMixin, DefaultBase, Base):
     """Activity feed entry for catalog assets - tracks comments, changes, and agent interactions"""
 
     __tablename__ = "asset_activity"
@@ -346,9 +346,6 @@ class AssetActivity(SerializerMixin, Base):
     status: Mapped[Optional[str]] = mapped_column(
         String, nullable=True
     )  # For agent_working: running, finished, error
-    created_at: Mapped[datetime] = mapped_column(
-        UtcDateTime, nullable=False, default=datetime.utcnow
-    )
 
     # Relationships
     asset: Mapped[Asset] = relationship("Asset")
@@ -356,6 +353,7 @@ class AssetActivity(SerializerMixin, Base):
 
     def to_dict(
         self,
+        *,
         include_relations: bool = False,
         exclude: Optional[List[str]] = None,
     ) -> dict:
@@ -385,5 +383,5 @@ class AssetActivity(SerializerMixin, Base):
             if self.conversation_id
             else None,
             "status": self.status,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": self.createdAt.isoformat() if self.createdAt else None,
         }
