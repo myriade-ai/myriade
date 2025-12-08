@@ -957,7 +957,7 @@
       }),
     }),
     dict({
-      'description': 'Search assets and terms by name, description, urn, tags, or definition. Case-insensitive partial string matching. PostgreSQL: Results ordered by trigram similarity to the query SQLite: Results in no particular order Returns first 50 matches.',
+      'description': 'Search assets and terms by name, description, urn, tags, or definition. **Search Tips for Best Results:** - Use SHORT, FOCUSED queries (1-2 words): "price", "customer", "order" - AVOID long multi-word queries like "price cost margin revenue" (trigram similarity dilutes scores, FTS requires ALL words to match) - To find assets related to multiple concepts, make SEPARATE searches: search_assets("price"), search_assets("cost"), search_assets("margin") - Use specific terms that likely appear in asset names or descriptions Uses trigram similarity (fuzzy matching) + full-text search (fallback to ILIKE pattern matching (exact substring) if trigram similarity is not available) Returns first 50 matches, ordered by relevance.',
       'name': 'CatalogTool-catalog__search_assets',
       'parameters': dict({
         'properties': dict({
@@ -975,7 +975,7 @@
             'title': 'Asset Type',
           }),
           'text': dict({
-            'description': 'Search query',
+            'description': 'Search query - keep it short and focused (1-2 words ideal)',
             'title': 'Text',
             'type': 'string',
           }),
@@ -2409,7 +2409,7 @@
       }),
     }),
     dict({
-      'description': 'Search assets and terms by name, description, urn, tags, or definition. Case-insensitive partial string matching. PostgreSQL: Results ordered by trigram similarity to the query SQLite: Results in no particular order Returns first 50 matches.',
+      'description': 'Search assets and terms by name, description, urn, tags, or definition. **Search Tips for Best Results:** - Use SHORT, FOCUSED queries (1-2 words): "price", "customer", "order" - AVOID long multi-word queries like "price cost margin revenue" (trigram similarity dilutes scores, FTS requires ALL words to match) - To find assets related to multiple concepts, make SEPARATE searches: search_assets("price"), search_assets("cost"), search_assets("margin") - Use specific terms that likely appear in asset names or descriptions Uses trigram similarity (fuzzy matching) + full-text search (fallback to ILIKE pattern matching (exact substring) if trigram similarity is not available) Returns first 50 matches, ordered by relevance.',
       'name': 'CatalogTool-catalog__search_assets',
       'parameters': dict({
         'properties': dict({
@@ -2427,7 +2427,7 @@
             'title': 'Asset Type',
           }),
           'text': dict({
-            'description': 'Search query',
+            'description': 'Search query - keep it short and focused (1-2 words ideal)',
             'title': 'Text',
             'type': 'string',
           }),
