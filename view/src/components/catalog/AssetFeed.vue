@@ -1,9 +1,9 @@
 <template>
   <div class="space-y-2">
-    <h3 class="text-xs font-medium uppercase tracking-wide text-[var(--navy-text)]">Activity</h3>
+    <h3 class="text-xs font-medium uppercase tracking-wide text-foreground">Activity</h3>
 
     <!-- Comment Input Card -->
-    <div class="rounded-lg border border-[var(--navy-bg)]/10 bg-white overflow-hidden">
+    <div class="rounded-lg border border-border bg-card overflow-hidden">
       <MarkdownEditor
         v-model="commentText"
         placeholder="Leave a comment... Type @ to mention Myriade Agent"
@@ -15,10 +15,8 @@
         class="border-0"
         @submit="submitComment"
       />
-      <div
-        class="flex justify-between items-center px-3 py-2 border-t border-[var(--navy-bg)]/10 bg-[var(--light-gray)]"
-      >
-        <p class="text-[11px] text-[var(--navy-text)]/50">⌘+Enter to send</p>
+      <div class="flex justify-between items-center px-3 py-2 border-t border-border bg-muted">
+        <p class="text-[11px] text-muted-foreground">⌘+Enter to send</p>
         <Button
           size="sm"
           variant="default"
@@ -42,26 +40,24 @@
         <!-- Comment Card -->
         <div
           v-if="activity.activity_type === 'comment'"
-          class="rounded-lg border border-[var(--navy-bg)]/10 bg-white p-3"
+          class="rounded-lg border border-border bg-card p-3"
         >
           <div class="flex gap-2.5">
             <Avatar class="size-7 flex-shrink-0">
-              <AvatarFallback
-                class="bg-[var(--light-gray)] text-[var(--navy-text)]/70 text-[10px] font-medium"
-              >
+              <AvatarFallback class="bg-muted text-muted-foreground text-[10px] font-medium">
                 {{ getInitials(activity.actor_email) }}
               </AvatarFallback>
             </Avatar>
             <div class="flex-1 min-w-0">
               <div class="flex items-baseline gap-2 mb-0.5">
-                <span class="text-[13px] font-medium text-[var(--navy-text)]">
+                <span class="text-[13px] font-medium text-foreground">
                   {{ getDisplayName(activity.actor_email) }}
                 </span>
-                <span class="text-[11px] text-[var(--navy-text)]/50">
+                <span class="text-[11px] text-muted-foreground">
                   {{ formatRelativeTime(activity.created_at) }}
                 </span>
               </div>
-              <div class="text-[13px] text-[var(--navy-text)] leading-relaxed">
+              <div class="text-[13px] text-foreground leading-relaxed">
                 <MarkdownDisplay :content="activity.content ?? ''" />
               </div>
             </div>
@@ -71,22 +67,20 @@
         <!-- Agent Message Card -->
         <div
           v-else-if="activity.activity_type === 'agent_message'"
-          class="rounded-lg border border-[var(--gold)]/30 bg-[var(--gold)]/10 p-3"
+          class="rounded-lg border border-gold/30 bg-gold/10 p-3"
         >
           <div class="flex gap-2.5">
-            <div
-              class="size-7 flex-shrink-0 rounded-full bg-[var(--gold)] flex items-center justify-center"
-            >
-              <SparklesIcon class="size-3.5 text-white" />
+            <div class="size-7 flex-shrink-0 rounded-full bg-gold flex items-center justify-center">
+              <SparklesIcon class="size-3.5 text-black" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-baseline gap-2 mb-0.5">
-                <span class="text-[13px] font-medium text-[var(--navy-text)]">Myriade Agent</span>
-                <span class="text-[11px] text-[var(--navy-text)]/50">
+                <span class="text-[13px] font-medium text-foreground">Myriade Agent</span>
+                <span class="text-[11px] text-muted-foreground">
                   {{ formatRelativeTime(activity.created_at) }}
                 </span>
               </div>
-              <div class="text-[13px] text-[var(--navy-text)] leading-relaxed">
+              <div class="text-[13px] text-foreground leading-relaxed">
                 <MarkdownDisplay :content="activity.content ?? ''" />
               </div>
             </div>
@@ -96,11 +90,11 @@
         <!-- Agent Working Card -->
         <div
           v-else-if="activity.activity_type === 'agent_working'"
-          class="rounded-lg border border-[var(--navy-bg)]/10 bg-[var(--light-gray)] p-3"
+          class="rounded-lg border border-border bg-muted p-3"
         >
           <div class="flex gap-2.5">
             <div
-              class="size-7 flex-shrink-0 rounded-full bg-white border border-[var(--navy-bg)]/10 flex items-center justify-center"
+              class="size-7 flex-shrink-0 rounded-full bg-card border border-border flex items-center justify-center"
             >
               <AlertCircleIcon
                 v-if="activity.status === 'error'"
@@ -108,14 +102,14 @@
               />
               <CheckCircleIcon
                 v-else-if="activity.status === 'finished'"
-                class="size-3.5 text-green-600"
+                class="size-3.5 text-green-600 dark:text-green-500"
               />
-              <LoaderIcon v-else class="size-3.5 text-[var(--gold)]" />
+              <LoaderIcon v-else class="size-3.5 text-gold" />
             </div>
             <div class="flex-1 min-w-0 flex items-center justify-between">
               <div class="flex items-baseline gap-1.5">
-                <span class="text-[13px] text-[var(--navy-text)]/80">
-                  <span class="font-semibold text-[var(--navy-text)]">Myriade Agent</span>
+                <span class="text-[13px] text-muted-foreground">
+                  <span class="font-semibold text-foreground">Myriade Agent</span>
                   {{
                     activity.status === 'error'
                       ? 'encountered an error'
@@ -124,13 +118,13 @@
                         : 'is working...'
                   }}
                 </span>
-                <span class="text-[10px] text-[var(--navy-text)]/50">
+                <span class="text-[10px] text-muted-foreground">
                   {{ formatRelativeTime(activity.created_at) }}
                 </span>
               </div>
               <button
                 v-if="activity.conversation_id"
-                class="text-[11px] text-[var(--navy-text)]/70 hover:text-[var(--navy-text)] font-medium transition-colors"
+                class="text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
                 @click="openConversation(activity.conversation_id)"
               >
                 View →
@@ -140,25 +134,25 @@
         </div>
 
         <!-- Audit Trail (Compact) -->
-        <div v-else class="rounded-lg border border-[var(--navy-bg)]/10 bg-white p-3">
+        <div v-else class="rounded-lg border border-border bg-card p-3">
           <div class="flex items-start gap-2.5">
             <div
-              class="size-7 rounded-full bg-[var(--light-gray)] flex items-center justify-center flex-shrink-0"
+              class="size-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0"
             >
               <component
                 :is="getActivityIcon(activity.activity_type)"
-                class="size-3.5 text-[var(--navy-text)]/50"
+                class="size-3.5 text-muted-foreground"
               />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-baseline gap-1.5 text-[13px] flex-wrap">
-                <span class="font-medium text-[var(--navy-text)]">
+                <span class="font-medium text-foreground">
                   {{ getActorDisplayName(activity) }}
                 </span>
-                <span class="text-[var(--navy-text)]/60">
+                <span class="text-muted-foreground">
                   {{ getActivityVerb(activity.activity_type) }}
                 </span>
-                <span class="text-[11px] text-[var(--navy-text)]/50">
+                <span class="text-[11px] text-muted-foreground">
                   {{ formatRelativeTime(activity.created_at) }}
                 </span>
               </div>
@@ -238,10 +232,10 @@
                         :key="index"
                         :class="[
                           part.type === 'added'
-                            ? 'bg-green-100 text-green-800 rounded px-0.5'
+                            ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded px-0.5'
                             : part.type === 'removed'
-                              ? 'bg-red-100 text-red-800 line-through rounded px-0.5'
-                              : 'text-[var(--navy-text)]'
+                              ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 line-through rounded px-0.5'
+                              : 'text-foreground'
                         ]"
                         >{{ part.content }}</span
                       >
@@ -249,7 +243,7 @@
                     <!-- Empty state when both are empty -->
                     <div
                       v-if="getUnifiedDiffParts(activity.changes).length === 0"
-                      class="text-[var(--navy-text)]/40 italic text-center"
+                      class="text-muted-foreground italic text-center"
                     >
                       No changes
                     </div>
@@ -259,8 +253,8 @@
                     v-if="hasLongContent(activity.changes)"
                     :class="[
                       'absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full',
-                      'bg-white border border-[var(--navy-bg)]/10 text-[var(--navy-text)]/60 shadow-sm',
-                      'hover:bg-[var(--light-gray)] hover:text-[var(--navy-text)] transition-all',
+                      'bg-card border border-border text-muted-foreground shadow-sm',
+                      'hover:bg-muted hover:text-foreground transition-all',
                       'flex items-center gap-0.5 text-[10px] font-medium',
                       expandedActivities.has(activity.id)
                         ? 'opacity-100'
@@ -285,13 +279,13 @@
 
       <!-- Empty State -->
       <div v-if="activities.length === 0 && !isLoading" class="text-center py-8">
-        <MessageSquareIcon class="size-5 mx-auto text-[var(--navy-text)]/30 mb-2" />
-        <p class="text-sm text-[var(--navy-text)]/50">No activity yet</p>
+        <MessageSquareIcon class="size-5 mx-auto text-muted-foreground/50 mb-2" />
+        <p class="text-sm text-muted-foreground">No activity yet</p>
       </div>
 
       <!-- Loading State -->
       <div v-if="isLoading" class="text-center py-10">
-        <LoaderIcon class="size-4 mx-auto text-[var(--gold)]" />
+        <LoaderIcon class="size-4 mx-auto text-gold" />
       </div>
     </div>
   </div>
