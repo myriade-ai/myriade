@@ -192,15 +192,22 @@ class CatalogTool:
     def search_assets(self, text: str, asset_type: Optional[str] = None) -> str:
         """
         Search assets and terms by name, description, urn, tags, or definition.
-        Case-insensitive partial string matching.
 
-        PostgreSQL: Results ordered by trigram similarity to the query
-        SQLite: Results in no particular order
+        **Search Tips for Best Results:**
+        - Use SHORT, FOCUSED queries (1-2 words): "price", "customer", "order"
+        - AVOID long multi-word queries like "price cost margin revenue"
+          (trigram similarity dilutes scores, FTS requires ALL words to match)
+        - To find assets related to multiple concepts, make SEPARATE searches:
+          search_assets("price"), search_assets("cost"), search_assets("margin")
+        - Use specific terms that likely appear in asset names or descriptions
 
-        Returns first 50 matches.
+        Uses trigram similarity (fuzzy matching) + full-text search
+        (fallback to ILIKE pattern matching (exact substring) if trigram similarity is not available)
+
+        Returns first 50 matches, ordered by relevance.
 
         Args:
-            text: Search query
+            text: Search query - keep it short and focused (1-2 words ideal)
             asset_type: Filter by type ("TABLE", "COLUMN", "TERM").
                        If None, searches both assets and terms
         """
