@@ -702,7 +702,7 @@ def update_catalog_privacy(
     database_name_to_asset_id = {asset.name: asset.id for asset in database_assets}
 
     for table_meta in tables_metadata:
-        database_name = table_meta.get("database")
+        database_name = table_meta.get("database_name")
         schema_name = table_meta.get("schema")
         table_name = table_meta.get("name")
 
