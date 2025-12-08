@@ -340,6 +340,15 @@ def sync_database_metadata_to_assets(
             )
             db_session.add(schema_facet)
             created_count += 1
+        else:
+            schema_facet = (
+                db_session.query(SchemaFacet)
+                .filter(SchemaFacet.asset_id == schema_asset.id)
+                .first()
+            )
+            if schema_facet and not schema_facet.parent_database_asset_id:
+                schema_facet.parent_database_asset_id = parent_database_asset.id
+                updated_count += 1
 
         schema_assets[(database_name, schema_name)] = schema_asset
 
@@ -411,19 +420,28 @@ def sync_database_metadata_to_assets(
             db_session.add(table_facet)
             created_count += 1
         else:
-            # Update existing table facet's table_type field if it changed
+            # Update existing table facet's table_type and parent_schema_asset_id if needed
             table_facet = (
                 db_session.query(TableFacet)
                 .filter(TableFacet.asset_id == table_asset.id)
                 .first()
             )
             if table_facet:
+                facet_updated = False
+
                 old_table_type = table_facet.table_type
                 new_table_type = table_meta.get("table_type")
                 if old_table_type != new_table_type:
                     table_facet.table_type = (
                         new_table_type.upper() if new_table_type else None
                     )
+                    facet_updated = True
+
+                if not table_facet.parent_schema_asset_id and parent_schema_asset:
+                    table_facet.parent_schema_asset_id = parent_schema_asset.id
+                    facet_updated = True
+
+                if facet_updated:
                     updated_count += 1
 
         # Create/update column assets
