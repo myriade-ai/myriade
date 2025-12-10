@@ -360,7 +360,7 @@ const shouldHideNetworkConfig = computed(() => {
   return !host || 'localhost'.startsWith(host) || '127.0.0.1'.startsWith(host)
 })
 
-const enginesWithoutSafeMode: Engine[] = ['snowflake', 'motherduck']
+const enginesWithoutSafeMode: Engine[] = ['motherduck']
 
 // Watch for engine changes and reset details
 watch(
