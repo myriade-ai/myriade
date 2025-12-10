@@ -169,7 +169,7 @@
 
     <div
       id="chat-input"
-      class="w-full max-w-4xl sticky bottom-0 z-10 mx-auto lg:px-2 px-2 bg-background pb-[max(env(safe-area-inset-bottom),1rem)] pt-2"
+      class="relative w-full max-w-4xl sticky bottom-0 z-10 mx-auto lg:px-2 px-2 bg-background pb-[max(env(safe-area-inset-bottom),1rem)] pt-2"
     >
       <transition
         enter-active-class="transition-all duration-300 ease-out"
@@ -200,6 +200,27 @@
               </button>
             </div>
           </div>
+        </div>
+      </transition>
+
+      <!-- Scroll to bottom button -->
+      <transition
+        enter-active-class="transition-opacity duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition-opacity duration-200 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div v-if="showScrollToBottom" class="absolute left-1/2 -translate-x-1/2 -top-12">
+          <Button
+            variant="outline"
+            size="icon"
+            class="rounded-full shadow-md"
+            @click="scrollToBottom"
+          >
+            <ChevronDownIcon class="h-5 w-5" />
+          </Button>
         </div>
       </transition>
 
@@ -278,7 +299,7 @@ import axios from '@/plugins/axios'
 import { user } from '@/stores/auth'
 import { useContextsStore } from '@/stores/contexts'
 import type { ComponentPublicInstance } from 'vue'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -287,7 +308,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { isConnected, socket } from '@/plugins/socket'
 import { STATUS, useConversationsStore, type Message } from '@/stores/conversations'
 import { useQueriesStore } from '@/stores/queries'
-import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
+import { ChevronDownIcon, EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { SparklesIcon } from '@heroicons/vue/24/solid'
 import PageHeader from './PageHeader.vue'
 import { Button } from './ui/button'
@@ -703,16 +724,40 @@ const stopQuery = async () => {
 
 // Reference to the scroll container to allow scrolling to bottom
 const scrollContainer = ref<HTMLDivElement | null>(null)
+const showScrollToBottom = ref(false)
+let scrollParentElement: Element | null = null
+
+const handleScroll = () => {
+  if (!scrollParentElement) return
+  const { scrollTop, scrollHeight, clientHeight } = scrollParentElement
+  // Show button if user is more than 100px from bottom
+  showScrollToBottom.value = scrollHeight - scrollTop - clientHeight > 100
+}
 
 const scrollToBottom = () => {
   nextTick(() => {
     // Scroll the parent router-view container (page-level scroll)
-    const scrollParent = scrollContainer.value?.closest('.overflow-y-auto')
+    const scrollParent = scrollParentElement || scrollContainer.value?.closest('.overflow-y-auto')
     if (scrollParent) {
-      scrollParent.scrollTop = scrollParent.scrollHeight
+      scrollParent.scrollTo({ top: scrollParent.scrollHeight, behavior: 'smooth' })
     }
   })
 }
+
+onMounted(() => {
+  nextTick(() => {
+    scrollParentElement = scrollContainer.value?.closest('.overflow-y-auto') || null
+    if (scrollParentElement) {
+      scrollParentElement.addEventListener('scroll', handleScroll)
+    }
+  })
+})
+
+onUnmounted(() => {
+  if (scrollParentElement) {
+    scrollParentElement.removeEventListener('scroll', handleScroll)
+  }
+})
 </script>
 
 <style scoped>
