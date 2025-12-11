@@ -61,6 +61,14 @@ def ask_user(question: str, from_response: Message):
     raise StopLoopException("We want the user to answer")
 
 
+def stop(from_response: Message | None = None):
+    """Stop the agent loop when the workflow is complete."""
+
+    if from_response:
+        from_response.isAnswer = True
+    raise StopLoopException("Agent requested stop")
+
+
 class DataAnalystAgent:
     """
     Chatbot assistant with a database, execute functions.
@@ -129,6 +137,7 @@ class DataAnalystAgent:
         self.agent.add_function(get_date)
         self.agent.add_function(self.answer)
         self.agent.add_function(ask_user)
+        self.agent.add_function(stop)
         self.agent.add_tool(
             WorkspaceTool(self.session, self.conversation.id), "workspace"
         )

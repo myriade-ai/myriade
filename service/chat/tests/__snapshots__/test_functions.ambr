@@ -107,6 +107,16 @@
       }),
     }),
     dict({
+      'description': 'Stop the agent loop when the workflow is complete.',
+      'name': 'stop',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `stop`',
+        'type': 'object',
+      }),
+    }),
+    dict({
       'description': 'Get detailed configuration options for a specific chart type.',
       'name': 'EchartsTool-echarts__get_chart_configuration',
       'parameters': dict({
@@ -1422,6 +1432,7 @@
     'get_date',
     'answer',
     'ask_user',
+    'stop',
     'EchartsTool-echarts__get_chart_configuration',
     'EchartsTool-echarts__list_chart_types',
     'EchartsTool-echarts__preview_render',
@@ -1555,6 +1566,16 @@
           'question',
         ]),
         'title': 'Input for `ask_user`',
+        'type': 'object',
+      }),
+    }),
+    dict({
+      'description': 'Stop the agent loop when the workflow is complete.',
+      'name': 'stop',
+      'parameters': dict({
+        'properties': dict({
+        }),
+        'title': 'Input for `stop`',
         'type': 'object',
       }),
     }),

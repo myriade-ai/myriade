@@ -4,7 +4,6 @@ from enum import Enum
 from typing import Any, List, Optional
 
 import yaml
-from agentlys.chat import StopLoopException
 from agentlys.model import Message
 from sqlalchemy.orm import Session
 
@@ -904,8 +903,6 @@ class CatalogTool:
             from_response.posted_asset_id = uuid.UUID(asset_id)  # type: ignore
             from_response.posted_message = message  # type: ignore
             from_response.isAnswer = True  # type: ignore # Mark as final answer
-            # Raise StopLoopException to stop agent loop
-            raise StopLoopException("Message posted to asset feed")
 
         asset_label = asset.name or asset.urn or asset_id
         return f"Posted message to asset '{asset_label}' activity feed"
