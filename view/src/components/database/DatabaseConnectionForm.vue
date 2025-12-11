@@ -276,7 +276,7 @@
     </div>
 
     <!-- Write Mode Selection -->
-    <div class="p-4 bg-muted rounded-lg max-w-lg" v-if="!enginesWithoutSafeMode.includes(engine)">
+    <div class="p-4 bg-muted rounded-lg max-w-lg">
       <h3 class="text-sm font-medium text-foreground">Write Operation Handling</h3>
       <p class="text-sm text-muted-foreground mb-4">
         Choose how to handle write operations like CREATE, DROP, INSERT, UPDATE, DELETE
@@ -359,8 +359,6 @@ const shouldHideNetworkConfig = computed(() => {
   const host = details.value?.host?.trim()
   return !host || 'localhost'.startsWith(host) || '127.0.0.1'.startsWith(host)
 })
-
-const enginesWithoutSafeMode: Engine[] = ['snowflake', 'motherduck']
 
 // Watch for engine changes and reset details
 watch(
