@@ -53,20 +53,25 @@
               >{{ schema.table_count }} tables</span
             >
           </div>
-          <div class="flex items-center gap-2 flex-shrink-0">
-            <button
-              @click.stop="runCatalog(schema)"
-              class="text-xs text-gold hover:text-gold/70 font-medium whitespace-nowrap flex items-center gap-1"
+          <div class="flex items-center flex-shrink-0">
+            <Button
+              @click.stop="handleCatalogClick(schema)"
+              variant="ghost"
+              size="sm"
+              class="text-gold hover:text-gold/80"
             >
-              <SparklesIcon class="h-3 w-3" />
-              Run catalog
-            </button>
-            <button
+              {{ isSchemaRunning(schema.schema_asset_id) ? 'Running...' : 'Run catalog' }}
+              <LoaderIcon v-if="isSchemaRunning(schema.schema_asset_id)" :width="16" :height="16" />
+              <SparklesIcon v-else class="h-3 w-3" />
+            </Button>
+            <Button
               @click.stop="navigateToSchema(schema.schema_asset_id)"
-              class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium whitespace-nowrap"
+              variant="ghost"
+              size="sm"
+              class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium whitespace-nowrap"
             >
               View →
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -81,8 +86,10 @@
 
 <script setup lang="ts">
 import type { DatabaseStats, SchemaStats } from '@/composables/useDashboardStats'
+import { Button } from '../ui/button'
+import LoaderIcon from '@/components/icons/LoaderIcon.vue'
 import { useContextsStore } from '@/stores/contexts'
-import { useConversationsStore } from '@/stores/conversations'
+import { useConversationsStore, STATUS } from '@/stores/conversations'
 import { ChevronDown, ChevronRight, Database, FolderTree, SparklesIcon } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -99,6 +106,27 @@ const conversationsStore = useConversationsStore()
 
 const isExpanded = ref(true)
 
+// Get the running conversation ID for a schema, or null if not running
+function getRunningConversationId(schemaAssetId: string): string | null {
+  for (const [convId, status] of Object.entries(conversationsStore.conversationStatuses)) {
+    if (status.status !== STATUS.RUNNING && status.status !== STATUS.PENDING) {
+      continue
+    }
+    const conversation = conversationsStore.getConversationById(convId)
+    // Check conversation name (available after refresh) or first message content
+    const nameMatches = conversation?.name?.includes(schemaAssetId)
+    const firstMessageMatches = conversation?.messages?.[0]?.content?.includes(schemaAssetId)
+    if (nameMatches || firstMessageMatches) {
+      return convId
+    }
+  }
+  return null
+}
+
+function isSchemaRunning(schemaAssetId: string): boolean {
+  return getRunningConversationId(schemaAssetId) !== null
+}
+
 const sortedSchemas = computed(() => {
   return [...(props.database?.schemas || [])].sort((a, b) =>
     a.schema_name.localeCompare(b.schema_name)
@@ -114,7 +142,15 @@ const navigateToSchema = (schemaAssetId: string) => {
   })
 }
 
-async function runCatalog(schema: SchemaStats) {
+async function handleCatalogClick(schema: SchemaStats) {
+  // If already running, navigate to the conversation
+  const runningConvId = getRunningConversationId(schema.schema_asset_id)
+  if (runningConvId) {
+    router.push({ name: 'ChatPage', params: { id: runningConvId } })
+    return
+  }
+
+  // Otherwise, start a new catalog run
   const context = contextsStore.contextSelected
   if (!context) {
     console.error('No context selected')
@@ -126,7 +162,7 @@ async function runCatalog(schema: SchemaStats) {
   try {
     const conversation = await conversationsStore.createConversation(context.id)
     await conversationsStore.sendMessage(conversation.id, prompt, 'text')
-    router.push({ name: 'ChatPage', params: { id: conversation.id.toString() } })
+    // Stay on dashboard - don't navigate
   } catch (error) {
     console.error('Error creating catalog conversation:', error)
   }
