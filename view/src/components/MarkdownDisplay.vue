@@ -3,8 +3,8 @@
 </template>
 
 <script setup lang="ts">
-import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import { marked } from 'marked'
 import { computed } from 'vue'
 
 const props = defineProps<{
@@ -21,10 +21,10 @@ const processedContent = computed(() => {
 
 // Sanitize HTML to prevent XSS attacks
 const sanitizedHtml = computed(() => {
-  // Disable auto-linking in markdown
+  // Enable GFM for table support, but we still sanitize output with DOMPurify
   const rawHtml = marked(processedContent.value, {
     breaks: true,
-    gfm: false // Disable GitHub Flavored Markdown (which auto-links emails)
+    gfm: true // Enable GitHub Flavored Markdown for tables support
   }) as string
   return DOMPurify.sanitize(rawHtml, {
     ALLOWED_TAGS: [
