@@ -18,7 +18,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Query, Session, joinedload
 
 from back.utils import get_dialect_name
-from models.catalog import Asset, AssetTag, Term
+from models.catalog import Asset, AssetTag, ColumnFacet, Term
 
 logger = logging.getLogger(__name__)
 
@@ -68,18 +68,48 @@ def _apply_ai_suggestion_filter(
     return query
 
 
+def _apply_parent_asset_filter(query: Query, parent_asset_id: Optional[str]) -> Query:
+    """Apply parent asset filter to query if parent_asset_id is provided.
+
+    Filters assets based on their parent asset. Useful for:
+    - Finding columns within a specific table
+    - Finding tables within a specific schema
+    - Finding schemas within a specific database
+    """
+    if not parent_asset_id:
+        return query
+
+    parent_id = UUID(parent_asset_id)
+
+    return query.filter(
+        or_(
+            # Columns with matching parent table
+            (Asset.type == "COLUMN")
+            & (Asset.column_facet.has(parent_table_asset_id=parent_id)),
+            # Tables with matching parent schema
+            (Asset.type == "TABLE")
+            & (Asset.table_facet.has(parent_schema_asset_id=parent_id)),
+            # Schemas with matching parent database
+            (Asset.type == "SCHEMA")
+            & (Asset.schema_facet.has(parent_database_asset_id=parent_id)),
+        )
+    )
+
+
 def _apply_common_filters(
     query: Query,
     asset_type: Optional[str],
     tag_ids: Optional[List[str]],
     statuses: Optional[List[str]],
     has_ai_suggestion: Optional[bool] = None,
+    parent_asset_id: Optional[str] = None,
 ) -> Query:
-    """Apply all common filters (asset_type, tags, statuses, ai_suggestion) to a query."""
+    """Apply all common filters (asset_type, tags, statuses, ai_suggestion, parent_asset) to a query."""
     query = _apply_asset_type_filter(query, asset_type)
     query = _apply_tag_filter(query, tag_ids)
     query = _apply_status_filter(query, statuses)
     query = _apply_ai_suggestion_filter(query, has_ai_suggestion)
+    query = _apply_parent_asset_filter(query, parent_asset_id)
     return query
 
 
@@ -92,6 +122,7 @@ def search_assets(
     tag_ids: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None,
     has_ai_suggestion: Optional[bool] = None,
+    parent_asset_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Search catalog assets by text query and/or filters. Returns ONLY assets (no terms).
@@ -108,6 +139,7 @@ def search_assets(
         tag_ids: Optional list of tag UUIDs to filter by
         statuses: Optional list of status values to filter by ("validated", "needs_review", etc. or None/"unverified")
         has_ai_suggestion: Optional filter for assets with/without AI suggestions
+        parent_asset_id: Optional filter to find children of a specific asset (e.g., columns within a table)
 
     Returns:
         List of matching assets as dictionaries with id, name, type, etc.
@@ -123,6 +155,7 @@ def search_assets(
         tag_ids,
         statuses,
         has_ai_suggestion,
+        parent_asset_id,
     )
 
     return [_format_asset_result(asset) for asset in assets]
@@ -134,6 +167,8 @@ def search_assets_and_terms(
     text: str,
     asset_type: Optional[str] = None,
     limit: int = 50,
+    statuses: Optional[List[str]] = None,
+    parent_asset_id: Optional[str] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Search both catalog assets and terms. Used by chat tools.
@@ -146,6 +181,8 @@ def search_assets_and_terms(
         text: Search query string
         asset_type: Optional filter by asset type ("TABLE", "COLUMN", "TERM")
         limit: Maximum number of results (default 50)
+        statuses: Optional list of status values to filter by ("draft", "published", "unverified")
+        parent_asset_id: Optional filter to find children of a specific asset (e.g., columns within a table)
 
     Returns:
         Dictionary with "assets" and "terms" keys containing matching results
@@ -159,7 +196,14 @@ def search_assets_and_terms(
         terms = _execute_term_search(session, database_id, text, limit, is_postgresql)
     else:
         assets = _execute_asset_search(
-            session, database_id, text, asset_type, limit, is_postgresql
+            session,
+            database_id,
+            text,
+            asset_type,
+            limit,
+            is_postgresql,
+            statuses=statuses,
+            parent_asset_id=parent_asset_id,
         )
 
         # If no specific asset type filter, also search terms
@@ -168,8 +212,14 @@ def search_assets_and_terms(
                 session, database_id, text, limit, is_postgresql
             )
 
+    # Get column counts for TABLE assets in a single query
+    table_asset_ids = [asset.id for asset in assets if asset.type == "TABLE"]
+    column_counts = _get_column_counts_for_tables(session, table_asset_ids)
+
     return {
-        "assets": [_format_asset_result(asset) for asset in assets],
+        "assets": [
+            _format_asset_result(asset, column_counts.get(asset.id)) for asset in assets
+        ],
         "terms": [_format_term_result(term) for term in terms],
     }
 
@@ -183,6 +233,7 @@ def _execute_postgresql_search(
     tag_ids: Optional[List[str]],
     statuses: Optional[List[str]],
     has_ai_suggestion: Optional[bool] = None,
+    parent_asset_id: Optional[str] = None,
 ) -> List[Asset]:
     """Execute PostgreSQL asset search with optional text matching."""
     similarity_threshold = 0.3
@@ -199,7 +250,12 @@ def _execute_postgresql_search(
     # If no text search, use simple query without similarity scoring
     if not text:
         query = _apply_common_filters(
-            base_query, asset_type, tag_ids, statuses, has_ai_suggestion
+            base_query,
+            asset_type,
+            tag_ids,
+            statuses,
+            has_ai_suggestion,
+            parent_asset_id,
         )
         query = query.order_by(Asset.name.asc())
 
@@ -240,7 +296,7 @@ def _execute_postgresql_search(
     )
 
     query = _apply_common_filters(
-        query, asset_type, tag_ids, statuses, has_ai_suggestion
+        query, asset_type, tag_ids, statuses, has_ai_suggestion, parent_asset_id
     )
     query = query.order_by(similarity_score.desc(), Asset.name.asc())
 
@@ -261,6 +317,7 @@ def _execute_asset_search(
     tag_ids: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None,
     has_ai_suggestion: Optional[bool] = None,
+    parent_asset_id: Optional[str] = None,
 ) -> List[Asset]:
     """
     Execute asset search with fuzzy matching support.
@@ -278,6 +335,7 @@ def _execute_asset_search(
         tag_ids: Optional list of tag UUIDs to filter by
         statuses: Optional list of status values to filter by
         has_ai_suggestion: Optional filter for assets with/without AI suggestions
+        parent_asset_id: Optional filter to find children of a specific asset
 
     Returns:
         List of Asset model instances
@@ -293,6 +351,7 @@ def _execute_asset_search(
             tag_ids,
             statuses,
             has_ai_suggestion,
+            parent_asset_id,
         )
 
     # SQLite: Simple ILIKE query without fuzzy matching
@@ -315,7 +374,7 @@ def _execute_asset_search(
         )
 
     query = _apply_common_filters(
-        query, asset_type, tag_ids, statuses, has_ai_suggestion
+        query, asset_type, tag_ids, statuses, has_ai_suggestion, parent_asset_id
     )
 
     if limit is not None:
@@ -393,12 +452,44 @@ def _execute_term_search(
         return query.limit(limit).all()
 
 
-def _format_asset_result(asset: Asset) -> Dict[str, Any]:
+def _get_column_counts_for_tables(
+    session: Session, table_asset_ids: List[UUID]
+) -> Dict[UUID, int]:
+    """
+    Get column counts for multiple table assets in a single query.
+
+    Args:
+        session: SQLAlchemy session
+        table_asset_ids: List of table asset UUIDs
+
+    Returns:
+        Dictionary mapping table asset ID to column count
+    """
+    if not table_asset_ids:
+        return {}
+
+    counts = (
+        session.query(
+            ColumnFacet.parent_table_asset_id,
+            func.count(ColumnFacet.asset_id).label("column_count"),
+        )
+        .filter(ColumnFacet.parent_table_asset_id.in_(table_asset_ids))
+        .group_by(ColumnFacet.parent_table_asset_id)
+        .all()
+    )
+
+    return {parent_id: count for parent_id, count in counts}
+
+
+def _format_asset_result(
+    asset: Asset, column_count: Optional[int] = None
+) -> Dict[str, Any]:
     """
     Format an Asset model instance as a dictionary for API responses.
 
     Args:
         asset: Asset model instance
+        column_count: Optional pre-computed column count for TABLE assets
 
     Returns:
         Dictionary with asset data
@@ -417,6 +508,10 @@ def _format_asset_result(asset: Asset) -> Dict[str, Any]:
             else asset.description
         ),
         "tags": [{"id": str(tag.id), "name": tag.name} for tag in asset.asset_tags],
+        "has_ai_suggestion": asset.ai_suggestion is not None,
+        "has_ai_suggested_tags": (
+            asset.ai_suggested_tags is not None and len(asset.ai_suggested_tags) > 0
+        ),
     }
 
     # Add type-specific information for tables
@@ -429,6 +524,8 @@ def _format_asset_result(asset: Asset) -> Dict[str, Any]:
                 "table_name": facet.table_name,
             }
         )
+        if column_count is not None:
+            asset_dict["column_count"] = column_count
 
     # Add type-specific information for columns
     elif asset.type == "COLUMN" and asset.column_facet:

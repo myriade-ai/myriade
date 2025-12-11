@@ -461,7 +461,9 @@ const shouldDisplayMessage = (message: Message) => {
 
   const isUpdateAssetReturn =
     message.role === 'function' && message.name === 'CatalogTool-catalog__update_asset'
-  return !isEmptyFunctionResponse && !isUpdateAssetReturn
+  const isPostMessageReturn =
+    message.role === 'function' && message.name === 'CatalogTool-catalog__post_message'
+  return !isEmptyFunctionResponse && !isUpdateAssetReturn && !isPostMessageReturn
 }
 
 const isPublicMessage = (message: Message, index: number) => {

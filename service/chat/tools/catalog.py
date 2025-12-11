@@ -1,10 +1,11 @@
 import logging
 import uuid
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, List, Optional, TypedDict
 
 import yaml
 from agentlys.model import Message
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from back.catalog_search import search_assets_and_terms
@@ -12,7 +13,16 @@ from back.catalog_utils import update_asset
 from back.data_warehouse import AbstractDatabase
 from back.utils import get_provider_metadata_for_asset
 from models import Database
-from models.catalog import ActivityType, Asset, AssetActivity, AssetTag, Term
+from models.catalog import (
+    ActivityType,
+    Asset,
+    AssetActivity,
+    AssetTag,
+    ColumnFacet,
+    SchemaFacet,
+    TableFacet,
+    Term,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +33,18 @@ class AssetType(Enum):
     TABLE = "TABLE"
     COLUMN = "COLUMN"
     TERM = "TERM"
+
+
+class CompletionStats(TypedDict):
+    """Completion statistics for catalog assets"""
+
+    total: int
+    published: int
+    draft: int
+    unverified: int
+    published_pct: float
+    draft_pct: float
+    unverified_pct: float
 
 
 class CatalogTool:
@@ -44,19 +66,52 @@ class CatalogTool:
         assets = self._get_assets_summary()
         terms = self._get_terms_summary()
 
-        # Group assets by type
+        # Group assets by type and status (exclude columns from completion stats)
         asset_counts = {}
+        status_counts = {"published": 0, "draft": 0, "unverified": 0}
         for asset in assets:
             asset_type = asset.type
             if asset_type not in asset_counts:
                 asset_counts[asset_type] = 0
             asset_counts[asset_type] += 1
+            # Count by status (exclude columns)
+            if asset_type == "COLUMN":
+                continue
+            if asset.status == "published":
+                status_counts["published"] += 1
+            elif asset.status == "draft":
+                status_counts["draft"] += 1
+            else:
+                status_counts["unverified"] += 1
+
+        # Calculate completion percentages (excluding columns)
+        total_assets = sum(
+            count for atype, count in asset_counts.items() if atype != "COLUMN"
+        )
+        completion_stats = {
+            "total": total_assets,
+            "published": status_counts["published"],
+            "draft": status_counts["draft"],
+            "unverified": status_counts["unverified"],
+            "published_pct": round((status_counts["published"] / total_assets) * 100, 1)
+            if total_assets > 0
+            else 0,
+            "draft_pct": round((status_counts["draft"] / total_assets) * 100, 1)
+            if total_assets > 0
+            else 0,
+            "unverified_pct": round(
+                (status_counts["unverified"] / total_assets) * 100, 1
+            )
+            if total_assets > 0
+            else 0,
+        }
 
         context: dict[str, Any] = {
             "CATALOG": {
                 "database_name": self.database.name,
-                "total_assets": len(assets),
+                "total_assets": total_assets,
                 "asset_types": asset_counts,
+                "completion": completion_stats,
                 "total_terms": len(terms),
             }
         }
@@ -106,6 +161,9 @@ class CatalogTool:
         self,
         asset_type: Optional[str] = None,
         limit: int = 10,
+        offset: int = 0,
+        statuses: Optional[List[str]] = None,
+        parent_asset_id: Optional[str] = None,
     ) -> str:
         """
         List catalog assets and terms with optional filtering
@@ -113,6 +171,14 @@ class CatalogTool:
             asset_type: Filter by type ("DATABASE", "SCHEMA", "TABLE", "COLUMN",
                        "TERM"). If None, returns only assets (no terms)
             limit: Maximum number of results
+            offset: Number of results to skip for pagination
+            statuses: Filter by status ("draft", "published", "unverified").
+                     Use "unverified" to find assets with null status (not yet reviewed).
+                     If None, returns assets with any status.
+            parent_asset_id: Filter by parent asset UUID. Useful for finding:
+                     - Columns within a specific table (use table asset ID)
+                     - Tables within a specific schema (use schema asset ID)
+                     - Schemas within a specific database (use database asset ID)
         """
         results = []
 
@@ -121,7 +187,7 @@ class CatalogTool:
             terms_query = self.session.query(Term).filter(
                 Term.database_id == self.database.id
             )
-            terms = terms_query.limit(limit).all()
+            terms = terms_query.limit(limit).offset(offset).all()
 
             for term in terms:
                 results.append(term.llm())
@@ -134,28 +200,41 @@ class CatalogTool:
             if asset_type:
                 query = query.filter(Asset.type == asset_type.upper())
 
-            assets = query.limit(limit).all()
+            # Apply status filter
+            if statuses:
+                status_filters = [
+                    Asset.status.is_(None)
+                    if status == "unverified"
+                    else Asset.status == status
+                    for status in statuses
+                ]
+                query = query.filter(or_(*status_filters))
+
+            # Apply parent asset filter
+            if parent_asset_id:
+                parent_id = uuid.UUID(parent_asset_id)
+                query = query.filter(
+                    or_(
+                        # Columns with matching parent table
+                        (Asset.type == "COLUMN")
+                        & (Asset.column_facet.has(parent_table_asset_id=parent_id)),
+                        # Tables with matching parent schema
+                        (Asset.type == "TABLE")
+                        & (Asset.table_facet.has(parent_schema_asset_id=parent_id)),
+                        # Schemas with matching parent database
+                        (Asset.type == "SCHEMA")
+                        & (Asset.schema_facet.has(parent_database_asset_id=parent_id)),
+                    )
+                )
+
+            assets = query.limit(limit).offset(offset).all()
 
             for asset in assets:
                 asset_dict = {
                     "id": str(asset.id),
                     "urn": asset.urn,
                     "name": asset.name,
-                    "type": asset.type,
                     "status": asset.status or None,
-                    "published_by": asset.published_by,
-                    "published_at": asset.published_at.isoformat()
-                    if asset.published_at
-                    else None,
-                    "description": (
-                        asset.description[:100] + "..."
-                        if asset.description and len(asset.description) > 100
-                        else asset.description
-                    ),
-                    "tags": [
-                        {"id": str(tag.id), "name": tag.name}
-                        for tag in asset.asset_tags
-                    ],
                     "has_ai_suggestion": asset.ai_suggestion is not None,
                     "has_ai_suggested_tags": (
                         asset.ai_suggested_tags is not None
@@ -163,32 +242,17 @@ class CatalogTool:
                     ),
                 }
 
-                # Add type-specific information
-                if asset.type == "TABLE" and asset.table_facet:
-                    facet = asset.table_facet
-                    asset_dict.update(
-                        {
-                            "database_name": facet.database_name,
-                            "schema": facet.schema,
-                            "table_name": facet.table_name,
-                        }
-                    )
-                elif asset.type == "COLUMN" and asset.column_facet:
-                    facet = asset.column_facet
-                    asset_dict.update(
-                        {
-                            "column_name": facet.column_name,
-                            "data_type": facet.data_type,
-                            "ordinal": facet.ordinal,
-                            "parent_table_asset_id": str(facet.parent_table_asset_id),
-                        }
-                    )
-
                 results.append(asset_dict)
 
         return yaml.dump({"assets": results})
 
-    def search_assets(self, text: str, asset_type: Optional[str] = None) -> str:
+    def search_assets(
+        self,
+        text: str,
+        asset_type: Optional[str] = None,
+        statuses: Optional[List[str]] = None,
+        parent_asset_id: Optional[str] = None,
+    ) -> str:
         """
         Search assets and terms by name, description, urn, tags, or definition.
 
@@ -209,6 +273,13 @@ class CatalogTool:
             text: Search query - keep it short and focused (1-2 words ideal)
             asset_type: Filter by type ("TABLE", "COLUMN", "TERM").
                        If None, searches both assets and terms
+            statuses: Filter by status ("draft", "published", "unverified").
+                     Use "unverified" to find assets with null status (not yet reviewed).
+                     If None, returns assets with any status.
+            parent_asset_id: Filter by parent asset UUID. Useful for finding:
+                     - Columns within a specific table (use table asset ID)
+                     - Tables within a specific schema (use schema asset ID)
+                     - Schemas within a specific database (use database asset ID)
         """
         # Use the centralized search function
         results_dict = search_assets_and_terms(
@@ -217,11 +288,37 @@ class CatalogTool:
             text,
             asset_type=asset_type,
             limit=50,
+            statuses=statuses,
+            parent_asset_id=parent_asset_id,
         )
 
         # Combine assets and terms into single result for backward compatibility
         results = {
-            "assets": results_dict["assets"],
+            "assets": [
+                {
+                    "id": asset["id"],
+                    # Asset URN contains type info and path details
+                    "urn": asset["urn"],
+                    "name": asset["name"],
+                    "status": asset["status"] or None,
+                    "description_preview": (
+                        asset["description"][:100] + "..."
+                        if asset["description"] and len(asset["description"]) > 100
+                        else asset["description"]
+                    ),
+                    "has_ai_suggestion": asset["has_ai_suggestion"],
+                    "has_ai_suggested_tags": asset["has_ai_suggested_tags"],
+                    # Tags as array of strings (already eager-loaded, no N+1)
+                    "tags": [tag["name"] for tag in asset.get("tags", [])],
+                    # Include column_count for TABLE assets
+                    **(
+                        {"column_count": asset["column_count"]}
+                        if "column_count" in asset
+                        else {}
+                    ),
+                }
+                for asset in results_dict["assets"]
+            ],
             "terms": [
                 {
                     "id": term["id"],
@@ -235,7 +332,7 @@ class CatalogTool:
             ],
         }
 
-        return yaml.dump(results)
+        return yaml.dump(results, sort_keys=False)
 
     def read_asset(self, asset_id: str) -> str:
         """
@@ -341,6 +438,34 @@ class CatalogTool:
                     "schema_name": facet.schema_name,
                 }
             )
+            # Add completion stats for child tables
+            child_stats = self._get_children_completion_stats(
+                parent_asset_id=asset.id,
+                child_type="TABLE",
+                facet_filter_attr="parent_schema_asset_id",
+            )
+            if child_stats["total"] > 0:
+                result["children_completion"] = {
+                    "tables": child_stats,
+                }
+
+        elif asset.type == "DATABASE" and asset.database_facet:
+            facet = asset.database_facet
+            result.update(
+                {
+                    "database_name": facet.database_name,
+                }
+            )
+            # Add completion stats for child schemas
+            child_stats = self._get_children_completion_stats(
+                parent_asset_id=asset.id,
+                child_type="SCHEMA",
+                facet_filter_attr="parent_database_asset_id",
+            )
+            if child_stats["total"] > 0:
+                result["children_completion"] = {
+                    "schemas": child_stats,
+                }
 
         parent_assets = self._get_parent_assets(asset)
         if parent_assets:
@@ -785,6 +910,94 @@ class CatalogTool:
             raise ValueError(error_msg)
 
         return validated_names
+
+    def _get_children_completion_stats(
+        self,
+        parent_asset_id: uuid.UUID,
+        child_type: str,
+        facet_filter_attr: str,
+    ) -> CompletionStats:
+        """
+        Calculate completion statistics for child assets of a given parent.
+
+        Args:
+            parent_asset_id: UUID of the parent asset
+            child_type: Type of child assets ("SCHEMA", "TABLE", "COLUMN")
+            facet_filter_attr: The facet attribute to filter by (e.g., "parent_schema_asset_id")
+
+        Returns:
+            CompletionStats with total, published, draft, unverified counts and percentages
+        """
+        # Build the facet filter based on child type
+        if child_type == "SCHEMA":
+            facet_filter = Asset.schema_facet.has(
+                getattr(SchemaFacet, facet_filter_attr) == parent_asset_id
+            )
+        elif child_type == "TABLE":
+            facet_filter = Asset.table_facet.has(
+                getattr(TableFacet, facet_filter_attr) == parent_asset_id
+            )
+        elif child_type == "COLUMN":
+            facet_filter = Asset.column_facet.has(
+                getattr(ColumnFacet, facet_filter_attr) == parent_asset_id
+            )
+        else:
+            return CompletionStats(
+                total=0,
+                published=0,
+                draft=0,
+                unverified=0,
+                published_pct=0.0,
+                draft_pct=0.0,
+                unverified_pct=0.0,
+            )
+
+        # Query for status counts
+        results = (
+            self.session.query(Asset.status, func.count(Asset.id).label("count"))
+            .filter(
+                Asset.database_id == self.database.id,
+                Asset.type == child_type,
+                facet_filter,
+            )
+            .group_by(Asset.status)
+            .all()
+        )
+
+        # Aggregate counts
+        total = 0
+        published = 0
+        draft = 0
+        unverified = 0
+
+        for status, count in results:
+            total += count
+            if status == "published":
+                published = count
+            elif status == "draft":
+                draft = count
+            else:  # None = unverified
+                unverified = count
+
+        # Calculate percentages
+        if total > 0:
+            published_pct = round((published / total) * 100, 1)
+            draft_pct = round((draft / total) * 100, 1)
+            unverified_pct = round((unverified / total) * 100, 1)
+        else:
+            published_pct = 0.0
+            draft_pct = 0.0
+            unverified_pct = 0.0
+
+        return CompletionStats(
+            total=total,
+            published=published,
+            draft=draft,
+            unverified=unverified,
+            published_pct=published_pct,
+            draft_pct=draft_pct,
+            unverified_pct=unverified_pct,
+        )
 
     def _get_terms_summary(self) -> List[Term]:
         """Get summary of terms for context"""
