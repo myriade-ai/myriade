@@ -9,7 +9,11 @@ from anthropic._types import Omit
 from flask import g, has_request_context
 from flask import session as flask_session
 
-from auth.auth import UnauthorizedError, _authenticate_session
+from auth.auth import (
+    UnauthorizedError,
+    _authenticate_session,
+    _invalidate_session_cache,
+)
 from config import INFRA_URL
 
 logger = logging.getLogger(__name__)
@@ -93,6 +97,27 @@ class ProxyProvider(AnthropicProvider):
         return headers
 
     async def fetch_async(self, **kwargs):
+        # Build headers with the current session
         headers = self._get_auth_headers()
         kwargs["extra_headers"] = headers
-        return await super().fetch_async(**kwargs)
+
+        try:
+            return await super().fetch_async(**kwargs)
+        except anthropic.AuthenticationError as exc:
+            # The AI proxy can respond with INVALID_JWT if the cached sealed
+            # session is no longer valid (e.g., revoked). Clear caches and retry
+            # once with a freshly validated session.
+            error_message = str(exc)
+            if exc.status_code == 401 or "INVALID_JWT" in error_message:
+                logger.warning("AI proxy rejected session (INVALID_JWT), retrying")
+
+                current_session = self._get_current_session()
+                if current_session:
+                    _invalidate_session_cache(current_session)
+
+                # Retry with a fresh authentication
+                refreshed_headers = self._get_auth_headers()
+                kwargs["extra_headers"] = refreshed_headers
+                return await super().fetch_async(**kwargs)
+
+            raise
