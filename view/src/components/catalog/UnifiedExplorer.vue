@@ -75,27 +75,6 @@
           >
             <template #default>
               <ul class="space-y-1 pl-3">
-                <!-- Select all children button -->
-                <li
-                  v-if="
-                    props.mode === 'select' &&
-                    hasDirectChildren(databaseNode) &&
-                    getChildCount(databaseNode) > 2
-                  "
-                >
-                  <button
-                    type="button"
-                    class="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
-                    @click="$emit('select-all-children', databaseNode.asset.id)"
-                  >
-                    {{
-                      areAllChildrenSelected(databaseNode)
-                        ? 'unselect all children'
-                        : 'select all children'
-                    }}
-                  </button>
-                </li>
-
                 <li v-for="schemaNode in databaseNode.schemas" :key="schemaNode.key">
                   <ExplorerTreeItem
                     :label="schemaNode.name || 'default'"
@@ -125,29 +104,6 @@
                   >
                     <template #default>
                       <ul class="space-y-1 pl-3">
-                        <!-- Select all children button -->
-                        <li
-                          v-if="
-                            props.mode === 'select' &&
-                            hasDirectChildren(schemaNode) &&
-                            getChildCount(schemaNode) > 2
-                          "
-                        >
-                          <button
-                            type="button"
-                            class="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
-                            @click="
-                              schemaNode.asset && $emit('select-all-children', schemaNode.asset.id)
-                            "
-                          >
-                            {{
-                              areAllChildrenSelected(schemaNode)
-                                ? 'unselect all children'
-                                : 'select all children'
-                            }}
-                          </button>
-                        </li>
-
                         <li v-for="tableNode in schemaNode.tables" :key="tableNode.asset.id">
                           <ExplorerTreeItem
                             :label="
@@ -177,27 +133,6 @@
                           >
                             <template #default>
                               <transition-group name="fade" tag="ul" class="space-y-0.5 pl-6 mt-1">
-                                <!-- Select all children button -->
-                                <li
-                                  v-if="
-                                    props.mode === 'select' &&
-                                    hasDirectChildren(tableNode) &&
-                                    getChildCount(tableNode) > 2
-                                  "
-                                  :key="`select-all-${tableNode.asset.id}`"
-                                >
-                                  <button
-                                    type="button"
-                                    class="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
-                                    @click="$emit('select-all-children', tableNode.asset.id)"
-                                  >
-                                    {{
-                                      areAllChildrenSelected(tableNode)
-                                        ? 'unselect all children'
-                                        : 'select all children'
-                                    }}
-                                  </button>
-                                </li>
                                 <li
                                   v-for="columnNode in getVisibleColumns(tableNode)"
                                   :key="columnNode.asset.id"
@@ -456,13 +391,6 @@ function isAssetUsed(asset: CatalogAsset): boolean {
 
 type TreeNode = ExplorerDatabaseNode | ExplorerSchemaNode | ExplorerTableNode
 
-function hasDirectChildren(node: TreeNode): boolean {
-  if ('schemas' in node && node.schemas?.length) return true
-  if ('tables' in node && node.tables?.length) return true
-  if ('columns' in node && node.columns?.length) return true
-  return false
-}
-
 function getChildCount(node: TreeNode): number {
   if ('schemas' in node && node.schemas?.length) return node.schemas.length
   if ('tables' in node && node.tables?.length) return node.tables.length
@@ -481,27 +409,6 @@ function getChildType(node: TreeNode): string {
     return node.columns.length === 1 ? 'column' : 'columns'
   }
   return ''
-}
-
-function collectChildIds(node: TreeNode): string[] {
-  const ids: string[] = []
-  if ('schemas' in node && node.schemas?.length) {
-    node.schemas.forEach((s) => {
-      if (s.asset?.id) ids.push(s.asset.id)
-    })
-  } else if ('tables' in node && node.tables?.length) {
-    node.tables.forEach((t) => ids.push(t.asset.id))
-  } else if ('columns' in node && node.columns?.length) {
-    node.columns.forEach((c) => ids.push(c.asset.id))
-  }
-  return ids
-}
-
-function areAllChildrenSelected(node: TreeNode): boolean {
-  if (props.mode !== 'select') return false
-  const childIds = collectChildIds(node)
-  if (childIds.length === 0) return false
-  return childIds.every((id) => props.selectedAssetIds.includes(id))
 }
 
 // ============================================
