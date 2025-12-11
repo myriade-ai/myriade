@@ -879,6 +879,41 @@
             'title': 'Limit',
             'type': 'integer',
           }),
+          'offset': dict({
+            'default': 0,
+            'description': 'Number of results to skip for pagination',
+            'title': 'Offset',
+            'type': 'integer',
+          }),
+          'parent_asset_id': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by parent asset UUID. Useful for finding:',
+            'title': 'Parent Asset Id',
+          }),
+          'statuses': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                  'type': 'string',
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by status ("draft", "published", "unverified").',
+            'title': 'Statuses',
+          }),
         }),
         'title': 'Input for `list_assets`',
         'type': 'object',
@@ -983,6 +1018,35 @@
             'default': None,
             'description': 'Filter by type ("TABLE", "COLUMN", "TERM").',
             'title': 'Asset Type',
+          }),
+          'parent_asset_id': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by parent asset UUID. Useful for finding:',
+            'title': 'Parent Asset Id',
+          }),
+          'statuses': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                  'type': 'string',
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by status ("draft", "published", "unverified").',
+            'title': 'Statuses',
           }),
           'text': dict({
             'description': 'Search query - keep it short and focused (1-2 words ideal)',
@@ -2342,6 +2406,41 @@
             'title': 'Limit',
             'type': 'integer',
           }),
+          'offset': dict({
+            'default': 0,
+            'description': 'Number of results to skip for pagination',
+            'title': 'Offset',
+            'type': 'integer',
+          }),
+          'parent_asset_id': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by parent asset UUID. Useful for finding:',
+            'title': 'Parent Asset Id',
+          }),
+          'statuses': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                  'type': 'string',
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by status ("draft", "published", "unverified").',
+            'title': 'Statuses',
+          }),
         }),
         'title': 'Input for `list_assets`',
         'type': 'object',
@@ -2446,6 +2545,35 @@
             'default': None,
             'description': 'Filter by type ("TABLE", "COLUMN", "TERM").',
             'title': 'Asset Type',
+          }),
+          'parent_asset_id': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by parent asset UUID. Useful for finding:',
+            'title': 'Parent Asset Id',
+          }),
+          'statuses': dict({
+            'anyOf': list([
+              dict({
+                'items': dict({
+                  'type': 'string',
+                }),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'Filter by status ("draft", "published", "unverified").',
+            'title': 'Statuses',
           }),
           'text': dict({
             'description': 'Search query - keep it short and focused (1-2 words ideal)',

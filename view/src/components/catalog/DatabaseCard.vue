@@ -53,12 +53,21 @@
               >{{ schema.table_count }} tables</span
             >
           </div>
-          <button
-            @click.stop="navigateToSchema(schema.schema_asset_id)"
-            class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium flex-shrink-0 whitespace-nowrap"
-          >
-            View →
-          </button>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <button
+              @click.stop="runCatalog(schema)"
+              class="text-xs text-gold hover:text-gold/70 font-medium whitespace-nowrap flex items-center gap-1"
+            >
+              <SparklesIcon class="h-3 w-3" />
+              Run catalog
+            </button>
+            <button
+              @click.stop="navigateToSchema(schema.schema_asset_id)"
+              class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium whitespace-nowrap"
+            >
+              View →
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -71,8 +80,10 @@
 </template>
 
 <script setup lang="ts">
-import type { DatabaseStats } from '@/composables/useDashboardStats'
-import { ChevronDown, ChevronRight, Database, FolderTree } from 'lucide-vue-next'
+import type { DatabaseStats, SchemaStats } from '@/composables/useDashboardStats'
+import { useContextsStore } from '@/stores/contexts'
+import { useConversationsStore } from '@/stores/conversations'
+import { ChevronDown, ChevronRight, Database, FolderTree, SparklesIcon } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ProgressBar from './ProgressBar.vue'
@@ -83,6 +94,8 @@ interface Props {
 
 const props = defineProps<Props>()
 const router = useRouter()
+const contextsStore = useContextsStore()
+const conversationsStore = useConversationsStore()
 
 const isExpanded = ref(true)
 
@@ -99,5 +112,23 @@ const navigateToSchema = (schemaAssetId: string) => {
       assetId: schemaAssetId
     }
   })
+}
+
+async function runCatalog(schema: SchemaStats) {
+  const context = contextsStore.contextSelected
+  if (!context) {
+    console.error('No context selected')
+    return
+  }
+
+  const prompt = `Document the tables inside "${schema.schema_name} - ${schema.schema_asset_id}".`
+
+  try {
+    const conversation = await conversationsStore.createConversation(context.id)
+    await conversationsStore.sendMessage(conversation.id, prompt, 'text')
+    router.push({ name: 'ChatPage', params: { id: conversation.id.toString() } })
+  } catch (error) {
+    console.error('Error creating catalog conversation:', error)
+  }
 }
 </script>
