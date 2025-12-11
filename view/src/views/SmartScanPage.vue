@@ -23,7 +23,6 @@
       <!-- Close button - top right on mobile, right side on desktop -->
       <Button
         variant="ghost"
-        size="icon"
         class="absolute right-2 top-2 sm:relative sm:right-auto sm:top-auto sm:gap-2 sm:w-auto"
         @click="goBack"
       >
@@ -35,7 +34,7 @@
     <!-- Step Indicator (Mobile Only) -->
     <div class="border-b border-border bg-card px-4 py-3 lg:hidden">
       <div class="flex items-center justify-center gap-2">
-        <div v-for="step in 3" :key="step" class="flex items-center">
+        <div v-for="step in 2" :key="step" class="flex items-center">
           <div
             class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-colors"
             :class="
@@ -49,7 +48,7 @@
             {{ step }}
           </div>
           <div
-            v-if="step < 3"
+            v-if="step < 2"
             class="mx-2 h-0.5 w-8 transition-colors"
             :class="currentStep > step ? 'bg-primary-200' : 'bg-border'"
           />
@@ -58,77 +57,13 @@
     </div>
 
     <div class="flex-1 overflow-y-auto pb-safe">
-      <!-- Mobile: 3-step workflow -->
+      <!-- Mobile: 2-step workflow -->
       <div class="mx-auto max-w-4xl p-4 pb-6 sm:p-6 lg:hidden">
-        <!-- Step 1: Select Scan Mode -->
+        <!-- Step 1: Select Assets -->
         <section v-if="currentStep === 1" class="space-y-6">
           <div>
-            <h3 class="text-lg font-semibold text-foreground mb-2">Choose your scan mode</h3>
-            <p class="text-sm text-muted-foreground mb-6">
-              Select how you want to document your assets
-            </p>
-
-            <RadioGroup
-              :model-value="scanMode"
-              @update:model-value="(value: string) => setScanMode(value as ScanMode)"
-              class="grid gap-4 sm:grid-cols-3"
-            >
-              <label
-                class="flex cursor-not-allowed items-start gap-3 rounded-lg border border-dashed border-border bg-muted/60 p-4 text-left opacity-60"
-              >
-                <RadioGroupItem value="quick" id="scan-quick" disabled class="mt-1" />
-                <div class="space-y-1">
-                  <div class="font-medium text-sm text-foreground">Quick</div>
-                  <p class="text-xs text-muted-foreground">Priority assets only (~100 items)</p>
-                  <p class="text-xs text-primary-600">Coming soon</p>
-                </div>
-              </label>
-
-              <label
-                class="flex cursor-pointer items-start gap-3 rounded-lg border p-4 text-left transition-colors"
-                :class="
-                  scanMode === 'custom'
-                    ? 'border-primary-300 bg-primary-50/70'
-                    : 'border-border hover:border-primary-200'
-                "
-              >
-                <RadioGroupItem value="custom" id="scan-custom" class="mt-1" />
-                <div class="space-y-1">
-                  <div class="font-medium text-sm text-foreground">Custom</div>
-                  <p class="text-xs text-muted-foreground">
-                    Choose the exact tables and columns to document
-                  </p>
-                </div>
-              </label>
-
-              <label
-                class="flex cursor-not-allowed items-start gap-3 rounded-lg border border-dashed border-border bg-muted/60 p-4 text-left opacity-60"
-              >
-                <RadioGroupItem value="full" id="scan-full" disabled class="mt-1" />
-                <div class="space-y-1">
-                  <div class="font-medium text-sm text-foreground">Full</div>
-                  <p class="text-xs text-muted-foreground">Entire catalog (runs in batches)</p>
-                  <p class="text-xs text-primary-600">Coming soon</p>
-                </div>
-              </label>
-            </RadioGroup>
-          </div>
-
-          <!-- Navigation -->
-          <div class="flex flex-col gap-3 pt-6 sm:flex-row sm:justify-between">
-            <Button variant="ghost" @click="goBack" class="w-full sm:w-auto">Cancel</Button>
-            <Button :disabled="!canProceedToStep2" @click="nextStep" class="w-full sm:w-auto">
-              Next
-              <ChevronRight class="h-4 w-4" />
-            </Button>
-          </div>
-        </section>
-
-        <!-- Step 2: Select Assets -->
-        <section v-if="currentStep === 2" class="space-y-6">
-          <div>
             <h3 class="text-lg font-semibold text-foreground mb-2">Select assets to document</h3>
-            <p class="text-sm text-muted-foreground mb-4">
+            <p class="text-sm text-muted-foreground mb-6">
               Choose up to {{ MAX_SELECTION_LIMIT }} assets ({{
                 catalogStore.selectedAssetIds.length
               }}
@@ -152,9 +87,15 @@
                 class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               />
               <Input
-                v-model="filterText"
+                :model-value="filterText"
                 class="pl-9"
                 placeholder="Filter databases, schemas, tables..."
+                @update:model-value="
+                  (value) => {
+                    filterText = String(value)
+                    handleSearchInput(String(value))
+                  }
+                "
               />
             </div>
             <div class="flex flex-wrap items-center justify-between gap-3">
@@ -187,7 +128,7 @@
                   :selected-asset-id="null"
                   mode="select"
                   :selected-asset-ids="selectedIdsComputed"
-                  :disabled="scanMode !== 'custom'"
+                  :disabled="false"
                   :collapsed="false"
                   :show-collapse-button="false"
                   :show-header="false"
@@ -203,27 +144,16 @@
 
           <!-- Navigation -->
           <div class="flex flex-col gap-3 pt-6 sm:flex-row sm:justify-between">
-            <Button
-              variant="ghost"
-              @click="previousStep"
-              class="w-full sm:w-auto order-2 sm:order-1"
-            >
-              <ChevronLeft class="h-4 w-4" />
-              Back
-            </Button>
-            <Button
-              :disabled="!canProceedToStep3"
-              @click="nextStep"
-              class="w-full sm:w-auto order-1 sm:order-2"
-            >
+            <Button variant="ghost" @click="goBack" class="w-full sm:w-auto">Cancel</Button>
+            <Button :disabled="!canProceedToStep2" @click="nextStep" class="w-full sm:w-auto">
               Next
               <ChevronRight class="h-4 w-4" />
             </Button>
           </div>
         </section>
 
-        <!-- Step 3: Review & Run -->
-        <section v-if="currentStep === 3" class="space-y-6">
+        <!-- Step 2: Review & Run -->
+        <section v-if="currentStep === 2" class="space-y-6">
           <div>
             <h3 class="text-lg font-semibold text-foreground mb-2">Review your selection</h3>
             <p class="text-sm text-muted-foreground mb-6">
@@ -232,11 +162,6 @@
           </div>
 
           <div class="space-y-4 rounded-lg border border-border bg-card p-4 sm:p-6">
-            <div class="space-y-2">
-              <h4 class="text-sm font-semibold text-foreground">Scan Mode</h4>
-              <p class="text-sm text-muted-foreground capitalize">{{ scanMode }} scan</p>
-            </div>
-
             <div class="border-t border-border pt-4">
               <h4 class="text-sm font-semibold text-foreground mb-3">Selected Assets</h4>
               <ul class="space-y-2 text-sm text-foreground">
@@ -323,66 +248,26 @@
         </section>
       </div>
 
-      <!-- Desktop: Original 2-column layout -->
-      <div class="mx-auto hidden max-w-[1800px] gap-6 p-4 sm:p-6 lg:grid lg:grid-cols-[2fr_1fr]">
-        <section class="space-y-4 sm:space-y-6">
-          <div class="space-y-3">
-            <h3 class="text-sm font-semibold text-foreground">Scan mode</h3>
-            <RadioGroup
-              :model-value="scanMode"
-              @update:model-value="(value: string) => setScanMode(value as ScanMode)"
-              class="grid gap-3 md:grid-cols-3"
-            >
-              <label
-                class="flex cursor-not-allowed items-start gap-3 rounded-lg border border-dashed border-border bg-muted/60 p-3 text-left opacity-60"
-              >
-                <RadioGroupItem value="quick" id="scan-quick" disabled class="mt-1" />
-                <div class="space-y-1">
-                  <div class="font-medium text-sm text-foreground">Quick</div>
-                  <p class="text-xs text-muted-foreground">Priority assets only (~100 items)</p>
-                  <p class="text-xs text-primary-600">Coming soon</p>
-                </div>
-              </label>
-
-              <label
-                class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-left transition-colors"
-                :class="
-                  scanMode === 'custom'
-                    ? 'border-primary-300 bg-primary-50/70'
-                    : 'border-border hover:border-primary-200'
-                "
-              >
-                <RadioGroupItem value="custom" id="scan-custom" class="mt-1" />
-                <div class="space-y-1">
-                  <div class="font-medium text-sm text-foreground">Custom</div>
-                  <p class="text-xs text-muted-foreground">
-                    Choose the exact tables and columns to document
-                  </p>
-                </div>
-              </label>
-
-              <label
-                class="flex cursor-not-allowed items-start gap-3 rounded-lg border border-dashed border-border bg-muted/60 p-3 text-left opacity-60"
-              >
-                <RadioGroupItem value="full" id="scan-full" disabled class="mt-1" />
-                <div class="space-y-1">
-                  <div class="font-medium text-sm text-foreground">Full</div>
-                  <p class="text-xs text-muted-foreground">Entire catalog (runs in batches)</p>
-                  <p class="text-xs text-primary-600">Coming soon</p>
-                </div>
-              </label>
-            </RadioGroup>
-          </div>
-
-          <div class="space-y-3 rounded-lg border border-border bg-card p-3 sm:p-4">
+      <!-- Desktop: 2-column layout with full height -->
+      <div class="hidden lg:flex h-full gap-6 p-4 sm:p-6 mx-auto w-full">
+        <section class="flex-[2] flex flex-col min-h-0">
+          <div
+            class="flex-1 space-y-3 rounded-lg border border-border bg-card p-3 sm:p-4 flex flex-col overflow-hidden"
+          >
             <div class="relative">
               <SearchIcon
                 class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               />
               <Input
-                v-model="filterText"
+                :model-value="filterText"
                 class="pl-9"
                 placeholder="Filter databases, schemas, tables..."
+                @update:model-value="
+                  (value) => {
+                    filterText = String(value)
+                    handleSearchInput(String(value))
+                  }
+                "
               />
             </div>
             <div class="flex flex-wrap items-center justify-between gap-3">
@@ -397,10 +282,12 @@
               </label>
             </div>
 
-            <div class="rounded-md border border-border bg-muted/70">
+            <div
+              class="flex-1 rounded-md border border-border bg-muted/70 overflow-hidden flex flex-col"
+            >
               <div
                 v-if="explorerTree.length === 0"
-                class="flex flex-col items-center gap-3 py-12 text-center"
+                class="flex flex-col items-center gap-3 py-12 text-center h-full justify-center"
               >
                 <SparklesIcon class="h-6 w-6 text-muted-foreground" />
                 <p class="text-sm font-medium text-foreground">No assets to display</p>
@@ -409,13 +296,13 @@
                 </p>
               </div>
 
-              <div v-else class="max-h-[520px] overflow-y-auto">
+              <div v-else class="flex-1 overflow-y-auto">
                 <UnifiedExplorer
                   :tree="explorerTree"
                   :selected-asset-id="null"
                   mode="select"
                   :selected-asset-ids="selectedIdsComputed"
-                  :disabled="scanMode !== 'custom'"
+                  :disabled="false"
                   :collapsed="false"
                   :show-collapse-button="false"
                   :show-header="false"
@@ -430,88 +317,93 @@
           </div>
         </section>
 
-        <aside
-          class="space-y-4 rounded-lg border border-border bg-card p-4 sm:p-5 lg:sticky lg:top-6 lg:self-start"
-        >
-          <div class="space-y-2">
-            <h3 class="text-sm font-semibold text-foreground">Summary</h3>
-            <p class="text-xs text-muted-foreground">
-              Review your Smart Scan selection before starting.
-            </p>
-          </div>
-
-          <div
-            v-if="isAtSelectionLimit"
-            class="rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 p-3 text-sm text-orange-700 dark:text-orange-300"
-          >
-            <div class="flex items-start gap-2">
-              <AlertCircleIcon class="mt-0.5 h-4 w-4 flex-shrink-0" />
-              <p>Selection limit reached ({{ MAX_SELECTION_LIMIT }} assets maximum).</p>
+        <aside class="flex-1 flex flex-col rounded-lg border border-border bg-card overflow-hidden">
+          <!-- Scrollable content area -->
+          <div class="flex-1 overflow-y-auto space-y-4 p-4 sm:p-5 min-h-0">
+            <div class="space-y-2">
+              <h3 class="text-sm font-semibold text-foreground">Summary</h3>
+              <p class="text-xs text-muted-foreground">
+                Review your Smart Scan selection before starting.
+              </p>
             </div>
-          </div>
 
-          <ul class="space-y-2 text-sm text-foreground">
-            <li class="flex items-center gap-2">
-              <Database class="h-4 w-4 text-primary-500" />
-              <span
-                >{{ selectedDatabasesCount }} database{{
-                  selectedDatabasesCount === 1 ? '' : 's'
-                }}</span
-              >
-            </li>
-            <li class="flex items-center gap-2">
-              <FolderIcon class="h-4 w-4 text-primary-500" />
-              <span
-                >{{ selectedSchemasCount }} schema{{ selectedSchemasCount === 1 ? '' : 's' }}</span
-              >
-            </li>
-            <li class="flex items-center gap-2">
-              <TableIcon class="h-4 w-4 text-primary-500" />
-              <span
-                >{{ selectedTables.length }} table{{ selectedTables.length === 1 ? '' : 's' }}</span
-              >
-            </li>
-            <li class="flex items-center gap-2">
-              <Columns3Icon class="h-4 w-4 text-muted-foreground" />
-              <span
-                >{{ selectedColumns.length }} column{{
-                  selectedColumns.length === 1 ? '' : 's'
-                }}</span
-              >
-            </li>
-          </ul>
-
-          <div class="rounded-md border border-border bg-muted p-4 text-sm text-muted-foreground">
-            <div class="flex items-center gap-2 font-medium text-foreground">
-              <ClockIcon class="h-4 w-4 text-primary-500" />
-              Estimated time: {{ estimatedTimeLabel }}
+            <div
+              v-if="isAtSelectionLimit"
+              class="rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 p-3 text-sm text-orange-700 dark:text-orange-300"
+            >
+              <div class="flex items-start gap-2">
+                <AlertCircleIcon class="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <p>Selection limit reached ({{ MAX_SELECTION_LIMIT }} assets maximum).</p>
+              </div>
             </div>
-            <p class="mt-2 text-xs text-muted-foreground">
-              Smart Scan runs in the background — you can continue working while documentation is
-              generated.
-            </p>
-          </div>
 
-          <div
-            class="rounded-md border border-dashed border-primary-300 bg-primary-50/70 p-4 text-sm text-primary-700"
-          >
-            <div class="flex items-start gap-2">
-              <SparklesIcon class="mt-0.5 h-4 w-4" />
-              <p>
-                The AI will prioritize clarity, business context, and data quality insights for
-                every selected asset.
+            <ul class="space-y-2 text-sm text-foreground">
+              <li class="flex items-center gap-2">
+                <Database class="h-4 w-4 text-primary-500" />
+                <span
+                  >{{ selectedDatabasesCount }} database{{
+                    selectedDatabasesCount === 1 ? '' : 's'
+                  }}</span
+                >
+              </li>
+              <li class="flex items-center gap-2">
+                <FolderIcon class="h-4 w-4 text-primary-500" />
+                <span
+                  >{{ selectedSchemasCount }} schema{{
+                    selectedSchemasCount === 1 ? '' : 's'
+                  }}</span
+                >
+              </li>
+              <li class="flex items-center gap-2">
+                <TableIcon class="h-4 w-4 text-primary-500" />
+                <span
+                  >{{ selectedTables.length }} table{{
+                    selectedTables.length === 1 ? '' : 's'
+                  }}</span
+                >
+              </li>
+              <li class="flex items-center gap-2">
+                <Columns3Icon class="h-4 w-4 text-muted-foreground" />
+                <span
+                  >{{ selectedColumns.length }} column{{
+                    selectedColumns.length === 1 ? '' : 's'
+                  }}</span
+                >
+              </li>
+            </ul>
+
+            <div class="rounded-md border border-border bg-muted p-4 text-sm text-muted-foreground">
+              <div class="flex items-center gap-2 font-medium text-foreground">
+                <ClockIcon class="h-4 w-4 text-primary-500" />
+                Estimated time: {{ estimatedTimeLabel }}
+              </div>
+              <p class="mt-2 text-xs text-muted-foreground">
+                Smart Scan runs in the background — you can continue working while documentation is
+                generated.
+              </p>
+            </div>
+
+            <div
+              class="rounded-md border border-dashed border-primary-300 bg-primary-50/70 p-4 text-sm text-primary-700"
+            >
+              <div class="flex items-start gap-2">
+                <SparklesIcon class="mt-0.5 h-4 w-4" />
+                <p>
+                  The AI will prioritize clarity, business context, and data quality insights for
+                  every selected asset.
+                </p>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-2 text-xs text-muted-foreground">
+              <p v-if="!canProceed" class="font-medium text-red-600">
+                Select at least one asset to continue.
               </p>
             </div>
           </div>
 
-          <div class="flex flex-col gap-2 text-xs text-muted-foreground">
-            <p>Switch scan modes or adjust your selection as needed.</p>
-            <p v-if="!canProceed" class="font-medium text-red-600">
-              Select at least one asset to continue.
-            </p>
-          </div>
-
-          <div class="flex flex-col gap-2 pt-2">
+          <!-- Fixed footer with buttons -->
+          <div class="flex flex-col gap-2 p-4 sm:p-5 border-t border-border flex-shrink-0">
             <Button variant="ghost" class="justify-center" @click="goBack">Cancel</Button>
             <Button :disabled="!canProceed" @click="analyzeSelected">
               Start Smart Scan
@@ -525,21 +417,17 @@
 </template>
 
 <script setup lang="ts">
-import type {
-  ExplorerColumnNode,
-  ExplorerDatabaseNode,
-  ExplorerSchemaNode,
-  ExplorerTableNode
-} from '@/components/catalog/types'
+import type { ExplorerDatabaseNode } from '@/components/catalog/types'
 import UnifiedExplorer from '@/components/catalog/UnifiedExplorer.vue'
+import { useCatalogData } from '@/components/catalog/useCatalogData'
 import { useCatalogAssetsQuery } from '@/components/catalog/useCatalogQuery'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { useCatalogStore, type AssetStatus, type CatalogAsset } from '@/stores/catalog'
+import { useCatalogStore, type CatalogAsset } from '@/stores/catalog'
 import { useContextsStore } from '@/stores/contexts'
 import { useConversationsStore } from '@/stores/conversations'
+import { debounce } from '@/utils/debounce'
 import {
   AlertCircleIcon,
   ChevronLeft,
@@ -557,43 +445,7 @@ import {
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-type ScanMode = 'quick' | 'custom' | 'full'
-
 const MAX_SELECTION_LIMIT = 30
-
-interface ColumnInfo {
-  id: string
-  name: string
-  status: AssetStatus | null
-  documented: boolean
-}
-
-interface TableInfo {
-  id: string
-  name: string
-  documented: boolean
-  status: AssetStatus | null
-  columnCount: number
-  columns: ColumnInfo[]
-}
-
-interface SchemaInfo {
-  key: string
-  name: string
-  totalTables: number
-  totalColumns: number
-  documentedTables: number
-  tables: TableInfo[]
-}
-
-interface DatabaseInfo {
-  id: string
-  name: string
-  totalTables: number
-  totalColumns: number
-  documentedTables: number
-  schemas: SchemaInfo[]
-}
 
 const catalogStore = useCatalogStore()
 const contextsStore = useContextsStore()
@@ -602,20 +454,28 @@ const router = useRouter()
 
 const { data: assets } = useCatalogAssetsQuery()
 
-const scanMode = ref<ScanMode>('custom')
+const catalogData = useCatalogData(computed(() => assets.value))
+const { buildFilteredTree } = catalogData
+
 const filterText = ref('')
 const showOnlyUndocumented = ref(false)
 const currentStep = ref(1)
+const debouncedFilterText = ref('')
+
+// Debounced search handler (300ms delay)
+const handleSearchInput = debounce((value: string) => {
+  debouncedFilterText.value = value
+}, 300)
 
 onMounted(() => {
-  scanMode.value = 'custom'
   filterText.value = ''
+  debouncedFilterText.value = ''
   showOnlyUndocumented.value = false
   currentStep.value = 1
 })
 
 function nextStep() {
-  if (currentStep.value < 3) {
+  if (currentStep.value < 2) {
     currentStep.value++
   }
 }
@@ -627,228 +487,90 @@ function previousStep() {
 }
 
 const canProceedToStep2 = computed(() => {
-  return scanMode.value === 'custom'
-})
-
-const canProceedToStep3 = computed(() => {
   return catalogStore.selectedAssetIds.length > 0
 })
 
-const columnAssets = computed(() => assets.value?.filter((asset) => asset.type === 'COLUMN') ?? [])
-const schemaAssetsByKey = computed(() => {
-  const map = new Map<string, CatalogAsset>()
-  assets.value?.forEach((asset) => {
-    if (asset.type !== 'SCHEMA') return
-    const databaseId = asset.schema_facet?.database_id || asset.database_id
-    const schemaName = asset.schema_facet?.schema_name || asset.name || 'Schema'
-    if (!databaseId) return
-    const key = `${databaseId}::${schemaName}`
-    map.set(key, asset)
-  })
-  return map
-})
-const databaseAssetsById = computed(() => {
-  const map = new Map<string, CatalogAsset>()
-  assets.value?.forEach((asset) => {
-    if (asset.type !== 'DATABASE') return
-    const databaseId = asset.database_id || asset.id
-    if (!databaseId) return
-    map.set(databaseId, asset)
-  })
-  return map
-})
-
+// Helper to check if an asset is documented
 function isAssetDocumented(asset: CatalogAsset): boolean {
   const hasMeaningfulDescription = Boolean(asset.description?.trim())
   const statusDocumented = asset.status === 'published' || asset.status === 'draft'
   return hasMeaningfulDescription || statusDocumented
 }
 
-const columnsByTableId = computed(() => {
-  const map = new Map<string, ColumnInfo[]>()
-  for (const column of columnAssets.value) {
-    const tableId = column.column_facet?.parent_table_asset_id
-    if (!tableId) continue
-
-    // Skip TIMESTAMP type columns
-    const dataType = column.column_facet?.data_type || ''
-    if (dataType.toUpperCase() === 'TIMESTAMP') continue
-
-    if (!map.has(tableId)) {
-      map.set(tableId, [])
-    }
-    map.get(tableId)!.push({
-      id: column.id,
-      name: column.column_facet?.column_name || column.name || 'Unnamed',
-      status: column.status ?? null,
-      documented: isAssetDocumented(column)
-    })
-  }
-  return map
-})
-
-const databaseGroups = computed<DatabaseInfo[]>(() => {
-  if (!assets.value) return []
-
-  const groups = new Map<string, DatabaseInfo>()
-
-  for (const asset of assets.value) {
-    if (asset.type !== 'TABLE') continue
-
-    const databaseId = asset.database_id || asset.table_facet?.database_name || 'unknown-database'
-    const databaseName =
-      asset.table_facet?.database_name ||
-      asset.database_facet?.database_name ||
-      asset.database_id ||
-      'Unknown database'
-    const schemaName = asset.table_facet?.schema || 'Public'
-    const schemaKey = `${databaseId}::${schemaName}`
-    const documented = isAssetDocumented(asset)
-    const tableColumns = columnsByTableId.value.get(asset.id) || []
-
-    if (!groups.has(databaseId)) {
-      groups.set(databaseId, {
-        id: databaseId,
-        name: databaseName,
-        totalTables: 0,
-        totalColumns: 0,
-        documentedTables: 0,
-        schemas: []
-      })
-    }
-
-    const databaseGroup = groups.get(databaseId)!
-    databaseGroup.totalTables += 1
-    databaseGroup.totalColumns += tableColumns.length
-    if (documented) {
-      databaseGroup.documentedTables += 1
-    }
-
-    let schemaGroup = databaseGroup.schemas.find((schema) => schema.key === schemaKey)
-    if (!schemaGroup) {
-      schemaGroup = {
-        key: schemaKey,
-        name: schemaName,
-        totalTables: 0,
-        totalColumns: 0,
-        documentedTables: 0,
-        tables: []
-      }
-      databaseGroup.schemas.push(schemaGroup)
-    }
-
-    schemaGroup.totalTables += 1
-    schemaGroup.totalColumns += tableColumns.length
-    if (documented) {
-      schemaGroup.documentedTables += 1
-    }
-
-    schemaGroup.tables.push({
-      id: asset.id,
-      name: asset.table_facet?.table_name || asset.name || asset.urn,
-      documented,
-      status: asset.status ?? null,
-      columnCount: tableColumns.length,
-      columns: tableColumns
-    })
-  }
-
-  return Array.from(groups.values())
-    .map((database) => {
-      database.schemas = database.schemas
-        .map((schema) => {
-          schema.tables = schema.tables.sort((a, b) => a.name.localeCompare(b.name))
-          return schema
-        })
-        .sort((a, b) => a.name.localeCompare(b.name))
-      return database
-    })
-    .sort((a, b) => a.name.localeCompare(b.name))
-})
-
 const explorerTree = computed<ExplorerDatabaseNode[]>(() => {
-  const query = filterText.value.trim().toLowerCase()
+  const query = debouncedFilterText.value.trim().toLowerCase()
   const onlyUndocumented = showOnlyUndocumented.value
 
-  const nodes: ExplorerDatabaseNode[] = []
+  // Get the base tree from the optimized buildFilteredTree
+  const baseTree = buildFilteredTree({
+    selectedDatabase: '__all__',
+    selectedSchema: '__all__',
+    matchingIds: null
+  })
 
-  for (const database of databaseGroups.value) {
-    const schemaNodes: ExplorerSchemaNode[] = []
+  if (!query && !onlyUndocumented) {
+    return baseTree
+  }
 
-    for (const schema of database.schemas) {
-      const tableNodes: ExplorerTableNode[] = []
+  // Apply local filters (search and undocumented)
+  const filteredTree: ExplorerDatabaseNode[] = []
 
-      for (const table of schema.tables) {
-        // Filter by documented status
-        if (onlyUndocumented && table.documented) continue
+  for (const dbNode of baseTree) {
+    const filteredSchemas = []
 
+    for (const schemaNode of dbNode.schemas) {
+      const filteredTables = []
+
+      for (const tableNode of schemaNode.tables) {
+        const tableDocumented = isAssetDocumented(tableNode.asset)
+
+        // Filter by documented status at table level
+        if (onlyUndocumented && tableDocumented) continue
+
+        // Filter by search query
+        const tableName = tableNode.asset.table_facet?.table_name || tableNode.asset.name || ''
         const matchesFilter =
           !query ||
-          table.name.toLowerCase().includes(query) ||
-          schema.name.toLowerCase().includes(query) ||
-          database.name.toLowerCase().includes(query)
+          tableName.toLowerCase().includes(query) ||
+          (schemaNode.name || '').toLowerCase().includes(query) ||
+          dbNode.name.toLowerCase().includes(query)
 
         if (!matchesFilter) continue
 
-        // Get the table asset
-        const tableAsset = assets.value?.find((a) => a.id === table.id)
-        if (!tableAsset) continue
-
         // Filter columns by documented status if needed
         const filteredColumns = onlyUndocumented
-          ? table.columns.filter((col) => !col.documented)
-          : table.columns
+          ? tableNode.columns.filter((col) => !isAssetDocumented(col.asset))
+          : tableNode.columns
 
-        const columnNodes: ExplorerColumnNode[] = filteredColumns.map((column) => {
-          const columnAsset = assets.value?.find((a) => a.id === column.id)
-          return {
-            asset: columnAsset!,
-            label: column.name,
-            meta: columnAsset?.column_facet?.data_type || ''
-          }
-        })
-
-        tableNodes.push({
-          key: table.id,
-          asset: tableAsset,
-          columns: columnNodes
+        filteredTables.push({
+          ...tableNode,
+          columns: filteredColumns
         })
       }
 
-      if (tableNodes.length) {
-        const schemaAsset = schemaAssetsByKey.value.get(schema.key)
-
-        schemaNodes.push({
-          key: schema.key,
-          name: schema.name,
-          asset: schemaAsset,
-          tables: tableNodes
+      if (filteredTables.length) {
+        filteredSchemas.push({
+          ...schemaNode,
+          tables: filteredTables
         })
       }
     }
 
-    if (schemaNodes.length) {
-      const databaseAsset = databaseAssetsById.value.get(database.id)
-      if (!databaseAsset) continue
-
-      nodes.push({
-        key: database.id,
-        name: database.name,
-        asset: databaseAsset,
-        schemas: schemaNodes
+    if (filteredSchemas.length) {
+      filteredTree.push({
+        ...dbNode,
+        schemas: filteredSchemas
       })
     }
   }
 
-  return nodes
+  return filteredTree
 })
 
 // Create a computed that explicitly tracks the store selection
 const selectedIdsComputed = computed(() => [...catalogStore.selectedAssetIds])
 
 function handleToggleAssetSelection(assetId: string) {
-  if (scanMode.value !== 'custom') return
-
   const selectedSet = new Set(catalogStore.selectedAssetIds)
   const isSelected = selectedSet.has(assetId)
 
@@ -899,8 +621,6 @@ function collectDirectChildren(parentAssetId: string): string[] {
 }
 
 function handleSelectAllChildren(parentAssetId: string) {
-  if (scanMode.value !== 'custom') return
-
   const childIds = collectDirectChildren(parentAssetId)
   if (!childIds.length) return
 
@@ -955,19 +675,12 @@ const estimatedTimeLabel = computed(() => {
 })
 
 const canProceed = computed(() => {
-  if (scanMode.value === 'custom') {
-    return catalogStore.selectedAssetIds.length > 0
-  }
-  return false
+  return catalogStore.selectedAssetIds.length > 0
 })
 
 function goBack() {
   catalogStore.clearSelection()
   router.push({ name: 'AssetPage' })
-}
-
-function setScanMode(mode: ScanMode) {
-  scanMode.value = mode
 }
 
 async function analyzeSelected() {
@@ -1021,14 +734,8 @@ async function analyzeSelected() {
   const truncatedTables = tables.length > MAX_TABLES_IN_PROMPT
   const truncatedColumns = columns.length > MAX_COLUMNS_IN_PROMPT
 
-  const modeDescription: Record<ScanMode, string> = {
-    quick: 'Quick scan focusing on priority undocumented assets',
-    custom: 'Custom scan using the assets manually selected by the user',
-    full: 'Comprehensive scan of the entire catalog'
-  }
-
   const promptSections = [
-    `You are running a Smart Scan in **${modeDescription[scanMode.value]}** mode.`,
+    'You are running a Smart Scan with the assets manually selected by the user.',
     'Before drafting any documentation, please:',
     '1. Perform a global business understanding pass across the catalog.',
     '2. Prioritize assets that unlock the most analytical value or appear in mission-critical workflows.',
