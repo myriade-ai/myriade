@@ -1,7 +1,55 @@
 <template>
   <PageHeader :title="document?.title || 'Report'" :subtitle="subtitle" sticky>
     <template #actions>
-      <div class="flex items-center gap-2">
+      <!-- Mobile: Dropdown menu with all actions -->
+      <div class="flex sm:hidden items-center gap-2">
+        <!-- Save button always visible on mobile -->
+        <Button
+          v-if="document && !viewingVersion && !document.archived"
+          variant="default"
+          size="sm"
+          @click="saveDocument"
+          :disabled="!hasUnsavedChanges || isSaving"
+        >
+          <Loader2 v-if="isSaving" class="animate-spin h-4 w-4" />
+          <Save v-else class="w-4 h-4" />
+        </Button>
+        <!-- Actions dropdown -->
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <Button variant="outline" size="sm">
+              <MoreVertical class="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" class="w-48">
+            <DropdownMenuItem @click="toggleVersionHistory">
+              <Clock class="w-4 h-4 mr-2" />
+              Version History
+            </DropdownMenuItem>
+            <DropdownMenuItem v-if="document" @click="handleExportPdf">
+              <FileDown class="w-4 h-4 mr-2" />
+              Export PDF
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem v-if="document" @click="toggleArchive" :disabled="isArchiving">
+              <Archive class="w-4 h-4 mr-2" />
+              {{ document.archived ? 'Unarchive' : 'Archive' }}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              v-if="document"
+              @click="handleDelete"
+              :disabled="isDeleting"
+              class="text-red-600 focus:text-red-600"
+            >
+              <Trash2 class="w-4 h-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <!-- Desktop: Regular buttons -->
+      <div class="hidden sm:flex items-center gap-2">
         <Button
           v-if="document"
           variant="outline"
@@ -46,7 +94,7 @@
   </PageHeader>
 
   <div class="flex-1 overflow-auto">
-    <div class="px-8 py-6 max-w-4xl mx-auto">
+    <div class="px-0 py-0 sm:px-8 sm:py-6 max-w-4xl mx-auto w-full">
       <!-- Loading state -->
       <div v-if="documentQuery.isPending.value" class="text-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -165,11 +213,28 @@ import PdfExportDropdown from '@/components/PdfExportDropdown.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
 import { useDocumentQuery, useDocumentVersionsQuery } from '@/composables/useDocumentsQuery'
+import axios from '@/plugins/axios'
 import type { DocumentVersion } from '@/stores/conversations'
 import { useDocumentsStore } from '@/stores/documents'
 import { useQueryClient } from '@tanstack/vue-query'
-import { AlertTriangle, Archive, Clock, Loader2 } from 'lucide-vue-next'
+import {
+  AlertTriangle,
+  Archive,
+  Clock,
+  FileDown,
+  Loader2,
+  MoreVertical,
+  Save,
+  Trash2
+} from 'lucide-vue-next'
 import { computed, ref, toRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -341,6 +406,37 @@ const toggleArchive = async () => {
     alert('Failed to update archive status. Please try again.')
   } finally {
     isArchiving.value = false
+  }
+}
+
+// Export PDF (for mobile dropdown - uses default options)
+const handleExportPdf = async () => {
+  if (!document.value || !documentId.value) return
+
+  try {
+    const response = await axios.post(
+      `/api/documents/${documentId.value}/export`,
+      { includeSql: true },
+      { responseType: 'blob' }
+    )
+
+    const blob =
+      response.data instanceof Blob
+        ? response.data
+        : new Blob([response.data], { type: 'application/pdf' })
+    const url = window.URL.createObjectURL(blob)
+    const link = window.document.createElement('a')
+    link.href = url
+    const rawTitle = document.value.title?.trim() || 'report'
+    const sanitized = rawTitle.replace(/[^a-zA-Z0-9-_]+/g, '_').replace(/^_+|_+$/g, '')
+    link.download = `${sanitized || 'report'}.pdf`
+    window.document.body.appendChild(link)
+    link.click()
+    window.document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Failed to export document:', error)
+    alert('Failed to export PDF. Please try again.')
   }
 }
 
