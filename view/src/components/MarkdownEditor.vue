@@ -130,6 +130,10 @@ import { onUnmounted, ref, watch, nextTick, computed } from 'vue'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Mention from '@tiptap/extension-mention'
+import { Table } from '@tiptap/extension-table'
+import { TableRow } from '@tiptap/extension-table-row'
+import { TableCell } from '@tiptap/extension-table-cell'
+import { TableHeader } from '@tiptap/extension-table-header'
 import { Markdown } from 'tiptap-markdown'
 import { QueryNode } from './editor/QueryNode'
 import { ChartNode } from './editor/ChartNode'
@@ -407,6 +411,15 @@ const buildExtensions = () => {
       transformPastedText: true,
       transformCopiedText: true
     }),
+    Table.configure({
+      resizable: false,
+      HTMLAttributes: {
+        class: 'markdown-table'
+      }
+    }),
+    TableRow,
+    TableCell,
+    TableHeader,
     QueryNode,
     ChartNode,
     AgentMentionNode,
@@ -452,7 +465,7 @@ const editor = useEditor({
   },
   onUpdate: ({ editor }) => {
     // Emit change immediately for parent to handle
-    const markdown = serializeToMarkdown(editor.state.doc)
+    const markdown = serializeToMarkdown(editor)
     if (markdown !== props.modelValue) {
       emit('update:modelValue', markdown)
     }
@@ -466,7 +479,7 @@ watch(
   (newValue) => {
     if (!editor.value) return
 
-    const currentMarkdown = serializeToMarkdown(editor.value.state.doc)
+    const currentMarkdown = serializeToMarkdown(editor.value)
     if (newValue !== currentMarkdown) {
       editor.value.commands.setContent(preprocessMarkdown(newValue))
     }
@@ -540,14 +553,21 @@ onUnmounted(() => {
   line-height: 1.75;
 }
 
-.tiptap-editor-content .ProseMirror ul,
+.tiptap-editor-content .ProseMirror ul {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+  list-style-type: disc;
+}
+
 .tiptap-editor-content .ProseMirror ol {
   margin-bottom: 1rem;
   padding-left: 1.5rem;
+  list-style-type: decimal;
 }
 
 .tiptap-editor-content .ProseMirror li {
   margin-bottom: 0.5rem;
+  display: list-item;
 }
 
 .tiptap-editor-content .ProseMirror code {
@@ -611,6 +631,31 @@ onUnmounted(() => {
   border-radius: 0.5rem;
 }
 
+/* Table styles */
+.tiptap-editor-content .ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.tiptap-editor-content .ProseMirror table td,
+.tiptap-editor-content .ProseMirror table th {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+  text-align: left;
+}
+
+.tiptap-editor-content .ProseMirror table th {
+  background-color: var(--muted);
+  font-weight: 600;
+}
+
+.tiptap-editor-content .ProseMirror table tr:hover {
+  background-color: var(--muted);
+}
+
 /* Custom mention dropdown positioning */
 
 /* Bubble menu styles */
@@ -658,14 +703,21 @@ onUnmounted(() => {
   margin-bottom: 0;
 }
 
-.compact-editor .tiptap-editor-content .ProseMirror ul,
+.compact-editor .tiptap-editor-content .ProseMirror ul {
+  margin-bottom: 0.375rem;
+  padding-left: 1.125rem;
+  list-style-type: disc;
+}
+
 .compact-editor .tiptap-editor-content .ProseMirror ol {
   margin-bottom: 0.375rem;
   padding-left: 1.125rem;
+  list-style-type: decimal;
 }
 
 .compact-editor .tiptap-editor-content .ProseMirror li {
   margin-bottom: 0.125rem;
+  display: list-item;
 }
 
 .compact-editor .tiptap-editor-content .ProseMirror code {
@@ -695,5 +747,16 @@ onUnmounted(() => {
 /* Placeholder styling for compact editor */
 .compact-editor .tiptap-editor-content .ProseMirror p.is-empty::before {
   font-size: 0.8125rem;
+}
+
+/* Compact table styles */
+.compact-editor .tiptap-editor-content .ProseMirror table {
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.compact-editor .tiptap-editor-content .ProseMirror table td,
+.compact-editor .tiptap-editor-content .ProseMirror table th {
+  padding: 0.25rem 0.5rem;
 }
 </style>
