@@ -235,6 +235,11 @@ class CatalogTool:
                     "urn": asset.urn,
                     "name": asset.name,
                     "status": asset.status or None,
+                    "description_preview": (
+                        asset.description[:100] + "..."
+                        if asset.description and len(asset.description) > 100
+                        else asset.description
+                    ),
                     "has_ai_suggestion": asset.ai_suggestion is not None,
                     "has_ai_suggested_tags": (
                         asset.ai_suggested_tags is not None
@@ -244,7 +249,7 @@ class CatalogTool:
 
                 results.append(asset_dict)
 
-        return yaml.dump({"assets": results})
+        return yaml.dump({"assets": results}, sort_keys=False)
 
     def search_assets(
         self,
