@@ -299,6 +299,7 @@ class CatalogTool:
 
         # Combine assets and terms into single result for backward compatibility
         results = {
+            "total_assets": results_dict["total_assets"],
             "assets": [
                 {
                     "id": asset["id"],
@@ -324,6 +325,7 @@ class CatalogTool:
                 }
                 for asset in results_dict["assets"]
             ],
+            "total_terms": results_dict["total_terms"],
             "terms": [
                 {
                     "id": term["id"],

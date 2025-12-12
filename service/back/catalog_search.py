@@ -11,7 +11,7 @@ understanding multi-word queries and word variations.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
 from sqlalchemy import func, or_
@@ -145,7 +145,7 @@ def search_assets(
         List of matching assets as dictionaries with id, name, type, etc.
     """
     is_postgresql = get_dialect_name(session) == "postgresql"
-    assets = _execute_asset_search(
+    assets, _ = _execute_asset_search(
         session,
         database_id,
         text,
@@ -169,11 +169,11 @@ def search_assets_and_terms(
     limit: int = 50,
     statuses: Optional[List[str]] = None,
     parent_asset_id: Optional[str] = None,
-) -> Dict[str, List[Dict[str, Any]]]:
+) -> Dict[str, Any]:
     """
     Search both catalog assets and terms. Used by chat tools.
 
-    Returns both assets and terms in a structured dictionary.
+    Returns both assets and terms in a structured dictionary with total counts.
 
     Args:
         session: SQLAlchemy session
@@ -185,17 +185,21 @@ def search_assets_and_terms(
         parent_asset_id: Optional filter to find children of a specific asset (e.g., columns within a table)
 
     Returns:
-        Dictionary with "assets" and "terms" keys containing matching results
+        Dictionary with "assets", "terms", "total_assets", and "total_terms" keys
     """
     is_postgresql = get_dialect_name(session) == "postgresql"
 
-    assets = []
-    terms = []
+    assets: List[Asset] = []
+    terms: List[Term] = []
+    total_assets = 0
+    total_terms = 0
 
     if asset_type == "TERM":
-        terms = _execute_term_search(session, database_id, text, limit, is_postgresql)
+        terms, total_terms = _execute_term_search(
+            session, database_id, text, limit, is_postgresql
+        )
     else:
-        assets = _execute_asset_search(
+        assets, total_assets = _execute_asset_search(
             session,
             database_id,
             text,
@@ -208,7 +212,7 @@ def search_assets_and_terms(
 
         # If no specific asset type filter, also search terms
         if asset_type is None:
-            terms = _execute_term_search(
+            terms, total_terms = _execute_term_search(
                 session, database_id, text, limit, is_postgresql
             )
 
@@ -221,6 +225,8 @@ def search_assets_and_terms(
             _format_asset_result(asset, column_counts.get(asset.id)) for asset in assets
         ],
         "terms": [_format_term_result(term) for term in terms],
+        "total_assets": total_assets,
+        "total_terms": total_terms,
     }
 
 
@@ -234,8 +240,12 @@ def _execute_postgresql_search(
     statuses: Optional[List[str]],
     has_ai_suggestion: Optional[bool] = None,
     parent_asset_id: Optional[str] = None,
-) -> List[Asset]:
-    """Execute PostgreSQL asset search with optional text matching."""
+) -> Tuple[List[Asset], int]:
+    """Execute PostgreSQL asset search with optional text matching.
+
+    Returns:
+        Tuple of (list of matching assets, total count before limit applied)
+    """
     similarity_threshold = 0.3
 
     # Build base query
@@ -259,10 +269,13 @@ def _execute_postgresql_search(
         )
         query = query.order_by(Asset.name.asc())
 
+        # Get total count before applying limit
+        total = query.count()
+
         if limit is not None:
             query = query.limit(limit)
 
-        return query.all()
+        return query.all(), total
 
     # Text search with similarity scoring
     tsquery = func.plainto_tsquery("english", text)
@@ -300,11 +313,14 @@ def _execute_postgresql_search(
     )
     query = query.order_by(similarity_score.desc(), Asset.name.asc())
 
+    # Get total count before applying limit
+    total = query.count()
+
     if limit is not None:
         query = query.limit(limit)
 
     results = query.all()
-    return [asset for asset, _ in results]
+    return [asset for asset, _ in results], total
 
 
 def _execute_asset_search(
@@ -318,7 +334,7 @@ def _execute_asset_search(
     statuses: Optional[List[str]] = None,
     has_ai_suggestion: Optional[bool] = None,
     parent_asset_id: Optional[str] = None,
-) -> List[Asset]:
+) -> Tuple[List[Asset], int]:
     """
     Execute asset search with fuzzy matching support.
 
@@ -338,7 +354,7 @@ def _execute_asset_search(
         parent_asset_id: Optional filter to find children of a specific asset
 
     Returns:
-        List of Asset model instances
+        Tuple of (list of Asset model instances, total count before limit applied)
     """
 
     if is_postgresql:
@@ -377,9 +393,12 @@ def _execute_asset_search(
         query, asset_type, tag_ids, statuses, has_ai_suggestion, parent_asset_id
     )
 
+    # Get total count before applying limit
+    total = query.count()
+
     if limit is not None:
-        return query.limit(limit).all()
-    return query.all()
+        return query.limit(limit).all(), total
+    return query.all(), total
 
 
 def _execute_term_search(
@@ -388,7 +407,7 @@ def _execute_term_search(
     text: str,
     limit: int,
     is_postgresql: bool,
-) -> List[Term]:
+) -> Tuple[List[Term], int]:
     """
     Execute term search with fuzzy matching support.
 
@@ -403,7 +422,7 @@ def _execute_term_search(
         is_postgresql: Whether using PostgreSQL
 
     Returns:
-        List of Term model instances
+        Tuple of (list of Term model instances, total count before limit applied)
     """
     if is_postgresql:
         similarity_threshold = 0.3
@@ -435,11 +454,14 @@ def _execute_term_search(
             )
         )
 
+        # Get total count before applying limit
+        total = query.count()
+
         results = (
             query.order_by(similarity_score.desc(), Term.name.asc()).limit(limit).all()
         )
 
-        return [term for term, _ in results]
+        return [term for term, _ in results], total
 
     # SQLite: Simple ILIKE query without fuzzy matching
     else:
@@ -449,7 +471,10 @@ def _execute_term_search(
             .filter(Term.name.ilike(f"%{text}%") | Term.definition.ilike(f"%{text}%"))
         )
 
-        return query.limit(limit).all()
+        # Get total count before applying limit
+        total = query.count()
+
+        return query.limit(limit).all(), total
 
 
 def _get_column_counts_for_tables(
