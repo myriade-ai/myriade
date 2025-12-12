@@ -10,6 +10,17 @@
         <Button variant="outline" size="sm" @click="toggleShowArchived">
           {{ showArchived ? 'Hide Archived' : 'Show Archived' }}
         </Button>
+        <Button size="sm" @click="openCreateModal">
+          <svg class="-ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          New Report
+        </Button>
       </div>
 
       <div v-if="documentsQuery.isPending.value" class="mt-4 text-center">
@@ -33,10 +44,7 @@
             Start a chat and ask the AI to create a report for you!
           </p>
           <div class="mt-6">
-            <RouterLink
-              to="/chat/new"
-              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-primary-foreground bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-            >
+            <Button @click="openCreateModal">
               <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   stroke-linecap="round"
@@ -46,7 +54,7 @@
                 />
               </svg>
               Create your first report
-            </RouterLink>
+            </Button>
           </div>
         </div>
 
@@ -116,12 +124,50 @@
       </div>
     </div>
   </div>
+
+  <!-- Create Document Modal -->
+  <Dialog v-model:open="showCreateModal">
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Create New Report</DialogTitle>
+      </DialogHeader>
+
+      <form @submit.prevent="createDocument" class="space-y-4">
+        <div>
+          <Label for="docTitle">Report Title</Label>
+          <Input
+            id="docTitle"
+            v-model="newDocumentTitle"
+            placeholder="Enter report title"
+            required
+            class="mt-1"
+            autofocus
+          />
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" @click="showCreateModal = false"> Cancel </Button>
+          <Button type="submit" :disabled="!newDocumentTitle.trim() || isCreating">
+            {{ isCreating ? 'Creating...' : 'Create Report' }}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
 import PageHeader from '@/components/PageHeader.vue'
 import Button from '@/components/ui/button/Button.vue'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
 import Input from '@/components/ui/input/Input.vue'
+import Label from '@/components/ui/label/Label.vue'
 import Table from '@/components/ui/table/Table.vue'
 import TableBody from '@/components/ui/table/TableBody.vue'
 import TableCell from '@/components/ui/table/TableCell.vue'
@@ -129,15 +175,20 @@ import TableHead from '@/components/ui/table/TableHead.vue'
 import TableHeader from '@/components/ui/table/TableHeader.vue'
 import TableRow from '@/components/ui/table/TableRow.vue'
 import { useDocumentsQuery } from '@/composables/useDocumentsQuery'
+import { useContextsStore } from '@/stores/contexts'
 import { useDocumentsStore } from '@/stores/documents'
 import { FileText as FileTextIcon } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
+const contextsStore = useContextsStore()
 const documentsStore = useDocumentsStore()
 const router = useRouter()
 const searchQuery = ref('')
 const showArchived = ref(false)
+const showCreateModal = ref(false)
+const newDocumentTitle = ref('')
+const isCreating = ref(false)
 
 // Use TanStack Query - automatically refetches when context changes
 const documentsQuery = useDocumentsQuery(showArchived)
@@ -199,5 +250,28 @@ const formatDate = (dateString: string): string => {
   if (days === 1) return 'yesterday'
   if (days < 7) return `${days} days ago`
   return date.toLocaleDateString()
+}
+
+const openCreateModal = () => {
+  newDocumentTitle.value = ''
+  showCreateModal.value = true
+}
+
+const createDocument = async () => {
+  const databaseId = contextsStore.getSelectedContextDatabaseId()
+  if (!databaseId || !newDocumentTitle.value.trim()) return
+
+  isCreating.value = true
+  try {
+    const newDoc = await documentsStore.createDocument(databaseId, newDocumentTitle.value.trim())
+    showCreateModal.value = false
+    newDocumentTitle.value = ''
+    router.push(`/documents/${newDoc.id}`)
+  } catch (err) {
+    console.error('Failed to create document:', err)
+    alert('Failed to create document. Please try again.')
+  } finally {
+    isCreating.value = false
+  }
 }
 </script>
