@@ -409,10 +409,11 @@ const buildExtensions = () => {
     Markdown.configure({
       html: true, // Allow HTML (needed for our custom nodes)
       transformPastedText: true,
-      transformCopiedText: true
+      transformCopiedText: false
     }),
     Table.configure({
       resizable: false,
+      allowTableNodeSelection: true,
       HTMLAttributes: {
         class: 'markdown-table'
       }
@@ -452,7 +453,7 @@ const editor = useEditor({
   content: preprocessMarkdown(props.modelValue),
   editorProps: {
     attributes: {
-      class: `prose prose-sm max-w-none focus:outline-none min-h-[${props.minHeight}] ${props.compact ? 'p-3' : 'p-4'} rounded-lg`
+      class: `prose prose-sm max-w-none focus:outline-none min-h-[${props.minHeight}] ${props.compact ? 'p-3' : 'p-2 sm:p-4'} rounded-lg`
     },
     handleKeyDown: (_view, event) => {
       // Handle Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux) to submit
@@ -507,8 +508,15 @@ onUnmounted(() => {
 
 <style>
 /* Tiptap editor styles */
+.tiptap-editor-content {
+  max-width: 100%;
+}
+
 .tiptap-editor-content .ProseMirror {
   outline: none;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 .tiptap-editor-content .ProseMirror p.is-empty::before {
@@ -527,7 +535,7 @@ onUnmounted(() => {
 .tiptap-editor-content .ProseMirror h1 {
   font-size: 1.875rem;
   font-weight: 700;
-  margin-top: 2rem;
+  margin-top: 1rem;
   margin-bottom: 1rem;
   line-height: 1.2;
 }
@@ -631,29 +639,87 @@ onUnmounted(() => {
   border-radius: 0.5rem;
 }
 
+/* Custom node wrappers */
+.tiptap-editor-content .ProseMirror .chart-node-wrapper,
+.tiptap-editor-content .ProseMirror .query-node-wrapper {
+  max-width: 100%;
+}
+
 /* Table styles */
-.tiptap-editor-content .ProseMirror table {
+/* Wrap tables in a scrollable container */
+.tiptap-editor-content .ProseMirror .tableWrapper {
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.tiptap-editor-content .ProseMirror table.markdown-table {
   border-collapse: collapse;
+  table-layout: fixed;
   width: 100%;
-  margin-bottom: 1rem;
+  margin: 0;
   overflow: hidden;
 }
 
-.tiptap-editor-content .ProseMirror table td,
-.tiptap-editor-content .ProseMirror table th {
+.tiptap-editor-content .ProseMirror table.markdown-table td,
+.tiptap-editor-content .ProseMirror table.markdown-table th {
   border: 1px solid var(--border);
   padding: 0.5rem 0.75rem;
   vertical-align: top;
   text-align: left;
+  box-sizing: border-box;
+  min-width: 1em;
+  position: relative;
 }
 
-.tiptap-editor-content .ProseMirror table th {
+.tiptap-editor-content .ProseMirror table.markdown-table th {
   background-color: var(--muted);
   font-weight: 600;
 }
 
-.tiptap-editor-content .ProseMirror table tr:hover {
-  background-color: var(--muted);
+/* Table cell selection */
+.tiptap-editor-content .ProseMirror table.markdown-table .selectedCell:after {
+  background: rgba(59, 130, 246, 0.2);
+  content: '';
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+/* Table node selection - when whole table is selected */
+.tiptap-editor-content .ProseMirror table.markdown-table.ProseMirror-selectednode {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Gapcursor styles */
+.tiptap-editor-content .ProseMirror .ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+}
+
+.tiptap-editor-content .ProseMirror .ProseMirror-gapcursor:after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid var(--foreground);
+  animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes ProseMirror-cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
 }
 
 /* Custom mention dropdown positioning */
