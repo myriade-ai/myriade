@@ -2495,6 +2495,54 @@ def list_documents(database_id: UUID):
     return jsonify([doc.to_dict() for doc in documents])
 
 
+@api.route("/databases/<uuid:database_id>/documents", methods=["POST"])
+@user_middleware
+def create_document(database_id: UUID):
+    """Create a new empty document."""
+    database = g.session.query(Database).filter_by(id=database_id).first()
+    if not database:
+        return jsonify({"error": "Database not found"}), 404
+
+    # Verify user has access
+    if not (
+        database.ownerId == g.user.id
+        or (
+            database.organisationId is not None
+            and database.organisationId == g.organization_id
+        )
+        or database.public
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    body = request.get_json(silent=True) or {}
+    title = body.get("title", "Untitled Report")
+
+    # Create the document
+    document = Document(
+        title=title,
+        content="",
+        database_id=database_id,
+        organisation_id=database.organisationId,
+        created_by=g.user.id,
+        updated_by=g.user.id,
+    )
+    g.session.add(document)
+    g.session.flush()
+
+    # Create initial version
+    version = DocumentVersion(
+        document_id=document.id,
+        content="",
+        version_number=1,
+        created_by=g.user.id,
+        change_description="Initial version",
+    )
+    g.session.add(version)
+    g.session.commit()
+
+    return jsonify(document.to_dict()), 201
+
+
 @api.route("/documents/<uuid:document_id>", methods=["GET"])
 @user_middleware
 def get_document(document_id: UUID):

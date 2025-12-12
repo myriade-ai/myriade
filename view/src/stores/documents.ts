@@ -32,6 +32,11 @@ export const useDocumentsStore = defineStore('documents', () => {
     return response.data
   }
 
+  const createDocument = async (databaseId: string, title: string): Promise<Document> => {
+    const response = await axios.post(`/api/databases/${databaseId}/documents`, { title })
+    return response.data
+  }
+
   // Panel management
   const openDocument = (documentId: string): void => {
     currentDocumentId.value = documentId
@@ -49,6 +54,7 @@ export const useDocumentsStore = defineStore('documents', () => {
     isDocumentPanelOpen,
 
     // Mutations (server updates)
+    createDocument,
     updateDocument,
     deleteDocument,
     archiveDocument,
