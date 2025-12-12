@@ -5,14 +5,14 @@
       sticky && 'sticky top-0 z-10'
     ]"
   >
-    <SidebarTrigger class="md:hidden -ml-1" />
-    <div class="flex gap-2 items-baseline flex-1">
-      <h1 class="text-xl">{{ title }}</h1>
-      <p v-if="subtitle" class="hidden md:block text-sm text-muted-foreground">
+    <SidebarTrigger class="md:hidden -ml-1 shrink-0" />
+    <div class="flex gap-2 items-baseline flex-1 min-w-0">
+      <h1 class="text-xl truncate">{{ title }}</h1>
+      <p v-if="subtitle" class="hidden md:block text-sm text-muted-foreground whitespace-nowrap">
         {{ subtitle }}
       </p>
     </div>
-    <div v-if="$slots.actions" class="flex items-center gap-2">
+    <div v-if="$slots.actions" class="flex items-center gap-2 shrink-0">
       <slot name="actions" />
     </div>
   </header>

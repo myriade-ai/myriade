@@ -64,6 +64,7 @@ const sanitizedHtml = computed(() => {
   /* Inherit font-size from parent for flexibility */
   font-size: inherit;
   line-height: 1.5;
+  max-width: 100%;
 
   h1 {
     font-size: 1.25em;
@@ -111,13 +112,23 @@ const sanitizedHtml = computed(() => {
     color: var(--primary);
   }
   table {
-    width: 100%;
+    display: block;
     border-collapse: collapse;
     margin-bottom: 0.75rem;
     font-size: 0.9375em;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  thead,
+  tbody {
+    display: table;
+  }
+  tr {
+    display: table-row;
   }
   th,
   td {
+    display: table-cell;
     border: 1px solid var(--border);
     padding: 0.375rem 0.5rem;
   }
