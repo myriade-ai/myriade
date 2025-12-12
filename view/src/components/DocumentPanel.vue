@@ -1,210 +1,197 @@
 <template>
-  <!-- Backdrop overlay -->
-  <Transition name="fade">
-    <div
-      v-if="documentsStore.isDocumentPanelOpen"
-      class="fixed inset-0 bg-black opacity-30 z-40"
-      @click="documentsStore.closeDocument()"
-    ></div>
-  </Transition>
-
-  <!-- Side panel -->
-  <Transition name="slide">
-    <div
-      v-if="documentsStore.isDocumentPanelOpen && document"
-      class="fixed right-0 top-0 bottom-0 w-[600px] bg-card shadow-2xl z-50 flex flex-col"
-    >
-      <!-- Header -->
-      <div class="flex items-center justify-between p-4 border-b bg-muted">
-        <input
-          v-if="isEditingTitle"
-          v-model="editedTitle"
-          @blur="saveTitle"
-          @keydown.enter="saveTitle"
-          @keydown.escape="cancelTitleEdit"
-          class="text-xl font-semibold flex-1 mr-4 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          autofocus
-        />
-        <h2 v-else class="text-xl font-semibold flex-1 mr-4 cursor-pointer" @click="startTitleEdit">
-          {{ document.title || 'Untitled Report' }}
-        </h2>
-
-        <div class="flex items-center gap-2">
-          <!-- Save button -->
-          <button
-            v-if="!viewingVersion && !showVersionHistory"
-            @click="saveDocument"
-            :disabled="!hasUnsavedChanges || isSaving"
-            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
-            :class="
-              hasUnsavedChanges && !isSaving
-                ? 'bg-primary-600 text-white hover:bg-primary-700'
-                : 'bg-muted text-muted-foreground cursor-not-allowed'
-            "
-            title="Save changes"
-          >
-            <span v-if="isSaving" class="flex items-center gap-2">
-              <Loader2 class="animate-spin h-4 w-4" />
-              Saving...
-            </span>
-            <span v-else>{{ hasUnsavedChanges ? 'Save' : 'Saved' }}</span>
-          </button>
-
-          <!-- Export dropdown -->
-          <PdfExportDropdown
-            v-if="document && documentsStore.currentDocumentId"
-            :document-id="documentsStore.currentDocumentId"
-            :document-title="document.title || undefined"
-          >
-            <template #trigger>
-              <button
-                class="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted rounded-md transition-colors flex items-center gap-2"
-              >
-                <span>Export</span>
-              </button>
-            </template>
-          </PdfExportDropdown>
-
-          <!-- Version history button -->
-          <button
-            @click="toggleVersionHistory"
-            class="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted rounded-md transition-colors"
-            title="Version History"
-          >
-            <Clock class="w-5 h-5" />
-          </button>
-
-          <!-- Close button -->
-          <button
-            @click="documentsStore.closeDocument()"
-            class="p-1.5 text-muted-foreground hover:text-muted-foreground hover:bg-muted rounded-md transition-colors"
-          >
-            <X class="w-6 h-6" />
-          </button>
-        </div>
-      </div>
-
-      <!-- Content area -->
-      <div class="flex-1 overflow-y-auto p-6">
-        <!-- Warning banner when viewing a historical version -->
-        <div
-          v-if="viewingVersion && !showVersionHistory"
-          class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg"
+  <Sheet :open="documentsStore.isDocumentPanelOpen" @update:open="handleOpenChange">
+    <SheetContent side="right" class="w-[600px] sm:max-w-[600px] p-0 flex flex-col">
+      <template v-if="document">
+        <!-- Header -->
+        <SheetHeader
+          class="flex-row items-center justify-between border-b bg-muted space-y-0 pr-12"
         >
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <AlertTriangle class="w-5 h-5 text-amber-600" />
-              <span class="text-sm font-medium text-amber-800">
-                Viewing version {{ viewingVersion.versionNumber }} ({{
-                  formatDate(viewingVersion.createdAt)
-                }})
-              </span>
-            </div>
-            <button
-              @click="viewCurrentVersion"
-              class="text-sm text-amber-700 hover:text-amber-900 underline"
+          <input
+            v-if="isEditingTitle"
+            v-model="editedTitle"
+            @blur="saveTitle"
+            @keydown.enter="saveTitle"
+            @keydown.escape="cancelTitleEdit"
+            class="text-xl font-semibold flex-1 mr-4 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autofocus
+          />
+          <SheetTitle v-else class="text-xl flex-1 mr-4 cursor-pointer" @click="startTitleEdit">
+            {{ document.title || 'Untitled Report' }}
+          </SheetTitle>
+
+          <div class="flex items-center">
+            <Button
+              v-if="documentsStore.currentDocumentId"
+              @click="openFullPage"
+              title="Open in full page"
+              size="icon"
+              variant="ghost"
             >
-              Back to current version
+              <ExternalLink class="w-5 h-5" />
+            </Button>
+
+            <PdfExportDropdown
+              v-if="documentsStore.currentDocumentId"
+              :document-id="documentsStore.currentDocumentId"
+              :document-title="document.title || undefined"
+            >
+              <template #trigger>
+                <Button variant="ghost" size="icon" title="Download PDF">
+                  <Download />
+                </Button>
+              </template>
+            </PdfExportDropdown>
+
+            <Button
+              @click="toggleVersionHistory"
+              title="Version History"
+              size="icon"
+              variant="ghost"
+            >
+              <Clock class="w-5 h-5" />
+            </Button>
+
+            <Button
+              v-if="!viewingVersion && !showVersionHistory"
+              @click="saveDocument"
+              :disabled="!hasUnsavedChanges || isSaving"
+              title="Save changes"
+              :variant="hasUnsavedChanges && !isSaving ? 'default' : 'ghost'"
+            >
+              <span v-if="isSaving" class="flex items-center gap-2">
+                <Loader2 class="animate-spin h-4 w-4" />
+                Saving...
+              </span>
+              <span v-else>{{ hasUnsavedChanges ? 'Save' : 'Saved' }}</span>
+            </Button>
+          </div>
+        </SheetHeader>
+
+        <!-- Content area -->
+        <div class="flex-1 overflow-y-auto p-6">
+          <!-- Warning banner when viewing a historical version -->
+          <div
+            v-if="viewingVersion && !showVersionHistory"
+            class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg"
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <AlertTriangle class="w-5 h-5 text-amber-600" />
+                <span class="text-sm font-medium text-amber-800">
+                  Viewing version {{ viewingVersion.versionNumber }} ({{
+                    formatDate(viewingVersion.createdAt)
+                  }})
+                </span>
+              </div>
+              <button
+                @click="viewCurrentVersion"
+                class="text-sm text-amber-700 hover:text-amber-900 underline"
+              >
+                Back to current version
+              </button>
+            </div>
+          </div>
+
+          <!-- Version History View -->
+          <div v-if="showVersionHistory" class="space-y-4">
+            <h3 class="text-lg font-semibold mb-4">Version History</h3>
+            <div v-if="versions.length === 0" class="text-center text-muted-foreground py-8">
+              Loading versions...
+            </div>
+            <div v-else class="space-y-3">
+              <div
+                v-for="version in versions"
+                :key="version.id"
+                class="border rounded-lg p-4 hover:bg-muted cursor-pointer"
+                @click="viewVersion(version)"
+              >
+                <div class="flex items-center justify-between mb-2">
+                  <span class="font-medium text-foreground"
+                    >Version {{ version.versionNumber }}</span
+                  >
+                  <span class="text-xs text-muted-foreground">{{
+                    formatDate(version.createdAt)
+                  }}</span>
+                </div>
+                <p v-if="version.changeDescription" class="text-sm text-muted-foreground">
+                  {{ version.changeDescription }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Unified Editor/Viewer (Notion-like) -->
+          <div v-else-if="!viewingVersion">
+            <MarkdownEditor
+              :model-value="document.content"
+              @update:model-value="handleContentChange"
+              :disabled="false"
+              :document-id="documentsStore.currentDocumentId || undefined"
+              placeholder="Start writing... Use @ to mention queries or charts"
+              :enable-query-mentions="true"
+              :enable-chart-mentions="true"
+            />
+          </div>
+
+          <!-- Historical Version View (read-only) -->
+          <div v-else class="prose max-w-none">
+            <template v-for="(part, index) in parsedContent" :key="index">
+              <MarkdownDisplay
+                v-if="part.type === 'markdown' && part.content"
+                :content="part.content"
+              />
+              <div v-if="part.type === 'query' && part.query_id" class="my-4">
+                <Card class="p-0 pb-3.5 pt-1">
+                  <CardContent>
+                    <BaseEditorPreview :queryId="part.query_id" />
+                  </CardContent>
+                </Card>
+              </div>
+              <div v-if="part.type === 'chart' && part.chart_id" class="my-4">
+                <Card class="p-0 pb-3.5 pt-1">
+                  <CardContent>
+                    <Chart :chartId="part.chart_id" />
+                  </CardContent>
+                </Card>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <SheetFooter class="border-t bg-muted flex-row items-center justify-between mt-0">
+          <div class="text-sm text-muted-foreground">
+            <span v-if="showVersionHistory">{{ versions.length }} versions</span>
+            <span v-else-if="viewingVersion">
+              Version {{ viewingVersion.versionNumber }} -
+              {{ formatDate(viewingVersion.createdAt) }}
+            </span>
+            <span v-else-if="hasUnsavedChanges" class="text-amber-600 font-medium">
+              Unsaved changes
+            </span>
+            <span v-else> Updated {{ formatDate(document.updatedAt) }} </span>
+          </div>
+
+          <div class="flex gap-2">
+            <button
+              v-if="showVersionHistory"
+              @click="backToDocument"
+              class="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-md transition-colors"
+            >
+              Back to Document
+            </button>
+            <button
+              v-else-if="viewingVersion"
+              @click="viewCurrentVersion"
+              class="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-md transition-colors"
+            >
+              Current Version
             </button>
           </div>
-        </div>
-
-        <!-- Version History View -->
-        <div v-if="showVersionHistory" class="space-y-4">
-          <h3 class="text-lg font-semibold mb-4">Version History</h3>
-          <div v-if="versions.length === 0" class="text-center text-muted-foreground py-8">
-            Loading versions...
-          </div>
-          <div v-else class="space-y-3">
-            <div
-              v-for="version in versions"
-              :key="version.id"
-              class="border rounded-lg p-4 hover:bg-muted cursor-pointer"
-              @click="viewVersion(version)"
-            >
-              <div class="flex items-center justify-between mb-2">
-                <span class="font-medium text-foreground">Version {{ version.versionNumber }}</span>
-                <span class="text-xs text-muted-foreground">{{
-                  formatDate(version.createdAt)
-                }}</span>
-              </div>
-              <p v-if="version.changeDescription" class="text-sm text-muted-foreground">
-                {{ version.changeDescription }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Unified Editor/Viewer (Notion-like) -->
-        <div v-else-if="!viewingVersion">
-          <MarkdownEditor
-            :model-value="document.content"
-            @update:model-value="handleContentChange"
-            :disabled="false"
-            :document-id="documentsStore.currentDocumentId || undefined"
-            placeholder="Start writing... Use @ to mention queries or charts"
-            :enable-query-mentions="true"
-            :enable-chart-mentions="true"
-          />
-        </div>
-
-        <!-- Historical Version View (read-only) -->
-        <div v-else class="prose max-w-none">
-          <template v-for="(part, index) in parsedContent" :key="index">
-            <MarkdownDisplay
-              v-if="part.type === 'markdown' && part.content"
-              :content="part.content"
-            />
-            <div v-if="part.type === 'query' && part.query_id" class="my-4">
-              <Card class="p-0 pb-3.5 pt-1">
-                <CardContent>
-                  <BaseEditorPreview :queryId="part.query_id" />
-                </CardContent>
-              </Card>
-            </div>
-            <div v-if="part.type === 'chart' && part.chart_id" class="my-4">
-              <Card class="p-0 pb-3.5 pt-1">
-                <CardContent>
-                  <Chart :chartId="part.chart_id" />
-                </CardContent>
-              </Card>
-            </div>
-          </template>
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <div class="border-t p-4 bg-muted flex items-center justify-between">
-        <div class="text-sm text-muted-foreground">
-          <span v-if="showVersionHistory">{{ versions.length }} versions</span>
-          <span v-else-if="viewingVersion">
-            Version {{ viewingVersion.versionNumber }} - {{ formatDate(viewingVersion.createdAt) }}
-          </span>
-          <span v-else-if="hasUnsavedChanges" class="text-amber-600 font-medium">
-            Unsaved changes
-          </span>
-          <span v-else> Updated {{ formatDate(document.updatedAt) }} </span>
-        </div>
-
-        <div class="flex gap-2">
-          <button
-            v-if="showVersionHistory"
-            @click="backToDocument"
-            class="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-md transition-colors"
-          >
-            Back to Document
-          </button>
-          <button
-            v-else-if="viewingVersion"
-            @click="viewCurrentVersion"
-            class="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-md transition-colors"
-          >
-            Current Version
-          </button>
-        </div>
-      </div>
-    </div>
-  </Transition>
+        </SheetFooter>
+      </template>
+    </SheetContent>
+  </Sheet>
 </template>
 
 <script setup lang="ts">
@@ -214,13 +201,16 @@ import MarkdownDisplay from '@/components/MarkdownDisplay.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import PdfExportDropdown from '@/components/PdfExportDropdown.vue'
 import { Card, CardContent } from '@/components/ui/card'
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useDocumentQuery, useDocumentVersionsQuery } from '@/composables/useDocumentsQuery'
 import type { DocumentVersion } from '@/stores/conversations'
 import { useDocumentsStore } from '@/stores/documents'
-import { AlertTriangle, Clock, Loader2, X } from 'lucide-vue-next'
+import { AlertTriangle, Clock, Download, ExternalLink, Loader2 } from 'lucide-vue-next'
 import { computed, ref, toRef, watch } from 'vue'
-
+import { useRouter } from 'vue-router'
+import { Button } from './ui/button'
 const documentsStore = useDocumentsStore()
+const router = useRouter()
 
 // Reactive state
 const isSaving = ref(false)
@@ -392,6 +382,12 @@ const saveTitle = async () => {
   }
 }
 
+const handleOpenChange = (open: boolean) => {
+  if (!open) {
+    documentsStore.closeDocument()
+  }
+}
+
 const toggleVersionHistory = () => {
   // Simply toggle - TanStack Query will handle fetching if needed
   showVersionHistory.value = !showVersionHistory.value
@@ -414,6 +410,13 @@ const backToDocument = () => {
   viewingVersion.value = null
 }
 
+const openFullPage = () => {
+  if (documentsStore.currentDocumentId) {
+    router.push(`/documents/${documentsStore.currentDocumentId}`)
+    documentsStore.closeDocument()
+  }
+}
+
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString)
   const now = new Date()
@@ -428,27 +431,6 @@ const formatDate = (dateString: string): string => {
 </script>
 
 <style scoped>
-/* Transition animations */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.slide-enter-active,
-.slide-leave-active {
-  transition: transform 0.3s ease;
-}
-
-.slide-enter-from,
-.slide-leave-to {
-  transform: translateX(100%);
-}
-
 /* Prose styles for markdown rendering */
 .prose {
   color: var(--foreground);
