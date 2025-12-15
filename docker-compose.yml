@@ -13,7 +13,6 @@ services:
       - myriade-network
 
   myriade:
-    build: .
     image: myriadeai/myriade:latest
     depends_on:
       - db
