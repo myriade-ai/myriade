@@ -1,5 +1,5 @@
 <div align="center">
-  <img width="128px" src="https://framerusercontent.com/images/1nUFUimyxNyoPcSeeeLogtx4CA.svg" />
+  <img width="128px" src="https://www.myriade.ai/icon.svg" />
 
 # Myriade – The AI-Native Data Platform
 
