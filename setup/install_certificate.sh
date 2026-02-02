@@ -207,11 +207,11 @@ update_env_host() {
         fi
         print_message "Updated HOST in .env file"
 
-        # Restart containers to pick up new HOST value
-        print_message "Restarting Myriade to apply new domain..."
+        # Recreate containers to pick up new HOST value (.env changes require down/up, not restart)
+        print_message "Recreating Myriade to apply new domain..."
         cd "$INSTALL_DIR"
-        if sudo docker compose restart myriade > /dev/null 2>&1; then
-            print_message "Myriade restarted successfully"
+        if sudo docker compose up -d --force-recreate myriade > /dev/null 2>&1; then
+            print_message "Myriade recreated successfully with new HOST"
         fi
     fi
 }
