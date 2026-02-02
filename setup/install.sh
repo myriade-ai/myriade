@@ -22,27 +22,23 @@ print_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
-# Check if domain name is provided
-if [ $# -eq 0 ]; then
-    print_error "Please provide a domain name."
-    echo "Usage: $0 <domain_name>"
-    echo ""
-    echo "Example:"
-    echo "  $0 myriade.entreprise.com"
-    exit 1
-fi
-
-# Set the domain name from the first argument
-DOMAIN_NAME="$1"
+# Domain name is optional
+DOMAIN_NAME="${1:-}"
 SSL_SUCCESS=false
+SETUP_SSL=false
 
-# Validate domain name format
-if ! [[ "$DOMAIN_NAME" =~ ^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
-    print_error "Invalid domain name format: $DOMAIN_NAME"
-    exit 1
+# Validate domain name format if provided
+if [ -n "$DOMAIN_NAME" ]; then
+    if ! [[ "$DOMAIN_NAME" =~ ^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
+        print_error "Invalid domain name format: $DOMAIN_NAME"
+        exit 1
+    fi
+    SETUP_SSL=true
+    print_message "Starting Myriade BI installation for domain: $DOMAIN_NAME"
+else
+    print_message "Starting Myriade BI installation (no domain specified)"
+    print_warning "SSL will not be configured. Access via http://SERVER_IP:8080"
 fi
-
-print_message "Starting Myriade BI installation for domain: $DOMAIN_NAME"
 echo ""
 
 # Check if running as root
@@ -160,16 +156,25 @@ fi
 print_message "Installing Nginx..."
 sudo apt install -y nginx
 
-# Create initial HTTP nginx configuration (so app is accessible before SSL setup)
+# Create initial HTTP nginx configuration
 print_message "Configuring Nginx for HTTP access..."
 sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+
+# Determine listen port and server_name based on whether domain is provided
+if [ -n "$DOMAIN_NAME" ]; then
+    NGINX_LISTEN="80"
+    NGINX_SERVER_NAME="$DOMAIN_NAME"
+else
+    NGINX_LISTEN="8080"
+    NGINX_SERVER_NAME="_"  # Catch-all server name
+fi
 
 sudo tee /etc/nginx/sites-available/myriade > /dev/null <<EOF
 # HTTP server for Myriade BI
 server {
-    listen 80;
-    listen [::]:80;
-    server_name ${DOMAIN_NAME};
+    listen ${NGINX_LISTEN};
+    listen [::]:${NGINX_LISTEN};
+    server_name ${NGINX_SERVER_NAME};
 
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
@@ -258,7 +263,7 @@ cat > .env << EOF
 POSTGRES_DB=${POSTGRES_DB:-myriade}
 POSTGRES_USER=${POSTGRES_USER:-myriade}
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-HOST=${DOMAIN_NAME}
+HOST=${DOMAIN_NAME:-}
 CREDENTIAL_ENCRYPTION_KEY=${CREDENTIAL_ENCRYPTION_KEY}
 EOF
 
@@ -293,20 +298,22 @@ done
 
 echo ""
 
-# Run SSL certificate installation
-print_message "Starting SSL certificate setup..."
-echo ""
+# Run SSL certificate installation only if domain was provided
+if [ "$SETUP_SSL" = true ]; then
+    print_message "Starting SSL certificate setup..."
+    echo ""
 
-if [ -f "${INSTALL_DIR}/setup/install_certificate.sh" ]; then
-    if bash "${INSTALL_DIR}/setup/install_certificate.sh" "${DOMAIN_NAME}"; then
-        SSL_SUCCESS=true
+    if [ -f "${INSTALL_DIR}/setup/install_certificate.sh" ]; then
+        if bash "${INSTALL_DIR}/setup/install_certificate.sh" "${DOMAIN_NAME}"; then
+            SSL_SUCCESS=true
+        else
+            SSL_SUCCESS=false
+            print_warning "SSL certificate setup did not complete successfully"
+        fi
     else
+        print_error "Certificate installation script not found"
         SSL_SUCCESS=false
-        print_warning "SSL certificate setup did not complete successfully"
     fi
-else
-    print_error "Certificate installation script not found"
-    SSL_SUCCESS=false
 fi
 
 # Print success message
@@ -318,7 +325,23 @@ echo "║                                                                ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 
-if [ "$SSL_SUCCESS" = false ]; then
+# Get server IP for display
+SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP=$(ip route get 1 2>/dev/null | awk '{print $7; exit}')
+fi
+
+if [ -z "$DOMAIN_NAME" ]; then
+    # No domain - show IP-based access
+    echo ""
+    print_message "🌐 Access Myriade BI at: http://${SERVER_IP}:8080"
+    echo ""
+    print_message "To add a domain and SSL certificate later, run:"
+    echo ""
+    echo "  ${INSTALL_DIR}/setup/install_certificate.sh YOUR_DOMAIN.com"
+    echo ""
+elif [ "$SSL_SUCCESS" = false ]; then
+    # Domain provided but SSL failed
     print_warning "SSL certificate was not configured during installation"
     echo ""
     print_message "To set up SSL certificate for HTTPS, run:"
@@ -326,6 +349,11 @@ if [ "$SSL_SUCCESS" = false ]; then
     echo "  ${INSTALL_DIR}/setup/install_certificate.sh ${DOMAIN_NAME}"
     echo ""
     print_warning "🌐 Application is currently running at: http://${DOMAIN_NAME}"
+    echo ""
+else
+    # Domain with SSL success
+    echo ""
+    print_message "🌐 Access Myriade BI at: https://${DOMAIN_NAME}"
     echo ""
 fi
 
