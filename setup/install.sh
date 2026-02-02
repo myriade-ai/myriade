@@ -22,6 +22,42 @@ print_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
+# Detect operating system
+OS_TYPE="$(uname -s)"
+case "$OS_TYPE" in
+    Linux*)
+        # Will check for Debian/Ubuntu later
+        ;;
+    Darwin*)
+        echo ""
+        echo "╔════════════════════════════════════════════════════════════════╗"
+        echo "║  macOS Detected - Local Development Setup                      ║"
+        echo "╚════════════════════════════════════════════════════════════════╝"
+        echo ""
+        echo "This installer is designed for Ubuntu/Debian servers."
+        echo "For macOS local development, use Docker Compose directly:"
+        echo ""
+        echo "  # 1. Download and extract"
+        echo "  curl -fsSL https://install.myriade.ai/myriade-bi-latest.tar.gz | tar -xz"
+        echo "  cd myriade-bi"
+        echo ""
+        echo "  # 2. Set password and start"
+        echo "  export POSTGRES_PASSWORD=your_secure_password"
+        echo "  docker compose up -d"
+        echo ""
+        echo "  # 3. Open http://localhost:8080"
+        echo ""
+        echo "For production deployment, run this script on an Ubuntu/Debian server."
+        echo ""
+        exit 0
+        ;;
+    *)
+        print_error "Unsupported operating system: $OS_TYPE"
+        echo "This installer supports Ubuntu 20.04+ and Debian 11+"
+        exit 1
+        ;;
+esac
+
 # Domain name is optional
 DOMAIN_NAME="${1:-}"
 SSL_SUCCESS=false
