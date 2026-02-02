@@ -59,43 +59,22 @@ sudo apt install -y ca-certificates curl gnupg lsb-release unzip wget
 # Download latest Myriade BI release
 print_message "Downloading latest Myriade BI release..."
 INSTALL_DIR="$HOME/myriade-bi"
-GITHUB_REPO="${GITHUB_REPO:-myriade-ai/myriade}"  # Allow override with env var
-RELEASE_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
+DOWNLOAD_URL="${MYRIADE_DOWNLOAD_URL:-https://install.myriade.ai/myriade-bi-latest.tar.gz}"
 
 # Create installation directory
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
-# Get latest release info
-print_message "Fetching release information from GitHub..."
-RELEASE_INFO=$(curl -s "$RELEASE_URL")
-DOWNLOAD_URL=$(echo "$RELEASE_INFO" | grep -o "https://github.com/${GITHUB_REPO}/archive/refs/tags/[^\"]*\.zip" | head -1)
-
-# Fallback to master branch if no releases exist
-if [ -z "$DOWNLOAD_URL" ]; then
-    print_warning "No releases found, downloading from master branch..."
-    DOWNLOAD_URL="https://github.com/${GITHUB_REPO}/archive/refs/heads/master.zip"
-    TAG_NAME="master"
-else
-    TAG_NAME=$(echo "$RELEASE_INFO" | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)
-    print_message "Found release: $TAG_NAME"
-fi
-
 # Download and extract
-print_message "Downloading Myriade BI..."
-wget -q --show-progress "$DOWNLOAD_URL" -O myriade.zip
+print_message "Downloading Myriade BI from $DOWNLOAD_URL..."
+if ! curl -fsSL "$DOWNLOAD_URL" -o myriade.tar.gz; then
+    print_error "Failed to download Myriade BI. Please check your internet connection."
+    exit 1
+fi
 
 print_message "Extracting files..."
-unzip -q myriade.zip
-rm myriade.zip
-
-# Move files to installation directory
-EXTRACTED_DIR=$(find . -maxdepth 1 -type d -name "myriade-*" -o -name "myriade" | head -1)
-if [ -n "$EXTRACTED_DIR" ] && [ "$EXTRACTED_DIR" != "." ]; then
-    mv "$EXTRACTED_DIR"/* . 2>/dev/null || true
-    mv "$EXTRACTED_DIR"/.* . 2>/dev/null || true
-    rmdir "$EXTRACTED_DIR" 2>/dev/null || true
-fi
+tar -xzf myriade.tar.gz --strip-components=1
+rm myriade.tar.gz
 
 # Verify required files exist
 if [ ! -f "docker-compose.yml" ]; then
@@ -138,11 +117,11 @@ fi
 
 # Select correct Docker repo based on OS
 if [ "$OS" = "debian" ]; then
-    curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $VERSION_CODENAME stable" | \
         sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 elif [ "$OS" = "ubuntu" ]; then
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" | \
         sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 else
@@ -181,6 +160,81 @@ fi
 print_message "Installing Nginx..."
 sudo apt install -y nginx
 
+# Create initial HTTP nginx configuration (so app is accessible before SSL setup)
+print_message "Configuring Nginx for HTTP access..."
+sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+
+sudo tee /etc/nginx/sites-available/myriade > /dev/null <<EOF
+# HTTP server for Myriade BI
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN_NAME};
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Request limits
+    client_max_body_size 10M;
+
+    # SSE endpoint
+    location /api/events {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+
+        # SSE-specific settings
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+
+        # Ensure chunked transfer works
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+    }
+
+    # Main proxy
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+
+        # WebSocket/Socket.io support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Timeout settings for long AI requests
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 300s;
+    }
+}
+EOF
+
+# Enable the site and remove default
+sudo ln -sf /etc/nginx/sites-available/myriade /etc/nginx/sites-enabled/myriade
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Test and reload nginx
+if sudo nginx -t; then
+    sudo systemctl reload nginx
+    print_message "Nginx configured successfully"
+else
+    print_error "Nginx configuration test failed"
+    exit 1
+fi
+
 # Configure environment variables
 print_message "Configuring environment variables..."
 
@@ -192,11 +246,20 @@ else
     print_message "Using provided database password"
 fi
 
+# Generate credential encryption key if not provided (Fernet format: URL-safe base64)
+if [ -z "$CREDENTIAL_ENCRYPTION_KEY" ]; then
+    # Fernet keys are 32 bytes, URL-safe base64 encoded (44 chars)
+    CREDENTIAL_ENCRYPTION_KEY=$(openssl rand -base64 32 | tr -d '\n' | tr '+/' '-_')
+    print_message "Generated credential encryption key"
+fi
+
 # Create .env file for Docker Compose
 cat > .env << EOF
 POSTGRES_DB=${POSTGRES_DB:-myriade}
 POSTGRES_USER=${POSTGRES_USER:-myriade}
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+HOST=${DOMAIN_NAME}
+CREDENTIAL_ENCRYPTION_KEY=${CREDENTIAL_ENCRYPTION_KEY}
 EOF
 
 chmod 600 .env
@@ -211,16 +274,22 @@ else
     exit 1
 fi
 
-# Wait for application to be ready
-print_message "Waiting for application to start (30 seconds)..."
-sleep 30
-
-# Check if application is responding
-if curl -s http://localhost:8080 > /dev/null; then
-    print_message "Application is responding on port 8080"
-else
-    print_warning "Application may not be ready yet. Check logs with: sudo docker compose logs myriade"
-fi
+# Wait for application to be ready with health check polling
+print_message "Waiting for application to start..."
+MAX_ATTEMPTS=60
+ATTEMPT=0
+while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+    if curl -sf http://localhost:8080/health > /dev/null 2>&1; then
+        print_message "Application is healthy and responding on port 8080"
+        break
+    fi
+    ATTEMPT=$((ATTEMPT + 1))
+    if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+        print_warning "Application may not be ready yet. Check logs with: sudo docker compose logs myriade"
+    else
+        sleep 2
+    fi
+done
 
 echo ""
 
