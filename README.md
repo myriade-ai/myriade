@@ -47,7 +47,8 @@ docker compose up -d
 
 Open: [http://localhost:8080](http://localhost:8080)
 
-See `.env.docker` for available configuration options.
+Optional environment variables:
+- `HOST` - Public URL for OAuth callbacks (e.g., `https://myriade.example.com`)
 
 ---
 
