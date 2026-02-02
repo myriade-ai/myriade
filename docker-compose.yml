@@ -1,50 +1,38 @@
 services:
   db:
     image: postgres:15
+    restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-myriade}
       POSTGRES_USER: ${POSTGRES_USER:-myriade}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your environment}
-    ports: # For debugging purpose, we expose the Postgres port
-      - "2345:5432" # To avoid conflicts with other Postgres instances
-    networks:
-      - myriade-network
+    ports:
+      - "127.0.0.1:2345:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-myriade} -d ${POSTGRES_DB:-myriade}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   myriade:
     image: myriadeai/myriade:latest
+    restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
-      - "8080:8080" # Consistent ports, avoids conflicts
-    volumes:
-      - logs:/var/log/gunicorn
+      - "127.0.0.1:8080:8080"
     environment:
-      # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-myriade}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myriade}
-
-      # Optional - defaults provided in .env.docker
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
-      AGENTLYS_PROVIDER: ${PROVIDER:-proxy}
-      AGENTLYS_MODEL: ${MODEL:-claude-sonnet-4-5-20250929}
-      AGENTLYS_OUTPUT_SIZE_LIMIT: ${AGENTLYS_OUTPUT_SIZE_LIMIT:-20000}
-
-      # Host URL for OAuth callbacks (e.g., https://myriade.example.com)
-      # Set this if running behind a reverse proxy
       HOST: ${HOST:-}
-
-      # Optional integrations
-      SENTRY_DSN: ${SENTRY_DSN:-}
-    networks:
-      - myriade-network
-
-networks:
-  myriade-network:
-    driver: bridge
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   postgres_data:
-  logs:
