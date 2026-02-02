@@ -54,13 +54,19 @@ Optional environment variables:
 
 ## Production Installation
 
-For production deployments on Ubuntu/Debian servers with SSL:
+For production deployments on Ubuntu/Debian servers:
 
 ```bash
-curl -fsSL https://install.myriade.ai | bash -s -- myriade.YOUR_DOMAIN.com
+curl -fsSL https://install.myriade.ai | bash
 ```
 
-This installs Docker, Nginx, and configures Let's Encrypt SSL certificates.
+This installs Docker, PostgreSQL, and starts Myriade on port 8080.
+
+**Add a domain and SSL certificate:**
+
+```bash
+~/myriade-bi/setup/install_certificate.sh YOUR_DOMAIN.com
+```
 
 [Full installation guide](./setup/README.md)
 

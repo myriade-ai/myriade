@@ -27,31 +27,17 @@ curl -fsSL https://install.myriade.ai | bash
 
 Access your instance at: `http://YOUR_SERVER_IP:8080`
 
-## Production Installation (With Domain & SSL)
+## Adding Domain & SSL
 
-For production deployments with HTTPS:
-
-```bash
-curl -fsSL https://install.myriade.ai | bash -s -- myriade.YOUR_DOMAIN.com
-```
-
-This will:
-1. Install Docker, Docker Compose, and Nginx
-2. Configure Nginx with your domain
-3. Start Myriade BI containers
-4. Prompt for SSL certificate setup
-
-## Adding Domain & SSL Later
-
-If you started with the quick install, you can add a domain and SSL anytime:
+After installation, add a domain and SSL certificate:
 
 ```bash
 ~/myriade-bi/setup/install_certificate.sh YOUR_DOMAIN.com
 ```
 
 This will:
-- Reconfigure Nginx for ports 80/443
-- Set up SSL certificates
+- Install and configure Nginx for ports 80/443
+- Set up SSL certificates (Let's Encrypt, manual, or self-signed)
 - Update your Myriade configuration
 
 ### SSL Options
