@@ -58,23 +58,7 @@ case "$OS_TYPE" in
         ;;
 esac
 
-# Domain name is optional
-DOMAIN_NAME="${1:-}"
-SSL_SUCCESS=false
-SETUP_SSL=false
-
-# Validate domain name format if provided
-if [ -n "$DOMAIN_NAME" ]; then
-    if ! [[ "$DOMAIN_NAME" =~ ^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
-        print_error "Invalid domain name format: $DOMAIN_NAME"
-        exit 1
-    fi
-    SETUP_SSL=true
-    print_message "Starting Myriade BI installation for domain: $DOMAIN_NAME"
-else
-    print_message "Starting Myriade BI installation (no domain specified)"
-    print_warning "SSL will not be configured. Access via http://SERVER_IP:8080"
-fi
+print_message "Starting Myriade BI installation..."
 echo ""
 
 # Check if running as root
@@ -188,93 +172,12 @@ else
     exit 1
 fi
 
-# Install Nginx
-print_message "Installing Nginx..."
-sudo apt install -y nginx
+# Get server IP for HOST configuration
+SERVER_IP=$(curl -s --connect-timeout 5 ifconfig.me || curl -s --connect-timeout 5 icanhazip.com || hostname -I 2>/dev/null | awk '{print $1}')
 
-# Create initial HTTP nginx configuration
-print_message "Configuring Nginx for HTTP access..."
-sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
-
-# Determine listen port and server_name based on whether domain is provided
-if [ -n "$DOMAIN_NAME" ]; then
-    NGINX_LISTEN="80"
-    NGINX_SERVER_NAME="$DOMAIN_NAME"
-else
-    NGINX_LISTEN="8080"
-    NGINX_SERVER_NAME="_"  # Catch-all server name
-fi
-
-sudo tee /etc/nginx/sites-available/myriade > /dev/null <<EOF
-# HTTP server for Myriade BI
-server {
-    listen ${NGINX_LISTEN};
-    listen [::]:${NGINX_LISTEN};
-    server_name ${NGINX_SERVER_NAME};
-
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-
-    # Request limits
-    client_max_body_size 10M;
-
-    # SSE endpoint
-    location /api/events {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Forwarded-Host \$host;
-
-        # SSE-specific settings
-        proxy_buffering off;
-        proxy_cache off;
-        proxy_read_timeout 86400s;
-        proxy_send_timeout 86400s;
-
-        # Ensure chunked transfer works
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
-    }
-
-    # Main proxy
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Forwarded-Host \$host;
-
-        # WebSocket/Socket.io support
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-
-        # Timeout settings for long AI requests
-        proxy_read_timeout 300s;
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 300s;
-    }
-}
-EOF
-
-# Enable the site and remove default
-sudo ln -sf /etc/nginx/sites-available/myriade /etc/nginx/sites-enabled/myriade
-sudo rm -f /etc/nginx/sites-enabled/default
-
-# Test and reload nginx
-if sudo nginx -t; then
-    sudo systemctl reload nginx
-    print_message "Nginx configured successfully"
-else
-    print_error "Nginx configuration test failed"
-    exit 1
-fi
+# Configure Docker to bind directly to port 8080 (no nginx for quick start)
+print_message "Configuring Docker for direct access on port 8080..."
+sed -i "s|127.0.0.1:8080:8080|0.0.0.0:8080:8080|g" docker-compose.yml
 
 # Configure environment variables
 print_message "Configuring environment variables..."
@@ -299,7 +202,7 @@ cat > .env << EOF
 POSTGRES_DB=${POSTGRES_DB:-myriade}
 POSTGRES_USER=${POSTGRES_USER:-myriade}
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-HOST=${DOMAIN_NAME:-}
+HOST=http://${SERVER_IP}:8080
 CREDENTIAL_ENCRYPTION_KEY=${CREDENTIAL_ENCRYPTION_KEY}
 EOF
 
@@ -334,24 +237,6 @@ done
 
 echo ""
 
-# Run SSL certificate installation only if domain was provided
-if [ "$SETUP_SSL" = true ]; then
-    print_message "Starting SSL certificate setup..."
-    echo ""
-
-    if [ -f "${INSTALL_DIR}/setup/install_certificate.sh" ]; then
-        if bash "${INSTALL_DIR}/setup/install_certificate.sh" "${DOMAIN_NAME}"; then
-            SSL_SUCCESS=true
-        else
-            SSL_SUCCESS=false
-            print_warning "SSL certificate setup did not complete successfully"
-        fi
-    else
-        print_error "Certificate installation script not found"
-        SSL_SUCCESS=false
-    fi
-fi
-
 # Print success message
 echo ""
 echo "╔════════════════════════════════════════════════════════════════╗"
@@ -360,38 +245,12 @@ echo "║  ✅ Myriade BI Installation Complete!                         ║"
 echo "║                                                                ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
-
-# Get server IP for display
-SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
-if [ -z "$SERVER_IP" ]; then
-    SERVER_IP=$(ip route get 1 2>/dev/null | awk '{print $7; exit}')
-fi
-
-if [ -z "$DOMAIN_NAME" ]; then
-    # No domain - show IP-based access
-    echo ""
-    print_message "🌐 Access Myriade BI at: http://${SERVER_IP}:8080"
-    echo ""
-    print_message "To add a domain and SSL certificate later, run:"
-    echo ""
-    echo "  ${INSTALL_DIR}/setup/install_certificate.sh YOUR_DOMAIN.com"
-    echo ""
-elif [ "$SSL_SUCCESS" = false ]; then
-    # Domain provided but SSL failed
-    print_warning "SSL certificate was not configured during installation"
-    echo ""
-    print_message "To set up SSL certificate for HTTPS, run:"
-    echo ""
-    echo "  ${INSTALL_DIR}/setup/install_certificate.sh ${DOMAIN_NAME}"
-    echo ""
-    print_warning "🌐 Application is currently running at: http://${DOMAIN_NAME}"
-    echo ""
-else
-    # Domain with SSL success
-    echo ""
-    print_message "🌐 Access Myriade BI at: https://${DOMAIN_NAME}"
-    echo ""
-fi
+print_message "🌐 Access Myriade BI at: http://${SERVER_IP}:8080"
+echo ""
+print_message "To add a domain and SSL certificate, run:"
+echo ""
+echo "  ${INSTALL_DIR}/setup/install_certificate.sh YOUR_DOMAIN.com"
+echo ""
 
 # Display running containers
 print_message "Running containers:"

@@ -93,10 +93,21 @@ else
 fi
 echo ""
 
+# Check if running in quick-start mode (Docker bound to 0.0.0.0:8080)
+# If so, we need to switch to nginx mode before setting up SSL
+if [ -f "${INSTALL_DIR}/docker-compose.yml" ]; then
+    if grep -q "0.0.0.0:8080:8080" "${INSTALL_DIR}/docker-compose.yml"; then
+        print_info "Detected quick-start mode - will configure nginx for SSL"
+    fi
+fi
+
 # Function to install nginx config from template
 install_nginx_config() {
     local cert_path="$1"
     local key_path="$2"
+
+    # Switch from quick-start mode if needed
+    switch_to_nginx_mode
 
     print_message "Updating Nginx configuration..."
 
@@ -212,6 +223,36 @@ update_env_host() {
         cd "$INSTALL_DIR"
         if sudo docker compose restart myriade > /dev/null 2>&1; then
             print_message "Myriade restarted successfully"
+        fi
+    fi
+}
+
+# Function to switch from quick-start mode to nginx mode
+switch_to_nginx_mode() {
+    print_message "Switching from quick-start mode to nginx mode..."
+
+    # Install nginx if not present
+    if ! command -v nginx &> /dev/null; then
+        print_message "Installing Nginx..."
+        sudo apt update -y
+        sudo apt install -y nginx
+    fi
+
+    # Update docker-compose.yml to bind to localhost only
+    local compose_file="${INSTALL_DIR}/docker-compose.yml"
+    if [ -f "$compose_file" ]; then
+        if grep -q "0.0.0.0:8080:8080" "$compose_file"; then
+            sed -i "s|0.0.0.0:8080:8080|127.0.0.1:8080:8080|g" "$compose_file"
+            print_message "Updated Docker port binding to localhost"
+
+            # Restart containers with new port binding
+            cd "$INSTALL_DIR"
+            sudo docker compose down
+            sudo docker compose up -d
+
+            # Wait for app to be ready
+            print_message "Waiting for application to restart..."
+            sleep 10
         fi
     fi
 }
