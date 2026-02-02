@@ -192,6 +192,30 @@ EOF
     fi
 }
 
+# Function to update .env file with domain
+update_env_host() {
+    local env_file="${INSTALL_DIR}/.env"
+
+    if [ -f "$env_file" ]; then
+        # Check if HOST line exists
+        if grep -q "^HOST=" "$env_file"; then
+            # Update existing HOST line
+            sed -i "s|^HOST=.*|HOST=${DOMAIN_NAME}|" "$env_file"
+        else
+            # Add HOST line
+            echo "HOST=${DOMAIN_NAME}" >> "$env_file"
+        fi
+        print_message "Updated HOST in .env file"
+
+        # Restart containers to pick up new HOST value
+        print_message "Restarting Myriade to apply new domain..."
+        cd "$INSTALL_DIR"
+        if sudo docker compose restart myriade > /dev/null 2>&1; then
+            print_message "Myriade restarted successfully"
+        fi
+    fi
+}
+
 # Function to generate self-signed certificate
 generate_self_signed() {
     print_message "Generating self-signed certificate..."
@@ -332,6 +356,7 @@ case $CHOICE in
             sleep 2
             if curl -sI "https://$DOMAIN_NAME" > /dev/null 2>&1; then
                 print_message "HTTPS is working correctly!"
+                update_env_host
                 echo ""
                 print_message "Your application is now available at: https://$DOMAIN_NAME"
             else
@@ -388,6 +413,7 @@ case $CHOICE in
             sleep 2
             if curl -sIk "https://$DOMAIN_NAME" > /dev/null 2>&1; then
                 print_message "HTTPS is working correctly!"
+                update_env_host
                 echo ""
                 print_message "Your application is now available at: https://$DOMAIN_NAME"
             else
@@ -412,6 +438,7 @@ case $CHOICE in
             sleep 2
             if curl -sIk "https://$DOMAIN_NAME" > /dev/null 2>&1; then
                 print_message "HTTPS is working (with self-signed certificate)!"
+                update_env_host
                 echo ""
                 print_warning "Browsers will show a security warning for self-signed certificates."
                 print_message "Your application is now available at: https://$DOMAIN_NAME"

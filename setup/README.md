@@ -5,7 +5,7 @@ This script will install Myriade BI on your server.
 ## Prerequisites
 
 - **Operating System**: Ubuntu 20.04+ or Debian 11+
-- **Firewall**: Ports 80 and 443 must be open and accessible
+- **Firewall**: Port 8080 (quick start) or ports 80/443 (with domain)
 
 ## Recommended Infrastructure
 
@@ -17,41 +17,42 @@ This script will install Myriade BI on your server.
 - Memory: 4 GB RAM minimum (8 GB recommended)
 - Boot disk: 10 GB SSD persistent minimum (50 GB recommended)
 
-## Usage
+## Quick Start (No Domain Required)
 
-Run the following command to install Myriade BI on your server:
+Get Myriade BI running in minutes without any domain configuration:
+
+```bash
+curl -fsSL https://install.myriade.ai | bash
+```
+
+Access your instance at: `http://YOUR_SERVER_IP:8080`
+
+## Production Installation (With Domain & SSL)
+
+For production deployments with HTTPS:
 
 ```bash
 curl -fsSL https://install.myriade.ai | bash -s -- myriade.YOUR_DOMAIN.com
 ```
 
-This script will:
+This will:
+1. Install Docker, Docker Compose, and Nginx
+2. Configure Nginx with your domain
+3. Start Myriade BI containers
+4. Prompt for SSL certificate setup
 
-1. Download and extract Myriade BI
-2. Install dependencies (Docker, Docker Compose, Nginx)
-3. Create initial HTTP Nginx configuration (app accessible immediately)
-4. Start Myriade BI containers
-5. Prompt for SSL certificate setup with three options:
-   - **Let's Encrypt** (recommended for public servers)
-   - **Manual certificate** (for enterprise certificates)
-   - **Self-signed certificate** (for testing/private networks)
+## Adding Domain & SSL Later
 
-## DNS Setup
-
-DNS can be configured **before or after** running the installation script.
-
-- **Before installation**: The script will automatically offer Let's Encrypt SSL certificates
-- **After installation**: The app will be accessible via HTTP, and you can run the SSL script later
-
-To use Let's Encrypt, your domain's A record must point to your server's IP address.
-
-## SSL Certificate Setup
-
-If you skipped SSL during installation or need to reconfigure it, run:
+If you started with the quick install, you can add a domain and SSL anytime:
 
 ```bash
-~/myriade-bi/setup/install_certificate.sh myriade.YOUR_DOMAIN.com
+~/myriade-bi/setup/install_certificate.sh YOUR_DOMAIN.com
 ```
+
+This will:
+- Reconfigure Nginx for ports 80/443
+- Set up SSL certificates
+- Update your Myriade configuration
 
 ### SSL Options
 
