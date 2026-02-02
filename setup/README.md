@@ -7,7 +7,7 @@ This script will install Myriade BI on your server.
 - **Operating System**: Ubuntu 20.04+ or Debian 11+
 - **Firewall**: Ports 80 and 443 must be open and accessible
 
-## Recommended infrastructure
+## Recommended Infrastructure
 
 - Machine type:
   - GCP: e2-standard-2 or higher
@@ -19,7 +19,7 @@ This script will install Myriade BI on your server.
 
 ## Usage
 
-Run the following command to install Myriade BI on your server.
+Run the following command to install Myriade BI on your server:
 
 ```bash
 curl -fsSL https://install.myriade.ai | bash -s -- myriade.YOUR_DOMAIN.com
@@ -28,17 +28,58 @@ curl -fsSL https://install.myriade.ai | bash -s -- myriade.YOUR_DOMAIN.com
 This script will:
 
 1. Download and extract Myriade BI
-2. Install Dependencies (Docker, Docker Compose, Nginx, Certbot, Let's Encrypt certificate)
-3. Create initial HTTP-only Nginx configuration (open ports 80 and 443)
-4. Start Myriade BI
-5. Set up Let's Encrypt SSL certificate (if DNS is ready and public IP)
-6. Configure SSL certificate renewal (if SSL certificate was installed)
+2. Install dependencies (Docker, Docker Compose, Nginx)
+3. Create initial HTTP Nginx configuration (app accessible immediately)
+4. Start Myriade BI containers
+5. Prompt for SSL certificate setup with three options:
+   - **Let's Encrypt** (recommended for public servers)
+   - **Manual certificate** (for enterprise certificates)
+   - **Self-signed certificate** (for testing/private networks)
 
 ## DNS Setup
 
 DNS can be configured **before or after** running the installation script.
 
-- **Before installation**: The script will automatically obtain Let's Encrypt SSL certificates
-- **After installation**: The installation will complete successfully, and the script will provide commands to set up SSL certificates once DNS is ready
+- **Before installation**: The script will automatically offer Let's Encrypt SSL certificates
+- **After installation**: The app will be accessible via HTTP, and you can run the SSL script later
 
 To use Let's Encrypt, your domain's A record must point to your server's IP address.
+
+## SSL Certificate Setup
+
+If you skipped SSL during installation or need to reconfigure it, run:
+
+```bash
+~/myriade-bi/setup/install_certificate.sh myriade.YOUR_DOMAIN.com
+```
+
+### SSL Options
+
+| Option | Best For |
+|--------|----------|
+| Let's Encrypt | Public servers with DNS configured |
+| Manual certificate | Enterprise/CA-signed certificates |
+| Self-signed | Testing, development, private networks |
+
+## Troubleshooting
+
+### Check application status
+```bash
+cd ~/myriade-bi && sudo docker compose ps
+```
+
+### View application logs
+```bash
+cd ~/myriade-bi && sudo docker compose logs -f myriade
+```
+
+### Restart the application
+```bash
+cd ~/myriade-bi && sudo docker compose restart
+```
+
+### Check Nginx status
+```bash
+sudo systemctl status nginx
+sudo nginx -t
+```
