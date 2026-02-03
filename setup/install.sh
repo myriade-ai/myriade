@@ -72,7 +72,8 @@ INSTALL_DIR="/opt/myriade"
 DOWNLOAD_URL="${MYRIADE_DOWNLOAD_URL:-https://install.myriade.ai/myriade-bi-latest.tar.gz}"
 
 # Create installation directory
-mkdir -p "$INSTALL_DIR"
+sudo mkdir -p "$INSTALL_DIR"
+sudo chown "$(id -u):$(id -g)" "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
 # Download and extract
