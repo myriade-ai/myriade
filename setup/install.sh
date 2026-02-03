@@ -182,19 +182,27 @@ sed -i "s|127.0.0.1:8080:8080|0.0.0.0:8080:8080|g" docker-compose.yml
 # Configure environment variables
 print_message "Configuring environment variables..."
 
+# Preserve existing .env values on re-install to avoid breaking the database
+if [ -f ".env" ]; then
+    print_warning "Existing .env file found. Preserving existing configuration."
+    source .env
+fi
+
 # Generate a secure random password if not provided
-if [ -z "$POSTGRES_PASSWORD" ]; then
+if [ -z "${POSTGRES_PASSWORD:-}" ]; then
     POSTGRES_PASSWORD=$(openssl rand -base64 32)
     print_message "Generated secure database password"
 else
-    print_message "Using provided database password"
+    print_message "Using existing database password"
 fi
 
 # Generate credential encryption key if not provided (Fernet format: URL-safe base64)
-if [ -z "$CREDENTIAL_ENCRYPTION_KEY" ]; then
+if [ -z "${CREDENTIAL_ENCRYPTION_KEY:-}" ]; then
     # Fernet keys are 32 bytes, URL-safe base64 encoded (44 chars)
     CREDENTIAL_ENCRYPTION_KEY=$(openssl rand -base64 32 | tr -d '\n' | tr '+/' '-_')
     print_message "Generated credential encryption key"
+else
+    print_message "Using existing credential encryption key"
 fi
 
 # Create .env file for Docker Compose
