@@ -106,6 +106,29 @@ if [ -f "${INSTALL_DIR}/docker-compose.yml" ]; then
     fi
 fi
 
+# Function to switch from quick-start mode to nginx mode
+switch_to_nginx_mode() {
+    print_message "Switching from quick-start mode to nginx mode..."
+
+    # Update docker-compose.yml to bind to localhost only
+    local compose_file="${INSTALL_DIR}/docker-compose.yml"
+    if [ -f "$compose_file" ]; then
+        if grep -q "0.0.0.0:8080:8080" "$compose_file"; then
+            sed -i "s|0.0.0.0:8080:8080|127.0.0.1:8080:8080|g" "$compose_file"
+            print_message "Updated Docker port binding to localhost"
+
+            # Restart containers with new port binding
+            cd "$INSTALL_DIR"
+            sudo docker compose down
+            sudo docker compose up -d
+
+            # Wait for app to be ready
+            print_message "Waiting for application to restart..."
+            sleep 10
+        fi
+    fi
+}
+
 # Function to install nginx config from template
 install_nginx_config() {
     local cert_path="$1"
@@ -208,6 +231,61 @@ EOF
     fi
 }
 
+# Function to install HTTP-only nginx config (for certbot to modify)
+install_nginx_http_config() {
+    # Switch from quick-start mode if needed
+    switch_to_nginx_mode
+
+    print_message "Installing HTTP proxy config for Let's Encrypt..."
+
+    sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+
+    sudo tee /etc/nginx/sites-available/myriade > /dev/null <<EOF
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN_NAME};
+
+    client_max_body_size 10M;
+
+    location /api/events {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 86400s;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 300s;
+    }
+}
+EOF
+
+    sudo ln -sf /etc/nginx/sites-available/myriade /etc/nginx/sites-enabled/myriade
+    sudo rm -f /etc/nginx/sites-enabled/default
+
+    if sudo nginx -t; then
+        sudo systemctl reload nginx
+    else
+        print_error "Nginx configuration test failed"
+        return 1
+    fi
+}
+
 # Function to update .env file with domain
 update_env_host() {
     local env_file="${INSTALL_DIR}/.env"
@@ -216,49 +294,21 @@ update_env_host() {
         # Check if HOST line exists
         if grep -q "^HOST=" "$env_file"; then
             # Update existing HOST line
-            sed -i "s|^HOST=.*|HOST=${DOMAIN_NAME}|" "$env_file"
+            sed -i "s|^HOST=.*|HOST=https://${DOMAIN_NAME}|" "$env_file"
         else
             # Add HOST line
-            echo "HOST=${DOMAIN_NAME}" >> "$env_file"
+            echo "HOST=https://${DOMAIN_NAME}" >> "$env_file"
         fi
-        print_message "Updated HOST in .env file"
+        print_message "Updated HOST in .env to https://${DOMAIN_NAME}"
 
         # Restart containers to pick up new HOST value
         print_message "Restarting Myriade to apply new domain..."
         cd "$INSTALL_DIR"
-        if sudo docker compose restart myriade > /dev/null 2>&1; then
+        if sudo docker compose up -d --force-recreate myriade > /dev/null 2>&1; then
             print_message "Myriade restarted successfully"
         fi
-    fi
-}
-
-# Function to switch from quick-start mode to nginx mode
-switch_to_nginx_mode() {
-    print_message "Switching from quick-start mode to nginx mode..."
-
-    # Install nginx if not present
-    if ! command -v nginx &> /dev/null; then
-        print_message "Installing Nginx..."
-        sudo apt update -y
-        sudo apt install -y nginx
-    fi
-
-    # Update docker-compose.yml to bind to localhost only
-    local compose_file="${INSTALL_DIR}/docker-compose.yml"
-    if [ -f "$compose_file" ]; then
-        if grep -q "0.0.0.0:8080:8080" "$compose_file"; then
-            sed -i "s|0.0.0.0:8080:8080|127.0.0.1:8080:8080|g" "$compose_file"
-            print_message "Updated Docker port binding to localhost"
-
-            # Restart containers with new port binding
-            cd "$INSTALL_DIR"
-            sudo docker compose down
-            sudo docker compose up -d
-
-            # Wait for app to be ready
-            print_message "Waiting for application to restart..."
-            sleep 10
-        fi
+    else
+        print_warning ".env file not found at $env_file - HOST not updated"
     fi
 }
 
@@ -370,6 +420,10 @@ case $CHOICE in
             sudo apt install -y certbot python3-certbot-nginx
         fi
 
+        # Install HTTP-only nginx config with proxy_pass BEFORE running certbot
+        # This ensures certbot modifies a config that already has proxy directives
+        install_nginx_http_config
+
         # Prompt for email
         read -p "Enter email for Let's Encrypt notifications (optional, press Enter to skip): " EMAIL
 
@@ -392,11 +446,7 @@ case $CHOICE in
                 print_message "Auto-renewal enabled"
             fi
 
-            # Ensure site is enabled
-            sudo ln -sf /etc/nginx/sites-available/myriade /etc/nginx/sites-enabled/myriade
-            sudo rm -f /etc/nginx/sites-enabled/default
-
-            # Update HOST in .env before testing (cert is installed regardless of test outcome)
+            # Update HOST in .env (do this regardless of HTTPS test outcome)
             update_env_host
 
             # Test HTTPS
@@ -455,7 +505,7 @@ case $CHOICE in
 
         # Install nginx config
         if install_nginx_config "/etc/ssl/certs/${DOMAIN_NAME}.crt" "/etc/ssl/private/${DOMAIN_NAME}.key"; then
-            # Update HOST in .env before testing (cert is installed regardless of test outcome)
+            # Update HOST in .env (do this regardless of HTTPS test outcome)
             update_env_host
 
             # Test HTTPS
@@ -483,7 +533,7 @@ case $CHOICE in
 
         # Install nginx config
         if install_nginx_config "/etc/ssl/certs/${DOMAIN_NAME}.crt" "/etc/ssl/private/${DOMAIN_NAME}.key"; then
-            # Update HOST in .env before testing (cert is installed regardless of test outcome)
+            # Update HOST in .env (do this regardless of HTTPS test outcome)
             update_env_host
 
             echo ""

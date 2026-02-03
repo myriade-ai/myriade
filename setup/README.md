@@ -1,7 +1,5 @@
 # Myriade BI - Installation Guide
 
-This script will install Myriade BI on your server.
-
 ## Prerequisites
 
 - **Operating System**: Ubuntu 20.04+ or Debian 11+
@@ -17,42 +15,47 @@ This script will install Myriade BI on your server.
 - Memory: 4 GB RAM minimum (8 GB recommended)
 - Boot disk: 10 GB SSD persistent minimum (50 GB recommended)
 
-## Quick Start (No Domain Required)
-
-Get Myriade BI running in minutes without any domain configuration:
+## Quick Start
 
 ```bash
 curl -fsSL https://install.myriade.ai | bash
 ```
 
+This installs Docker, downloads Myriade BI to `/opt/myriade`, and starts it on port 8080.
+
 Access your instance at: `http://YOUR_SERVER_IP:8080`
 
-## Production Installation (With Domain & SSL)
+## Adding Domain & SSL
 
-For production deployments with HTTPS:
+Once your instance is running, add a domain and SSL certificate:
 
 ```bash
-curl -fsSL https://install.myriade.ai | bash -s -- myriade.YOUR_DOMAIN.com
+sudo /opt/myriade/setup/install_certificate.sh YOUR_DOMAIN.com
 ```
 
 This will:
-1. Install Docker, Docker Compose, and Nginx
-2. Configure Nginx with your domain
-3. Start Myriade BI containers
-4. Prompt for SSL certificate setup
-
-## Adding Domain & SSL Later
-
-If you started with the quick install, you can add a domain and SSL anytime:
-
-```bash
-~/myriade-bi/setup/install_certificate.sh YOUR_DOMAIN.com
-```
-
-This will:
-- Reconfigure Nginx for ports 80/443
+- Install and configure Nginx as a reverse proxy
+- Switch Docker from public port 8080 to localhost-only
 - Set up SSL certificates
-- Update your Myriade configuration
+- Update the `HOST` variable in `.env`
+
+### DNS Setup
+
+Before running the certificate script, create an A record pointing your domain to the server IP:
+
+| Provider | Record type | Name | Value |
+|----------|------------|------|-------|
+| Route 53 | A | `myriade` | `YOUR_SERVER_IP` |
+| Cloudflare | A | `myriade` | `YOUR_SERVER_IP` |
+| Other | A | `myriade.yourdomain.com` | `YOUR_SERVER_IP` |
+
+Verify propagation: `dig myriade.yourdomain.com`
+
+### Firewall
+
+Ports 80 and 443 must be open for SSL to work. On AWS, add inbound rules to your Security Group:
+- HTTP: TCP 80, source 0.0.0.0/0
+- HTTPS: TCP 443, source 0.0.0.0/0
 
 ### SSL Options
 
@@ -66,17 +69,17 @@ This will:
 
 ### Check application status
 ```bash
-cd ~/myriade-bi && sudo docker compose ps
+sudo docker compose -f /opt/myriade/docker-compose.yml ps
 ```
 
 ### View application logs
 ```bash
-cd ~/myriade-bi && sudo docker compose logs -f myriade
+sudo docker compose -f /opt/myriade/docker-compose.yml logs -f myriade
 ```
 
 ### Restart the application
 ```bash
-cd ~/myriade-bi && sudo docker compose restart
+sudo docker compose -f /opt/myriade/docker-compose.yml restart
 ```
 
 ### Check Nginx status

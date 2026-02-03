@@ -47,8 +47,6 @@ case "$OS_TYPE" in
         echo ""
         echo "  # 3. Open http://localhost:8080"
         echo ""
-        echo "For production deployment, run this script on an Ubuntu/Debian server."
-        echo ""
         exit 0
         ;;
     *)
@@ -179,8 +177,14 @@ sed -i "s|127.0.0.1:8080:8080|0.0.0.0:8080:8080|g" docker-compose.yml
 # Configure environment variables
 print_message "Configuring environment variables..."
 
+# Preserve existing .env if present
+if [ -f ".env" ]; then
+    print_warning "Existing .env file found. Preserving existing configuration."
+    source .env
+fi
+
 # Generate a secure random password if not provided
-if [ -z "$POSTGRES_PASSWORD" ]; then
+if [ -z "${POSTGRES_PASSWORD:-}" ]; then
     POSTGRES_PASSWORD=$(openssl rand -base64 32)
     print_message "Generated secure database password"
 else
@@ -188,7 +192,7 @@ else
 fi
 
 # Generate credential encryption key if not provided (Fernet format: URL-safe base64)
-if [ -z "$CREDENTIAL_ENCRYPTION_KEY" ]; then
+if [ -z "${CREDENTIAL_ENCRYPTION_KEY:-}" ]; then
     # Fernet keys are 32 bytes, URL-safe base64 encoded (44 chars)
     CREDENTIAL_ENCRYPTION_KEY=$(openssl rand -base64 32 | tr -d '\n' | tr '+/' '-_')
     print_message "Generated credential encryption key"
@@ -246,7 +250,7 @@ print_message "🌐 Access Myriade BI at: http://${SERVER_IP}:8080"
 echo ""
 print_message "To add a domain and SSL certificate, run:"
 echo ""
-echo "  ${INSTALL_DIR}/setup/install_certificate.sh YOUR_DOMAIN.com"
+echo "  sudo ${INSTALL_DIR}/setup/install_certificate.sh YOUR_DOMAIN.com"
 echo ""
 
 # Display running containers
