@@ -61,12 +61,6 @@ esac
 print_message "Starting Myriade BI installation..."
 echo ""
 
-# Check if running as root
-if [ "$EUID" -eq 0 ]; then
-    print_warning "This script should not be run as root. Please run as a regular user with sudo privileges."
-    exit 1
-fi
-
 # Update and install prerequisites
 print_message "Updating package index and installing prerequisites..."
 sudo apt update -y
@@ -74,7 +68,7 @@ sudo apt install -y ca-certificates curl gnupg lsb-release unzip wget
 
 # Download latest Myriade BI release
 print_message "Downloading latest Myriade BI release..."
-INSTALL_DIR="$HOME/myriade-bi"
+INSTALL_DIR="/opt/myriade"
 DOWNLOAD_URL="${MYRIADE_DOWNLOAD_URL:-https://install.myriade.ai/myriade-bi-latest.tar.gz}"
 
 # Create installation directory
@@ -155,9 +149,11 @@ sudo apt update -y
 print_message "Installing Docker..."
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# Add current user to the docker group
-print_message "Adding current user to the docker group..."
-sudo usermod -aG docker $USER
+# Add current user to the docker group (skip if running as root — root already has access)
+if [ "$EUID" -ne 0 ]; then
+    print_message "Adding current user to the docker group..."
+    sudo usermod -aG docker $USER
+fi
 
 # Start and enable Docker service
 print_message "Starting and enabling Docker service..."
@@ -182,27 +178,19 @@ sed -i "s|127.0.0.1:8080:8080|0.0.0.0:8080:8080|g" docker-compose.yml
 # Configure environment variables
 print_message "Configuring environment variables..."
 
-# Preserve existing .env values on re-install to avoid breaking the database
-if [ -f ".env" ]; then
-    print_warning "Existing .env file found. Preserving existing configuration."
-    source .env
-fi
-
 # Generate a secure random password if not provided
-if [ -z "${POSTGRES_PASSWORD:-}" ]; then
+if [ -z "$POSTGRES_PASSWORD" ]; then
     POSTGRES_PASSWORD=$(openssl rand -base64 32)
     print_message "Generated secure database password"
 else
-    print_message "Using existing database password"
+    print_message "Using provided database password"
 fi
 
 # Generate credential encryption key if not provided (Fernet format: URL-safe base64)
-if [ -z "${CREDENTIAL_ENCRYPTION_KEY:-}" ]; then
+if [ -z "$CREDENTIAL_ENCRYPTION_KEY" ]; then
     # Fernet keys are 32 bytes, URL-safe base64 encoded (44 chars)
     CREDENTIAL_ENCRYPTION_KEY=$(openssl rand -base64 32 | tr -d '\n' | tr '+/' '-_')
     print_message "Generated credential encryption key"
-else
-    print_message "Using existing credential encryption key"
 fi
 
 # Create .env file for Docker Compose
