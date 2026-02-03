@@ -39,15 +39,27 @@ fi
 
 DOMAIN_NAME="$1"
 
+# Ensure nginx is available (required for SSL configuration)
+if ! command -v nginx &> /dev/null; then
+    print_message "Installing Nginx (required for SSL)..."
+    sudo apt update -y
+    sudo apt install -y nginx
+fi
+if ! systemctl is-active --quiet nginx 2>/dev/null; then
+    print_message "Starting Nginx..."
+    sudo systemctl start nginx
+    sudo systemctl enable nginx
+fi
+
 # Determine installation directory (look for nginx.conf template)
 if [ -f "./setup/nginx.conf" ]; then
     INSTALL_DIR="$(pwd)"
 elif [ -f "../setup/nginx.conf" ]; then
     INSTALL_DIR="$(cd .. && pwd)"
-elif [ -f "$HOME/myriade-bi/setup/nginx.conf" ]; then
-    INSTALL_DIR="$HOME/myriade-bi"
+elif [ -f "/opt/myriade/setup/nginx.conf" ]; then
+    INSTALL_DIR="/opt/myriade"
 else
-    INSTALL_DIR="$HOME/myriade-bi"
+    INSTALL_DIR="/opt/myriade"
 fi
 
 echo ""
@@ -59,30 +71,23 @@ echo ""
 print_info "Domain: $DOMAIN_NAME"
 echo ""
 
-# Check if running as root
-if [ "$EUID" -eq 0 ]; then
-    print_warning "This script should not be run as root. Please run as a regular user with sudo privileges."
-    exit 1
-fi
-
-# Detect if server is on private network using local interface
+# Detect if server is on private network
 print_message "Detecting server configuration..."
 IS_PRIVATE_IP=false
 SERVER_IP=""
 
-# Get local IP from network interfaces (first non-loopback IP)
-LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
-if [ -z "$LOCAL_IP" ]; then
-    LOCAL_IP=$(ip route get 1 2>/dev/null | awk '{print $7; exit}')
-fi
+# Try to reach public IP services first — if reachable, the server can be reached from the internet
+SERVER_IP=$(curl -s --connect-timeout 5 ifconfig.me 2>/dev/null) || \
+SERVER_IP=$(curl -s --connect-timeout 5 icanhazip.com 2>/dev/null) || \
+SERVER_IP=""
 
-# Check if the local IP is private
-if [[ "$LOCAL_IP" =~ ^10\. ]] || [[ "$LOCAL_IP" =~ ^172\.(1[6-9]|2[0-9]|3[0-1])\. ]] || [[ "$LOCAL_IP" =~ ^192\.168\. ]]; then
+if [ -z "$SERVER_IP" ]; then
+    # Curl failed — server is truly airgapped / private-only
     IS_PRIVATE_IP=true
-    SERVER_IP="$LOCAL_IP"
-else
-    # Try to get public IP for DNS verification
-    SERVER_IP=$(curl -s --connect-timeout 5 ifconfig.me || curl -s --connect-timeout 5 icanhazip.com || echo "$LOCAL_IP")
+    SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+    if [ -z "$SERVER_IP" ]; then
+        SERVER_IP=$(ip route get 1 2>/dev/null | awk '{print $7; exit}')
+    fi
 fi
 
 echo "  Server IP: $SERVER_IP"
@@ -218,11 +223,11 @@ update_env_host() {
         fi
         print_message "Updated HOST in .env file"
 
-        # Recreate containers to pick up new HOST value (.env changes require down/up, not restart)
-        print_message "Recreating Myriade to apply new domain..."
+        # Restart containers to pick up new HOST value
+        print_message "Restarting Myriade to apply new domain..."
         cd "$INSTALL_DIR"
-        if sudo docker compose up -d --force-recreate myriade > /dev/null 2>&1; then
-            print_message "Myriade recreated successfully with new HOST"
+        if sudo docker compose restart myriade > /dev/null 2>&1; then
+            print_message "Myriade restarted successfully"
         fi
     fi
 }
@@ -391,13 +396,15 @@ case $CHOICE in
             sudo ln -sf /etc/nginx/sites-available/myriade /etc/nginx/sites-enabled/myriade
             sudo rm -f /etc/nginx/sites-enabled/default
 
+            # Update HOST in .env before testing (cert is installed regardless of test outcome)
+            update_env_host
+
             # Test HTTPS
             echo ""
             print_message "Testing HTTPS connection..."
             sleep 2
             if curl -sI "https://$DOMAIN_NAME" > /dev/null 2>&1; then
                 print_message "HTTPS is working correctly!"
-                update_env_host
                 echo ""
                 print_message "Your application is now available at: https://$DOMAIN_NAME"
             else
@@ -448,13 +455,15 @@ case $CHOICE in
 
         # Install nginx config
         if install_nginx_config "/etc/ssl/certs/${DOMAIN_NAME}.crt" "/etc/ssl/private/${DOMAIN_NAME}.key"; then
+            # Update HOST in .env before testing (cert is installed regardless of test outcome)
+            update_env_host
+
             # Test HTTPS
             echo ""
             print_message "Testing HTTPS connection..."
             sleep 2
             if curl -sIk "https://$DOMAIN_NAME" > /dev/null 2>&1; then
                 print_message "HTTPS is working correctly!"
-                update_env_host
                 echo ""
                 print_message "Your application is now available at: https://$DOMAIN_NAME"
             else
@@ -474,12 +483,14 @@ case $CHOICE in
 
         # Install nginx config
         if install_nginx_config "/etc/ssl/certs/${DOMAIN_NAME}.crt" "/etc/ssl/private/${DOMAIN_NAME}.key"; then
+            # Update HOST in .env before testing (cert is installed regardless of test outcome)
+            update_env_host
+
             echo ""
             print_message "Testing HTTPS connection..."
             sleep 2
             if curl -sIk "https://$DOMAIN_NAME" > /dev/null 2>&1; then
                 print_message "HTTPS is working (with self-signed certificate)!"
-                update_env_host
                 echo ""
                 print_warning "Browsers will show a security warning for self-signed certificates."
                 print_message "Your application is now available at: https://$DOMAIN_NAME"
