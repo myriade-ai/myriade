@@ -65,7 +65,7 @@ This installs Docker, PostgreSQL, and starts Myriade on port 8080.
 **Add a domain and SSL certificate:**
 
 ```bash
-/opt/myriade/setup/install_certificate.sh YOUR_DOMAIN.com
+sudo /opt/myriade/setup/install_certificate.sh YOUR_DOMAIN.com
 ```
 
 [Full installation guide](./setup/README.md)
