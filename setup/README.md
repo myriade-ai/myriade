@@ -46,7 +46,7 @@ This will:
 If you started with the quick install, you can add a domain and SSL anytime:
 
 ```bash
-/opt/myriade/setup/install_certificate.sh YOUR_DOMAIN.com
+~/myriade-bi/setup/install_certificate.sh YOUR_DOMAIN.com
 ```
 
 This will:
@@ -66,17 +66,17 @@ This will:
 
 ### Check application status
 ```bash
-cd /opt/myriade && sudo docker compose ps
+cd ~/myriade-bi && sudo docker compose ps
 ```
 
 ### View application logs
 ```bash
-cd /opt/myriade && sudo docker compose logs -f myriade
+cd ~/myriade-bi && sudo docker compose logs -f myriade
 ```
 
 ### Restart the application
 ```bash
-cd /opt/myriade && sudo docker compose restart
+cd ~/myriade-bi && sudo docker compose restart
 ```
 
 ### Check Nginx status
