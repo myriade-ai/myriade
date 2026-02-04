@@ -23,6 +23,16 @@ curl -fsSL https://install.myriade.ai | bash
 
 This installs Docker, downloads Myriade BI to `/opt/myriade`, and starts it on port 8080.
 
+By default, the script uses the server's **private/internal IP** — this works for:
+- On-premise / private network deployments
+- Cloud VPCs where users access from within the network
+
+For servers directly exposed to the internet (public IP accessible), use:
+
+```bash
+curl -fsSL https://install.myriade.ai | bash -s -- --public-ip
+```
+
 Access your instance at: `http://YOUR_SERVER_IP:8080`
 
 ## Adding Domain & SSL
