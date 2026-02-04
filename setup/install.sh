@@ -203,7 +203,7 @@ cat > .env << EOF
 POSTGRES_DB=${POSTGRES_DB:-myriade}
 POSTGRES_USER=${POSTGRES_USER:-myriade}
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-HOST=http://${SERVER_IP}:8080
+HOST=${HOST:-http://${SERVER_IP}:8080}
 CREDENTIAL_ENCRYPTION_KEY=${CREDENTIAL_ENCRYPTION_KEY}
 EOF
 
@@ -246,7 +246,10 @@ echo "║  ✅ Myriade BI Installation Complete!                         ║"
 echo "║                                                                ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
-print_message "🌐 Access Myriade BI at: http://${SERVER_IP}:8080"
+print_message "🌐 Access Myriade BI at: ${HOST}"
+echo ""
+print_warning "If users access Myriade via a different IP or domain, update HOST in ${INSTALL_DIR}/.env and restart:"
+echo "    sudo docker compose -f ${INSTALL_DIR}/docker-compose.yml restart myriade"
 echo ""
 print_message "To add a domain and SSL certificate, run:"
 echo ""
