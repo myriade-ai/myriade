@@ -11,44 +11,13 @@
 
 ---
 
-## Quick Start (Docker)
-
-**With SQLite backend (simplest)**
+## Quick Start (try locally)
 
 ```bash
 docker run -p 8080:8080 -v $(pwd)/data:/app/data myriadeai/myriade:latest
 ```
 
 Open: [http://localhost:8080](http://localhost:8080)
-
-**With PostgreSQL backend**
-
-```bash
-docker run -p 8080:8080 \
-  -e DATABASE_URL=postgresql://<db_user>:<strong_password>@localhost:5432/myriade \
-  myriadeai/myriade:latest
-```
-
-> Always use dedicated, non-default credentials.
-
----
-
-## Docker Compose
-
-For a complete setup with PostgreSQL, use the provided `docker-compose.yml`:
-
-```bash
-# Set required environment variable
-export POSTGRES_PASSWORD=your_secure_password
-
-# Start services
-docker compose up -d
-```
-
-Open: [http://localhost:8080](http://localhost:8080)
-
-Optional environment variables:
-- `HOST` - Public URL for OAuth callbacks (e.g., `https://myriade.example.com`)
 
 ---
 
@@ -60,7 +29,7 @@ For production deployments on Ubuntu/Debian servers:
 curl -fsSL https://install.myriade.ai | bash
 ```
 
-This installs Docker, PostgreSQL, and starts Myriade on port 8080.
+Access your instance at: `http://YOUR_SERVER_IP:8080`
 
 **Add a domain and SSL certificate:**
 
