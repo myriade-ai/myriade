@@ -11,19 +11,9 @@
 
 ---
 
-## Quick Start (try locally)
+## Installation
 
-```bash
-docker run -p 8080:8080 -v $(pwd)/data:/app/data myriadeai/myriade:latest
-```
-
-Open: [http://localhost:8080](http://localhost:8080)
-
----
-
-## Production Installation
-
-For production deployments on Ubuntu/Debian servers:
+Requires Ubuntu 20.04+ or Debian 11+.
 
 ```bash
 curl -fsSL https://install.myriade.ai | bash
