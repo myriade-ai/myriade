@@ -168,7 +168,15 @@ else
 fi
 
 # Get server IP for HOST configuration
-SERVER_IP=$(curl -s --connect-timeout 5 ifconfig.me || curl -s --connect-timeout 5 icanhazip.com || hostname -I 2>/dev/null | awk '{print $1}')
+# Use private/internal IP by default (works for on-premise and cloud VPCs)
+# Pass --public-ip flag to use public IP instead (for direct internet-exposed servers)
+if [[ "${1:-}" == "--public-ip" ]]; then
+    SERVER_IP=$(curl -s --connect-timeout 5 ifconfig.me || curl -s --connect-timeout 5 icanhazip.com || hostname -I 2>/dev/null | awk '{print $1}')
+    print_message "Using public IP: ${SERVER_IP}"
+else
+    SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+    print_message "Using private IP: ${SERVER_IP}"
+fi
 
 # Configure Docker to bind directly to port 8080 (no nginx for quick start)
 print_message "Configuring Docker for direct access on port 8080..."
@@ -250,6 +258,8 @@ print_message "🌐 Access Myriade BI at: ${HOST}"
 echo ""
 print_warning "If users access Myriade via a different IP or domain, update HOST in ${INSTALL_DIR}/.env and restart:"
 echo "    sudo docker compose -f ${INSTALL_DIR}/docker-compose.yml restart myriade"
+echo ""
+print_message "Tip: For internet-exposed servers, re-run with --public-ip flag to use public IP instead."
 echo ""
 print_message "To add a domain and SSL certificate, run:"
 echo ""
