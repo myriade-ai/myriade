@@ -75,6 +75,28 @@ Ports 80 and 443 must be open for SSL to work. On AWS, add inbound rules to your
 | Manual certificate | Enterprise/CA-signed certificates |
 | Self-signed | Testing, development, private networks |
 
+## Updating Myriade
+
+To update to the latest version:
+
+```bash
+sudo /opt/myriade/setup/update.sh
+```
+
+To update to a specific version:
+
+```bash
+sudo /opt/myriade/setup/update.sh 1.165.0
+```
+
+To list available versions:
+
+```bash
+sudo /opt/myriade/setup/update.sh versions
+```
+
+The script pulls the new Docker image, restarts the container, and waits for the health check to pass. Database migrations are applied automatically on startup.
+
 ## Troubleshooting
 
 ### Check application status
