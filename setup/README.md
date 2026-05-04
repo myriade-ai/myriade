@@ -1,5 +1,15 @@
 # Myriade BI - Installation Guide
 
+> Looking to **try Myriade** without provisioning a server? Run this on any
+> OS with Docker (macOS, Windows, Linux):
+>
+> ```bash
+> docker run -p 8080:8080 -v myriade-data:/app/data myriadeai/myriade:latest
+> ```
+>
+> Open <http://localhost:8080>. Uses SQLite, no setup required. The guide
+> below covers the full Postgres-backed self-hosted install for production.
+
 ## Prerequisites
 
 - **Operating System**: Ubuntu 20.04+ or Debian 11+

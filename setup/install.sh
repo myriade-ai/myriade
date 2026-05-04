@@ -22,36 +22,125 @@ print_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
+# Desktop quick-start (macOS / Windows / WSL): single self-contained container
+# with embedded SQLite. No env vars, no compose file, no tarball.
+DESKTOP_CONTAINER_NAME="myriade"
+DESKTOP_VOLUME_NAME="myriade-data"
+DESKTOP_IMAGE="${MYRIADE_IMAGE:-myriadeai/myriade:latest}"
+
+desktop_quickstart() {
+    local os_label="$1"
+
+    echo ""
+    echo "╔════════════════════════════════════════════════════════════════╗"
+    printf "║  %-62s║\n" "${os_label} detected — Myriade BI Quick Start"
+    echo "╚════════════════════════════════════════════════════════════════╝"
+    echo ""
+
+    if ! command -v docker >/dev/null 2>&1; then
+        print_error "Docker is not installed."
+        echo ""
+        echo "Install Docker Desktop, then re-run this script:"
+        echo "  https://www.docker.com/products/docker-desktop"
+        echo ""
+        echo "Alternatives that also work: Colima, Rancher Desktop, OrbStack."
+        exit 1
+    fi
+
+    if ! docker info >/dev/null 2>&1; then
+        print_error "Docker is installed but the daemon is not running."
+        echo "Start Docker Desktop (or your Docker runtime) and re-run this script."
+        exit 1
+    fi
+
+    print_message "Pulling latest Myriade BI image (${DESKTOP_IMAGE})..."
+    if ! docker pull --platform linux/amd64 "$DESKTOP_IMAGE"; then
+        print_error "Failed to pull ${DESKTOP_IMAGE}."
+        echo "If you're on Apple Silicon or Windows on ARM, ensure Docker Desktop has"
+        echo "Rosetta 2 / x86 emulation enabled (Settings → General)."
+        echo "Otherwise check your internet connection."
+        exit 1
+    fi
+
+    if docker ps -a --format '{{.Names}}' | grep -q "^${DESKTOP_CONTAINER_NAME}$"; then
+        print_warning "Existing '${DESKTOP_CONTAINER_NAME}' container found — replacing it."
+        print_warning "(Your data persists in the '${DESKTOP_VOLUME_NAME}' Docker volume.)"
+        docker rm -f "$DESKTOP_CONTAINER_NAME" >/dev/null
+    fi
+
+    print_message "Starting Myriade BI (SQLite backend, single container)..."
+    if ! docker run -d \
+        --platform linux/amd64 \
+        --name "$DESKTOP_CONTAINER_NAME" \
+        -p 8080:8080 \
+        -v "${DESKTOP_VOLUME_NAME}:/app/data" \
+        --restart unless-stopped \
+        "$DESKTOP_IMAGE" >/dev/null; then
+        print_error "Failed to start the Myriade container."
+        exit 1
+    fi
+
+    print_message "Waiting for application to be ready..."
+    local attempts=60
+    local i=0
+    while [ "$i" -lt "$attempts" ]; do
+        if curl -sf http://localhost:8080/health >/dev/null 2>&1; then
+            echo ""
+            echo "╔════════════════════════════════════════════════════════════════╗"
+            echo "║  ✅ Myriade BI is running                                      ║"
+            echo "╚════════════════════════════════════════════════════════════════╝"
+            echo ""
+            print_message "🌐 Open http://localhost:8080 in your browser."
+            echo ""
+            echo "Useful commands:"
+            echo "  docker logs -f ${DESKTOP_CONTAINER_NAME}      # tail logs"
+            echo "  docker stop ${DESKTOP_CONTAINER_NAME}         # stop"
+            echo "  docker start ${DESKTOP_CONTAINER_NAME}        # restart"
+            echo "  docker rm -f ${DESKTOP_CONTAINER_NAME}        # remove (data persists in '${DESKTOP_VOLUME_NAME}' volume)"
+            echo ""
+            exit 0
+        fi
+        i=$((i + 1))
+        sleep 2
+    done
+
+    print_warning "Container started but the health check did not pass within 2 minutes."
+    echo "Inspect logs with: docker logs -f ${DESKTOP_CONTAINER_NAME}"
+    exit 1
+}
+
+# Parse flags so --server and --public-ip can be combined in any order.
+WANT_SERVER=false
+WANT_PUBLIC_IP=false
+for _arg in "$@"; do
+    case "$_arg" in
+        --server)    WANT_SERVER=true ;;
+        --public-ip) WANT_PUBLIC_IP=true ;;
+    esac
+done
+
 # Detect operating system
 OS_TYPE="$(uname -s)"
 case "$OS_TYPE" in
     Linux*)
-        # Will check for Debian/Ubuntu later
+        # Under WSL, default to the desktop quick-start unless the user passes
+        # --server to opt into the full Ubuntu/Debian Postgres install.
+        if [[ "$WANT_SERVER" != "true" ]] && grep -qiE "(microsoft|wsl)" /proc/version 2>/dev/null; then
+            desktop_quickstart "WSL (Windows)"
+        fi
+        # Otherwise fall through to the Ubuntu/Debian server install below.
         ;;
     Darwin*)
-        echo ""
-        echo "╔════════════════════════════════════════════════════════════════╗"
-        echo "║  macOS Detected - Local Development Setup                      ║"
-        echo "╚════════════════════════════════════════════════════════════════╝"
-        echo ""
-        echo "This installer is designed for Ubuntu/Debian servers."
-        echo "For macOS local development, use Docker Compose directly:"
-        echo ""
-        echo "  # 1. Download and extract"
-        echo "  curl -fsSL https://install.myriade.ai/myriade-bi-latest.tar.gz | tar -xz"
-        echo "  cd myriade-bi"
-        echo ""
-        echo "  # 2. Set password and start"
-        echo "  export POSTGRES_PASSWORD=your_secure_password"
-        echo "  docker compose up -d"
-        echo ""
-        echo "  # 3. Open http://localhost:8080"
-        echo ""
-        exit 0
+        desktop_quickstart "macOS"
+        ;;
+    MINGW*|MSYS*|CYGWIN*)
+        # Git Bash / MSYS2 / Cygwin on Windows
+        desktop_quickstart "Windows"
         ;;
     *)
         print_error "Unsupported operating system: $OS_TYPE"
-        echo "This installer supports Ubuntu 20.04+ and Debian 11+"
+        echo "Supported quick-start: macOS, Windows (Docker Desktop), WSL."
+        echo "Supported server install: Ubuntu 20.04+ / Debian 11+."
         exit 1
         ;;
 esac
@@ -170,7 +259,7 @@ fi
 # Get server IP for HOST configuration
 # Use private/internal IP by default (works for on-premise and cloud VPCs)
 # Pass --public-ip flag to use public IP instead (for direct internet-exposed servers)
-if [[ "${1:-}" == "--public-ip" ]]; then
+if [[ "$WANT_PUBLIC_IP" == "true" ]]; then
     SERVER_IP=$(curl -s --connect-timeout 5 ifconfig.me || curl -s --connect-timeout 5 icanhazip.com || hostname -I 2>/dev/null | awk '{print $1}')
     print_message "Using public IP: ${SERVER_IP}"
 else
