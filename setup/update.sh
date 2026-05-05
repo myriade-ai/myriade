@@ -108,6 +108,72 @@ wait_for_health() {
     done
 }
 
+# Sync host-side bwrap sandbox config from the just-pulled image. Two files
+# need to land on the host filesystem:
+#   - docker/seccomp/dbt-sandbox.json: the seccomp profile referenced by the
+#     security_opt: seccomp=... entry
+#   - docker-compose.override.yml: the security_opt block itself, auto-loaded
+#     by Docker Compose so the customer's main docker-compose.yml stays
+#     untouched
+# Both are bundled inside the image starting v1.186+; older images that don't
+# carry them silently skip this step (the Python `should_sandbox_dbt()` probe
+# falls back to running dbt unsandboxed in that case).
+sync_sandbox_config() {
+    local install_dir="$1"
+    local version="${MYRIADE_VERSION:-latest}"
+    local image="${IMAGE}:${version}"
+
+    mkdir -p "$install_dir/docker/seccomp"
+
+    # Create a *fresh* stopped container directly from the image (NOT
+    # `docker compose create`, which is a no-op when the service is already
+    # running and would point us at the live production container — we'd
+    # then `docker rm -f` it at the end of this function and cause an
+    # outage). `docker create` always returns a brand-new container ID we
+    # know is safe to remove.
+    local cid
+    cid=$(docker create "$image" 2>/dev/null) || cid=""
+    if [ -z "$cid" ]; then
+        print_warning "Could not create a temporary container from $image; skipping sandbox config sync"
+        return 0
+    fi
+
+    local synced_anything=0
+
+    if docker cp "${cid}:/app/docker/seccomp/dbt-sandbox.json" \
+                 "$install_dir/docker/seccomp/dbt-sandbox.json" 2>/dev/null; then
+        print_message "Synced bwrap seccomp profile"
+        synced_anything=1
+    fi
+
+    # The override file is what actually activates the sandbox - install it
+    # only if the customer doesn't already have a custom override (which
+    # would be unusual for a self-hosted prod setup, but handle it safely).
+    local override_dest="$install_dir/docker-compose.override.yml"
+    if [ -f "$override_dest" ] && ! grep -q "dbt-sandbox.json" "$override_dest"; then
+        print_warning "An existing docker-compose.override.yml was found that does not match"
+        print_warning "the Myriade-shipped sandbox override. Leaving it alone to avoid"
+        print_warning "clobbering local customizations. The bwrap sandbox will not be active"
+        print_warning "until you merge the security_opt block from /app/docker-compose.override.yml"
+        print_warning "in the image into your override."
+    else
+        if docker cp "${cid}:/app/docker-compose.override.yml" "$override_dest" 2>/dev/null; then
+            print_message "Synced docker-compose.override.yml (activates the bwrap sandbox)"
+            synced_anything=1
+        fi
+    fi
+
+    if [ "$synced_anything" -eq 0 ]; then
+        print_warning "Image does not bundle the sandbox config yet; skipping (older version)"
+    fi
+
+    # Tear down the throwaway container we created above. This is safe
+    # because $cid was produced by `docker create <image>` (a fresh
+    # container), never by `docker compose ps -q myriade` (which would
+    # have pointed at the live production container).
+    docker rm -f "$cid" >/dev/null 2>&1 || true
+}
+
 # Main update logic
 do_update() {
     local version="$1"
@@ -126,6 +192,9 @@ do_update() {
 
     print_message "Pulling new image..."
     docker compose pull myriade
+
+    print_message "Syncing host-side sandbox config from image..."
+    sync_sandbox_config "$install_dir"
 
     print_message "Restarting myriade..."
     docker compose up -d myriade
