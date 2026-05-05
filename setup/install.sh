@@ -9,107 +9,45 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Function to print messages
-print_message() {
-    echo -e "${GREEN}=====> $1${NC}"
-}
+print_message() { echo -e "${GREEN}=====> $1${NC}"; }
+print_warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
+print_error()   { echo -e "${RED}❌ $1${NC}"; }
 
-print_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
-}
-
-print_error() {
-    echo -e "${RED}❌ $1${NC}"
-}
-
-# Desktop quick-start (macOS / Windows / WSL): single self-contained container
-# with embedded SQLite. No env vars, no compose file, no tarball.
-DESKTOP_CONTAINER_NAME="myriade"
-DESKTOP_VOLUME_NAME="myriade-data"
-DESKTOP_IMAGE="${MYRIADE_IMAGE:-myriadeai/myriade:latest}"
-
-desktop_quickstart() {
-    local os_label="$1"
-
+print_banner() {
+    local label="$1"
     echo ""
     echo "╔════════════════════════════════════════════════════════════════╗"
-    printf "║  %-62s║\n" "${os_label} detected — Myriade BI Quick Start"
+    printf "║  %-62s║\n" "${label}"
     echo "╚════════════════════════════════════════════════════════════════╝"
     echo ""
-
-    if ! command -v docker >/dev/null 2>&1; then
-        print_error "Docker is not installed."
-        echo ""
-        echo "Install Docker Desktop, then re-run this script:"
-        echo "  https://www.docker.com/products/docker-desktop"
-        echo ""
-        echo "Alternatives that also work: Colima, Rancher Desktop, OrbStack."
-        exit 1
-    fi
-
-    if ! docker info >/dev/null 2>&1; then
-        print_error "Docker is installed but the daemon is not running."
-        echo "Start Docker Desktop (or your Docker runtime) and re-run this script."
-        exit 1
-    fi
-
-    print_message "Pulling latest Myriade BI image (${DESKTOP_IMAGE})..."
-    if ! docker pull --platform linux/amd64 "$DESKTOP_IMAGE"; then
-        print_error "Failed to pull ${DESKTOP_IMAGE}."
-        echo "If you're on Apple Silicon or Windows on ARM, ensure Docker Desktop has"
-        echo "Rosetta 2 / x86 emulation enabled (Settings → General)."
-        echo "Otherwise check your internet connection."
-        exit 1
-    fi
-
-    if docker ps -a --format '{{.Names}}' | grep -q "^${DESKTOP_CONTAINER_NAME}$"; then
-        print_warning "Existing '${DESKTOP_CONTAINER_NAME}' container found — replacing it."
-        print_warning "(Your data persists in the '${DESKTOP_VOLUME_NAME}' Docker volume.)"
-        docker rm -f "$DESKTOP_CONTAINER_NAME" >/dev/null
-    fi
-
-    print_message "Starting Myriade BI (SQLite backend, single container)..."
-    if ! docker run -d \
-        --platform linux/amd64 \
-        --name "$DESKTOP_CONTAINER_NAME" \
-        -p 8080:8080 \
-        -v "${DESKTOP_VOLUME_NAME}:/app/data" \
-        --restart unless-stopped \
-        "$DESKTOP_IMAGE" >/dev/null; then
-        print_error "Failed to start the Myriade container."
-        exit 1
-    fi
-
-    print_message "Waiting for application to be ready..."
-    local attempts=60
-    local i=0
-    while [ "$i" -lt "$attempts" ]; do
-        if curl -sf http://localhost:8080/health >/dev/null 2>&1; then
-            echo ""
-            echo "╔════════════════════════════════════════════════════════════════╗"
-            echo "║  ✅ Myriade BI is running                                      ║"
-            echo "╚════════════════════════════════════════════════════════════════╝"
-            echo ""
-            print_message "🌐 Open http://localhost:8080 in your browser."
-            echo ""
-            echo "Useful commands:"
-            echo "  docker logs -f ${DESKTOP_CONTAINER_NAME}      # tail logs"
-            echo "  docker stop ${DESKTOP_CONTAINER_NAME}         # stop"
-            echo "  docker start ${DESKTOP_CONTAINER_NAME}        # restart"
-            echo "  docker rm -f ${DESKTOP_CONTAINER_NAME}        # remove (data persists in '${DESKTOP_VOLUME_NAME}' volume)"
-            echo ""
-            exit 0
-        fi
-        i=$((i + 1))
-        sleep 2
-    done
-
-    print_warning "Container started but the health check did not pass within 2 minutes."
-    echo "Inspect logs with: docker logs -f ${DESKTOP_CONTAINER_NAME}"
-    exit 1
 }
 
-# Parse flags so --server and --public-ip can be combined in any order.
+# ---------------------------------------------------------------------------
+# Port probing — bash builtin /dev/tcp avoids a hard dep on nc/lsof/ss.
+# port_in_use returns 0 (true) if a TCP connect to 127.0.0.1:$port succeeds.
+# ---------------------------------------------------------------------------
+port_in_use() {
+    local port="$1"
+    (exec 3<>"/dev/tcp/127.0.0.1/${port}") 2>/dev/null
+}
+
+find_free_port() {
+    local start="$1"
+    local max_offset="${2:-50}"
+    local offset port
+    for offset in $(seq 0 "$max_offset"); do
+        port=$((start + offset))
+        if ! port_in_use "$port"; then
+            echo "$port"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# ---------------------------------------------------------------------------
+# Flags
+# ---------------------------------------------------------------------------
 WANT_SERVER=false
 WANT_PUBLIC_IP=false
 for _arg in "$@"; do
@@ -119,51 +57,188 @@ for _arg in "$@"; do
     esac
 done
 
-# Detect operating system
+# ---------------------------------------------------------------------------
+# Platform & mode detection
+#
+# Modes:
+#   desktop  → macOS, Windows (Git Bash/MSYS/Cygwin), WSL — Docker Desktop expected.
+#              Installs into $HOME/.myriade, binds to 127.0.0.1, HOST=http://localhost:8080.
+#   server   → Linux native (Ubuntu/Debian) — apt-installs Docker if missing.
+#              Installs into /opt/myriade, binds to 0.0.0.0, HOST=http://<detected-ip>:8080.
+# ---------------------------------------------------------------------------
 OS_TYPE="$(uname -s)"
+IS_WSL=false
+if [ -r /proc/version ] && grep -qiE "(microsoft|wsl)" /proc/version 2>/dev/null; then
+    IS_WSL=true
+fi
+
 case "$OS_TYPE" in
-    Linux*)
-        # Under WSL, default to the desktop quick-start unless the user passes
-        # --server to opt into the full Ubuntu/Debian Postgres install.
-        if [[ "$WANT_SERVER" != "true" ]] && grep -qiE "(microsoft|wsl)" /proc/version 2>/dev/null; then
-            desktop_quickstart "WSL (Windows)"
-        fi
-        # Otherwise fall through to the Ubuntu/Debian server install below.
-        ;;
     Darwin*)
-        desktop_quickstart "macOS"
+        OS_LABEL="macOS"
+        MODE="desktop"
         ;;
     MINGW*|MSYS*|CYGWIN*)
-        # Git Bash / MSYS2 / Cygwin on Windows
-        desktop_quickstart "Windows"
+        OS_LABEL="Windows"
+        MODE="desktop"
+        ;;
+    Linux*)
+        if [ "$IS_WSL" = "true" ]; then
+            OS_LABEL="WSL (Windows)"
+            # WSL keeps its existing escape hatch: --server forces the apt path.
+            if [ "$WANT_SERVER" = "true" ]; then
+                MODE="server"
+            else
+                MODE="desktop"
+            fi
+        else
+            OS_LABEL="Linux"
+            MODE="server"
+        fi
         ;;
     *)
         print_error "Unsupported operating system: $OS_TYPE"
-        echo "Supported quick-start: macOS, Windows (Docker Desktop), WSL."
-        echo "Supported server install: Ubuntu 20.04+ / Debian 11+."
+        echo "Supported: macOS, Windows (Docker Desktop), WSL, Ubuntu 20.04+ / Debian 11+."
         exit 1
         ;;
 esac
 
-print_message "Starting Myriade BI installation..."
-echo ""
+if [ "$WANT_SERVER" = "true" ] && [ "$MODE" = "desktop" ] && [ "$IS_WSL" != "true" ]; then
+    print_warning "--server is Linux-only; ignoring on ${OS_LABEL}."
+fi
 
-# Update and install prerequisites
-print_message "Updating package index and installing prerequisites..."
-sudo apt update -y
-sudo apt install -y ca-certificates curl gnupg lsb-release unzip wget
+print_banner "${OS_LABEL} detected — Myriade BI Quick Start (${MODE} mode)"
 
-# Download latest Myriade BI release
-print_message "Downloading latest Myriade BI release..."
-INSTALL_DIR="/opt/myriade"
+# ---------------------------------------------------------------------------
+# Per-mode configuration
+# ---------------------------------------------------------------------------
+if [ "$MODE" = "desktop" ]; then
+    INSTALL_DIR="${HOME}/.myriade"
+    BIND_ADDRESS="127.0.0.1"
+    DOCKER_COMPOSE=(docker compose)
+    NEEDS_SUDO=false
+else
+    INSTALL_DIR="/opt/myriade"
+    BIND_ADDRESS="0.0.0.0"
+    DOCKER_COMPOSE=(sudo docker compose)
+    NEEDS_SUDO=true
+fi
+
 DOWNLOAD_URL="${MYRIADE_DOWNLOAD_URL:-https://install.myriade.ai/myriade-bi-latest.tar.gz}"
 
-# Create installation directory
-sudo mkdir -p "$INSTALL_DIR"
-sudo chown "$(id -u):$(id -g)" "$INSTALL_DIR"
+# ---------------------------------------------------------------------------
+# Docker bootstrap
+# ---------------------------------------------------------------------------
+ensure_docker_desktop() {
+    if ! command -v docker >/dev/null 2>&1; then
+        print_error "Docker is not installed."
+        echo ""
+        echo "Install Docker Desktop, then re-run this script:"
+        echo "  https://www.docker.com/products/docker-desktop"
+        echo ""
+        echo "Alternatives that also work: Colima, Rancher Desktop, OrbStack."
+        exit 1
+    fi
+    if ! docker info >/dev/null 2>&1; then
+        print_error "Docker is installed but the daemon is not running."
+        echo "Start Docker Desktop (or your Docker runtime) and re-run this script."
+        exit 1
+    fi
+    if ! docker compose version >/dev/null 2>&1; then
+        print_error "Docker Compose plugin not found."
+        echo "Update Docker Desktop, or install the docker-compose-plugin package."
+        exit 1
+    fi
+}
+
+apt_install_docker() {
+    print_message "Updating package index and installing prerequisites..."
+    sudo apt update -y
+    sudo apt install -y ca-certificates curl gnupg lsb-release unzip wget
+
+    if [ -f /etc/os-release ]; then
+        # shellcheck disable=SC1091
+        . /etc/os-release
+        local os="$ID"
+        local codename
+        codename=$(lsb_release -cs)
+    else
+        print_error "Cannot detect OS. /etc/os-release not found."
+        exit 1
+    fi
+    print_message "Detected OS: $os $codename"
+
+    print_message "Removing old Docker installations if they exist..."
+    sudo apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+
+    if [ ! -d /etc/apt/keyrings ]; then
+        print_message "Adding Docker's official GPG key..."
+        sudo install -m 0755 -d /etc/apt/keyrings
+    fi
+
+    if [ "$os" = "debian" ]; then
+        curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $codename stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    elif [ "$os" = "ubuntu" ]; then
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $codename stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    else
+        print_error "Unsupported OS: $os. Only Debian and Ubuntu are supported for the server install."
+        exit 1
+    fi
+    sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+    print_message "Updating package index with Docker repository..."
+    sudo apt update -y
+
+    print_message "Installing Docker..."
+    sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    if [ "$EUID" -ne 0 ]; then
+        print_message "Adding current user to the docker group..."
+        sudo usermod -aG docker "$USER"
+    fi
+
+    print_message "Starting and enabling Docker service..."
+    sudo systemctl start docker
+    sudo systemctl enable docker
+
+    if docker --version > /dev/null 2>&1; then
+        print_message "Docker installed: $(docker --version)"
+    else
+        print_error "Docker installation failed"
+        exit 1
+    fi
+}
+
+if [ "$MODE" = "desktop" ]; then
+    ensure_docker_desktop
+else
+    if ! command -v docker >/dev/null 2>&1 || ! sudo docker info >/dev/null 2>&1; then
+        apt_install_docker
+    fi
+    if ! sudo docker compose version >/dev/null 2>&1; then
+        print_error "Docker Compose plugin not found after install."
+        exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Working directory
+# ---------------------------------------------------------------------------
+print_message "Preparing install directory: ${INSTALL_DIR}"
+if [ "$NEEDS_SUDO" = "true" ]; then
+    sudo mkdir -p "$INSTALL_DIR"
+    sudo chown "$(id -u):$(id -g)" "$INSTALL_DIR"
+else
+    mkdir -p "$INSTALL_DIR"
+fi
 cd "$INSTALL_DIR"
 
-# Download and extract
+# ---------------------------------------------------------------------------
+# Download release tarball (single source of truth for compose stack)
+# ---------------------------------------------------------------------------
 print_message "Downloading Myriade BI from $DOWNLOAD_URL..."
 if ! curl -fsSL "$DOWNLOAD_URL" -o myriade.tar.gz; then
     print_error "Failed to download Myriade BI. Please check your internet connection."
@@ -174,190 +249,238 @@ print_message "Extracting files..."
 tar -xzf myriade.tar.gz --strip-components=1
 rm myriade.tar.gz
 
-# Verify required files exist
 if [ ! -f "docker-compose.yml" ]; then
     print_error "docker-compose.yml not found in release. Installation cannot continue."
     exit 1
 fi
 
-# Ensure helper scripts are executable
 if [ -f "setup/install_certificate.sh" ]; then
     chmod +x setup/install_certificate.sh
 fi
-
-print_message "Myriade BI downloaded successfully to: $INSTALL_DIR"
-echo ""
-
-# Return to original directory for rest of installation
-cd "$INSTALL_DIR"
-
-# Detect OS for Docker repo
-if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    OS=$ID
-    VERSION_CODENAME=$(lsb_release -cs)
-else
-    print_error "Cannot detect OS. /etc/os-release not found."
-    exit 1
+if [ -f "setup/update.sh" ]; then
+    chmod +x setup/update.sh
 fi
 
-print_message "Detected OS: $OS $VERSION_CODENAME"
+print_message "Myriade BI extracted to: $INSTALL_DIR"
 
-# Remove old Docker installations
-print_message "Removing old Docker installations if they exist..."
-sudo apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+# ---------------------------------------------------------------------------
+# Architecture override: the myriadeai/myriade image is published amd64-only.
+# On ARM hosts (Apple Silicon, ARM Linux) compose would fail to pull the native
+# manifest. Drop a compose override that pins ONLY the myriade service to
+# linux/amd64 — Postgres stays native.
+#
+# IMPORTANT: docker-compose.override.yml is MYRIADE-managed (carries the bwrap
+# sandbox security_opt block, replaced on every setup/update.sh run). We must
+# NOT write to it. Instead we write a sibling file and chain it via the
+# COMPOSE_FILE env var so Compose merges all three layers:
+#   docker-compose.yml + docker-compose.override.yml + docker-compose.platform.yml
+# ---------------------------------------------------------------------------
+ARCH="$(uname -m)"
+PLATFORM_OVERRIDE_FILE=""
+case "$ARCH" in
+    arm64|aarch64)
+        cat > docker-compose.platform.yml <<'YML'
+# Auto-generated by setup/install.sh on ARM hosts. The myriadeai/myriade
+# image is published amd64-only, so compose would fail to pull the native
+# manifest on Apple Silicon / ARM Linux. Pinning the myriade service here
+# (Postgres stays native) keeps the host-side override file untouched and
+# lets COMPOSE_FILE chain this cleanly with docker-compose.override.yml.
+services:
+  myriade:
+    platform: linux/amd64
+YML
+        PLATFORM_OVERRIDE_FILE="docker-compose.platform.yml"
+        print_message "Detected ${ARCH} — pinning myriade service to linux/amd64 via ${PLATFORM_OVERRIDE_FILE}."
+        ;;
+esac
 
-# Set up Docker's official GPG key (if not already set up)
-if [ ! -d /etc/apt/keyrings ]; then
-    print_message "Adding Docker's official GPG key..."
-    sudo install -m 0755 -d /etc/apt/keyrings
-fi
-
-# Select correct Docker repo based on OS
-if [ "$OS" = "debian" ]; then
-    curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $VERSION_CODENAME stable" | \
-        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-elif [ "$OS" = "ubuntu" ]; then
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" | \
-        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-else
-    print_error "Unsupported OS: $OS. Only Debian and Ubuntu are supported."
-    exit 1
-fi
-
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-
-# Update the package index again
-print_message "Updating package index with Docker repository..."
-sudo apt update -y
-
-# Install Docker
-print_message "Installing Docker..."
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-# Add current user to the docker group (skip if running as root — root already has access)
-if [ "$EUID" -ne 0 ]; then
-    print_message "Adding current user to the docker group..."
-    sudo usermod -aG docker $USER
-fi
-
-# Start and enable Docker service
-print_message "Starting and enabling Docker service..."
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Verify Docker installation
-if docker --version > /dev/null 2>&1; then
-    print_message "Docker installed successfully: $(docker --version)"
-else
-    print_error "Docker installation failed"
-    exit 1
-fi
-
-# Get server IP for HOST configuration
-# Use private/internal IP by default (works for on-premise and cloud VPCs)
-# Pass --public-ip flag to use public IP instead (for direct internet-exposed servers)
-if [[ "$WANT_PUBLIC_IP" == "true" ]]; then
-    SERVER_IP=$(curl -s --connect-timeout 5 ifconfig.me || curl -s --connect-timeout 5 icanhazip.com || hostname -I 2>/dev/null | awk '{print $1}')
-    print_message "Using public IP: ${SERVER_IP}"
-else
-    SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
-    print_message "Using private IP: ${SERVER_IP}"
-fi
-
-# Configure Docker to bind directly to port 8080 (no nginx for quick start)
-print_message "Configuring Docker for direct access on port 8080..."
-sed -i "s|127.0.0.1:8080:8080|0.0.0.0:8080:8080|g" docker-compose.yml
-
-# Configure environment variables
+# ---------------------------------------------------------------------------
+# Preserve existing .env values BEFORE deciding port / HOST so re-runs are
+# stable (CREDENTIAL_ENCRYPTION_KEY especially — losing it makes encrypted
+# warehouse credentials unrecoverable).
+# ---------------------------------------------------------------------------
 print_message "Configuring environment variables..."
-
-# Preserve existing .env if present
 if [ -f ".env" ]; then
     print_warning "Existing .env file found. Preserving existing configuration."
-    source .env
+    set -a
+    # shellcheck disable=SC1091
+    . ./.env
+    set +a
 fi
 
-# Generate a secure random password if not provided
+# ---------------------------------------------------------------------------
+# HTTP port
+#   server  → always 8080 (firewall rules, install_certificate.sh, docs all
+#             assume it).
+#   desktop → trust persisted MYRIADE_HTTP_PORT if present; otherwise scan
+#             8080..8130 for the first free one. Avoids "port already
+#             allocated" failures on machines running other dev stacks.
+# ---------------------------------------------------------------------------
+if [ "$MODE" = "server" ]; then
+    HTTP_PORT=8080
+else
+    if [ -n "${MYRIADE_HTTP_PORT:-}" ]; then
+        HTTP_PORT="$MYRIADE_HTTP_PORT"
+    else
+        HTTP_PORT=$(find_free_port 8080 50) || {
+            print_error "Could not find a free TCP port in 8080..8130."
+            echo "Free up port 8080 (or any in that range) and re-run."
+            exit 1
+        }
+        if [ "$HTTP_PORT" != "8080" ]; then
+            print_warning "Port 8080 is in use; using ${HTTP_PORT} instead."
+        fi
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Resolve HOST default (only used if .env doesn't already define HOST)
+# ---------------------------------------------------------------------------
+if [ "$MODE" = "server" ]; then
+    if [ "$WANT_PUBLIC_IP" = "true" ]; then
+        SERVER_IP=$(curl -s --connect-timeout 5 ifconfig.me || curl -s --connect-timeout 5 icanhazip.com || hostname -I 2>/dev/null | awk '{print $1}')
+        print_message "Using public IP: ${SERVER_IP}"
+    else
+        SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+        print_message "Using private IP: ${SERVER_IP}"
+    fi
+    DEFAULT_HOST="http://${SERVER_IP}:${HTTP_PORT}"
+else
+    DEFAULT_HOST="http://localhost:${HTTP_PORT}"
+fi
+
+# ---------------------------------------------------------------------------
+# Adjust compose port mapping. Combines server bind-address change with the
+# desktop auto-picked port. sed -i.bak for BSD/GNU portability.
+# ---------------------------------------------------------------------------
+TARGET_BINDING="${BIND_ADDRESS}:${HTTP_PORT}:8080"
+if [ "$TARGET_BINDING" != "127.0.0.1:8080:8080" ]; then
+    print_message "Configuring myriade port mapping: ${TARGET_BINDING}"
+    sed -i.bak "s|127.0.0.1:8080:8080|${TARGET_BINDING}|g" docker-compose.yml
+    rm -f docker-compose.yml.bak
+fi
+
+# ---------------------------------------------------------------------------
+# Strip the db service's host port mapping in desktop mode. The shipped
+# compose exposes Postgres on 127.0.0.1:2345 for "local debugging only" —
+# desktop quickstart users never need this and it's a frequent source of
+# port conflicts when other Postgres instances are running locally.
+# ---------------------------------------------------------------------------
+if [ "$MODE" = "desktop" ]; then
+    awk '
+        BEGIN          { in_db = 0; skipping = 0 }
+        /^  db:$/      { in_db = 1; print; next }
+        /^  [a-z]/ && !/^    / { in_db = 0; skipping = 0 }
+        in_db && /^    ports:/ { skipping = 1; next }
+        skipping && /^      / { next }
+        skipping       { skipping = 0 }
+                       { print }
+    ' docker-compose.yml > docker-compose.yml.tmp \
+        && mv docker-compose.yml.tmp docker-compose.yml
+fi
+
+# ---------------------------------------------------------------------------
+# Generate any missing secrets and write .env
+# ---------------------------------------------------------------------------
 if [ -z "${POSTGRES_PASSWORD:-}" ]; then
     POSTGRES_PASSWORD=$(openssl rand -base64 32)
     print_message "Generated secure database password"
-else
-    print_message "Using provided database password"
 fi
 
-# Generate credential encryption key if not provided (Fernet format: URL-safe base64)
 if [ -z "${CREDENTIAL_ENCRYPTION_KEY:-}" ]; then
-    # Fernet keys are 32 bytes, URL-safe base64 encoded (44 chars)
+    # Fernet keys: 32 bytes, URL-safe base64.
     CREDENTIAL_ENCRYPTION_KEY=$(openssl rand -base64 32 | tr -d '\n' | tr '+/' '-_')
     print_message "Generated credential encryption key"
 fi
 
-# Create .env file for Docker Compose
+# If we wrote a platform override, chain it via COMPOSE_FILE so Compose
+# merges docker-compose.yml + docker-compose.override.yml (master's bwrap
+# sandbox config) + docker-compose.platform.yml (ours). Without this,
+# compose would auto-load only the first two and ignore our platform pin.
+COMPOSE_FILE_LINE=""
+if [ -n "$PLATFORM_OVERRIDE_FILE" ]; then
+    COMPOSE_FILE_LINE="COMPOSE_FILE=docker-compose.yml:docker-compose.override.yml:${PLATFORM_OVERRIDE_FILE}"
+fi
+
 cat > .env << EOF
+COMPOSE_PROJECT_NAME=myriade
 POSTGRES_DB=${POSTGRES_DB:-myriade}
 POSTGRES_USER=${POSTGRES_USER:-myriade}
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-HOST=${HOST:-http://${SERVER_IP}:8080}
+HOST=${HOST:-${DEFAULT_HOST}}
 CREDENTIAL_ENCRYPTION_KEY=${CREDENTIAL_ENCRYPTION_KEY}
+MYRIADE_HTTP_PORT=${HTTP_PORT}
+${COMPOSE_FILE_LINE}
 EOF
-
 chmod 600 .env
-print_message "Environment configuration saved to .env file"
+print_message "Environment configuration saved to .env"
 
-# Start Docker Compose
+# ---------------------------------------------------------------------------
+# Pull & start
+# ---------------------------------------------------------------------------
+print_message "Pulling images..."
+"${DOCKER_COMPOSE[@]}" pull
+
 print_message "Starting Myriade BI with Docker Compose..."
-if sudo docker compose up -d; then
-    print_message "Docker containers started successfully"
+if "${DOCKER_COMPOSE[@]}" up -d; then
+    print_message "Containers started"
 else
     print_error "Failed to start Docker containers"
     exit 1
 fi
 
-# Wait for application to be ready with health check polling
-print_message "Waiting for application to start..."
+# ---------------------------------------------------------------------------
+# Health check
+# ---------------------------------------------------------------------------
+print_message "Waiting for application to be ready..."
 MAX_ATTEMPTS=60
 ATTEMPT=0
+HEALTHY=false
 while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-    if curl -sf http://localhost:8080/health > /dev/null 2>&1; then
-        print_message "Application is healthy and responding on port 8080"
+    if curl -sf "http://localhost:${HTTP_PORT}/health" > /dev/null 2>&1; then
+        HEALTHY=true
         break
     fi
     ATTEMPT=$((ATTEMPT + 1))
-    if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-        print_warning "Application may not be ready yet. Check logs with: sudo docker compose logs myriade"
-    else
-        sleep 2
-    fi
+    sleep 2
 done
 
 echo ""
+if [ "$HEALTHY" = "true" ]; then
+    print_banner "✅ Myriade BI is running"
+else
+    print_warning "Application did not respond on /health within 2 minutes."
+    echo "Inspect logs with: ${DOCKER_COMPOSE[*]} -f ${INSTALL_DIR}/docker-compose.yml logs -f myriade"
+fi
 
-# Print success message
+# ---------------------------------------------------------------------------
+# Final message
+# ---------------------------------------------------------------------------
+ACCESS_URL="${HOST:-${DEFAULT_HOST}}"
+print_message "🌐 Open ${ACCESS_URL} in your browser."
 echo ""
-echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║                                                                ║"
-echo "║  ✅ Myriade BI Installation Complete!                         ║"
-echo "║                                                                ║"
-echo "╚════════════════════════════════════════════════════════════════╝"
-echo ""
-print_message "🌐 Access Myriade BI at: ${HOST}"
-echo ""
-print_warning "If users access Myriade via a different IP or domain, update HOST in ${INSTALL_DIR}/.env and restart:"
-echo "    sudo docker compose -f ${INSTALL_DIR}/docker-compose.yml restart myriade"
-echo ""
-print_message "Tip: For internet-exposed servers, re-run with --public-ip flag to use public IP instead."
-echo ""
-print_message "To add a domain and SSL certificate, run:"
-echo ""
-echo "  sudo ${INSTALL_DIR}/setup/install_certificate.sh YOUR_DOMAIN.com"
+echo "Useful commands:"
+echo "  ${DOCKER_COMPOSE[*]} -f ${INSTALL_DIR}/docker-compose.yml logs -f myriade"
+echo "  ${DOCKER_COMPOSE[*]} -f ${INSTALL_DIR}/docker-compose.yml restart"
+echo "  ${DOCKER_COMPOSE[*]} -f ${INSTALL_DIR}/docker-compose.yml down       # stop"
+echo "  ${DOCKER_COMPOSE[*]} -f ${INSTALL_DIR}/docker-compose.yml up -d      # start"
 echo ""
 
-# Display running containers
+if [ "$MODE" = "server" ]; then
+    print_warning "If users access Myriade via a different IP or domain, update HOST in ${INSTALL_DIR}/.env and restart."
+    echo ""
+    print_message "Tip: re-run with --public-ip to use the server's public IP."
+    echo ""
+    print_message "To add a domain and SSL certificate, run:"
+    echo "  sudo ${INSTALL_DIR}/setup/install_certificate.sh YOUR_DOMAIN.com"
+    echo ""
+fi
+
+print_warning "Back up ${INSTALL_DIR}/.env — it holds the key that decrypts your warehouse credentials."
+echo ""
+
 print_message "Running containers:"
-sudo docker compose ps
+"${DOCKER_COMPOSE[@]}" ps
 
 echo ""
 print_message "Installation complete! 🎉"
