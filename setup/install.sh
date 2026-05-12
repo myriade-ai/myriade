@@ -393,13 +393,27 @@ if [ -z "${CREDENTIAL_ENCRYPTION_KEY:-}" ]; then
     print_message "Generated credential encryption key"
 fi
 
-# If we wrote a platform override, chain it via COMPOSE_FILE so Compose
-# merges docker-compose.yml + docker-compose.override.yml (master's bwrap
-# sandbox config) + docker-compose.platform.yml (ours). Without this,
-# compose would auto-load only the first two and ignore our platform pin.
+# Setting COMPOSE_FILE disables Compose's implicit override.yml auto-load,
+# so we must enumerate it — but only when it's on disk. On a fresh install
+# the override is absent (synced from the image later by update.sh); listing
+# it unconditionally makes `docker compose pull` fail with ENOENT.
 COMPOSE_FILE_LINE=""
 if [ -n "$PLATFORM_OVERRIDE_FILE" ]; then
-    COMPOSE_FILE_LINE="COMPOSE_FILE=docker-compose.yml:docker-compose.override.yml:${PLATFORM_OVERRIDE_FILE}"
+    compose_files="docker-compose.yml"
+    if [ -f "docker-compose.override.yml" ]; then
+        compose_files="${compose_files}:docker-compose.override.yml"
+    fi
+    compose_files="${compose_files}:${PLATFORM_OVERRIDE_FILE}"
+    COMPOSE_FILE_LINE="COMPOSE_FILE=${compose_files}"
+    # Earlier `set -a; . ./.env` may have exported a stale COMPOSE_FILE (e.g.
+    # one listing docker-compose.override.yml from a previous failed run).
+    # Compose gives the shell env precedence over `.env`, so overwrite it
+    # with the freshly computed list before invoking compose below.
+    export COMPOSE_FILE="$compose_files"
+else
+    # Same reason: clear any stale value sourced from `.env` so Compose
+    # falls back to its implicit yml + override.yml auto-load.
+    unset COMPOSE_FILE
 fi
 
 cat > .env << EOF
