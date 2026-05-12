@@ -160,6 +160,19 @@ sync_sandbox_config() {
         if docker cp "${cid}:/app/docker-compose.override.yml" "$override_dest" 2>/dev/null; then
             print_message "Synced docker-compose.override.yml (activates the bwrap sandbox)"
             synced_anything=1
+            # Setting COMPOSE_FILE disables Compose's implicit override.yml
+            # auto-load, so when .env enumerates the merge list (ARM hosts)
+            # we must splice the override in by hand.
+            local env_file="$install_dir/.env"
+            if [ -f "$env_file" ] \
+                && grep -q '^COMPOSE_FILE=' "$env_file" \
+                && ! grep -q '^COMPOSE_FILE=.*docker-compose\.override\.yml' "$env_file"; then
+                sed -i.bak \
+                    's|^COMPOSE_FILE=docker-compose\.yml|COMPOSE_FILE=docker-compose.yml:docker-compose.override.yml|' \
+                    "$env_file"
+                rm -f "${env_file}.bak"
+                print_message "Updated .env COMPOSE_FILE to include docker-compose.override.yml"
+            fi
         fi
     fi
 
