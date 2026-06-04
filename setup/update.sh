@@ -215,6 +215,16 @@ do_update() {
     # Restart logging if active
     docker compose --profile logging up -d 2>/dev/null || true
 
+    # Bring up the code-execution sandbox only when the operator has opted in
+    # by setting SANDBOX_TOKEN in their .env. The sandbox service is
+    # profile-gated and lives in docker-compose.override.yml, so it is never
+    # started implicitly by `up -d myriade`; this line (re)starts it on the
+    # pulled image. No-op + silent when the token is unset.
+    if [ -n "${SANDBOX_TOKEN:-}" ] || grep -qE '^SANDBOX_TOKEN=.+' "$install_dir/.env" 2>/dev/null; then
+        print_message "Restarting code-execution sandbox..."
+        docker compose --profile code-execution up -d sandbox 2>/dev/null || true
+    fi
+
     print_message "Cleaning up old images..."
     docker image prune -af --filter 'until=24h' > /dev/null
 
