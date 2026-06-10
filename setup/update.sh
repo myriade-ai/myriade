@@ -215,14 +215,21 @@ do_update() {
     # Restart logging if active
     docker compose --profile logging up -d 2>/dev/null || true
 
-    # Bring up the code-execution sandbox only when the operator has opted in
+    # Update the code-execution sandbox only when the operator has opted in
     # by setting SANDBOX_TOKEN in their .env. The sandbox service is
     # profile-gated and lives in docker-compose.override.yml, so it is never
-    # started implicitly by `up -d myriade`; this line (re)starts it on the
-    # pulled image. No-op + silent when the token is unset.
+    # touched by `pull myriade` / `up -d myriade` above. The explicit pull
+    # matters: `up -d` alone reuses whatever local image exists, so without
+    # it the runner stays on the image it was first started with forever
+    # (e.g. a runner missing duckdb/pyarrow while the app already sends
+    # Parquet seeds). Failures are non-fatal (the app update already
+    # succeeded) but must be visible, not swallowed.
     if [ -n "${SANDBOX_TOKEN:-}" ] || grep -qE '^SANDBOX_TOKEN=.+' "$install_dir/.env" 2>/dev/null; then
-        print_message "Restarting code-execution sandbox..."
-        docker compose --profile code-execution up -d sandbox 2>/dev/null || true
+        print_message "Updating code-execution sandbox..."
+        docker compose --profile code-execution pull sandbox \
+            || print_warning "Could not pull the sandbox image; the runner keeps its current (possibly outdated) image"
+        docker compose --profile code-execution up -d --no-build sandbox \
+            || print_warning "Could not restart the sandbox; check: docker compose --profile code-execution logs sandbox"
     fi
 
     print_message "Cleaning up old images..."
