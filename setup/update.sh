@@ -91,12 +91,13 @@ check_version() {
 
 # Wait for health check
 wait_for_health() {
+    local health_port="${1:-8080}"
     print_message "Waiting for application to be ready..."
     local max_attempts=60
     local attempt=0
     while [ $attempt -lt $max_attempts ]; do
-        if curl -sf http://localhost:8080/health > /dev/null 2>&1; then
-            print_message "Application is healthy and responding on port 8080"
+        if curl -sf "http://localhost:${health_port}/health" > /dev/null 2>&1; then
+            print_message "Application is healthy and responding on port ${health_port}"
             return 0
         fi
         attempt=$((attempt + 1))
@@ -106,6 +107,34 @@ wait_for_health() {
         fi
         sleep 2
     done
+}
+
+env_file_has_value() {
+    local env_file="$1"
+    local variable="$2"
+    [ -f "$env_file" ] && grep -qE "^${variable}=.+" "$env_file"
+}
+
+compose_has_service() {
+    local profile="$1"
+    local service="$2"
+    if [ -n "$profile" ]; then
+        docker compose --profile "$profile" config --services 2>/dev/null | grep -qx "$service"
+    else
+        docker compose config --services 2>/dev/null | grep -qx "$service"
+    fi
+}
+
+get_health_port() {
+    local env_file="$1"
+    local port="${MYRIADE_HTTP_PORT:-}"
+    if [ -z "$port" ] && [ -f "$env_file" ]; then
+        port=$(sed -n 's/^MYRIADE_HTTP_PORT=//p' "$env_file" | head -1)
+    fi
+    case "$port" in
+        ''|*[!0-9]*) echo "8080" ;;
+        *) echo "$port" ;;
+    esac
 }
 
 # Sync host-side bwrap sandbox config from the just-pulled image. Two files
@@ -195,6 +224,18 @@ do_update() {
 
     cd "$install_dir"
 
+    local sandbox_enabled=0
+    if [ -n "${SANDBOX_TOKEN:-}" ] || env_file_has_value "$install_dir/.env" "SANDBOX_TOKEN"; then
+        sandbox_enabled=1
+    fi
+
+    # Remember whether logging was already running. A profile flag enables a
+    # service; it does not merely select an existing one.
+    local logging_was_running=0
+    if docker compose --profile logging ps -q vector 2>/dev/null | grep -q .; then
+        logging_was_running=1
+    fi
+
     # Get current version before update
     local current_version
     current_version=$(docker compose exec myriade cat VERSION 2>/dev/null | head -1 || echo "unknown")
@@ -203,17 +244,42 @@ do_update() {
 
     export MYRIADE_VERSION="$version"
 
-    print_message "Pulling new image..."
-    docker compose pull myriade
+    # Existing installs already know about the sandbox service, so pull both
+    # independent images concurrently. Fresh/older installs first need the
+    # override extracted from the app image and use the serial fallback below.
+    local app_pull_pid
+    local sandbox_pull_pid=""
+    if [ "$sandbox_enabled" -eq 1 ] && compose_has_service "code-execution" "sandbox"; then
+        print_message "Pulling app and sandbox images in parallel..."
+        docker compose pull myriade &
+        app_pull_pid=$!
+        docker compose --profile code-execution pull sandbox &
+        sandbox_pull_pid=$!
+        if ! wait "$app_pull_pid"; then
+            wait "$sandbox_pull_pid" 2>/dev/null || true
+            print_error "Could not pull the Myriade image"
+            return 1
+        fi
+    else
+        print_message "Pulling new image..."
+        docker compose pull myriade
+    fi
 
     print_message "Syncing host-side sandbox config from image..."
     sync_sandbox_config "$install_dir"
 
     print_message "Restarting myriade..."
-    docker compose up -d myriade
+    local app_services=(myriade)
+    if compose_has_service "" "autoheal"; then
+        app_services+=(autoheal)
+    fi
+    docker compose up -d --no-build "${app_services[@]}"
 
-    # Restart logging if active
-    docker compose --profile logging up -d 2>/dev/null || true
+    if [ "$logging_was_running" -eq 1 ]; then
+        print_message "Restarting logging..."
+        docker compose --profile logging up -d --no-build vector \
+            || print_warning "Could not restart logging; check: docker compose --profile logging logs vector"
+    fi
 
     # Update the code-execution sandbox only when the operator has opted in
     # by setting SANDBOX_TOKEN in their .env. The sandbox service is
@@ -224,18 +290,29 @@ do_update() {
     # (e.g. a runner missing duckdb/pyarrow while the app already sends
     # Parquet seeds). Failures are non-fatal (the app update already
     # succeeded) but must be visible, not swallowed.
-    if [ -n "${SANDBOX_TOKEN:-}" ] || grep -qE '^SANDBOX_TOKEN=.+' "$install_dir/.env" 2>/dev/null; then
+    if [ "$sandbox_enabled" -eq 1 ]; then
         print_message "Updating code-execution sandbox..."
-        docker compose --profile code-execution pull sandbox \
-            || print_warning "Could not pull the sandbox image; the runner keeps its current (possibly outdated) image"
+        if [ -n "$sandbox_pull_pid" ]; then
+            wait "$sandbox_pull_pid" \
+                || print_warning "Could not pull the sandbox image; the runner keeps its current (possibly outdated) image"
+        else
+            docker compose --profile code-execution pull sandbox \
+                || print_warning "Could not pull the sandbox image; the runner keeps its current (possibly outdated) image"
+        fi
         docker compose --profile code-execution up -d --no-build sandbox \
             || print_warning "Could not restart the sandbox; check: docker compose --profile code-execution logs sandbox"
     fi
 
-    print_message "Cleaning up old images..."
-    docker image prune -af --filter 'until=24h' > /dev/null
+    print_message "Cleaning up old dangling images..."
+    docker image prune -f --filter 'until=24h' > /dev/null &
+    local cleanup_pid=$!
 
-    wait_for_health
+    local health_status=0
+    wait_for_health "$(get_health_port "$install_dir/.env")" || health_status=$?
+    wait "$cleanup_pid" || print_warning "Could not clean up old Docker images"
+    if [ "$health_status" -ne 0 ]; then
+        return "$health_status"
+    fi
 
     echo ""
     print_message "Update complete!"
