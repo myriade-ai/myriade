@@ -21,9 +21,9 @@
   - GCP: e2-standard-2 or higher
   - Azure: Standard_D2s_v3 or higher
   - AWS: t3.medium or higher
-- vCPUs: 4 vCPUs (2 vCPUs minimum)
-- Memory: 8 GB RAM (4 GB minimum)
-- Boot disk: 50 GB SSD persistent (10 GB minimum)
+- vCPUs: 4 vCPUs
+- Memory: 8 GB RAM
+- Boot disk: 50 GB SSD persistent
 
 ## Quick Start
 
