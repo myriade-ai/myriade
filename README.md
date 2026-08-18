@@ -37,7 +37,7 @@ Requires Ubuntu 20.04+ or Debian 11+.
 
 ```bash
 curl -fsSL https://install.myriade.ai | bash
-````
+```
 
 Open:
 
@@ -50,6 +50,8 @@ Add SSL:
 ```bash
 sudo /opt/myriade/setup/install_certificate.sh YOUR_DOMAIN.com
 ```
+
+For detailed instructions (Docker quick start, recommended infrastructure, SSL options, updates, troubleshooting), see the [Installation Guide](setup/README.md).
 
 ## Links
 
