@@ -183,7 +183,7 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
-    client_max_body_size 10M;
+    client_max_body_size 100M;
 
     location /api/events {
         proxy_pass http://127.0.0.1:8080;
@@ -246,7 +246,7 @@ server {
     listen [::]:80;
     server_name ${DOMAIN_NAME};
 
-    client_max_body_size 10M;
+    client_max_body_size 100M;
 
     location /api/events {
         proxy_pass http://127.0.0.1:8080;

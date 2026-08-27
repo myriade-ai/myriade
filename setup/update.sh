@@ -216,6 +216,36 @@ sync_sandbox_config() {
     docker rm -f "$cid" >/dev/null 2>&1 || true
 }
 
+# Raise the nginx upload cap to match the backend's 100 MB per-file limit
+# (service/domains/conversation/files_api.py). nginx only exists on installs
+# that ran install_certificate.sh; it is installed once and never re-templated,
+# so without this step existing customers keep the old 10M cap and every
+# attachment over that size fails with a bare 413. Only the one directive is
+# rewritten - the rest of the file (domain, certificates, local tweaks) is
+# left untouched, and nginx -t guards the reload.
+NGINX_SITE="/etc/nginx/sites-available/myriade"
+NGINX_MAX_BODY="100M"
+
+sync_nginx_config() {
+    [ -f "$NGINX_SITE" ] || return 0
+    if grep -qE "client_max_body_size ${NGINX_MAX_BODY};" "$NGINX_SITE"; then
+        return 0
+    fi
+    if ! grep -qE "client_max_body_size [0-9]+[kKmMgG]?;" "$NGINX_SITE"; then
+        return 0
+    fi
+    print_message "Raising nginx client_max_body_size to ${NGINX_MAX_BODY}..."
+    if ! sudo sed -i -E "s/client_max_body_size [0-9]+[kKmMgG]?;/client_max_body_size ${NGINX_MAX_BODY};/" "$NGINX_SITE"; then
+        print_warning "Could not edit $NGINX_SITE; file uploads stay capped at the current nginx limit"
+        return 0
+    fi
+    if sudo nginx -t >/dev/null 2>&1 && sudo systemctl reload nginx; then
+        print_message "nginx reloaded"
+    else
+        print_warning "nginx config test or reload failed; run 'sudo nginx -t' and 'sudo systemctl reload nginx' manually"
+    fi
+}
+
 # Main update logic
 do_update() {
     local version="$1"
@@ -267,6 +297,8 @@ do_update() {
 
     print_message "Syncing host-side sandbox config from image..."
     sync_sandbox_config "$install_dir"
+
+    sync_nginx_config
 
     print_message "Restarting myriade..."
     local app_services=(myriade)
