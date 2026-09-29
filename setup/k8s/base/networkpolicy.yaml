@@ -1,0 +1,26 @@
+# The primary containment for untrusted code: the sandbox accepts jobs from the
+# app only and can open no connection at all (not even DNS). Enforced only if
+# the cluster's CNI implements NetworkPolicy — check before going live.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox-no-egress
+  labels:
+    app.kubernetes.io/name: myriade
+    app.kubernetes.io/component: sandbox
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: myriade
+      app.kubernetes.io/component: sandbox
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: myriade
+              app.kubernetes.io/component: app
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress: []

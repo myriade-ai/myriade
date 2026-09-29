@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myriade-blobs
+  labels:
+    app.kubernetes.io/name: myriade
+    app.kubernetes.io/component: app
+spec:
+  # Uploaded files (BLOB_STORAGE_DIR). ReadWriteOnce is enough: one app pod.
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myriade
+  labels:
+    app.kubernetes.io/name: myriade
+    app.kubernetes.io/component: app
+spec:
+  # Exactly one pod, and never two at once: schedulers, SSE fan-out and chat
+  # stop signals are in-process state (see _assert_single_worker in
+  # service/app.py). A RollingUpdate would overlap old and new pods during every
+  # rollout, running nightly jobs twice and splitting SSE events between them.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: myriade
+      app.kubernetes.io/component: app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: myriade
+        app.kubernetes.io/component: app
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: myriade
+          image: myriadeai/myriade
+          # No command override: the image runs migrations then the server
+          # (start.sh prod) and already carries the agent's git identity.
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: myriade
+          env:
+            - name: SANDBOX_URL
+              value: http://sandbox:8080
+            # SANDBOX_SHARED_DIR stays unset: seeds travel over HTTP, so no
+            # volume is shared between the app and the sandbox pods.
+          volumeMounts:
+            - name: blobs
+              mountPath: /var/lib/myriade/blobs
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 2Gi
+          # /health runs on the threadpool on purpose, so it goes red when the
+          # pool is wedged; liveness then restarts the pod (autoheal on Compose).
+          startupProbe:
+            # Migrations run before the server starts.
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+      volumes:
+        - name: blobs
+          persistentVolumeClaim:
+            claimName: myriade-blobs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myriade
+  labels:
+    app.kubernetes.io/name: myriade
+    app.kubernetes.io/component: app
+spec:
+  selector:
+    app.kubernetes.io/name: myriade
+    app.kubernetes.io/component: app
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

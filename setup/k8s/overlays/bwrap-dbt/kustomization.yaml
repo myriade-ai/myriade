@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# The bwrap overlay plus the same relaxations on the app pod, so the backend can
+# confine dbt subprocesses. Separate because it puts the app pod (and its blobs
+# PVC) in a user namespace: every volume must support idmapped mounts, or the
+# pod never starts and the whole instance is down.
+resources:
+  - ../bwrap
+patches:
+  - path: app.yaml

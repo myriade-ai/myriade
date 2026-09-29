@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sandbox
+spec:
+  replicas: 1
+  template:
+    spec:
+      # procMount: Unmasked is only honoured inside a user namespace.
+      hostUsers: false
+      securityContext:
+        # docker/seccomp/dbt-sandbox.json, installed on every node under the
+        # kubelet seccomp root (default /var/lib/kubelet/seccomp).
+        seccompProfile:
+          type: Localhost
+          localhostProfile: myriade/dbt-sandbox.json
+        appArmorProfile:
+          type: Unconfined
+      containers:
+        - name: sandbox
+          env:
+            - name: SANDBOX_ISOLATION
+              value: bwrap
+            - name: SANDBOX_MAX_CONCURRENCY
+              value: "4"
+          securityContext:
+            procMount: Unmasked
