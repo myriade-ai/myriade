@@ -29,7 +29,11 @@ and user namespaces).
    Server-Sent Events: disable response buffering and allow long-lived responses
    (e.g. `nginx.ingress.kubernetes.io/proxy-buffering: "off"`,
    `proxy-read-timeout: "3600"`).
-5. Enable the `code_execution` feature flag for the organization.
+5. Allow the app pod outbound HTTPS to `infra.myriade.ai` (sign-in and AI calls go
+   through it) and to your data sources, if your cluster restricts egress.
+6. Send the instance's public URL (`HOST`) to Myriade: sign-in is refused until it
+   is registered for your organization.
+7. Enable the `code_execution` feature flag for the organization.
 
 ## What the manifests guarantee
 
