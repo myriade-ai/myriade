@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sandbox
+  labels:
+    app.kubernetes.io/name: myriade
+    app.kubernetes.io/component: sandbox
+spec:
+  # Without bwrap the runner is serial (one job per pod): capacity = replicas.
+  # The backend retries a busy pod's 429 on a new connection, which the Service
+  # can route to an idle replica.
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: myriade
+      app.kubernetes.io/component: sandbox
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: myriade
+        app.kubernetes.io/component: sandbox
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      # Serial isolation needs the runner to be PID 1 of its container: never
+      # set shareProcessNamespace on this pod.
+      # Jobs run up to 120 s; let an in-flight job finish on rollout/eviction.
+      terminationGracePeriodSeconds: 150
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: sandbox
+          image: myriadeai/sandbox
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SANDBOX_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: myriade
+                  key: SANDBOX_TOKEN
+            - name: SANDBOX_ISOLATION
+              value: auto
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: dshm
+              mountPath: /dev/shm
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          lifecycle:
+            preStop:
+              # Leave time for the Service to stop routing new jobs here. The
+              # kubelet's own sleep, not an exec: a serial runner kills every
+              # other process in the container between jobs, hooks included.
+              sleep:
+                seconds: 5
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 2Gi
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sandbox
+  labels:
+    app.kubernetes.io/name: myriade
+    app.kubernetes.io/component: sandbox
+spec:
+  selector:
+    app.kubernetes.io/name: myriade
+    app.kubernetes.io/component: sandbox
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

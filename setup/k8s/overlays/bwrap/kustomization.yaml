@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Per-job bubblewrap confinement instead of serial mode: jobs run concurrently
+# in one runner, each in its own namespaces. Needs cluster support (see
+# ../../README.md); the runner refuses to start if bwrap cannot engage.
+resources:
+  - ../../base
+patches:
+  - path: sandbox.yaml

@@ -1,0 +1,20 @@
+# The same relaxations let the backend confine dbt subprocesses with bwrap.
+# Without them dbt runs unconfined inside the app pod (a warning is logged).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myriade
+spec:
+  template:
+    spec:
+      hostUsers: false
+      securityContext:
+        seccompProfile:
+          type: Localhost
+          localhostProfile: myriade/dbt-sandbox.json
+        appArmorProfile:
+          type: Unconfined
+      containers:
+        - name: myriade
+          securityContext:
+            procMount: Unmasked
