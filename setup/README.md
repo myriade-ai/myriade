@@ -105,70 +105,7 @@ To list available versions:
 sudo /opt/myriade/setup/update.sh versions
 ```
 
-Before updating the application, the script checks the maintained
-[`setup/update.sh` on the public repository's `master` branch](https://github.com/myriade-ai/myriade/blob/master/setup/update.sh).
-If it has changed, it downloads the script over HTTPS, checks its updater marker,
-self-update protocol and Bash syntax, saves the current copy as
-`setup/update.sh.previous`, and replaces it atomically. It then executes the new
-script with the original arguments and environment, without downloading again.
-The updater follows `master` even when an older application version is requested.
-The `versions` command does not update the script.
-
-The script then pulls the requested Docker image, restarts the container, and
-waits for the health check to pass. Database migrations are applied automatically
-on startup.
-
-If downloading, validating or installing the updater fails, the update stops
-before touching services. For a restricted network, a locally maintained script,
-or a deliberate recovery using the saved copy, disable the self-update explicitly:
-
-```bash
-sudo env MYRIADE_SKIP_SELF_UPDATE=1 /opt/myriade/setup/update.sh
-# Or use the previous updater, if a new one has a regression:
-sudo env MYRIADE_SKIP_SELF_UPDATE=1 /opt/myriade/setup/update.sh.previous
-```
-
-Local edits to `update.sh` are replaced during automatic updates; use environment
-variables for configuration, or the opt-out above for a managed local copy.
-
-If the Compose stack includes `autoheal`, the updater stops it before restarting
-Myriade so that slow migrations can finish without being interrupted. Autoheal
-starts again only once Myriade responds on `/health` and its Docker healthcheck
-is healthy (when configured). The updater allows 30 minutes for startup by
-default. To allow up to one hour:
-
-```bash
-sudo env MYRIADE_UPDATE_TIMEOUT=3600 /opt/myriade/setup/update.sh
-```
-
-`MYRIADE_UPDATE_TIMEOUT` is supplied through the script's environment, in seconds
-(1–86400). If startup fails, the deadline expires, or the update is interrupted,
-the script exits unsuccessfully and leaves autoheal stopped if it was suspended.
-The application is not stopped or rolled back: a migration may still be running.
-From the installation directory, inspect `sudo docker compose logs -f myriade`
-and `sudo docker compose ps myriade`. Once the application is healthy, resume
-supervision with `sudo docker compose up -d --no-deps autoheal`.
-
-This protection applies to the stack's `autoheal` service when using this updater;
-external supervisors and direct `docker compose up` commands are unaffected.
-Existing installations must receive this updated `setup/update.sh`; pulling a
-new application image alone does not replace the host's update script. Once the
-self-updating version is published on `master`, install it once on existing hosts:
-
-```bash
-updater_file="$(mktemp)" &&
-  curl -fsSL --proto '=https' --proto-redir '=https' \
-    --connect-timeout 10 --max-time 30 \
-    https://raw.githubusercontent.com/myriade-ai/myriade/master/setup/update.sh \
-    -o "$updater_file" &&
-  bash -n "$updater_file" &&
-  sudo install -m 755 "$updater_file" /opt/myriade/setup/update.sh
-rm -f "$updater_file"
-```
-
-Adjust the installation path if needed. Subsequent normal update commands will
-refresh the script automatically. New installations receive it through the
-installation release archive once that archive includes the updated script.
+The script pulls the new Docker image, restarts the container, and waits for the health check to pass. Database migrations are applied automatically on startup.
 
 ## Troubleshooting
 
