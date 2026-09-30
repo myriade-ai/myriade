@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Myriade Self-Hosted Update Script
+# Self-update protocol: 1
 # Usage: ./update.sh [version]
 #
 # Examples:
@@ -12,6 +13,8 @@ set -e
 
 IMAGE="myriadeai/myriade"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
+AUTOHEAL_SUSPENDED=0
 
 # Colors for output
 RED='\033[0;31m'
@@ -30,6 +33,55 @@ print_warning() {
 print_error() {
     echo -e "${RED}❌ $1${NC}"
 }
+
+# Fetch the maintained updater independently of the requested application
+# version. HTTPS authenticates the public source; the checks below reject
+# empty/error responses and syntax errors, not malicious code in that source.
+# Use a subshell so cleanup traps do not replace the deployment's exit traps.
+# Return 10 only when the caller must re-exec the newly installed script.
+self_update() (
+    local url="https://raw.githubusercontent.com/myriade-ai/myriade/master/setup/update.sh"
+    local download="" backup=""
+    trap 'rm -f -- "$download" "$backup"' EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+
+    print_message "Checking for an updated deployment script..."
+    download=$(mktemp "$SCRIPT_DIR/.update.sh.XXXXXX") || {
+        print_error "Cannot write to $SCRIPT_DIR; run the updater with installation-owner permissions."
+        return 1
+    }
+    if ! curl -fsSL --proto '=https' --proto-redir '=https' \
+        --connect-timeout 10 --max-time 30 --retry 2 --retry-max-time 60 \
+        "$url" -o "$download"; then
+        print_error "Could not download the updater. The local script and services are unchanged."
+        echo "To explicitly use the local script, rerun with MYRIADE_SKIP_SELF_UPDATE=1."
+        return 1
+    fi
+    if [ "$(head -n 1 "$download")" != '#!/bin/bash' ] \
+        || ! grep -qx '# Myriade Self-Hosted Update Script' "$download" \
+        || ! grep -qx '# Self-update protocol: 1' "$download" \
+        || ! bash -n "$download"; then
+        print_error "Downloaded updater is invalid. The local script and services are unchanged."
+        return 1
+    fi
+    if cmp -s "$SCRIPT_PATH" "$download"; then
+        return 0
+    fi
+
+    # Both renames stay on the installation filesystem. Never truncate the
+    # running script, and keep a recoverable copy before replacing it.
+    backup="${download}.previous"
+    if ! { cp -p "$SCRIPT_PATH" "$backup" \
+        && chmod 755 "$download" \
+        && mv -f "$backup" "${SCRIPT_PATH}.previous" \
+        && mv -f "$download" "$SCRIPT_PATH"; }; then
+        print_error "Could not install the updated script; no services have been changed."
+        return 1
+    fi
+    print_message "Updater refreshed; previous copy saved to ${SCRIPT_PATH}.previous"
+    return 10
+)
 
 # Find the Myriade install directory (where docker-compose.yml lives)
 find_install_dir() {
@@ -89,24 +141,64 @@ check_version() {
     print_message "Version $version found"
 }
 
-# Wait for health check
+# Never resume autoheal on failure or interruption: migrations may still be
+# running, even after our readiness deadline has expired.
+update_exit() {
+    local status=$?
+    if [ "$AUTOHEAL_SUSPENDED" -eq 1 ]; then
+        print_warning "Autoheal remains stopped to protect any migration still running."
+        echo "From the installation directory, inspect: sudo docker compose logs -f myriade"
+        echo "Check Docker health: sudo docker compose ps myriade"
+        echo "Once myriade is healthy, resume: sudo docker compose up -d --no-deps autoheal"
+    fi
+    return "$status"
+}
+
+# Wait for both HTTP readiness and Docker health. An HTTP success alone can
+# precede the next Docker healthcheck; resuming autoheal then can restart an
+# otherwise ready container still marked unhealthy.
 wait_for_health() {
     local health_port="${1:-8080}"
-    print_message "Waiting for application to be ready..."
-    local max_attempts=60
-    local attempt=0
-    while [ $attempt -lt $max_attempts ]; do
-        if curl -sf "http://localhost:${health_port}/health" > /dev/null 2>&1; then
+    local timeout="${MYRIADE_UPDATE_TIMEOUT:-1800}"
+    local deadline=$((SECONDS + timeout))
+    local next_progress=$SECONDS
+    local container_id state remaining probe_timeout delay
+    container_id=$(docker compose ps --all -q myriade) || return 1
+    if [ -z "$container_id" ]; then
+        print_error "Myriade container was not created."
+        return 1
+    fi
+    print_message "Waiting up to ${timeout}s for startup and database migrations..."
+    while [ "$SECONDS" -lt "$deadline" ]; do
+        state=$(docker inspect --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_id") || return 1
+        case "$state" in
+            exited\ *|dead\ *|restarting\ *)
+                print_error "Myriade stopped or is restarting (${state}); check: sudo docker compose logs myriade"
+                return 1
+                ;;
+        esac
+        remaining=$((deadline - SECONDS))
+        [ "$remaining" -gt 0 ] || break
+        probe_timeout=5
+        [ "$remaining" -ge "$probe_timeout" ] || probe_timeout=$remaining
+        if { [ "$state" = "running healthy" ] || [ "$state" = "running none" ]; } \
+            && curl -sf --connect-timeout "$probe_timeout" --max-time "$probe_timeout" \
+                "http://localhost:${health_port}/health" > /dev/null 2>&1; then
             print_message "Application is healthy and responding on port ${health_port}"
             return 0
         fi
-        attempt=$((attempt + 1))
-        if [ $attempt -eq $max_attempts ]; then
-            print_warning "Application may not be ready yet. Check logs with: sudo docker compose logs myriade"
-            return 1
+        if [ "$SECONDS" -ge "$next_progress" ]; then
+            print_message "Still waiting (${state}); migrations may be in progress. Logs: sudo docker compose logs -f myriade"
+            next_progress=$((SECONDS + 30))
         fi
-        sleep 2
+        remaining=$((deadline - SECONDS))
+        [ "$remaining" -gt 0 ] || break
+        delay=2
+        [ "$remaining" -ge "$delay" ] || delay=$remaining
+        sleep "$delay"
     done
+    print_error "Application did not become ready within ${timeout}s. The container has been left running; check: sudo docker compose logs -f myriade"
+    return 1
 }
 
 env_file_has_value() {
@@ -254,6 +346,14 @@ do_update() {
 
     cd "$install_dir"
 
+    # Validate before pulling images or stopping services. Keep arithmetic
+    # bounded and reject zero, negative values and malformed shell input.
+    local timeout="${MYRIADE_UPDATE_TIMEOUT:-1800}"
+    if ! [[ "$timeout" =~ ^[1-9][0-9]{0,4}$ ]] || [ "$timeout" -gt 86400 ]; then
+        print_error "MYRIADE_UPDATE_TIMEOUT must be an integer between 1 and 86400 seconds."
+        return 1
+    fi
+
     local sandbox_enabled=0
     if [ -n "${SANDBOX_TOKEN:-}" ] || env_file_has_value "$install_dir/.env" "SANDBOX_TOKEN"; then
         sandbox_enabled=1
@@ -300,12 +400,25 @@ do_update() {
 
     sync_nginx_config
 
-    print_message "Restarting myriade..."
-    local app_services=(myriade)
     if compose_has_service "" "autoheal"; then
-        app_services+=(autoheal)
+        print_message "Stopping autoheal while startup migrations run..."
+        trap update_exit EXIT
+        trap 'exit 130' INT
+        trap 'exit 143' TERM
+        docker compose stop autoheal || return $?
+        AUTOHEAL_SUSPENDED=1
     fi
-    docker compose up -d --no-build "${app_services[@]}"
+    print_message "Restarting myriade..."
+    docker compose up -d --no-build myriade || return $?
+
+    # Do this before updating optional services: failures or slow pulls there
+    # must not postpone readiness checks and resuming the app's supervisor.
+    wait_for_health "$(get_health_port "$install_dir/.env")" || return $?
+    if [ "$AUTOHEAL_SUSPENDED" -eq 1 ]; then
+        print_message "Application is ready; starting autoheal..."
+        docker compose up -d --no-build --no-deps autoheal || return $?
+        AUTOHEAL_SUSPENDED=0
+    fi
 
     if [ "$logging_was_running" -eq 1 ]; then
         print_message "Restarting logging..."
@@ -339,29 +452,40 @@ do_update() {
     docker image prune -f --filter 'until=24h' > /dev/null &
     local cleanup_pid=$!
 
-    local health_status=0
-    wait_for_health "$(get_health_port "$install_dir/.env")" || health_status=$?
     wait "$cleanup_pid" || print_warning "Could not clean up old Docker images"
-    if [ "$health_status" -ne 0 ]; then
-        return "$health_status"
-    fi
 
     echo ""
     print_message "Update complete!"
 }
 
-# Normalize version: add 'v' prefix if user provides a number without it
-VERSION="${1:-latest}"
-if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+ ]]; then
-    VERSION="v$VERSION"
-fi
+main() {
+    # Listing versions is read-only. The skip flag also prevents a second
+    # download after exec and supports explicitly managed/offline installations.
+    if [ "${1:-}" != "versions" ] && [ "${MYRIADE_SKIP_SELF_UPDATE:-0}" != "1" ]; then
+        local refresh_status=0
+        self_update || refresh_status=$?
+        case "$refresh_status" in
+            0) ;;
+            10) MYRIADE_SKIP_SELF_UPDATE=1 exec bash "$SCRIPT_PATH" "$@" ;;
+            *) return "$refresh_status" ;;
+        esac
+    fi
 
-case "$VERSION" in
-    versions)
-        list_versions
-        ;;
-    *)
-        check_version "$VERSION"
-        do_update "$VERSION"
-        ;;
-esac
+    # Normalize version: add 'v' prefix if user provides a number without it
+    local version="${1:-latest}"
+    if [[ "$version" =~ ^[0-9]+\.[0-9]+ ]]; then
+        version="v$version"
+    fi
+
+    case "$version" in
+        versions) list_versions ;;
+        *)
+            check_version "$version"
+            do_update "$version"
+            ;;
+    esac
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi
