@@ -130,6 +130,14 @@ switch_to_nginx_mode() {
 }
 
 # Function to install nginx config from template
+# Real client IP behind Cloudflare (only trusted from Cloudflare's ranges)
+install_cloudflare_realip_config() {
+    if [ -f "${INSTALL_DIR}/setup/nginx-cloudflare-realip.conf" ]; then
+        sudo mkdir -p /etc/nginx/conf.d
+        sudo cp "${INSTALL_DIR}/setup/nginx-cloudflare-realip.conf" /etc/nginx/conf.d/cloudflare-realip.conf
+    fi
+}
+
 install_nginx_config() {
     local cert_path="$1"
     local key_path="$2"
@@ -141,6 +149,8 @@ install_nginx_config() {
 
     # Ensure directories exist
     sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+
+    install_cloudflare_realip_config
 
     # Backup existing config if present
     if [ -f "/etc/nginx/sites-available/myriade" ]; then
@@ -239,6 +249,8 @@ install_nginx_http_config() {
     print_message "Installing HTTP proxy config for Let's Encrypt..."
 
     sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+
+    install_cloudflare_realip_config
 
     sudo tee /etc/nginx/sites-available/myriade > /dev/null <<EOF
 server {
