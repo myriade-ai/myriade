@@ -20,6 +20,10 @@ spec:
         app.kubernetes.io/name: myriade
         app.kubernetes.io/component: sandbox
     spec:
+      # Images are private: create this Secret from your registry key first
+      # (see README).
+      imagePullSecrets:
+        - name: myriade-registry
       automountServiceAccountToken: false
       enableServiceLinks: false
       # Serial isolation needs the runner to be PID 1 of its container: never
@@ -34,7 +38,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: sandbox
-          image: myriadeai/sandbox
+          image: europe-docker.pkg.dev/ada-intelligence-436410/myriade/sandbox
           ports:
             - name: http
               containerPort: 8080

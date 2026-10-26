@@ -20,6 +20,18 @@ and user namespaces).
 1. Provide PostgreSQL (a managed instance is recommended) reachable from the cluster.
 2. Create the Secret from `secret.example.yaml` (never commit the filled-in copy):
    `kubectl apply -f my-secret.yaml`
+   and the pull Secret from the read-only registry key Myriade gave you (images
+   are private):
+   ```
+   kubectl create secret docker-registry myriade-registry \
+     --docker-server=europe-docker.pkg.dev \
+     --docker-username=_json_key \
+     --docker-password="$(cat registry-key.json)"
+   ```
+   Every image is signed; check a release before rolling it out with the public
+   key pinned in `setup/registry.sh`
+   (`cosign verify --key cosign.pub --insecure-ignore-tlog=true <image>@<digest>`),
+   or enforce it with your admission policy.
 3. Pin the release (`images[].newTag` in `base/kustomization.yaml`, or in your own
    overlay; use the same version for both images), then apply:
    ```
@@ -88,7 +100,7 @@ three things the Compose override does, in Kubernetes terms:
 - `seccompProfile: Localhost` → install the profile shipped in the app image on
   every node at `<kubelet seccomp root>/myriade/dbt-sandbox.json` (default root:
   `/var/lib/kubelet/seccomp`):
-  `docker run --rm --entrypoint cat myriadeai/myriade:<version> /app/docker/seccomp/dbt-sandbox.json > dbt-sandbox.json`
+  `docker run --rm --entrypoint cat europe-docker.pkg.dev/ada-intelligence-436410/myriade/myriade:<version> /app/docker/seccomp/dbt-sandbox.json > dbt-sandbox.json`
 - `appArmorProfile: Unconfined`.
 - `procMount: Unmasked`, which requires `hostUsers: false` (user namespaces).
 
