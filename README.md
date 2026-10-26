@@ -33,11 +33,15 @@ The goal is to give companies a trusted AI analyst that can turn enterprise data
 
 ## Installation
 
+Myriade is self-hosted on request: contact us through the [demo link](https://calendly.com/myriade/30min) below. Images are private; we send each customer one line that carries their read-only access key.
+
 Requires Ubuntu 20.04+ or Debian 11+.
 
 ```bash
-curl -fsSL https://install.myriade.ai | bash
+curl -fsSL https://install.myriade.ai | bash -s -- --key <your key>
 ```
+
+The same line updates an existing install and moves it to the private registry.
 
 Open:
 
@@ -51,7 +55,7 @@ Add SSL:
 sudo /opt/myriade/setup/install_certificate.sh YOUR_DOMAIN.com
 ```
 
-For detailed instructions (Docker quick start, recommended infrastructure, SSL options, updates, troubleshooting), see the [Installation Guide](setup/README.md).
+For detailed instructions (recommended infrastructure, SSL options, updates, troubleshooting), see the [Installation Guide](setup/README.md).
 
 ## Links
 
