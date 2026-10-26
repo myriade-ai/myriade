@@ -8,7 +8,7 @@ resources:
   - networkpolicy.yaml
 images:
   # Pin both to the same release.
-  - name: myriadeai/myriade
+  - name: europe-docker.pkg.dev/ada-intelligence-436410/myriade/myriade
     newTag: latest
-  - name: myriadeai/sandbox
+  - name: europe-docker.pkg.dev/ada-intelligence-436410/myriade/sandbox
     newTag: latest

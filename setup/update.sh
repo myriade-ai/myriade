@@ -10,8 +10,10 @@
 
 set -e
 
-IMAGE="myriadeai/myriade"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=registry.sh
+. "$SCRIPT_DIR/registry.sh"
+IMAGE="$MYRIADE_IMAGE"
 
 # Colors for output
 RED='\033[0;31m'
@@ -59,34 +61,39 @@ find_install_dir() {
     exit 1
 }
 
-# List available versions from Docker Hub
 list_versions() {
+    local install_dir
+    install_dir=$(find_install_dir)
     echo "📦 Available versions for $IMAGE:"
     echo ""
-    curl -s "https://hub.docker.com/v2/repositories/${IMAGE}/tags?page_size=20&ordering=last_updated" \
-        | grep -o '"name":"[^"]*"' \
-        | sed 's/"name":"//;s/"//' \
-        | head -20
+    local versions
+    if ! versions=$(registry_versions "$install_dir"); then
+        print_error "Could not list versions: no access to $MYRIADE_REGISTRY (missing $install_dir/$MYRIADE_REGISTRY_KEY_FILE?)"
+        exit 1
+    fi
+    echo "$versions" | tail -20
     echo ""
-    echo "Showing latest 20 versions. See all at: https://hub.docker.com/r/${IMAGE}/tags"
+    echo "Showing the latest 20 versions."
 }
 
-# Check if a version exists in Docker Hub
 check_version() {
     local version="$1"
     if [ "$version" = "latest" ]; then
         return 0
     fi
     print_message "Checking if version $version exists..."
-    local status
-    status=$(curl -s -o /dev/null -w "%{http_code}" "https://hub.docker.com/v2/repositories/${IMAGE}/tags/${version}")
-    if [ "$status" != "200" ]; then
-        print_error "Version '$version' not found on Docker Hub"
-        echo ""
-        echo "Run './update.sh versions' to see available versions"
-        exit 1
-    fi
-    print_message "Version $version found"
+    local status=0
+    registry_has_version "$(find_install_dir)" "$version" || status=$?
+    case "$status" in
+        0) print_message "Version $version found" ;;
+        2) print_warning "Cannot query $MYRIADE_REGISTRY; the pull will tell" ;;
+        *)
+            print_error "Version '$version' not found in $MYRIADE_REGISTRY"
+            echo ""
+            echo "Run './update.sh versions' to see available versions"
+            exit 1
+            ;;
+    esac
 }
 
 # Wait for health check
@@ -274,6 +281,16 @@ do_update() {
 
     export MYRIADE_VERSION="$version"
 
+    # Installs from before the move to Artifact Registry name the Docker Hub
+    # image: point that one line at the image verify_image checks below, so
+    # what is pulled, checked and started is the same image.
+    if grep -q "image: myriadeai/myriade:" docker-compose.yml 2>/dev/null; then
+        print_message "Pointing docker-compose.yml at ${IMAGE}..."
+        sed -i.bak "s|image: myriadeai/myriade:|image: ${IMAGE}:|" docker-compose.yml
+    fi
+
+    registry_login "$install_dir"
+
     # Existing installs already know about the sandbox service, so pull both
     # independent images concurrently. Fresh/older installs first need the
     # override extracted from the app image and use the serial fallback below.
@@ -295,6 +312,15 @@ do_update() {
         docker compose pull myriade
     fi
 
+    # Check what was pulled before anything runs it, the sandbox config sync
+    # below included.
+    print_message "Verifying image signature..."
+    if ! verify_image "$install_dir" "${IMAGE}:${version}"; then
+        wait "$sandbox_pull_pid" 2>/dev/null || true
+        print_error "The Myriade image is not signed by Myriade; nothing was restarted"
+        return 1
+    fi
+
     print_message "Syncing host-side sandbox config from image..."
     sync_sandbox_config "$install_dir"
 
@@ -304,8 +330,12 @@ do_update() {
     local app_services=(myriade)
     if compose_has_service "" "autoheal"; then
         app_services+=(autoheal)
+        # Pinned by digest in the override; pulled here because the start
+        # below never pulls (it must not re-pull the verified app tag).
+        docker compose pull autoheal || print_warning "Could not pull the autoheal image"
     fi
-    docker compose up -d --no-build "${app_services[@]}"
+    # --pull never: start the image just verified, even when the tag moved since.
+    docker compose up -d --no-build --pull never "${app_services[@]}"
 
     if [ "$logging_was_running" -eq 1 ]; then
         print_message "Restarting logging..."
@@ -324,15 +354,22 @@ do_update() {
     # succeeded) but must be visible, not swallowed.
     if [ "$sandbox_enabled" -eq 1 ]; then
         print_message "Updating code-execution sandbox..."
+        local sandbox_pulled=0
         if [ -n "$sandbox_pull_pid" ]; then
-            wait "$sandbox_pull_pid" \
+            wait "$sandbox_pull_pid" && sandbox_pulled=1 \
                 || print_warning "Could not pull the sandbox image; the runner keeps its current (possibly outdated) image"
         else
-            docker compose --profile code-execution pull sandbox \
+            docker compose --profile code-execution pull sandbox && sandbox_pulled=1 \
                 || print_warning "Could not pull the sandbox image; the runner keeps its current (possibly outdated) image"
         fi
-        docker compose --profile code-execution up -d --no-build sandbox \
-            || print_warning "Could not restart the sandbox; check: docker compose --profile code-execution logs sandbox"
+        if [ "$sandbox_pulled" -ne 1 ]; then
+            :
+        elif ! verify_image "$install_dir" "${MYRIADE_SANDBOX_IMAGE}:${version}"; then
+            print_warning "The sandbox image is not signed by Myriade; the runner was not restarted"
+        else
+            docker compose --profile code-execution up -d --no-build --pull never sandbox \
+                || print_warning "Could not restart the sandbox; check: docker compose --profile code-execution logs sandbox"
+        fi
     fi
 
     print_message "Cleaning up old dangling images..."
