@@ -288,6 +288,12 @@ do_update() {
         print_message "Pointing docker-compose.yml at ${IMAGE}..."
         sed -i.bak "s|image: myriadeai/myriade:|image: ${IMAGE}:|" docker-compose.yml
     fi
+    # Same for the sandbox line of the override: it is pulled below before
+    # sync_sandbox_config refreshes the override from the image.
+    if grep -q "image: myriadeai/sandbox:" docker-compose.override.yml 2>/dev/null; then
+        print_message "Pointing docker-compose.override.yml at ${MYRIADE_SANDBOX_IMAGE}..."
+        sed -i.bak "s|image: myriadeai/sandbox:|image: ${MYRIADE_SANDBOX_IMAGE}:|" docker-compose.override.yml
+    fi
 
     registry_login "$install_dir"
 
