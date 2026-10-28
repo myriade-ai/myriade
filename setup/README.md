@@ -114,6 +114,27 @@ applied automatically on startup.
 `MYRIADE_SKIP_SIGNATURE_CHECK=1` skips the signature check, only for rolling
 back to a version released before images were signed.
 
+## Honeypot
+
+Myriade sets traps that no legitimate use reaches: routes announced only in
+`robots.txt`, a decoy token, and the paths generic scanners try (`/.env`,
+`/wp-login.php`, `/.git/…`). An address that springs one without a valid
+session gets a `403` on every following request. Someone signed in is never
+blocked, only reported.
+
+- A scanner path blocks the address for 7 days on this instance only.
+- A decoy route or the decoy token blocks it for 30 days on every Myriade
+  instance: the address is sent to Myriade, which alerts its team and shares
+  the block. Private addresses and those of Myriade instances are never
+  blocked.
+
+Two settings in `/opt/myriade/.env` (then `docker compose up -d`):
+
+| Variable | Effect |
+|----------|--------|
+| `HONEYPOT_SHARING=off` | Nothing sent to Myriade, no shared blocklist pulled; the traps still block on this instance |
+| `HONEYPOT_ALLOWLIST=203.0.113.0/24,…` | CIDRs the traps ignore, e.g. a pentest announced in advance |
+
 ## Troubleshooting
 
 ### Check application status
