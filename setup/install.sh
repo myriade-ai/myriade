@@ -265,7 +265,7 @@ if [ -f "$INSTALL_DIR/.env" ] && [ -f "$INSTALL_DIR/docker-compose.yml" ]; then
     if [ -n "$REGISTRY_KEY" ]; then
         save_registry_key "$INSTALL_DIR" "${SUDO[@]}"
     fi
-    exec "${SUDO[@]}" bash "$INSTALL_DIR/setup/update.sh"
+    exec "${SUDO[@]}" env MYRIADE_SETUP_REFRESHED=1 bash "$INSTALL_DIR/setup/update.sh"
 fi
 
 # ---------------------------------------------------------------------------
