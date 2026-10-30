@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Optional: ships the logs of the Myriade pods to BetterStack. Applied on its
+# own, next to the base (see ../README.md). The `betterstack` Secret is not part
+# of it: create it after the first apply, the agent waits for it.
+namespace: myriade-logs
+resources:
+  - vector.yaml
+configMapGenerator:
+  - name: vector
+    files:
+      - vector.toml
