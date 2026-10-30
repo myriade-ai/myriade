@@ -281,6 +281,16 @@ do_update() {
 
     export MYRIADE_VERSION="$version"
 
+    # Images are private: without a way in, stop before anything changes
+    # rather than fail on an "Unauthenticated" pull halfway through.
+    if ! registry_credentials "$install_dir" \
+        && ! grep -qs "$MYRIADE_REGISTRY" "${DOCKER_CONFIG:-$HOME/.docker}/config.json"; then
+        print_error "No access to $MYRIADE_REGISTRY: nothing was pulled nor restarted"
+        echo "Save the key Myriade sent you as $install_dir/$MYRIADE_REGISTRY_KEY_FILE, or rerun:"
+        echo "  curl -fsSL https://install.myriade.ai | bash -s -- --key <key>"
+        return 1
+    fi
+
     # Installs from before the move to Artifact Registry name the Docker Hub
     # image: point that one line at the image verify_image checks below, so
     # what is pulled, checked and started is the same image.
@@ -399,11 +409,44 @@ if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+ ]]; then
     VERSION="v$VERSION"
 fi
 
+# An update.sh older than the image it pulls runs that image's config with
+# outdated steps: the pre-Artifact-Registry script synced an override naming
+# the private sandbox image, then pulled it without logging in. So setup/ is
+# first replaced by the scripts of the release being installed, which then run.
+refresh_setup_scripts() {
+    local version="$1"
+    if [ -n "${MYRIADE_SETUP_REFRESHED:-}" ]; then
+        return 0
+    fi
+    local install_dir
+    install_dir=$(find_install_dir)
+    # Only an install's own setup/, never a repository checkout.
+    if [ "$(cd "$install_dir/setup" 2>/dev/null && pwd)" != "$SCRIPT_DIR" ]; then
+        return 0
+    fi
+    local url="${MYRIADE_DOWNLOAD_URL:-https://install.myriade.ai/myriade-bi-latest.tar.gz}"
+    if [ "$version" != "latest" ]; then
+        url="https://github.com/myriade-ai/myriade/releases/download/${version#v}/myriade-bi-${version#v}.tar.gz"
+    fi
+    print_message "Refreshing setup scripts for $version..."
+    local tmp
+    tmp=$(mktemp -d)
+    if ! curl -fsSL "$url" | tar -xz -C "$tmp" --strip-components=1 myriade-bi/setup 2>/dev/null; then
+        rm -rf "$tmp"
+        print_warning "Could not download the setup scripts of $version; running the ones in place"
+        return 0
+    fi
+    cp -R "$tmp/setup/." "$install_dir/setup/"
+    rm -rf "$tmp"
+    MYRIADE_SETUP_REFRESHED=1 exec bash "$install_dir/setup/update.sh" "$version"
+}
+
 case "$VERSION" in
     versions)
         list_versions
         ;;
     *)
+        refresh_setup_scripts "$VERSION"
         check_version "$VERSION"
         do_update "$VERSION"
         ;;
