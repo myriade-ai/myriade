@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: myriade-logs
+  labels:
+    app.kubernetes.io/name: myriade-logs
+    # The agent reads the node's /var/log: hostPath volumes need `privileged`.
+    pod-security.kubernetes.io/enforce: privileged
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vector
+  labels:
+    app.kubernetes.io/name: myriade-logs
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: myriade-logs-vector
+  labels:
+    app.kubernetes.io/name: myriade-logs
+rules:
+  # kubernetes_logs discovers the pods of its node and their metadata.
+  - apiGroups: [""]
+    resources: [namespaces, nodes, pods]
+    verbs: [list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: myriade-logs-vector
+  labels:
+    app.kubernetes.io/name: myriade-logs
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: myriade-logs-vector
+subjects:
+  - kind: ServiceAccount
+    name: vector
+    namespace: myriade-logs
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: vector
+  labels:
+    app.kubernetes.io/name: myriade-logs
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: myriade-logs
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: myriade-logs
+    spec:
+      serviceAccountName: vector
+      # Lets buffered lines go out when the pod is replaced.
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: vector
+          # Same pin as docker-compose.yml.
+          image: timberio/vector:0.60.0-alpine@sha256:1c6a6c4c5c9de08df357fa8adbe72e5a7abcea458b0bd82de0b14ac9b79d5b31
+          args: ["--config", "/etc/vector/vector.toml"]
+          envFrom:
+            - secretRef:
+                name: betterstack
+          env:
+            # Vector >= 0.57 no longer interpolates ${VARS} in config files
+            # unless this is set.
+            - name: VECTOR_DANGEROUSLY_ALLOW_ENV_VAR_INTERPOLATION
+              value: "true"
+            - name: VECTOR_SELF_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: VECTOR_SELF_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: VECTOR_SELF_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: config
+              mountPath: /etc/vector
+              readOnly: true
+            - name: var-log
+              mountPath: /var/log
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/vector
+          # Root reads the root-owned files of /var/log/pods; nothing else.
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: config
+          configMap:
+            name: vector
+        - name: var-log
+          hostPath:
+            path: /var/log
+        # File read positions, so a new pod neither resends nor skips lines.
+        - name: data
+          hostPath:
+            path: /var/lib/myriade-logs
+            type: DirectoryOrCreate

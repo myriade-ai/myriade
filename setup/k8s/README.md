@@ -9,6 +9,7 @@ them to your own GitOps tooling.
 base/              app + sandbox + NetworkPolicy (Pod Security "restricted"-compatible)
 overlays/bwrap/    per-job bubblewrap confinement for the sandbox (needs node + cluster support)
 overlays/bwrap-dbt/  the same, plus confined dbt in the app pod (needs idmap-capable volumes)
+logging/           optional: ships the Myriade pods' logs to BetterStack
 secret.example.yaml
 ```
 
@@ -89,8 +90,32 @@ between the app and the sandbox pods.
 - **Stuck pod.** If a serial runner cannot wipe what a job left behind, it refuses
   jobs and fails its health checks (503), including after a container restart
   (`/tmp` is an emptyDir that survives it): delete the pod to get a fresh one.
-- **Logs.** Both pods log to stdout; use your cluster's log collection. The sandbox
-  needs no outbound access for it.
+- **Logs.** Both pods log to stdout; use your cluster's log collection, or
+  [`logging/`](#shipping-logs-to-betterstack). The sandbox needs no outbound access
+  for either.
+
+## Shipping logs to BetterStack
+
+`logging/` runs a Vector agent on every node, in its own `myriade-logs` namespace. It
+reads the logs of the pods labelled `app.kubernetes.io/name=myriade` (the app and the
+sandbox, in any namespace) and no others. Myriade gives you the ingest URL and token
+of your instance's source.
+
+```
+kubectl apply -k logging
+kubectl -n myriade-logs create secret generic betterstack \
+  --from-literal=BETTERSTACK_INGEST_URI='https://<ingest host>' \
+  --from-literal=BETTERSTACK_SOURCE_TOKEN='<token>'
+kubectl -n myriade-logs rollout status ds/vector
+```
+
+The first lines arrive about a minute later. If your cluster restricts egress, allow
+the `myriade-logs` pods outbound HTTPS to the ingest host.
+
+The agent needs `hostPath` volumes, hence a `privileged` Pod Security level on its
+namespace, and runs as root with no capabilities, to read `/var/log/pods`. On tainted
+nodes, add the matching tolerations. It expects containerd or CRI-O: with cri-dockerd,
+log files are symlinks into `/var/lib/docker/containers`, which is not mounted.
 
 ## The `bwrap` overlay
 

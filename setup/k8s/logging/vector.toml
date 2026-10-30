@@ -1,0 +1,30 @@
+# The Kubernetes counterpart of /vector.toml. No default ingest URI here: without
+# a source of its own, an instance would ship its logs to another one's.
+
+[sources.myriade_pods]
+type = "kubernetes_logs"
+# The app and the sandbox, whatever their namespace; other workloads stay out.
+extra_label_selector = "app.kubernetes.io/name=myriade"
+
+[transforms.parse_logs]
+type = "remap"
+inputs = ["myriade_pods"]
+source = '''
+.service = .kubernetes.container_name
+.dt = now()
+# Billed by volume, and a pod's annotations can hold whole manifests.
+del(.kubernetes.pod_annotations)
+del(.kubernetes.node_labels)
+del(.kubernetes.namespace_labels)
+'''
+
+[sinks.betterstack]
+type = "http"
+inputs = ["parse_logs"]
+uri = "${BETTERSTACK_INGEST_URI}"
+encoding.codec = "json"
+method = "post"
+
+[sinks.betterstack.auth]
+strategy = "bearer"
+token = "${BETTERSTACK_SOURCE_TOKEN}"
