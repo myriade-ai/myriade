@@ -90,6 +90,10 @@ between the app and the sandbox pods.
 - **Stuck pod.** If a serial runner cannot wipe what a job left behind, it refuses
   jobs and fails its health checks (503), including after a container restart
   (`/tmp` is an emptyDir that survives it): delete the pod to get a fresh one.
+- **MotherDuck memory and disk.** DuckDB runs inside the app pod. Per MotherDuck
+  connection it uses up to `DUCKDB_MEMORY_LIMIT` (512MB) of RAM, then spills to `/tmp`
+  up to `DUCKDB_MAX_TEMP_DIRECTORY_SIZE` (10GB). Keep that much disk on the node, or
+  lower it on the `myriade` container; a query past the cap gets an error.
 - **Logs.** Both pods log to stdout; use your cluster's log collection, or
   [`logging/`](#shipping-logs-to-betterstack). The sandbox needs no outbound access
   for either.
