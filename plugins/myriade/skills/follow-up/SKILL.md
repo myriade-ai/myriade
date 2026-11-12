@@ -14,7 +14,8 @@ topic's next reading — will see.
 ## 1. Read the guide once
 
 If `myriade_guide` has not been read in this conversation, read it before the
-first write: its monitoring part says which tool reads and writes each object.
+first write: its monitoring part says which tool reads and writes each object,
+and it carries the organisation's language and instructions a note follows.
 
 ## 2. Find the matter
 

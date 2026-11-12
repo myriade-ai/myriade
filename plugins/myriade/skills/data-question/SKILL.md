@@ -12,9 +12,10 @@ generic method, and its reports and alerts are what the team already knows.
 ## 1. Read the guide once
 
 If `myriade_guide` has not been read in this conversation, read it before the
-first query. It carries the analyst's own rules for searching, querying and
-answering, the instance URL, and what the person may do. Do not restate it to
-the person.
+first query. It carries what Myriade's own chat starts from — the
+organisation's language, instructions and memory, who the person is — with
+the analyst's own rules for searching, querying and answering, the instance
+URL, and what the person may do. Do not restate it to the person.
 
 ## 2. Search, and read what comes back in this order
 
