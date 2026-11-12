@@ -1,0 +1,12 @@
+{
+  "name": "myriade",
+  "description": "Myriade's plugins for Claude",
+  "owner": { "name": "Myriade", "url": "https://myriade.ai" },
+  "plugins": [
+    {
+      "name": "myriade",
+      "source": "./plugins/myriade",
+      "description": "Answer questions on your organisation's data with Myriade's connector and its analyst's method."
+    }
+  ]
+}

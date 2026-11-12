@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "myriade": {
+      "type": "http",
+      "url": "https://app.myriade.ai/mcp"
+    }
+  }
+}

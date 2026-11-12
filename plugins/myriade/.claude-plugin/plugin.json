@@ -1,0 +1,10 @@
+{
+  "name": "myriade",
+  "displayName": "Myriade",
+  "description": "Answer questions on your organisation's data with Myriade: the connector to its databases and catalog, and the method Myriade's own analyst follows — find the definition before the SQL, cite what the figure rests on, follow up on alerts and topics where the team will read it.",
+  "author": { "name": "Myriade", "url": "https://myriade.ai" },
+  "homepage": "https://myriade.ai",
+  "privacyPolicyUrl": "https://www.myriade.ai/privacy",
+  "license": "MIT",
+  "keywords": ["data", "analytics", "sql", "data-catalog", "semantic-layer", "monitoring"]
+}
