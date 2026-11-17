@@ -32,6 +32,13 @@ if [ -z "${DOCKER+x}" ]; then
     DOCKER=(docker)
 fi
 
+# Check the pulled image on this host before Compose replaces a healthy database.
+check_postgres_image() {
+    local image
+    image=$("${DOCKER[@]}" compose config --images db) || return 1
+    "${DOCKER[@]}" run --rm --pull never --network none --read-only --entrypoint id "$image" -u postgres
+}
+
 # Sets REGISTRY_USER / REGISTRY_PASSWORD; returns 1 when neither a key file
 # nor a GCE service account is available.
 registry_credentials() {
