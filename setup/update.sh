@@ -342,6 +342,14 @@ do_update() {
 
     sync_nginx_config
 
+    # Compose may recreate dependencies even when only myriade is requested.
+    # Validate the host's configured PostgreSQL image before replacing services.
+    if compose_has_service "" "db" && ! check_postgres_image; then
+        wait "$sandbox_pull_pid" 2>/dev/null || true
+        print_error "PostgreSQL image validation failed; services were not restarted"
+        return 1
+    fi
+
     print_message "Restarting myriade..."
     local app_services=(myriade)
     if compose_has_service "" "autoheal"; then
@@ -433,8 +441,9 @@ refresh_setup_scripts() {
     tmp=$(mktemp -d)
     if ! curl -fsSL "$url" | tar -xz -C "$tmp" --strip-components=1 myriade-bi/setup 2>/dev/null; then
         rm -rf "$tmp"
-        print_warning "Could not download the setup scripts of $version; running the ones in place"
-        return 0
+        print_error "Could not download the setup scripts of $version; update aborted. Retry when the release download is available."
+        echo "If this host cannot reach $url, rerun with MYRIADE_SETUP_REFRESHED=1 to update with the scripts in place."
+        return 1
     fi
     cp -R "$tmp/setup/." "$install_dir/setup/"
     rm -rf "$tmp"
