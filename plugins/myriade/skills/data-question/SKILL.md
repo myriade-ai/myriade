@@ -9,13 +9,14 @@ Myriade holds this organisation's databases, its catalog and its definitions.
 For a question about their data it is the source: its definitions win over a
 generic method, and its reports and alerts are what the team already knows.
 
-## 1. Read the guide once
+## 1. Start from the organisation's context
 
-If `myriade_guide` has not been read in this conversation, read it before the
-first query. It carries what Myriade's own chat starts from — the
-organisation's language, instructions and memory, who the person is — with
-the analyst's own rules for searching, querying and answering, the instance
-URL, and what the person may do. Do not restate it to the person.
+If `myriade_list_databases` has not been called in this conversation, call it
+before the first query: besides the database ids, its `context` carries what
+Myriade's own chat starts from — the organisation's language, instructions and
+memory, who the person is and their role. Apply it; do not restate it to the
+person. `myriade_guide` explains Myriade itself: read it only when the person
+asks about the product, not for a data question.
 
 ## 2. Search, and read what comes back in this order
 
@@ -44,7 +45,7 @@ Then, before any SQL:
 
 ## 4. Answer
 
-Follow the guide's answer rules (figure first, the assumption in one line).
+Figure first, the assumption made (definition, period, filter) in one line.
 Then cite what the figure rests on, as links the person can open:
 
 - the saved query: `query_url` from the result, else `<instance>/query/<query_id>`;
@@ -58,8 +59,9 @@ ventes », the topic « Ventes magasins »), not by its table or uuid alone.
 When the data contradicted or completed the catalog — a stale model, a
 column's real meaning, a join, a filter everyone needs — say it in one line and
 offer to record it in Myriade. Write it only once the person agrees, after
-reading the server's documentation skill (`myriade_read_skill`); the guide
-says which catalog tool applies to their rights.
+reading the server's documentation skill
+(`myriade_read_skill("catalog-documentation")`), which says which catalog tool
+applies to their rights.
 
 When the analysis is worth keeping or sharing, offer a Myriade report
 (`myriade_create_report`) rather than a local file: the team finds it in

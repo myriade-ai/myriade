@@ -11,11 +11,12 @@ written by Myriade; the brief is each person's page over all of it. What the
 team writes there is what the next reader — a colleague, the brief, the
 topic's next reading — will see.
 
-## 1. Read the guide once
+## 1. Start from the organisation's context
 
-If `myriade_guide` has not been read in this conversation, read it before the
-first write: its monitoring part says which tool reads and writes each object,
-and it carries the organisation's language and instructions a note follows.
+If `myriade_list_databases` has not been called in this conversation, call it
+before the first write: its `context` carries the organisation's language and
+instructions a note follows. Read `myriade_guide` only when the person asks how
+Myriade works or this skill does not settle which object to write on.
 
 ## 2. Find the matter
 
