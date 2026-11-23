@@ -1,0 +1,75 @@
+# Myriade Software License Agreement
+
+Copyright (c) 2025 Catalys SAS. All rights reserved.
+
+## 1. Definitions
+
+"Software" means the Myriade platform, including all source code, object code,
+documentation, and related materials.
+
+"Licensor" means Catalys SAS.
+
+"Free Tier" means the limited functionality available without a paid subscription,
+as defined on https://www.myriade.ai/pricing.
+
+## 2. License Grant
+
+Subject to the terms of this Agreement, Licensor grants you a limited,
+non-exclusive, non-transferable license to:
+
+a) Use the Software's Free Tier features for personal or commercial purposes;
+
+b) Run the official Docker image (myriadeai/myriade) for evaluation and
+   Free Tier usage;
+
+c) Access and review the source code for transparency and security audit
+   purposes.
+
+## 3. Restrictions
+
+You may NOT:
+
+a) Copy, modify, or create derivative works of the Software;
+
+b) Distribute, sublicense, sell, or transfer the Software or any portion
+   thereof;
+
+c) Use the Software to create a competing product or service;
+
+d) Remove or alter any proprietary notices, labels, or marks;
+
+e) Circumvent any license key, authentication, or subscription enforcement
+   mechanisms;
+
+f) Use enterprise or advanced features without a valid paid subscription.
+
+## 4. Enterprise Features
+
+Access to enterprise and advanced features (including but not limited to
+Catalog, Modeling, Quality Reviews, and team collaboration) requires a valid
+paid subscription. Contact sales@myriade.ai for licensing options.
+
+## 5. Disclaimer of Warranties
+
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+## 6. Limitation of Liability
+
+IN NO EVENT SHALL LICENSOR BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
+CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT OF OR RELATED TO THIS AGREEMENT
+OR THE USE OF THE SOFTWARE.
+
+## 7. Termination
+
+This license is effective until terminated. It will terminate automatically
+if you fail to comply with any term of this Agreement. Upon termination,
+you must cease all use of the Software and destroy any copies.
+
+## 8. General
+
+This Agreement constitutes the entire agreement between you and Licensor
+regarding the Software and supersedes all prior agreements and understandings.
+
+For questions about licensing, contact: legal@myriade.ai
