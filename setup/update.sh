@@ -367,9 +367,8 @@ do_update() {
             || print_warning "Could not restart logging; check: docker compose --profile logging logs vector"
     fi
 
-    # Update the code-execution sandbox only when the operator has opted in
-    # by setting SANDBOX_TOKEN in their .env. The sandbox service is
-    # profile-gated and lives in docker-compose.override.yml, so it is never
+    # Update the code-execution sandbox only when SANDBOX_TOKEN is set.
+    # The service is profile-gated in docker-compose.override.yml, so it is never
     # touched by `pull myriade` / `up -d myriade` above. The explicit pull
     # matters: `up -d` alone reuses whatever local image exists, so without
     # it the runner stays on the image it was first started with forever

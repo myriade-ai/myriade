@@ -30,6 +30,8 @@ curl -fsSL https://install.myriade.ai | bash -s -- --key <your key>
 This installs Myriade BI to `/opt/myriade` (the key is kept there as
 `registry-key.json`, mode 600), pulls the image with the key, checks that
 Myriade signed it (nothing starts otherwise), and starts it on port 8080.
+On a new installation, the script also generates a sandbox token in the
+private `.env` file, verifies the sandbox image, and starts the sandbox.
 
 On a server where Myriade is already installed, the same line refreshes the
 scripts in `/opt/myriade/setup` and runs the update: `.env` and
